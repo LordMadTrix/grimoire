@@ -8,6 +8,7 @@
   let isBlackout = $state(false);
   let fowShapes = $state<any[]>([]);
   let tokens = $state<any[]>([]);
+  let vaultPath = $state<string>('');
   let audioSrc = $state<string | null>(null);
   let audioVolume = $state(0.5);
 
@@ -20,6 +21,7 @@
     const unlistens: (() => void)[] = [];
 
     listen('set_player_map', (e: any) => { currentMap = e.payload.url; }).then(fn => unlistens.push(fn));
+    listen('sync_vault_path', (e: any) => { vaultPath = e.payload.path; }).then(fn => unlistens.push(fn));
     listen('toggle_player_grid', (e: any) => { showGrid = e.payload.show; }).then(fn => unlistens.push(fn));
     listen('toggle_player_blackout', (e: any) => { isBlackout = e.payload.active; }).then(fn => unlistens.push(fn));
     listen('update_fow', (e: any) => { fowShapes = e.payload; }).then(fn => unlistens.push(fn));
@@ -44,6 +46,7 @@
       gridEnabled={showGrid} 
       fowShapes={fowShapes}
       tokens={tokens}
+      vaultPath={vaultPath}
       isGM={false}
     />
   {:else}

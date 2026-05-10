@@ -14,6 +14,7 @@
     isGM = false,
     fowShapes = [],
     tokens = [],
+    vaultPath = '',
     vttMode = 'select',
     onFowUpdate = () => {},
     onTokenMove = () => {},
@@ -340,7 +341,12 @@
 
       if (token.imageUrl) {
         tokenSprite.visible = true;
-        const vaultPath = getVaultPath();
+        
+        if (!vaultPath) {
+           tokenSprite.visible = false;
+           return;
+        }
+
         const fullPath = vaultPath + '/' + token.imageUrl;
         // On s'assure que le chemin est propre pour Tauri
         const fullUrl = convertFileSrc(fullPath);

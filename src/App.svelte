@@ -9,17 +9,19 @@
   import InitiativeTracker from './components/InitiativeTracker.svelte';
   import AudioPlayer from './components/AudioPlayer.svelte';
   import GraphView from './components/GraphView.svelte';
-  import { openVault, reindex, openPlayerView, listMonitors, writeFile } from '$lib/api';
+  import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView } from '$lib/api';
   import type { MonitorInfo } from '$lib/api';
   import {
     vttStore,
     addGmFowShape, updateGmToken, syncStateToPlayerView, replaceGmToken, removeGmToken
   } from '$lib/stores/vtt.svelte';
-  import {
+  import { 
+    getVaultTree, setVaultTree, 
     getVaultPath, setVaultPath,
-    getVaultTree, setVaultTree,
-    getSearchOpen, setSearchOpen,
-    setActiveFile, setActiveContent, setIsDirty
+    getActiveFile, setActiveFile,
+    getActiveContent, setActiveContent,
+    getIsDirty, setIsDirty,
+    getSearchOpen, setSearchOpen 
   } from '$lib/stores/vault.svelte';
 
   // On utilise open() du plugin dialog pour le folder picker
@@ -51,6 +53,7 @@
     setVaultTree(tree);
     await reindex(vaultPath);
     localStorage.setItem('last_vault_path', vaultPath);
+    await emitToPlayerView('sync_vault_path', { path: vaultPath });
   }
 
   async function handleOpenVault() {
@@ -127,10 +130,12 @@
     showMonitorPicker = false;
     try {
       await openPlayerView(index);
-      statusMessage = `Vue joueur lancée sur l'écran ${index + 1}`;
-      setTimeout(() => syncStateToPlayerView(), 1500);
-      setTimeout(() => { statusMessage = ''; }, 3000);
-    } catch(err) {
+      showMonitorPicker = false;
+      // Synchroniser l'état initial
+      await emitToPlayerView('sync_vault_path', { path: getVaultPath() });
+      await emitToPlayerView('set_player_map', { url: vttStore.currentMap });
+      await emitToPlayerView('update_tokens', vttStore.tokens);
+    } catch (err) {
       console.error('Failed to open player view:', err);
       statusMessage = `Erreur VTT: ${err}`;
     }
@@ -300,6 +305,7 @@
             isGM={true}
             fowShapes={vttStore.fowShapes}
             tokens={vttStore.tokens}
+            vaultPath={getVaultPath()}
             vttMode={vttStore.mode}
             onFowUpdate={addGmFowShape}
             onTokenMove={updateGmToken}
