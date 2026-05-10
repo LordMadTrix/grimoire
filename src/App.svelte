@@ -24,6 +24,8 @@
 
   // On utilise open() du plugin dialog pour le folder picker
   import { open } from '@tauri-apps/plugin-dialog';
+  import { onMount } from 'svelte';
+  import { documentDir, join } from '@tauri-apps/api/path';
 
   let isLoading = $state(false);
   let statusMessage = $state('');
@@ -31,6 +33,25 @@
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
   let viewMode = $state<'editor' | 'graph'>('editor');
+
+  onMount(async () => {
+    const lastVault = localStorage.getItem('last_vault_path');
+    if (lastVault) {
+      try {
+        await loadVault(lastVault);
+      } catch {
+        localStorage.removeItem('last_vault_path');
+      }
+    }
+  });
+
+  async function loadVault(vaultPath: string) {
+    setVaultPath(vaultPath);
+    const tree = await openVault(vaultPath);
+    setVaultTree(tree);
+    await reindex(vaultPath);
+    localStorage.setItem('last_vault_path', vaultPath);
+  }
 
   async function handleOpenVault() {
     try {
@@ -46,20 +67,41 @@
       statusMessage = 'Chargement du vault...';
 
       const vaultPath = typeof selected === 'string' ? selected : selected[0];
-      setVaultPath(vaultPath);
+      await loadVault(vaultPath);
 
-      // Charger l'arbre de fichiers
-      const tree = await openVault(vaultPath);
-      setVaultTree(tree);
-
-      // Indexer le vault
-      statusMessage = 'Indexation en cours...';
-      const count = await reindex(vaultPath);
-      statusMessage = `${count} fichiers indexés`;
-
+      statusMessage = 'Vault chargé avec succès';
       setTimeout(() => { statusMessage = ''; }, 3000);
     } catch (err) {
       console.error('Failed to open vault:', err);
+      statusMessage = `Erreur: ${err}`;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function handleCreateNewVault() {
+    try {
+      isLoading = true;
+      statusMessage = 'Initialisation de la nouvelle aventure...';
+
+      const docs = await documentDir();
+      const baseDir = await join(docs, 'Grimoire');
+      const name = window.prompt('Nom de votre campagne :', 'Ma Campagne');
+      if (!name) return;
+
+      const vaultPath = await join(baseDir, name);
+      
+      // Créer la structure de base
+      await createDirectory(vaultPath, 'assets/maps');
+      await createDirectory(vaultPath, 'assets/tokens');
+      await createDirectory(vaultPath, 'assets/audio');
+      await writeFile(vaultPath, 'Bienvenue.md', `# Bienvenue dans votre nouvelle aventure !\n\nCeci est votre Grimoire. Utilisez le panneau de gauche pour créer des notes.`);
+
+      await loadVault(vaultPath);
+      statusMessage = 'Nouveau vault créé !';
+      setTimeout(() => { statusMessage = ''; }, 3000);
+    } catch (err) {
+      console.error('Failed to create vault:', err);
       statusMessage = `Erreur: ${err}`;
     } finally {
       isLoading = false;
@@ -215,16 +257,29 @@
       </div>
     {:else}
       <div class="welcome">
-        <div class="welcome-art">⚔️</div>
-        <h2>Bienvenue, Maître</h2>
-        <p>Ouvrez un vault pour commencer votre session.</p>
-        <button onclick={handleOpenVault} class="open-vault-btn" disabled={isLoading}>
-          {#if isLoading}
-            ⏳ Chargement...
-          {:else}
-            📂 Ouvrir un Vault
-          {/if}
-        </button>
+        <div class="welcome-header">
+          <div class="welcome-art">⚔️</div>
+          <h2>Bienvenue dans Grimoire</h2>
+          <p>Commencez par choisir ou créer une campagne.</p>
+        </div>
+
+        <div class="welcome-cards">
+          <button class="welcome-card" onclick={handleCreateNewVault} disabled={isLoading}>
+            <span class="card-icon">✨</span>
+            <div class="card-text">
+              <strong>Nouvelle Aventure</strong>
+              <small>Crée un dossier organisé automatiquement dans vos Documents.</small>
+            </div>
+          </button>
+
+          <button class="welcome-card" onclick={handleOpenVault} disabled={isLoading}>
+            <span class="card-icon">📂</span>
+            <div class="card-text">
+              <strong>Ouvrir un Dossier</strong>
+              <small>Sélectionnez un dossier existant sur votre ordinateur.</small>
+            </div>
+          </button>
+        </div>
       </div>
     {/if}
   </aside>
@@ -397,54 +452,93 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 32px;
     text-align: center;
-    gap: 12px;
+    gap: 32px;
+  }
+
+  .welcome-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
   }
 
   .welcome-art {
-    font-size: 48px;
-    opacity: 0.7;
-    animation: pulse 3s ease-in-out infinite;
+    font-size: 56px;
+    margin-bottom: 8px;
+    animation: floating 3s ease-in-out infinite;
   }
 
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.7; }
-    50% { transform: scale(1.05); opacity: 1; }
+  @keyframes floating {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 
   .welcome h2 {
-    font-size: 18px;
+    font-size: 20px;
     color: var(--accent);
-    font-weight: 700;
+    font-weight: 800;
   }
 
   .welcome p {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-muted);
   }
 
-  .open-vault-btn {
-    margin-top: 8px;
-    padding: 10px 20px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
-    color: var(--bg-primary);
-    border: none;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 13px;
+  .welcome-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .welcome-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
     cursor: pointer;
-    transition: all var(--transition-normal);
-    box-shadow: 0 4px 16px rgba(229, 168, 83, 0.3);
+    text-align: left;
+    transition: all 0.2s;
+    color: var(--text-primary);
   }
 
-  .open-vault-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(229, 168, 83, 0.4);
+  .welcome-card:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
-  .open-vault-btn:disabled {
-    opacity: 0.6;
+  .card-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .card-text strong {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .card-text small {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+
+  .welcome-card:disabled {
+    opacity: 0.5;
     cursor: wait;
   }
 
