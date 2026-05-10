@@ -356,8 +356,10 @@
               if (container && tokenSprite) {
                 tokenSprite.texture = tex;
                 tokenSprite.texture.label = fullUrl;
-                tokenSprite.width = token.size;
-                tokenSprite.height = token.size;
+                if (tex.width > 0) {
+                  tokenSprite.width = token.size;
+                  tokenSprite.height = token.size;
+                }
               }
               loadingTextures.delete(fullUrl);
             }).catch(err => {
@@ -366,8 +368,8 @@
               tokenSprite.visible = false;
             });
           }
-        } else {
-          // Texture déjà chargée
+        } else if (tokenSprite.texture && tokenSprite.texture.width > 0) {
+          // Texture déjà chargée et valide
           tokenSprite.width = token.size;
           tokenSprite.height = token.size;
         }
