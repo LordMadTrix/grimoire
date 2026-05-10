@@ -1,0 +1,50 @@
+[package]
+name = "grimoire"
+version = "0.1.0"
+description = "Grimoire — Application Maître du Jeu TTRPG"
+authors = ["MadTrix"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "grimoire_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Tauri core
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-log = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# File watching
+notify = "8"
+
+# Logging
+log = "0.4"
+
+# Async
+tokio = { version = "1", features = ["full"] }
+
+# Markdown parsing
+pulldown-cmark = "0.12"
+
+# Regex for [[links]]
+regex = "1"
+
+# Path walking
+walkdir = "2"
+base64 = "0.22.1"
+reqwest = { version = "0.13.3", features = ["json"] }
