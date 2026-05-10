@@ -336,17 +336,29 @@
       if (token.imageUrl) {
         // Mode Image
         tokenSprite.visible = true;
-        const fullUrl = convertFileSrc(getVaultPath() + '/' + token.imageUrl);
+        const vaultPath = getVaultPath();
+        const fullPath = vaultPath + '/' + token.imageUrl;
+        const fullUrl = convertFileSrc(fullPath);
         
-        // Charger la texture si elle a changé
+        // Utiliser le cache PixiJS Assets (v8)
         if (!tokenSprite.texture || tokenSprite.texture.label !== fullUrl) {
-           tokenSprite.texture = PIXI.Texture.from(fullUrl);
-           tokenSprite.texture.label = fullUrl; // Pour le cache simple
+          // On tente un chargement asynchrone "propre"
+          PIXI.Assets.load(fullUrl).then(tex => {
+            if (tokenSprite) {
+              tokenSprite.texture = tex;
+              tokenSprite.texture.label = fullUrl;
+              tokenSprite.width = token.size;
+              tokenSprite.height = token.size;
+            }
+          }).catch(err => {
+            console.error("Failed to load token image:", fullUrl, err);
+            tokenSprite.visible = false; // Fallback au mode couleur si erreur
+          });
+        } else {
+          tokenSprite.width = token.size;
+          tokenSprite.height = token.size;
         }
         
-        tokenSprite.width = token.size;
-        tokenSprite.height = token.size;
-
         // Masque circulaire pour l'image
         if (!tokenSprite.mask) {
            const maskG = new PIXI.Graphics();
@@ -360,6 +372,11 @@
         circleG.setStrokeStyle({ width: 3, color: color, alpha: 1 });
         circleG.circle(0, 0, r);
         circleG.stroke();
+
+        // Si l'image n'est pas encore chargée, on met un petit fond neutre
+        if (tokenSprite.texture === PIXI.Texture.EMPTY) {
+          circleG.fill({ color: 0x222222, alpha: 0.5 });
+        }
       } else {
         // Mode Couleur unie
         tokenSprite.visible = false;
