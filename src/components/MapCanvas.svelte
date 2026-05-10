@@ -342,6 +342,7 @@
         
         // Utiliser le cache PixiJS Assets (v8)
         if (!tokenSprite.texture || tokenSprite.texture.label !== fullUrl) {
+          console.log("Loading token texture:", fullUrl);
           // On tente un chargement asynchrone "propre"
           PIXI.Assets.load(fullUrl).then(tex => {
             if (tokenSprite) {
