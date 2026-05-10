@@ -37,7 +37,7 @@
 </script>
 
 <div class="modal-backdrop" onclick={onClose} role="presentation" onkeydown={(e) => e.key === 'Escape' && onClose()}>
-  <div class="modal-content" onclick={e => e.stopPropagation()} role="dialog" onkeydown={e => e.stopPropagation()}>
+  <div class="modal-content" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1" onkeydown={e => e.stopPropagation()}>
     <h2>⚙️ Paramètres du Grimoire</h2>
 
     <section class="settings-section">

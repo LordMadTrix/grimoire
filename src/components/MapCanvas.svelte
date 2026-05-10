@@ -51,7 +51,7 @@
   let tokenSprites: Map<string, PIXI.Container> = new Map();
   let loadingTextures = new Set<string>();
 
-  let errorMessage: string | null = null;
+  let errorMessage = $state<string | null>(null);
 
   // État du dessin
   let isDrawing = false;

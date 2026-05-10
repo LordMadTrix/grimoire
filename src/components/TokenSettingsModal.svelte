@@ -69,9 +69,9 @@
 
 {#if editToken}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="modal-backdrop" onclick={onClose} onkeydown={handleKeydown}>
+  <div class="modal-backdrop" onclick={onClose} onkeydown={handleKeydown} role="presentation">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div class="modal-content" onclick={e => e.stopPropagation()}>
+    <div class="modal-content" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <h2>⚙️ Paramètres du Pion</h2>
 
       <div class="form-group">
@@ -127,7 +127,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label>&nbsp;</label>
+          <span class="spacer"></span>
           <label class="checkbox-label">
             <input type="checkbox" bind:checked={editToken.isEnemy} />
             Ennemi (rouge)

@@ -8,7 +8,7 @@
     loop?: boolean;
   } = $props();
 
-  let audioTag: HTMLAudioElement;
+  let audioTag = $state<HTMLAudioElement>();
 
   $effect(() => {
     if (audioTag) {
