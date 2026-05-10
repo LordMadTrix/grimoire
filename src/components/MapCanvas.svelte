@@ -48,6 +48,7 @@
 
   let tokenLayer: PIXI.Container;
   let tokenSprites: Map<string, PIXI.Container> = new Map();
+  let loadingTextures = new Set<string>();
 
   let errorMessage: string | null = null;
 
@@ -342,19 +343,24 @@
         
         // Utiliser le cache PixiJS Assets (v8)
         if (!tokenSprite.texture || tokenSprite.texture.label !== fullUrl) {
-          console.log("Loading token texture:", fullUrl);
-          // On tente un chargement asynchrone "propre"
-          PIXI.Assets.load(fullUrl).then(tex => {
-            if (tokenSprite) {
-              tokenSprite.texture = tex;
-              tokenSprite.texture.label = fullUrl;
-              tokenSprite.width = token.size;
-              tokenSprite.height = token.size;
-            }
-          }).catch(err => {
-            console.error("Failed to load token image:", fullUrl, err);
-            tokenSprite.visible = false; // Fallback au mode couleur si erreur
-          });
+          if (!loadingTextures.has(fullUrl)) {
+            loadingTextures.add(fullUrl);
+            console.log("Loading token texture:", fullUrl);
+            // On tente un chargement asynchrone "propre"
+            PIXI.Assets.load(fullUrl).then(tex => {
+              if (tokenSprite) {
+                tokenSprite.texture = tex;
+                tokenSprite.texture.label = fullUrl;
+                tokenSprite.width = token.size;
+                tokenSprite.height = token.size;
+              }
+              loadingTextures.delete(fullUrl);
+            }).catch(err => {
+              console.error("Failed to load token image:", fullUrl, err);
+              tokenSprite.visible = false; // Fallback au mode couleur si erreur
+              loadingTextures.delete(fullUrl);
+            });
+          }
         } else {
           tokenSprite.width = token.size;
           tokenSprite.height = token.size;
