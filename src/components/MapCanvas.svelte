@@ -342,13 +342,15 @@
       if (token.imageUrl) {
         tokenSprite.visible = true;
         
-        if (!vaultPath) {
+        // Fallback si la prop est vide (MJ view)
+        const vPath = vaultPath || getVaultPath();
+        
+        if (!vPath) {
            tokenSprite.visible = false;
            return;
         }
 
-        const fullPath = vaultPath + '/' + token.imageUrl;
-        // On s'assure que le chemin est propre pour Tauri
+        const fullPath = vPath + '/' + token.imageUrl;
         const fullUrl = convertFileSrc(fullPath);
         
         if (!tokenSprite.texture || tokenSprite.texture.label !== fullUrl) {

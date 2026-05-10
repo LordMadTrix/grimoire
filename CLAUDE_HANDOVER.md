@@ -19,7 +19,7 @@ Application desktop pour Maîtres du Jeu TTRPG. Chemin : `/home/madtrix/Document
 **Architecture deux fenêtres :**
 - Fenêtre GM (`App.svelte`) — éditeur + VTT + tous les contrôles
 - Fenêtre Joueur (`PlayerView.svelte`) — affichage carte en lecture seule
-- Communication via Tauri `emit`/`listen` (événements : `set_player_map`, `update_fow`, `update_tokens`, `toggle_player_grid`, `toggle_player_blackout`)
+- Communication via Tauri `emit`/`listen` (événements : `set_player_map`, `update_fow`, `update_tokens`, `toggle_player_grid`, `toggle_player_blackout`, `sync_vault_path`)
 
 ---
 
@@ -49,7 +49,7 @@ Application desktop pour Maîtres du Jeu TTRPG. Chemin : `/home/madtrix/Document
 ## Règles Svelte 5 critiques
 
 - **Toujours `$props()`**, jamais `export let`
-- **Variables modifiées depuis PixiJS DOIVENT être `$state`** — sinon Svelte ne re-rend pas (bug `editingTokenId` : était `let` plain, le modal n'apparaissait jamais)
+- **Variables modifiées depuis PixiJS DOIVENT être `$state`** — sinon Svelte ne re-rend pas
 - **`$effect` avec guard `appReady`** dans MapCanvas — évite que les effets tournent avant que PixiJS soit initialisé
 - **Composants récursifs** (Sidebar) : utiliser `<script module>` pour un état partagé entre toutes les instances
 
@@ -80,6 +80,7 @@ graphics.stroke(); // OBLIGATOIRE — sans ça, le tracé est invisible
 - FOW : cercles reveal/hide dessinés sur `RenderTexture` avec `blendMode = 'erase'`
 - Mesure : règle avec calcul en mètres (basé sur `gridSize`)
 - Snap-to-grid au drop du token
+- **Tokens Robustes** : utilisent `PIXI.Assets.load` et un `loadingTextures` Set pour éviter les glitchs au chargement.
 
 ### vttStore (`src/lib/stores/vtt.svelte.ts`)
 ```typescript
@@ -96,23 +97,9 @@ vttStore = $state({
 })
 ```
 
-### FOW
-- `addGmFowShape()` — ajoute une zone, émet au PlayerView
-- `undoGmFow()` — retire la dernière zone (pop + emit)
-- `clearGmFow()` — reset complet
-
-### Tokens
-- `addGmToken / replaceGmToken / removeGmToken / updateGmToken`
-- Token type : `{ id, name, x, y, size, color?, hp?, maxHp?, visionRange?, isEnemy? }`
-- Couleur : picker CSS→PixiJS via `parseInt(hex.slice(1), 16)`
-- Vision : `visionRange` cases → rayon en px = `visionRange * gridSize`, rendu par erase blendMode dans FOW
-
-### Initiative Tracker
-- `startCombat()` : importe tokens → combattants (initiative d20 aléatoire, triés desc)
-- `nextTurn / prevTurn / stopCombat`
-- `updateCombatantHp(id, hp)` : sync vers le token VTT associé (`tokenId`)
-- `addCombatant / removeCombatant`
-- Panneau sous le canvas quand `combatActive`
+### Communication Inter-Fenêtre
+- Nécessite un délai de ~1.5s après l'ouverture de la Vue Joueur pour que les listeners soient prêts.
+- `syncStateToPlayerView()` centralise l'envoi de la carte, des tokens, du FOW et du chemin du Vault.
 
 ---
 
@@ -126,64 +113,12 @@ vttStore = $state({
 ### Rétroliens (backlinks)
 - Bouton `🔗 N` dans le header → panneau collapsible en bas
 - `$effect` sur `getActiveFile()` → `getBacklinks()` automatique
-- Chaque entrée cliquable pour naviguer
-
-### Auto-save + Reindex
-- Auto-save : 1.5s après dernière frappe (pas de reindex)
-- `Ctrl+S` / bouton 💾 : sauvegarde + `reindex()` fire & forget
-
----
-
-## Sidebar
-
-- Tri : `$derived` → dossiers d'abord, puis fichiers, alphabétique insensible à la casse
-- Clic droit → menu contextuel (état partagé `<script module>` entre instances récursives, rendu à `depth === 0` uniquement)
-  - `📄 Nouveau fichier` → writeFile + refresh + ouvre dans éditeur
-  - `📁 Nouveau dossier` → createDirectory + refresh
-  - `✏️ Renommer` → renameEntry + met à jour activeFile si besoin
-  - `🗑️ Supprimer` (fichiers uniquement) → deleteFile + vide l'éditeur si actif
-- Seuls les `.md` s'ouvrent dans l'éditeur (images/audio : `opacity: 0.65`, cursor: default)
-
----
-
-## Raccourcis clavier globaux
-
-| Raccourci | Action |
-|---|---|
-| `Ctrl+P` | Palette de recherche FTS5 |
-| `Ctrl+N` | Nouveau fichier (prompt → vault root) |
-| `Ctrl+S` | Sauvegarder + reindex |
-| `Ctrl+J` | Génération Ollama sur sélection / ligne courante |
-| `Ctrl+Clic` | Suivre un wikilink |
-
----
-
-## Patterns importants
-
-### PlayerView listeners (éviter la fuite mémoire)
-```typescript
-onMount(() => {
-  const unlistens: (() => void)[] = [];
-  listen('event_name', handler).then(fn => unlistens.push(fn));
-  return () => { unlistens.forEach(fn => fn()); };
-});
-// NE PAS utiliser async onMount avec return — Svelte ignore la Promise
-```
-
-### Refresh de l'arbre vault après modification
-```typescript
-const tree = await openVault(getVaultPath());
-setVaultTree(tree); // → App.svelte re-rend Sidebar automatiquement via réactivité
-```
-
-### Reindex strategy
-- Au chargement du vault
-- Après Ctrl+S (fire & forget)
-- Bouton manuel `🔄 Réindexer` dans le footer de la sidebar
-- Pas sur auto-save (trop fréquent)
 
 ---
 
 ## État du projet
 
-Base complète et fonctionnelle. Toutes les fonctionnalités GM principales sont implémentées. Les prochains travaux sont des ajouts de fonctionnalités (images de tokens, sons d'ambiance, graphe de liens, etc.).
+- **Système Onboarding** : Mémorisation du dernier vault, écran d'accueil avec wizard.
+- **Organisation Assets** : Tokens classés par catégories (`Heroes`, `Creatures`, `NPCs`).
+- **Warhammer Addon** : Intégration de "Château Drachenfels" terminée.
+- **Bugs Fixés** : Synchronisation du chemin absolu des assets vers la vue joueur, installation de D3.js.

@@ -126,15 +126,23 @@
     }
   }
 
+  function syncStateToPlayerView() {
+    emitToPlayerView('sync_vault_path', { path: getVaultPath() });
+    emitToPlayerView('set_player_map', { url: vttStore.currentMap });
+    emitToPlayerView('update_tokens', vttStore.tokens);
+    emitToPlayerView('update_fow', vttStore.fowShapes);
+    emitToPlayerView('toggle_player_grid', { show: vttStore.showGrid });
+    emitToPlayerView('toggle_player_blackout', { active: vttStore.isBlackout });
+  }
+
   async function openOnMonitor(index: number) {
     showMonitorPicker = false;
     try {
       await openPlayerView(index);
-      showMonitorPicker = false;
-      // Synchroniser l'état initial
-      await emitToPlayerView('sync_vault_path', { path: getVaultPath() });
-      await emitToPlayerView('set_player_map', { url: vttStore.currentMap });
-      await emitToPlayerView('update_tokens', vttStore.tokens);
+      statusMessage = `Vue joueur lancée sur l'écran ${index + 1}`;
+      // On attend que la fenêtre soit prête avant de synchroniser
+      setTimeout(() => syncStateToPlayerView(), 1500);
+      setTimeout(() => { statusMessage = ''; }, 3000);
     } catch (err) {
       console.error('Failed to open player view:', err);
       statusMessage = `Erreur VTT: ${err}`;
