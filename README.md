@@ -1,47 +1,67 @@
-# Svelte + TS + Vite
+<div align="center">
+  <img src="public/favicon.svg" alt="Grimoire Logo" width="120" />
+  <h1>Grimoire TTRPG</h1>
+  <p><strong>L'outil ultime pour les Maîtres du Jeu : Éditeur Markdown + VTT + IA Locale</strong></p>
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+  <p>
+    <a href="#features">Fonctionnalités</a> •
+    <a href="#installation">Installation</a> •
+    <a href="#architecture">Architecture</a>
+  </p>
+</div>
 
-## Recommended IDE Setup
+---
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+## 🐉 Qu'est-ce que Grimoire ?
 
-## Need an official Svelte framework?
+**Grimoire** est une application Desktop conçue par et pour les Maîtres du Jeu (TTRPG). Elle rassemble en une seule interface tout ce dont vous avez besoin pour gérer vos campagnes, de la préparation jusqu'au déroulement de la partie.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+Oubliez la multiplication des onglets et des applications : Grimoire combine un gestionnaire de notes Obsidian-like, une table virtuelle (VTT) hautement performante, et l'intelligence artificielle locale pour booster votre créativité.
 
-## Technical considerations
+## ✨ Fonctionnalités Principales
 
-**Why use this over SvelteKit?**
+### 📝 Éditeur Markdown Intelligent
+- **WikiLinks (`[[Lien]]`)** : Liez vos PNJ, lieux et objets magiques avec autocomplétion intelligente.
+- **Rétroliens (Backlinks)** : Ne perdez jamais le fil de vos intrigues.
+- **Auto-Sauvegarde & FTS5** : Sauvegarde automatique et recherche Full-Text ultra-rapide (propulsée par SQLite).
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+### 🗺️ Virtual TableTop (VTT) Intégré
+- **Double Fenêtre** : Une vue de contrôle pour le MJ (avec tous les outils) et une vue "Joueur" en plein écran (à projeter sur une table connectée ou un deuxième écran).
+- **Brouillard de Guerre Dynamique** : Cachez les zones inexplorées. Les pions avec de la vision éclairent automatiquement la carte en se déplaçant !
+- **Gestion des Pions (Tokens)** : Points de vie, statut, vision, et tracker d'initiative intégré.
+- **Outils Tactiques** : Règle de mesure des distances avec snapping sur grille.
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+### 🪄 IA Locale (Ollama)
+- **L'Écrivain Fantôme** : Sélectionnez du texte, appuyez sur `Ctrl+J`, et laissez votre modèle IA local (Llama, Mistral...) écrire la suite de votre histoire sans jamais quitter l'éditeur.
+- **100% Local & Privé** : Aucune donnée ne quitte votre machine.
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+## 🚀 Installation & Développement
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+Grimoire utilise une architecture moderne et ultra-rapide : **SvelteKit (Svelte 5) + Tauri v2 + Rust + PixiJS v8**.
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+### Prérequis
+- Node.js (v18+)
+- Rust (cargo)
+- Ollama (optionnel, pour l'IA)
 
-**Why include `.vscode/extensions.json`?**
+### Lancer le projet
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
+```bash
+# Installer les dépendances
+npm install
 
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+# Lancer en mode développement (Tauri + Svelte)
+npm run tauri dev
 ```
+
+## 🛠️ Architecture
+
+- **Frontend** : L'interface est développée en Svelte 5 avec l'utilisation des Runes (`$state`, `$derived`) pour une réactivité chirurgicale. Le VTT est propulsé par PixiJS v8 via `MapCanvas.svelte`.
+- **Backend Desktop** : Rust est utilisé via Tauri pour les opérations lourdes (Système de fichiers, Base de données SQLite FTS5, Appels à Ollama).
+
+## 🤝 Contribution
+
+Si vous souhaitez reprendre le développement, veuillez consulter le fichier `CLAUDE_HANDOVER.md` à la racine pour un résumé exhaustif de l'architecture technique et des règles métier.
+
+---
+*Créé avec passion pour les rôlistes.*
