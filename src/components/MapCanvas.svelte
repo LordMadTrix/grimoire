@@ -334,21 +334,26 @@
       circleG.clear();
       const color = token.isEnemy ? 0xef4444 : (token.color || 0x3b82f6);
       
+      // Toujours centrer le container et ses enfants
+      tokenSprite.position.set(0, 0);
+      tokenSprite.anchor.set(0.5);
+
       if (token.imageUrl) {
-        // Mode Image
         tokenSprite.visible = true;
         const vaultPath = getVaultPath();
         const fullPath = vaultPath + '/' + token.imageUrl;
+        // On s'assure que le chemin est propre pour Tauri
         const fullUrl = convertFileSrc(fullPath);
         
-        // Utiliser le cache PixiJS Assets (v8)
         if (!tokenSprite.texture || tokenSprite.texture.label !== fullUrl) {
           if (!loadingTextures.has(fullUrl)) {
             loadingTextures.add(fullUrl);
-            console.log("Loading token texture:", fullUrl);
-            // On tente un chargement asynchrone "propre"
+            
+            // Fallback immédiat : texture vide pour éviter les glitchs
+            tokenSprite.texture = PIXI.Texture.EMPTY;
+            
             PIXI.Assets.load(fullUrl).then(tex => {
-              if (tokenSprite) {
+              if (container && tokenSprite) {
                 tokenSprite.texture = tex;
                 tokenSprite.texture.label = fullUrl;
                 tokenSprite.width = token.size;
@@ -356,17 +361,18 @@
               }
               loadingTextures.delete(fullUrl);
             }).catch(err => {
-              console.error("Failed to load token image:", fullUrl, err);
-              tokenSprite.visible = false; // Fallback au mode couleur si erreur
+              console.error("Token Image Load Error:", fullUrl, err);
               loadingTextures.delete(fullUrl);
+              tokenSprite.visible = false;
             });
           }
         } else {
+          // Texture déjà chargée
           tokenSprite.width = token.size;
           tokenSprite.height = token.size;
         }
         
-        // Masque circulaire pour l'image
+        // Masque circulaire
         if (!tokenSprite.mask) {
            const maskG = new PIXI.Graphics();
            container.addChild(maskG);
@@ -374,23 +380,19 @@
         }
         const m = tokenSprite.mask as PIXI.Graphics;
         m.clear().circle(0, 0, r).fill(0xffffff);
+        m.position.set(0, 0);
 
-        // Bordure uniquement
-        circleG.setStrokeStyle({ width: 3, color: color, alpha: 1 });
-        circleG.circle(0, 0, r);
-        circleG.stroke();
-
-        // Si l'image n'est pas encore chargée, on met un petit fond neutre
-        if (tokenSprite.texture === PIXI.Texture.EMPTY) {
-          circleG.fill({ color: 0x222222, alpha: 0.5 });
-        }
+        // Fond de secours (si l'image est transparente ou en cours de chargement)
+        circleG.circle(0, 0, r).fill({ color: 0x222222, alpha: 0.8 });
+        
+        // Bordure
+        circleG.setStrokeStyle({ width: 4, color: color, alpha: 1 });
+        circleG.circle(0, 0, r).stroke();
       } else {
         // Mode Couleur unie
         tokenSprite.visible = false;
-        circleG.setStrokeStyle({ width: 2, color: 0xffffff, alpha: 1 });
-        circleG.circle(0, 0, r);
-        circleG.fill(color);
-        circleG.stroke();
+        circleG.setStrokeStyle({ width: 3, color: 0xffffff, alpha: 1 });
+        circleG.circle(0, 0, r).fill(color).stroke();
       }
 
       // Texte
