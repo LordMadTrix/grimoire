@@ -8,10 +8,13 @@
   let isBlackout = $state(false);
   let fowShapes = $state<any[]>([]);
   let tokens = $state<any[]>([]);
+  let audioSrc = $state<string | null>(null);
+  let audioVolume = $state(0.5);
 
   // Écouter les événements Tauri venant de la fenêtre du MJ
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
+  import AudioPlayer from './components/AudioPlayer.svelte';
 
   onMount(() => {
     const unlistens: (() => void)[] = [];
@@ -21,10 +24,13 @@
     listen('toggle_player_blackout', (e: any) => { isBlackout = e.payload.active; }).then(fn => unlistens.push(fn));
     listen('update_fow', (e: any) => { fowShapes = e.payload; }).then(fn => unlistens.push(fn));
     listen('update_tokens', (e: any) => { tokens = e.payload; }).then(fn => unlistens.push(fn));
+    listen('update_player_audio', (e: any) => { audioSrc = e.payload.src; audioVolume = e.payload.volume; }).then(fn => unlistens.push(fn));
 
     return () => { unlistens.forEach(fn => fn()); };
   });
 </script>
+
+<AudioPlayer src={audioSrc} volume={audioVolume} />
 
 <main class="player-view">
   {#if isBlackout}

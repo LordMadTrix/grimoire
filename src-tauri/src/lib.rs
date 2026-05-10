@@ -33,6 +33,7 @@ pub fn run() {
             commands::search::search_vault,
             commands::search::get_backlinks,
             commands::search::reindex,
+            commands::search::get_graph_data,
             // Player View
             commands::player_view::list_monitors,
             commands::player_view::open_player_view,

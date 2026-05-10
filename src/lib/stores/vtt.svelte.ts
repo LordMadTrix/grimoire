@@ -21,6 +21,7 @@ export type Token = {
   maxHp?: number;
   visionRange?: number;
   isEnemy?: boolean;
+  imageUrl?: string;
 };
 
 export type Combatant = {
@@ -40,6 +41,10 @@ export const vttStore = $state({
   mode: 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'measure',
   showGrid: true,
   gridSize: 50,
+
+  // Audio Ambiance
+  audioSrc: null as string | null,
+  audioVolume: 0.5,
 
   // Combat / Initiative
   combatants: [] as Combatant[],
@@ -154,6 +159,17 @@ export function removeCombatant(id: string) {
   }
 }
 
+// ── Audio ─────────────────────────────────────────────────────────
+export function updateGmAudio(src: string | null) {
+  vttStore.audioSrc = src;
+  emitToPlayerView('update_player_audio', { src, volume: vttStore.audioVolume });
+}
+
+export function setGmAudioVolume(volume: number) {
+  vttStore.audioVolume = volume;
+  emitToPlayerView('update_player_audio', { src: vttStore.audioSrc, volume });
+}
+
 // ── Sync ──────────────────────────────────────────────────────────
 export function syncStateToPlayerView() {
   if (vttStore.currentMap) {
@@ -162,4 +178,5 @@ export function syncStateToPlayerView() {
   emitToPlayerView('update_fow', vttStore.fowShapes);
   emitToPlayerView('update_tokens', vttStore.tokens);
   emitToPlayerView('toggle_player_grid', { show: vttStore.showGrid });
+  emitToPlayerView('update_player_audio', { src: vttStore.audioSrc, volume: vttStore.audioVolume });
 }

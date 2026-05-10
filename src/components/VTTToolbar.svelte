@@ -4,12 +4,14 @@
   import {
     vttStore,
     addGmToken, clearGmFow, undoGmFow,
-    startCombat, stopCombat
+    startCombat, stopCombat,
+    updateGmAudio, setGmAudioVolume
   } from '$lib/stores/vtt.svelte';
   import type { VaultEntry } from '$lib/api';
 
   let isBlackout = $state(false);
   let showMapPicker = $state(false);
+  let showAudioPicker = $state(false);
 
   function toggleGrid() {
     vttStore.showGrid = !vttStore.showGrid;
@@ -26,6 +28,21 @@
     emitToPlayerView('toggle_player_grid', { show: vttStore.showGrid, size: vttStore.gridSize });
   }
 
+  function getAllAudio(entries: VaultEntry[], parent = ''): { path: string; name: string }[] {
+    let audios: { path: string; name: string }[] = [];
+    for (const e of entries) {
+      if (e.is_dir && e.children) {
+        audios = [...audios, ...getAllAudio(e.children, parent + e.name + '/')];
+      } else {
+        const ext = e.extension?.toLowerCase();
+        if (ext === 'mp3' || ext === 'wav' || ext === 'ogg' || ext === 'm4a') {
+          audios.push({ path: parent + e.name, name: e.name });
+        }
+      }
+    }
+    return audios;
+  }
+
   function getAllImages(entries: VaultEntry[], parent = ''): { path: string; name: string }[] {
     let images: { path: string; name: string }[] = [];
     for (const e of entries) {
@@ -39,6 +56,15 @@
       }
     }
     return images;
+  }
+
+  function selectAudio(relativePath: string) {
+    updateGmAudio(relativePath);
+    showAudioPicker = false;
+  }
+
+  function stopAudio() {
+    updateGmAudio(null);
   }
 
   async function selectMap(relativePath: string) {
@@ -116,6 +142,23 @@
       <button class="btn" onclick={closeMap}>✖️ Fermer</button>
     {/if}
 
+    <div class="separator"></div>
+
+    <button class="btn" class:active={vttStore.audioSrc} onclick={() => showAudioPicker = true}>
+      🎵 {vttStore.audioSrc ? 'Musique ON' : 'Ambiance'}
+    </button>
+    {#if vttStore.audioSrc}
+      <div class="volume-control">
+        <input 
+          type="range" 
+          min="0" max="1" step="0.05" 
+          value={vttStore.audioVolume} 
+          oninput={(e) => setGmAudioVolume(Number((e.target as HTMLInputElement).value))}
+        />
+        <button class="btn-stop" onclick={stopAudio}>⏹️</button>
+      </div>
+    {/if}
+
     <div class="grid-control" title="Taille de la grille (px)">
       <span class="grid-label">#</span>
       <input
@@ -142,8 +185,6 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="picker-backdrop" onclick={() => showMapPicker = false}>
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="picker-modal" onclick={e => e.stopPropagation()}>
       <div class="picker-header">
         <span>🗺️ Choisir une carte</span>
@@ -158,6 +199,34 @@
               <span class="picker-icon">🖼️</span>
               <span class="picker-name">{img.name}</span>
               <span class="picker-path">{img.path}</span>
+            </button>
+          {/each}
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Sélecteur d'audio -->
+{#if showAudioPicker}
+  {@const audios = getAllAudio(getVaultTree())}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="picker-backdrop" onclick={() => showAudioPicker = false}>
+    <div class="picker-modal" onclick={e => e.stopPropagation()}>
+      <div class="picker-header">
+        <span>🎵 Ambiance Sonore</span>
+        <button class="picker-close" onclick={() => showAudioPicker = false}>✕</button>
+      </div>
+      <div class="picker-list">
+        {#if audios.length === 0}
+          <div class="picker-empty">Aucun fichier audio (MP3, WAV, OGG) dans le vault.</div>
+        {:else}
+          {#each audios as aud}
+            <button class="picker-item" onclick={() => selectAudio(aud.path)}>
+              <span class="picker-icon">🎶</span>
+              <span class="picker-name">{aud.name}</span>
+              <span class="picker-path">{aud.path}</span>
             </button>
           {/each}
         {/if}
@@ -236,6 +305,31 @@
     background: rgba(200, 50, 50, 0.15);
     border-color: #c83232;
     color: #ff6b6b;
+  }
+
+  .volume-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .volume-control input[type="range"] {
+    width: 60px;
+    height: 4px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .btn-stop {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 0;
   }
 
   /* Contrôle taille de grille */

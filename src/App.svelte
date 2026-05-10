@@ -7,6 +7,8 @@
   import SettingsModal from './components/SettingsModal.svelte';
   import MapCanvas from './components/MapCanvas.svelte';
   import InitiativeTracker from './components/InitiativeTracker.svelte';
+  import AudioPlayer from './components/AudioPlayer.svelte';
+  import GraphView from './components/GraphView.svelte';
   import { openVault, reindex, openPlayerView, listMonitors, writeFile } from '$lib/api';
   import type { MonitorInfo } from '$lib/api';
   import {
@@ -28,6 +30,7 @@
   let showSettings = $state(false);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
+  let viewMode = $state<'editor' | 'graph'>('editor');
 
   async function handleOpenVault() {
     try {
@@ -138,6 +141,7 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <SearchPalette />
+<AudioPlayer src={vttStore.audioSrc} volume={vttStore.audioVolume} />
 
 {#if showMonitorPicker}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -253,7 +257,17 @@
         {/if}
       </div>
     {:else}
-      <Editor />
+      <div class="view-header">
+        <div class="view-toggle">
+          <button class:active={viewMode === 'editor'} onclick={() => viewMode = 'editor'}>📄 Éditeur</button>
+          <button class:active={viewMode === 'graph'} onclick={() => viewMode = 'graph'}>🕸️ Graphe</button>
+        </div>
+      </div>
+      {#if viewMode === 'editor'}
+        <Editor />
+      {:else}
+        <GraphView />
+      {/if}
     {/if}
   </main>
 </div>
@@ -442,6 +456,39 @@
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+  }
+
+  .view-header {
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .view-toggle {
+    display: flex;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px;
+  }
+
+  .view-toggle button {
+    background: transparent;
+    border: none;
+    padding: 4px 16px;
+    border-radius: 18px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .view-toggle button.active {
+    background: var(--accent);
+    color: var(--bg-primary);
   }
 
   /* ── Status Bar ───────────────────────────────────────────── */

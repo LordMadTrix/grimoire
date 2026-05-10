@@ -26,14 +26,16 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Auto-Sauvegarde & FTS5** : Sauvegarde automatique et recherche Full-Text ultra-rapide (propulsée par SQLite).
 
 ### 🗺️ Virtual TableTop (VTT) Intégré
-- **Double Fenêtre** : Une vue de contrôle pour le MJ (avec tous les outils) et une vue "Joueur" en plein écran (à projeter sur une table connectée ou un deuxième écran).
-- **Brouillard de Guerre Dynamique** : Cachez les zones inexplorées. Les pions avec de la vision éclairent automatiquement la carte en se déplaçant !
-- **Gestion des Pions (Tokens)** : Points de vie, statut, vision, et tracker d'initiative intégré.
-- **Outils Tactiques** : Règle de mesure des distances avec snapping sur grille.
+- **Double Fenêtre** : Une vue de contrôle pour le MJ et une vue "Joueur" en plein écran synchronisée.
+- **Brouillard de Guerre Dynamique** : Cachez les zones inexplorées et gérez la vision des pions.
+- **Images de Tokens** : Support des images personnalisées (PNG/JPG) avec masquage circulaire automatique.
+- **Ambiance Sonore** : Diffusez des pistes audio du Vault (MP3/OGG) synchronisées entre le MJ et les joueurs avec contrôle du volume.
+- **Gestion des Pions (Tokens)** : Points de vie, vision, et tracker d'initiative intégré.
 
-### 🪄 IA Locale (Ollama)
-- **L'Écrivain Fantôme** : Sélectionnez du texte, appuyez sur `Ctrl+J`, et laissez votre modèle IA local (Llama, Mistral...) écrire la suite de votre histoire sans jamais quitter l'éditeur.
-- **100% Local & Privé** : Aucune donnée ne quitte votre machine.
+### 🕸️ Visualisation & IA
+- **Graphe de Liens** : Visualisez les connexions entre vos notes sous forme de graphe interactif (Obsidian-like) pour naviguer dans votre lore.
+- **L'Écrivain Fantôme (IA Locale)** : Génération de texte via Ollama (Llama, Mistral...) 100% locale et privée.
+- **Base d'Assets Massive** : Livré avec des centaines de tokens (Caeora, Forgotten Adventures) et de maps prêtes à l'emploi.
 
 ## 🚀 Installation & Développement
 

@@ -3,6 +3,8 @@
   import * as PIXI from 'pixi.js';
   import type { FowShape, Token } from '$lib/stores/vtt.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
+  import { convertFileSrc } from '@tauri-apps/api/core';
+  import { getVaultPath } from '$lib/stores/vault.svelte';
 
   // Svelte 5 — $props() obligatoire (pas export let)
   let {
@@ -288,6 +290,12 @@
         circleG = new PIXI.Graphics();
         container.addChild(circleG);
 
+        // Sprite pour l'image (optionnel)
+        const tokenSprite = new PIXI.Sprite();
+        tokenSprite.anchor.set(0.5);
+        tokenSprite.visible = false;
+        container.addChild(tokenSprite);
+
         textT = new PIXI.Text({
           text: '',
           style: {
@@ -313,19 +321,53 @@
         tokenSprites.set(token.id, container);
       } else {
         circleG = container.children[0] as PIXI.Graphics;
-        textT = container.children[1] as PIXI.Text;
-        hpBar = container.children[2] as PIXI.Graphics;
+        // child 1 is tokenSprite
+        textT = container.children[2] as PIXI.Text;
+        hpBar = container.children[3] as PIXI.Graphics;
       }
 
       const r = token.size / 2;
+      const tokenSprite = container.children[1] as PIXI.Sprite;
 
       // Cercle — API PixiJS v8
       circleG.clear();
       const color = token.isEnemy ? 0xef4444 : (token.color || 0x3b82f6);
-      circleG.setStrokeStyle({ width: 2, color: 0xffffff, alpha: 1 });
-      circleG.circle(0, 0, r);
-      circleG.fill(color);
-      circleG.stroke();
+      
+      if (token.imageUrl) {
+        // Mode Image
+        tokenSprite.visible = true;
+        const fullUrl = convertFileSrc(getVaultPath() + '/' + token.imageUrl);
+        
+        // Charger la texture si elle a changé
+        if (!tokenSprite.texture || tokenSprite.texture.label !== fullUrl) {
+           tokenSprite.texture = PIXI.Texture.from(fullUrl);
+           tokenSprite.texture.label = fullUrl; // Pour le cache simple
+        }
+        
+        tokenSprite.width = token.size;
+        tokenSprite.height = token.size;
+
+        // Masque circulaire pour l'image
+        if (!tokenSprite.mask) {
+           const maskG = new PIXI.Graphics();
+           container.addChild(maskG);
+           tokenSprite.mask = maskG;
+        }
+        const m = tokenSprite.mask as PIXI.Graphics;
+        m.clear().circle(0, 0, r).fill(0xffffff);
+
+        // Bordure uniquement
+        circleG.setStrokeStyle({ width: 3, color: color, alpha: 1 });
+        circleG.circle(0, 0, r);
+        circleG.stroke();
+      } else {
+        // Mode Couleur unie
+        tokenSprite.visible = false;
+        circleG.setStrokeStyle({ width: 2, color: 0xffffff, alpha: 1 });
+        circleG.circle(0, 0, r);
+        circleG.fill(color);
+        circleG.stroke();
+      }
 
       // Texte
       textT.text = token.name || 'Inconnu';

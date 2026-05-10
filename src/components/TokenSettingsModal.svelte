@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Token } from '$lib/stores/vtt.svelte';
 
+  import { getVaultTree } from '$lib/stores/vault.svelte';
+
   let { token, onClose, onSave, onDelete }: {
     token: Token | null;
     onClose: () => void;
@@ -10,12 +12,33 @@
 
   let editToken = $state<Token | null>(null);
   let colorHex = $state('#3b82f6');
+  let availableImages = $state<{name: string, path: string}[]>([]);
 
   $effect(() => {
     if (token && !editToken) {
       editToken = { ...token };
       colorHex = pixiToHex(token.color ?? 0x3b82f6);
     }
+    
+    // Remplir la liste des images disponibles dans le Vault
+    const tree = getVaultTree();
+    const images: {name: string, path: string}[] = [];
+    function traverse(nodes: any[], parent = '') {
+      if (!nodes) return;
+      for (const n of nodes) {
+        const fullPath = parent ? `${parent}/${n.name}` : n.name;
+        if (n.is_dir) {
+          traverse(n.children, fullPath);
+        } else {
+          const ext = n.name.split('.').pop()?.toLowerCase();
+          if (ext && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+            images.push({ name: n.name, path: fullPath });
+          }
+        }
+      }
+    }
+    traverse(tree);
+    availableImages = images.sort((a, b) => a.path.localeCompare(b.path));
   });
 
   function pixiToHex(num: number): string {
@@ -65,6 +88,16 @@
           <label for="t-maxhp">PV Max</label>
           <input type="number" id="t-maxhp" bind:value={editToken.maxHp} min="0" />
         </div>
+      </div>
+
+      <div class="form-group">
+        <label for="t-image">Image (optionnel)</label>
+        <select id="t-image" bind:value={editToken.imageUrl}>
+          <option value="">Aucune image (Cercle de couleur)</option>
+          {#each availableImages as img}
+            <option value={img.path}>{img.path}</option>
+          {/each}
+        </select>
       </div>
 
       <div class="form-row">
@@ -137,7 +170,8 @@
   .form-row.align-end .form-group { flex: 1; }
   .form-row .form-group { flex: 1; }
   label { font-size: 12px; color: var(--text-secondary); }
-  input[type="text"], input[type="number"] {
+  label { font-size: 12px; color: var(--text-secondary); }
+  input[type="text"], input[type="number"], select {
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
     color: var(--text-primary);
@@ -147,7 +181,7 @@
     width: 100%;
     box-sizing: border-box;
   }
-  input:focus { border-color: var(--accent); }
+  input:focus, select:focus { border-color: var(--accent); }
 
   .color-row {
     display: flex;

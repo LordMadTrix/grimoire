@@ -155,6 +155,34 @@ pub fn get_backlinks(db: &Connection, target_path: &str) -> Result<Vec<BacklinkR
     Ok(results)
 }
 
+/// Récupère toutes les données du graphe (nœuds et liens)
+pub fn get_graph_data(db: &Connection) -> Result<GraphData, rusqlite::Error> {
+    // Récupérer les nœuds
+    let mut stmt = db.prepare("SELECT path, title, entity_type FROM entities")?;
+    let nodes = stmt.query_map([], |row| {
+        Ok(GraphNode {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            group: row.get(2)?,
+        })
+    })?
+    .filter_map(|r| r.ok())
+    .collect();
+
+    // Récupérer les liens
+    let mut stmt = db.prepare("SELECT source_path, target_path FROM links")?;
+    let links = stmt.query_map([], |row| {
+        Ok(GraphLink {
+            source: row.get(0)?,
+            target: row.get(1)?,
+        })
+    })?
+    .filter_map(|r| r.ok())
+    .collect();
+
+    Ok(GraphData { nodes, links })
+}
+
 // ── Types ────────────────────────────────────────────────────────
 
 #[derive(serde::Serialize, Clone, Debug)]
@@ -172,6 +200,25 @@ pub struct BacklinkResult {
     pub source_path: String,
     pub source_title: String,
     pub context: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct GraphData {
+    pub nodes: Vec<GraphNode>,
+    pub links: Vec<GraphLink>,
+}
+
+#[derive(serde::Serialize)]
+pub struct GraphNode {
+    pub id: String,
+    pub title: String,
+    pub group: String,
+}
+
+#[derive(serde::Serialize, Clone, Debug)]
+pub struct GraphLink {
+    pub source: String,
+    pub target: String,
 }
 
 // ── Helpers ──────────────────────────────────────────────────────

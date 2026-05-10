@@ -1,4 +1,4 @@
-use crate::indexer::{self, SearchResult, BacklinkResult};
+use crate::indexer::{self, SearchResult, BacklinkResult, GraphData};
 use rusqlite::Connection;
 use std::sync::Mutex;
 use tauri::State;
@@ -35,4 +35,13 @@ pub fn reindex(
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     let path = std::path::Path::new(&vault_path);
     indexer::reindex_vault(path, &conn).map_err(|e| e.to_string())
+}
+
+/// Récupère toutes les données du graphe
+#[tauri::command]
+pub fn get_graph_data(
+    db: State<'_, DbState>,
+) -> Result<GraphData, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    indexer::get_graph_data(&conn).map_err(|e| e.to_string())
 }
