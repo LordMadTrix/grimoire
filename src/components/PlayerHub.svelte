@@ -45,7 +45,6 @@
     try {
       await requestRoll(targetId, rollStat, rollMod);
       const targetName = targetId ? players.find(p => p.id === targetId)?.name : 'Tous';
-      console.log(`Roll request sent: ${rollStat} (${rollMod}) to ${targetName}`);
     } catch(e) { console.error(e); }
   }
 
@@ -79,7 +78,6 @@
       // Simple parser for character MD (this is a placeholder, real Grimoire might have a better one)
       // For now we push the raw data or let the mobile app handle it
       await broadcastToPlayers('push_character', { playerId, character: { relPath, content } });
-      console.log(`Character ${relPath} assigned to ${playerId}`);
     } catch(e) { console.error(e); }
   }
 

@@ -117,6 +117,8 @@ export type MapScene = {
   tokens: Token[];
   pins: MapPin[];
   spells: SpellMarker[];
+  walls: { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[];
+  audioZones: { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[];
 };
 
 export const vttStore = $state({
@@ -162,7 +164,6 @@ export const vttStore = $state({
   // Blueprint / Murs (Ligne de vue)
   walls: [] as { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[],
   currentWallPath: null as {x:number, y:number}[] | null,
-  isBlueprintMode: false,
   blueprintType: 'opaque' as 'opaque' | 'door',
   audioZones: [] as { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[],
 
@@ -251,6 +252,8 @@ function snapshotActiveScene() {
   scene.tokens = [...vttStore.tokens];
   scene.pins = [...vttStore.pins];
   scene.spells = [...vttStore.spells];
+  scene.walls = [...vttStore.walls];
+  scene.audioZones = [...vttStore.audioZones];
 }
 
 function applyScene(scene: MapScene) {
@@ -259,6 +262,8 @@ function applyScene(scene: MapScene) {
   vttStore.tokens = [...scene.tokens];
   vttStore.pins = [...scene.pins];
   vttStore.spells = [...scene.spells];
+  vttStore.walls = scene.walls || [];
+  vttStore.audioZones = scene.audioZones || [];
 }
 
 export function addMapScene(name: string, relPath: string | null, dataUrl: string | null) {
@@ -271,6 +276,8 @@ export function addMapScene(name: string, relPath: string | null, dataUrl: strin
     tokens: [],
     pins: [],
     spells: [],
+    walls: [],
+    audioZones: [],
   };
   vttStore.maps = [...vttStore.maps, scene];
   vttStore.activeMapId = scene.id;
@@ -568,11 +575,11 @@ interface SessionData {
   combatActive: boolean;
   currentTurn: number;
   campaignTitle?: string;
-  // Multimap
   maps?: MapScene[];
   activeMapId?: string | null;
-  // Draw paths
   drawPaths?: DrawPath[];
+  walls?: { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[];
+  audioZones?: { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[];
 }
 
 export async function saveGmSession(vaultPath: string) {
@@ -603,6 +610,8 @@ export async function saveGmSession(vaultPath: string) {
     maps: vttStore.maps,
     activeMapId: vttStore.activeMapId,
     drawPaths: vttStore.drawPaths,
+    walls: vttStore.walls,
+    audioZones: vttStore.audioZones,
   };
   try {
     await writeFile(vaultPath, SESSION_PATH, JSON.stringify(data, null, 2));
@@ -661,8 +670,8 @@ export async function loadGmSession(vaultPath: string): Promise<boolean> {
           vttStore.tokens = [...activeScene.tokens];
           vttStore.pins = [...activeScene.pins];
           vttStore.spells = [...activeScene.spells];
-          vttStore.walls = [...(activeScene as any).walls || []];
-          vttStore.audioZones = [...(activeScene as any).audioZones || []];
+          vttStore.walls = [...activeScene.walls || []];
+          vttStore.audioZones = [...activeScene.audioZones || []];
         }
       } catch {
         vttStore.currentMap = null;

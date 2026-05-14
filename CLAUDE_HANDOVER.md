@@ -710,3 +710,12 @@ fn sanitize_fts_query(raw: &str) -> String {
 - Listeners GM manquants : `player_reaction`, `player_initiative`, `player_xp_request`
 - `CharacterCreator` profil : `profil.ini` → `profil.init`
 - `CharacterCreator` compétences : `comps: skills` (tableau, pas string)
+- Code Cleanup (Wave 9 Final) : Correction des types TypeScript (`any`), suppression des logs de debug, optimisation de la persistance multimap et nettoyage des assets par défaut.
+
+## État de Production (v0.1.0)
+- **Cible** : Windows (x64) & Linux (Debian/Ubuntu).
+- **Stabilité** : Stable pour des sessions de jeu réelles.
+- **Sécurité** : 100% local, aucune donnée transmise au cloud (sauf via le serveur mobile sur votre propre réseau local).
+- **Performance** : Utilisation intensive du GPU pour le rendu VTT (PixiJS v8) et du moteur Rust pour la gestion de fichiers et du réseau.
+
+**Félicitations, Grimoire est prêt à conquérir les tables de jeu !** 🏰🎲

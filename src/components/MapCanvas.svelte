@@ -39,8 +39,8 @@
     onDrawPath = (_path: DrawPath) => {},
     onPinReveal = (_id: string) => {},
     fowEnabled = true,
-    walls = [] as any[],
-    audioZones = [] as any[],
+    walls = [] as { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[],
+    audioZones = [] as { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[],
   }: {
     mapUrl?: string | null;
     gridEnabled?: boolean;
@@ -73,8 +73,8 @@
     onDrawPath?: (path: DrawPath) => void;
     onPinReveal?: (id: string) => void;
     fowEnabled?: boolean;
-    walls?: any[];
-    audioZones?: any[];
+    walls?: { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[];
+    audioZones?: { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[];
   } = $props();
 
   let canvasContainer: HTMLDivElement;
@@ -1767,7 +1767,7 @@
           else if (ext === 'ogg') mime = 'audio/ogg';
           audio!.src = `data:${mime};base64,${b64}`;
           audio!.play().catch(() => {});
-        }).catch(err => console.error('AudioZone load error:', err));
+        }).catch(() => {});
       }
     }
   }

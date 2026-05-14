@@ -30,8 +30,6 @@ pub async fn ask_ollama(_app_handle: tauri::AppHandle, prompt: String, model: St
         let local_bin = base_dir.join("bin").join(bin_name);
         
         if local_bin.exists() {
-            println!("Starting local Ollama from {:?}", local_bin);
-            
             // Configuration portable
             let models_dir = base_dir.join("models");
             let config_dir = base_dir.join("config");

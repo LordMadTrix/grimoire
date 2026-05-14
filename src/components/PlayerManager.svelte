@@ -68,7 +68,6 @@
           await createDirectory(vp, 'Journal').catch(() => {});
         }
         await writeFile(vp, filename, existing + content);
-        console.log("Journal updated by player", name);
       } catch(err) {
         console.error("Failed to update journal from player push", err);
       }
@@ -168,7 +167,6 @@
       const content = await readFile(vp, path);
       const updated = serializeCharacterMd(content, character);
       await writeFile(vp, path, updated);
-      console.log(`Auto-saved character to ${path}`);
     } catch(err) {
       console.error(`Failed to auto-save to ${path}`, err);
     }
