@@ -1,5 +1,4 @@
 <script lang="ts">
-  import './app.css';
   import Sidebar from './components/Sidebar.svelte';
   import Editor from './components/Editor.svelte';
   import SearchPalette from './components/SearchPalette.svelte';
