@@ -1,0 +1,1024 @@
+Fetching Tabletop Audio track list...
+Found 508 tracks.
+[1/508] Processing: Danse de Vampyr... Exists
+[2/508] Processing: Flux Array... Exists
+[3/508] Processing: The Verdant Dark... Exists
+[4/508] Processing: Visitation... Exists
+[5/508] Processing: Privy Council... Exists
+[6/508] Processing: Frost Giant Ridge... Downloaded
+[7/508] Processing: Sentient Eye... Downloaded
+[8/508] Processing: Crimson Haboob... Downloaded
+[9/508] Processing: Village Festival... Downloaded
+[10/508] Processing: Ravaged Lands... Downloaded
+[11/508] Processing: Urban Rooftop... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/498_Urban_Rooftop.mp3
+[12/508] Processing: Winter's Veil... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/497_Winters_Veil.mp3
+[13/508] Processing: Village Raid... Downloaded
+[14/508] Processing: Dedication Day... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/495_Dedication_Day.mp3
+[15/508] Processing: Docks Noir... Downloaded
+[16/508] Processing: News from the Front... Downloaded
+[17/508] Processing: Maturation Chamber... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/492_Maturation_Chamber.mp3
+[18/508] Processing: Red Dragon Dawn... Downloaded
+[19/508] Processing: Stone Barrow... Downloaded
+[20/508] Processing: The Crown Road... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/489_The_Crown_Road.mp3
+[21/508] Processing: Manor Dark... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/488_Manor_Dark.mp3
+[22/508] Processing: High Alert... Downloaded
+[23/508] Processing: War Wagon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/486_War_Wagon.mp3
+[24/508] Processing: Lady of the Wood... Downloaded
+[25/508] Processing: Ready the Castle... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/484_Ready_the_Castle.mp3
+[26/508] Processing: Ice Harvester Station... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/483_Ice_Harvester_Station.mp3
+[27/508] Processing: Upriver Recon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/482_Upriver_Recon.mp3
+[28/508] Processing: Witches' Dance... Downloaded
+[29/508] Processing: Pharaoh's Chamber... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/480_Pharaohs_Chamber.mp3
+[30/508] Processing: Boiler Room... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/479_Boiler_Room.mp3
+[31/508] Processing: Gravedigger... Downloaded
+[32/508] Processing: Lifeboat... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/477_Lifeboat.mp3
+[33/508] Processing: Barghest Fell... Downloaded
+[34/508] Processing: Lost Contact... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/475_Lost_Contact.mp3
+[35/508] Processing: Kingdom of Mist... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/474_Kingdom_of_Mist.mp3
+[36/508] Processing: Prison Block... Downloaded
+[37/508] Processing: Ice Mephit Cavern... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/472_Ice_Mephit_Cavern.mp3
+[38/508] Processing: Prisoner Transport... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/471_Prisoner_Transport.mp3
+[39/508] Processing: The Threshing Hour... Downloaded
+[40/508] Processing: Monsoon Temple... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/469_Monsoon_Temple.mp3
+[41/508] Processing: Steampunk Telescope... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/468_Steampunk_Telescope.mp3
+[42/508] Processing: Battle Stations... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/467_Battle_Stations.mp3
+[43/508] Processing: Drow Slave Camp... Downloaded
+[44/508] Processing: Light the Beacons... Downloaded
+[45/508] Processing: Petrified Forest... Downloaded
+[46/508] Processing: Listening Post... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/463_Listening_Post.mp3
+[47/508] Processing: Foghaven... Downloaded
+[48/508] Processing: Resurrection... Downloaded
+[49/508] Processing: Doll Shoppe... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/460_Doll_Shoppe.mp3
+[50/508] Processing: Xenon Refinery... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/459_Xenon_Refinery.mp3
+[51/508] Processing: Deep Blue... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/458_Deep_Blue.mp3
+[52/508] Processing: Hunting Grounds... Error: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+[53/508] Processing: Drawing Room: Night... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/456_Drawing_Room_Night.mp3
+[54/508] Processing: Harper's Waypoint... Downloaded
+[55/508] Processing: Broken Pantheon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/454_Broken_Pantheon.mp3
+[56/508] Processing: Capes and Canes... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/453_Capes_and_Canes.mp3
+[57/508] Processing: The Last Express... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/452_The_Last_Express.mp3
+[58/508] Processing: Orb of Doom... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/451_Orb_of_Doom.mp3
+[59/508] Processing: Nightlands... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/450_Nightlands.mp3
+[60/508] Processing: A Royal Visit... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/449_A_Royal_Visit.mp3
+[61/508] Processing: Checkpoint Omega... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/448_Checkpoint_Omega.mp3
+[62/508] Processing: The Murky Depths... Downloaded
+[63/508] Processing: Between Adventures... Downloaded
+[64/508] Processing: Lava King's Lair... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/445_Lava_Kings_Lair.mp3
+[65/508] Processing: Yuletide Cantrips... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/444_Yuletide_Cantrips.mp3
+[66/508] Processing: Primate Lab... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/443_Primate_Lab.mp3
+[67/508] Processing: Darkmoor... Downloaded
+[68/508] Processing: Tech Market... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/441_Tech_Market.mp3
+[69/508] Processing: Map Chamber... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/440_Map_Chamber.mp3
+[70/508] Processing: Goodhaven... Downloaded
+[71/508] Processing: Red Sky Mine... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/438_Red_Sky_Mine.mp3
+[72/508] Processing: Dungeon Asylum... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/437_Dungeon_Asylum.mp3
+[73/508] Processing: Winter Encampment... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/436_Winter_Encampment.mp3
+[74/508] Processing: The Undercroft... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/435_The_Undercroft.mp3
+[75/508] Processing: Cryo Pods... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/434_Cryo_Pods.mp3
+[76/508] Processing: Spectral Abbey... Downloaded
+[77/508] Processing: Lair of the Wyrm... Downloaded
+[78/508] Processing: Hotel Noir... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/431_Hotel_Noir.mp3
+[79/508] Processing: Fire Dance... Downloaded
+[80/508] Processing: Imperial Pursuit... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/429_Imperial_Pursuit.mp3
+[81/508] Processing: The Sisterhood... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/428_The_Sisterhood.mp3
+[82/508] Processing: Bug Hunt... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/427_Bug_Hunt.mp3
+[83/508] Processing: Stagecoach Heist... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/426_Stagecoach_Heist.mp3
+[84/508] Processing: The Stranger... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/425_The_Stranger.mp3
+[85/508] Processing: Frontier Town... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/424_Frontier_Town.mp3
+[86/508] Processing: Magical Flora... Downloaded
+[87/508] Processing: Ghost Ship... Downloaded
+[88/508] Processing: The Madding Crowd... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/421_The_Madding_Crowd.mp3
+[89/508] Processing: Counting House... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/420_Counting_House.mp3
+[90/508] Processing: Hidden Passage... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/419_Hidden_Passage.mp3
+[91/508] Processing: Pagan Woods... Downloaded
+[92/508] Processing: Mainframe... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/417_Mainframe.mp3
+[93/508] Processing: Rebuilding... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/416_Rebuilding.mp3
+[94/508] Processing: Jungle Bunker... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/415_Jungle_Bunker.mp3
+[95/508] Processing: Stakeout... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/414_Stakeout.mp3
+[96/508] Processing: Collegium Magica... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/413_Collegium_Magica.mp3
+[97/508] Processing: Tomb Guardians... Downloaded
+[98/508] Processing: Ship of the Line... Downloaded
+[99/508] Processing: Forgotten Forest... Downloaded
+[100/508] Processing: Docking Procedure... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/409_Docking_Procedure.mp3
+[101/508] Processing: Nautiloid Escape... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/408_Nautiloid_Escape.mp3
+[102/508] Processing: Viking Tavern... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/407_Viking_Tavern.mp3
+[103/508] Processing: Treacherous Path... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/406_Treacherous_Path.mp3
+[104/508] Processing: Brood Mother... Downloaded
+[105/508] Processing: Vampyr... Downloaded
+[106/508] Processing: Steel Foundry... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/403_Steel_Foundry.mp3
+[107/508] Processing: The Drowned Tower... Downloaded
+[108/508] Processing: Feast of Crispian... Downloaded
+[109/508] Processing: Whispering Caverns... Downloaded
+[110/508] Processing: Whiteout... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/399_Whiteout.mp3
+[111/508] Processing: The Misty Marsh... Downloaded
+[112/508] Processing: Homecoming... Downloaded
+[113/508] Processing: The Ansible... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/396_The_Ansible.mp3
+[114/508] Processing: Launch Day... Downloaded
+[115/508] Processing: Demon Army... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/394_Demon_Army.mp3
+[116/508] Processing: Hellhound Alley... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/393_Hellhound_Alley.mp3
+[117/508] Processing: Trireme... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/392_Trireme.mp3
+[118/508] Processing: Train Job... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/391_Train_Job.mp3
+[119/508] Processing: Desert Devotional... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/390_Desert_Devotional.mp3
+[120/508] Processing: Medieval Market... Downloaded
+[121/508] Processing: Lord of Bones... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/388_Lord_of_Bones.mp3
+[122/508] Processing: Docking Bay... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/387_Docking_Bay.mp3
+[123/508] Processing: The Attic... Downloaded
+[124/508] Processing: Infiltration... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/385_Infiltration.mp3
+[125/508] Processing: Western Watchtower... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/384_Western_Watchtower.mp3
+[126/508] Processing: Banshee's Lair... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/383_Banshees_Lair.mp3
+[127/508] Processing: Long Rest... Downloaded
+[128/508] Processing: Halfling Sneak... Downloaded
+[129/508] Processing: The Great Lift... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/380_The_Great_Lift.mp3
+[130/508] Processing: Terraforming... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/379_Terraforming.mp3
+[131/508] Processing: Descent... Downloaded
+[132/508] Processing: Through the Woods... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/377_Through_the_Woods.mp3
+[133/508] Processing: Voyage Begins... Downloaded
+[134/508] Processing: Rise of the Golem... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/375_Rise_of_the_Golem.mp3
+[135/508] Processing: Hall of Angels... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/374_Hall_of_Angels.mp3
+[136/508] Processing: Infernal Machine... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/373_Infernal_Machine.mp3
+[137/508] Processing: Den of Iniquity... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/372_Den_of_Iniquity.mp3
+[138/508] Processing: Whirlpool... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/371_Whirlpool.mp3
+[139/508] Processing: Awakenings... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/370_Awakenings.mp3
+[140/508] Processing: Troll Grotto... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/369_Troll_Grotto.mp3
+[141/508] Processing: Ghosts of Appalachia... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/368_Ghosts_of_Appalachia.mp3
+[142/508] Processing: Rope Bridge... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/367_Rope_Bridge.mp3
+[143/508] Processing: Roc's Nest... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/366_Rocs_Nest.mp3
+[144/508] Processing: Trail of Ashes... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/365_Trail_of_Ashes.mp3
+[145/508] Processing: River of Blood... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/364_River_of_Blood.mp3
+[146/508] Processing: Starship Adrift... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/363_Starship_Adrift.mp3
+[147/508] Processing: Rolling Emporium... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/362_Rolling_Emporium.mp3
+[148/508] Processing: Ancient Beacon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/361_Ancient_Beacon.mp3
+[149/508] Processing: Pit Fighter... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/360_Pit_Fighter.mp3
+[150/508] Processing: Skull Island... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/359_Skull_Island.mp3
+[151/508] Processing: Egg Chamber... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/358_Egg_Chamber.mp3
+[152/508] Processing: Promontory... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/357_Promontory.mp3
+[153/508] Processing: Adventure Begins... Downloaded
+[154/508] Processing: Hydroponics Bay... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/355_Hydroponics_Bay.mp3
+[155/508] Processing: Warlock's Whisper... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/354_Warlocks_Whisper.mp3
+[156/508] Processing: Spirit of the Plains... Downloaded
+[157/508] Processing: Black Rider... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/352_Black_Rider.mp3
+[158/508] Processing: Halfling Lodge... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/351_Halfling_Lodge.mp3
+[159/508] Processing: Covert Ops... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/350_Covert_Ops.mp3
+[160/508] Processing: Puzzle Dungeon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/349_Puzzle_Dungeon.mp3
+[161/508] Processing: Viking Village... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/348_Viking_Village.mp3
+[162/508] Processing: Elven Procession... Downloaded
+[163/508] Processing: Tinkertown... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/346_Tinkertown.mp3
+[164/508] Processing: High Seas Pursuit... Downloaded
+[165/508] Processing: YÅkai Forest... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/344_Yokai_Forest.mp3
+[166/508] Processing: Dungeon Collapse... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/343_Dungeon_Collapse.mp3
+[167/508] Processing: Tavern Celebration... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/342_Tavern_Celebration.mp3
+[168/508] Processing: Beggar's Rest... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/341_Beggars_Rest.mp3
+[169/508] Processing: Starbase Omega... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/340_Starbase_Omega.mp3
+[170/508] Processing: Red Planet... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/339_Red_Planet.mp3
+[171/508] Processing: Adventure Supply... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/338_Adventure_Supply.mp3
+[172/508] Processing: Village of the Damned... Downloaded
+[173/508] Processing: Medieval Banquet... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/336_Medieval_Banquet.mp3
+[174/508] Processing: Abandoned Chapel... Downloaded
+[175/508] Processing: Harpies' Nest... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/334_Harpies_Nest.mp3
+[176/508] Processing: Arcane Athenaeum... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/333_Arcane_Athenaeum.mp3
+[177/508] Processing: Myconid Colony... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/332_Myconid_Colony.mp3
+[178/508] Processing: Drowned Sailors... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/331_Drowned_Sailors.mp3
+[179/508] Processing: Mega City Slums... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/330_Mega_City_Slums.mp3
+[180/508] Processing: Desert Temple... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/329_Desert_Temple.mp3
+[181/508] Processing: Battle Requiem... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/328_Battle_Requiem.mp3
+[182/508] Processing: Distilled: Tropical... Downloaded
+[183/508] Processing: Distilled: Tranquility... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/326_Distilled_Tranquility.mp3
+[184/508] Processing: Distilled: Warehouse... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/325_Distilled_Warehouse.mp3
+[185/508] Processing: Distilled: Highlands... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/324_Distilled_Highlands.mp3
+[186/508] Processing: Distilled: Backwoods... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/323_Distilled_Backwoods.mp3
+[187/508] Processing: Distilled: Cooperage... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/322_Distilled_Cooperage.mp3
+[188/508] Processing: Invisible Mountain... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/321_Invisible_Mountain.mp3
+[189/508] Processing: Cultist's Cavern... Downloaded
+[190/508] Processing: Shaman's Hollow... Downloaded
+[191/508] Processing: The Gaping Maw... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/318_The_Gaping_Maw.mp3
+[192/508] Processing: Robot Scrapyard... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/317_Robot_Scrapyard.mp3
+[193/508] Processing: Goblin Ambush... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/316_Goblin_Ambush.mp3
+[194/508] Processing: Dragon Rider... Downloaded
+[195/508] Processing: Shuttle Crash... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/314_Shuttle_Crash.mp3
+[196/508] Processing: Dusk of the Dryad... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/313_Dusk_of_the_Dryad.mp3
+[197/508] Processing: Generation Ship... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/312_Generation_Ship.mp3
+[198/508] Processing: Swamp Thing... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/311_Swamp_Thing.mp3
+[199/508] Processing: Moisture Farm... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/310_Moisture_Farm.mp3
+[200/508] Processing: Bloodgate... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/309_Bloodgate.mp3
+[201/508] Processing: Skullwharf... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/308_Skullwharf.mp3
+[202/508] Processing: Sand Raiders... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/307_Sand_Raiders.mp3
+[203/508] Processing: Aftermath... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/306_Aftermath.mp3
+[204/508] Processing: Hidden Valley... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/305_Hidden_Valley.mp3
+[205/508] Processing: Fog of War... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/304_Fog_of_War.mp3
+[206/508] Processing: Summoning... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/303_Summoning.mp3
+[207/508] Processing: Floating Market... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/302_Floating_Market.mp3
+[208/508] Processing: Pool of Radiance... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/301_Pool_of_Radiance.mp3
+[209/508] Processing: Burn Maneuver... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/300_Burn_Maneuver.mp3
+[210/508] Processing: Necropolis... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/299_Necropolis.mp3
+[211/508] Processing: Gateway to Hell... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/298_Gateway_to_Hell.mp3
+[212/508] Processing: Survivors' Bivouac... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/297_Survivors_Bivouac.mp3
+[213/508] Processing: The Frozen Trail... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/296_The_Frozen_Trail.mp3
+[214/508] Processing: Closing Time... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/295_Closing_Time.mp3
+[215/508] Processing: Cutpurse Pursuit... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/294_Cutpurse_Pursuit.mp3
+[216/508] Processing: Sanitarium... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/293_Sanitarium.mp3
+[217/508] Processing: Bleakwater Docks... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/292_Bleakwater_Docks.mp3
+[218/508] Processing: Investigator's Office... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/291_Investigators_Office.mp3
+[219/508] Processing: Wagon Ride... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/290_Wagon_Ride.mp3
+[220/508] Processing: Ancient Artifact... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/289_Ancient_Artifact.mp3
+[221/508] Processing: Everdeep... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/288_Everdeep.mp3
+[222/508] Processing: The Strange... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/287_The_Strange.mp3
+[223/508] Processing: Blastfire Bog... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/286_Blastfire_Bog.mp3
+[224/508] Processing: High Rannoc Village... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/285_High_Rannoc_Village.mp3
+[225/508] Processing: Oasis City... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/284_Oasis_City.mp3
+[226/508] Processing: Pattern Recognition... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/283_Pattern_Recognition.mp3
+[227/508] Processing: The Wild Hunt... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/282_The_Wild_Hunt.mp3
+[228/508] Processing: Escape from Shadow... Downloaded
+[229/508] Processing: The City Above... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/280_The_City_Above.mp3
+[230/508] Processing: Blighted Farm... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/279_Blighted_Farm.mp3
+[231/508] Processing: Farmyard... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/278_Farmyard.mp3
+[232/508] Processing: A New Beginning... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/277_A_New_Beginning.mp3
+[233/508] Processing: Forge of Fury... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/276_Forge_of_Fury.mp3
+[234/508] Processing: Lorekeeper Grove... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/275_Lorekeeper_Grove.mp3
+[235/508] Processing: Jungle Shaman... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/274_Jungle_Shaman.mp3
+[236/508] Processing: Arcane Clockworks... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/273_Arcane_Clockworks.mp3
+[237/508] Processing: Starforged: Vault... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/272_Starforged_Vault.mp3
+[238/508] Processing: Starforged: Fray... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/271_Starforged_Fray.mp3
+[239/508] Processing: Starforged: Sojourn... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/270_Starforged_Sojourn.mp3
+[240/508] Processing: Starforged: Planetside... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/269_Starforged_Planetside.mp3
+[241/508] Processing: Starforged: Space... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/268_Starforged_Space.mp3
+[242/508] Processing: Court of the Count... Downloaded
+[243/508] Processing: Orbital Prison Break... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/266_Orbital_Prison_Break.mp3
+[244/508] Processing: Shrine of Talos... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/265_Shrine_of_Talos.mp3
+[245/508] Processing: Base Assault... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/264_Base_Assault.mp3
+[246/508] Processing: Mysterious Grotto... Downloaded
+[247/508] Processing: Victorian Slums... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/262_Victorian_Slums.mp3
+[248/508] Processing: Unto the Breach... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/261_Unto_the_Breach.mp3
+[249/508] Processing: Skyship... Downloaded
+[250/508] Processing: Grand Theater... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/259_Grand_Theater.mp3
+[251/508] Processing: Blighted Forest... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/258_Blighted_Forest.mp3
+[252/508] Processing: Country Workshop... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/257_Country_Workshop.mp3
+[253/508] Processing: Ice Dragon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/256_Ice_Dragon.mp3
+[254/508] Processing: The Hearth Inn... Downloaded
+[255/508] Processing: Desert Planet Souk... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/254_Desert_Planet_Souk.mp3
+[256/508] Processing: Submerged... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/253_Submerged.mp3
+[257/508] Processing: Vault of Terror... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/252_Vault_of_Terror.mp3
+[258/508] Processing: Candledeep... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/251_Candledeep.mp3
+[259/508] Processing: Wolf Pens... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/250_Wolf_Pens.mp3
+[260/508] Processing: Steampunk Station... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/249_Steampunk_Station.mp3
+[261/508] Processing: Alien Reactor... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/248_Alien_Reactor.mp3
+[262/508] Processing: Oregon Trail... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/247_Oregon_Trail.mp3
+[263/508] Processing: Magic Shoppe... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/246_Magic_Shoppe.mp3
+[264/508] Processing: Secret Facility... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/245_Secret_Facility.mp3
+[265/508] Processing: Vikings... Downloaded
+[266/508] Processing: Jungle Ruins... Downloaded
+[267/508] Processing: Spider's Den... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/242_Spiders_Den.mp3
+[268/508] Processing: Pirates!... Downloaded
+[269/508] Processing: Throne Room... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/240_Throne_Room.mp3
+[270/508] Processing: Nordic Noir... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/239_Nordic_Noir.mp3
+[271/508] Processing: Mind Flayer Chamber... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/238_Mind_Flayer_Chamber.mp3
+[272/508] Processing: Training Grounds... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/237_Training_Grounds.mp3
+[273/508] Processing: Defiled Temple... Downloaded
+[274/508] Processing: Rainy Village... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/235_Rainy_Village.mp3
+[275/508] Processing: Lush World... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/234_Lush_World.mp3
+[276/508] Processing: The Orrery... Downloaded
+[277/508] Processing: Mech War... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/232_Mech_War.mp3
+[278/508] Processing: Icebound Town... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/231_Icebound_Town.mp3
+[279/508] Processing: All Hallows' Eve... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/230_All_Hallows_Eve.mp3
+[280/508] Processing: Interrogation Room... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/229_Interrogation_Room.mp3
+[281/508] Processing: Mushroom Forest... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/228_Mushroom_Forest.mp3
+[282/508] Processing: Terror in the Woods... Downloaded
+[283/508] Processing: 60s Computer Lab... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/226_60s_Computer_Lab.mp3
+[284/508] Processing: New Orleans Noir... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/225_New_Orleans_Noir.mp3
+[285/508] Processing: Mansion: Night... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/224_Mansion_Night.mp3
+[286/508] Processing: Salt Marsh... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/223_Salt_Marsh.mp3
+[287/508] Processing: Wuxia Tea House... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/222_Wuxia_Tea_House.mp3
+[288/508] Processing: Sunken Treasure... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/221_Sunken_Treasure.mp3
+[289/508] Processing: Wuxia Village... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/220_Wuxia_Village.mp3
+[290/508] Processing: Tinkerer's Workshop... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/219_Tinkerers_Workshop.mp3
+[291/508] Processing: Sleeping Ogre... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/218_Sleeping_Ogre.mp3
+[292/508] Processing: Storm at Sea... Downloaded
+[293/508] Processing: Waterkeep: Night... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/216_Waterkeep_Night.mp3
+[294/508] Processing: Space Battle... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/215_Space_Battle.mp3
+[295/508] Processing: Castle Kitchen... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/214_Castle_Kitchen.mp3
+[296/508] Processing: Burning Village... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/213_Burning_Village.mp3
+[297/508] Processing: Witch Mountain... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/212_Witch_Mountain.mp3
+[298/508] Processing: Thieves' Guild... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/211_Thieves_Guild.mp3
+[299/508] Processing: Temple Garden... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/210_Temple_Garden.mp3
+[300/508] Processing: Rat Battle... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/209_Rat_Battle.mp3
+[301/508] Processing: Ghost Town... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/208_Ghost_Town.mp3
+[302/508] Processing: Biodome... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/207_Biodome.mp3
+[303/508] Processing: Heart: High Rise... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/206_Heart_High_Rise.mp3
+[304/508] Processing: Heart: Absolution... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/205_Heart_Absolution.mp3
+[305/508] Processing: Heart: Meat Corridor... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/204_Heart_Meat_Corridor.mp3
+[306/508] Processing: Heart: Briar... Downloaded
+[307/508] Processing: Heart: Drowned... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/202_Heart_Drowned.mp3
+[308/508] Processing: Haven... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/201_Haven.mp3
+[309/508] Processing: Druid Hilltop... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/200_Druid_Hilltop.mp3
+[310/508] Processing: Sun Dappled Trail... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/199_Sun_Dappled_Trail.mp3
+[311/508] Processing: Shadowfell... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/198_Shadowfell.mp3
+[312/508] Processing: Battle of the Amazons... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/197_Battle_of_the_Amazons.mp3
+[313/508] Processing: Crossing the Styx... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/196_Crossing_the_Styx.mp3
+[314/508] Processing: Shopping Mall... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/195_Shopping_Mall.mp3
+[315/508] Processing: Tarrasque Interior... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/194_Tarrasque_Interior.mp3
+[316/508] Processing: The Steppes... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/193_The_Steppes.mp3
+[317/508] Processing: Swamp Planet... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/192_Swamp_Planet.mp3
+[318/508] Processing: Dying World... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/191_Dying_World.mp3
+[319/508] Processing: 1940s Boardwalk... Downloaded
+[320/508] Processing: Yuletide... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/189_Yuletide.mp3
+[321/508] Processing: Barovian Village... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/188_Barovian_Village.mp3
+[322/508] Processing: Endgame... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/187_Endgame.mp3
+[323/508] Processing: Haunted... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/186_Haunted.mp3
+[324/508] Processing: Gravity... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/185_Gravity.mp3
+[325/508] Processing: Underground Lake... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/184_Underground_Lake.mp3
+[326/508] Processing: Sea of Moving Ice... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/183_Sea_of_Moving_Ice.mp3
+[327/508] Processing: Country Village... Downloaded
+[328/508] Processing: Cyberpunk Bar... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/181_Cyberpunk_Bar.mp3
+[329/508] Processing: Abandoned Windmill... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/180_Abandoned_Windmill.mp3
+[330/508] Processing: Cyberpunk City... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/179_Cyberpunk_City.mp3
+[331/508] Processing: Ice Throne... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/178_Ice_Throne.mp3
+[332/508] Processing: Tavern Music... Downloaded
+[333/508] Processing: Barren Wastes... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/176_Barren_Wastes.mp3
+[334/508] Processing: Royal Court... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/175_Royal_Court.mp3
+[335/508] Processing: Wizard's Tower... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/174_Wizards_Tower.mp3
+[336/508] Processing: Robotics Lab... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/173_Robotics_Lab.mp3
+[337/508] Processing: Castle Jail... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/172_Castle_Jail.mp3
+[338/508] Processing: Cry Havoc... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/171_Cry_Havoc.mp3
+[339/508] Processing: The Underdark... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/170_The_Underdark.mp3
+[340/508] Processing: The Feywild... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/169_The_Feywild.mp3
+[341/508] Processing: Neon Drive... Downloaded
+[342/508] Processing: Fishing Village... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/167_Fishing_Village.mp3
+[343/508] Processing: Quiet Cove... Downloaded
+[344/508] Processing: RMS Titanic... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/165_RMS_Titanic.mp3
+[345/508] Processing: Cistern... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/164_Cistern.mp3
+[346/508] Processing: Medieval Fair... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/163_Medieval_Fair.mp3
+[347/508] Processing: Dark Angel... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/162_Dark_Angel.mp3
+[348/508] Processing: Forest: Day... Downloaded
+[349/508] Processing: Shanghai 1930s... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/160_Shanghai_1930s.mp3
+[350/508] Processing: Stables... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/159_Stables.mp3
+[351/508] Processing: Waterkeep... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/158_Waterkeep.mp3
+[352/508] Processing: Field of Heroes... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/157_Field_of_Heroes.mp3
+[353/508] Processing: Star Freighter... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/156_Star_Freighter.mp3
+[354/508] Processing: Outpost 31... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/155_Outpost_31.mp3
+[355/508] Processing: Artist's Garret... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/154_Artists_Garret.mp3
+[356/508] Processing: Secret Garden... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/153_Secret_Garden.mp3
+[357/508] Processing: Nostromo... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/152_Nostromo.mp3
+[358/508] Processing: Metropolis Fanfare... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/151_Metropolis_Fanfare.mp3
+[359/508] Processing: Loop Tales... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/150_Loop_Tales.mp3
+[360/508] Processing: Lakeside Camp... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/149_Lakeside_Camp.mp3
+[361/508] Processing: Barovian Castle... Downloaded
+[362/508] Processing: Graveyard... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/147_Graveyard.mp3
+[363/508] Processing: Floating Ice Castle... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/146_Floating_Ice_Castle.mp3
+[364/508] Processing: Cotton Club... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/145_Cotton_Club_CLEAN.mp3
+[365/508] Processing: War Zone... Downloaded
+[366/508] Processing: Elegant Dinner Party... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/143_Elegant_Dinner_Party.mp3
+[367/508] Processing: Mummy's Tomb... Downloaded
+[368/508] Processing: Hermit Hut... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/141_Hermit_Hut.mp3
+[369/508] Processing: Dark Future... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/140_Dark_Future.mp3
+[370/508] Processing: Sunken Temple... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/139_Sunken_Temple.mp3
+[371/508] Processing: Desert Winds... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/138_Desert_Winds.mp3
+[372/508] Processing: Mill Town... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/137_Mill_Town_a.mp3
+[373/508] Processing: Temple of Helm... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/136_Temple_Of_Helm.mp3
+[374/508] Processing: Dark Matter... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/135_Dark_Matter.mp3
+[375/508] Processing: Carriage Journey... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/134_Carriage_Journey.mp3
+[376/508] Processing: Halfling Festival... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/133_Halfling_Festival.mp3
+[377/508] Processing: Open Ocean... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/132_Open_Ocean.mp3
+[378/508] Processing: The Bog Standard... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/131_The_Bog_Standard.mp3
+[379/508] Processing: Russian Winter... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/130_Russian_Winter.mp3
+[380/508] Processing: Weirder Things: 2... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/129_Weirder_Things_2.mp3
+[381/508] Processing: Waiting Time... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/128_Waiting_Time.mp3
+[382/508] Processing: Car Chase!... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/127_Car_Chase_a.mp3
+[383/508] Processing: Endless Voyage... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/126_Endless_Voyage.mp3
+[384/508] Processing: Existential Dread... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/125_Existential_Dread.mp3
+[385/508] Processing: Spire: The Vermissian... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/124_Spire_The_Vermissian.mp3
+[386/508] Processing: Spire: The Hatchery... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/123_Spire_The_Hatchery.mp3
+[387/508] Processing: Spire: The Ministry... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/122_Spire_The_Ministry.mp3
+[388/508] Processing: Spire: Derelictus... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/121_Spire_Derelictus.mp3
+[389/508] Processing: Spire: New Heaven... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/120_Spire_New_Heaven.mp3
+[390/508] Processing: Spire: Amaranth... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/119_Spire_Amaranth_a.mp3
+[391/508] Processing: Spire: The Heart... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/118_Spire_The_Heart_a.mp3
+[392/508] Processing: Crossroads... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/117_Crossroads.mp3
+[393/508] Processing: RavenPuff Common... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/116_RavenPuff_Common.mp3
+[394/508] Processing: Antiquarian Study... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/115_Antiquarian_Study.mp3
+[395/508] Processing: Dwarven City... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/114_Dwarven_City.mp3
+[396/508] Processing: Astral Plane... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/113_Astral_Plane.mp3
+[397/508] Processing: Ethereal Plane... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/112_Ethereal_Plane.mp3
+[398/508] Processing: Orbital Promenade... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/111_Orbital_Promenade.mp3
+[399/508] Processing: Wild West Saloon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/110_Wild_West_Saloon.mp3
+[400/508] Processing: 747 Interior... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/109_747_Interior.mp3
+[401/508] Processing: Carnival... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/108_Carnival.mp3
+[402/508] Processing: Lonesome West... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/107_Lonesome_West.mp3
+[403/508] Processing: Lunar Outpost... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/106_Lunar_Outpost.mp3
+[404/508] Processing: Weirder Things... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/105_Weirder_Things_2.mp3
+[405/508] Processing: River Town... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/104_River_Town.mp3
+[406/508] Processing: Testing Chamber... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/103_Testing_Chamber.mp3
+[407/508] Processing: Vampire's Castle... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/102_Vampire_Castle.mp3
+[408/508] Processing: Highway... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/101_Highway.mp3
+[409/508] Processing: Volcano... Downloaded
+[410/508] Processing: Cavern of Lost Souls... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/99_Cavern_of_Lost_Souls.mp3
+[411/508] Processing: Lost Mine... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/98_Lost_Mine.mp3
+[412/508] Processing: City Under Siege... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/97_City_Under_Siege.mp3
+[413/508] Processing: Windswept Plains... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/96_Windswept_Plains_b.mp3
+[414/508] Processing: Arabesque... Downloaded
+[415/508] Processing: Noir Procedural... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/94_Noir_Procedural.mp3
+[416/508] Processing: Starship Medical... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/93_Starship_Medical.mp3
+[417/508] Processing: Skirmish... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/92_Skirmish.mp3
+[418/508] Processing: Elven Glade... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/91_Elven_Glade.mp3
+[419/508] Processing: Dungeon II: Mechanical... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/90_Dungeon_II_Mechanical.mp3
+[420/508] Processing: Winter Woods... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/89_Winter_Woods.mp3
+[421/508] Processing: Lively Cafe... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/88_Lively_Cafe.mp3
+[422/508] Processing: Winter Festival... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/87_Winter_Festival.mp3
+[423/508] Processing: Dark City... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/86_Dark_City.mp3
+[424/508] Processing: Sewers... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/85_Sewers.mp3
+[425/508] Processing: Lucha Libre!... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/84_Lucha_Libre.mp3
+[426/508] Processing: Haunted Ramparts... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/83_Haunted_Ramparts.mp3
+[427/508] Processing: Nightmare... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/82_Nightmare.mp3
+[428/508] Processing: 1920s Speakeasy... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/81_1920s_Speakeasy.mp3
+[429/508] Processing: Blacksmith Shoppe... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/80_Blacksmith_Shoppe.mp3
+[430/508] Processing: Medieval Battle... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/79_Medieval_Battle.mp3
+[431/508] Processing: Steampunk Airship... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/78_Steampunk_Airship.mp3
+[432/508] Processing: Abandoned Fair... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/77_Abandoned_Fair.mp3
+[433/508] Processing: Alchemist's Lab... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/76_Alchemists_Lab.mp3
+[434/508] Processing: Docks District... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/75_Docks_District.mp3
+[435/508] Processing: Zombies!... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/74_Zombies!.mp3
+[436/508] Processing: Medieval Library... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/73_Medieval_Library.mp3
+[437/508] Processing: Monster Attack!... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/72_Monster_Attack.mp3
+[438/508] Processing: Sleeping Dragon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/71_Sleeping_Dragon.mp3
+[439/508] Processing: The Age of Steam... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/70_Age_of_Steam.mp3
+[440/508] Processing: Forest: Night... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/69_Forest_Night.mp3
+[441/508] Processing: 1940's Office... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/68_1940s_Office.mp3
+[442/508] Processing: Asylum... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/67_Asylum.mp3
+[443/508] Processing: Royal Salon... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/66_Royal_Salon.mp3
+[444/508] Processing: Dungeon I... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/65_Dungeon_I.mp3
+[445/508] Processing: Mountain Pass... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/64_Mountain_Pass.mp3
+[446/508] Processing: Industrial Shipyard... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/63_Industrial_Shipyard.mp3
+[447/508] Processing: Middle Earth:Dawn... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/62_Middle_Earth_Dawn.mp3
+[448/508] Processing: Orbital Platform... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/61_Orbital_Platform.mp3
+[449/508] Processing: Dark and Stormy... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/60_Dark_and_Stormy.mp3
+[450/508] Processing: Dinotopia... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/59_Dinotopia.mp3
+[451/508] Processing: Terror... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/58_Terror.mp3
+[452/508] Processing: Colosseum... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/57_Colosseum.mp3
+[453/508] Processing: Medieval Town... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/56_Medieval_Town.mp3
+[454/508] Processing: Ice Cavern... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/55_Ice_Cavern.mp3
+[455/508] Processing: Mountain Tavern... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/54_Mountain_Tavern.mp3
+[456/508] Processing: Strangers on a Train... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/53_Strangers_on_a_Train.mp3
+[457/508] Processing: Warehouse 13... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/52_Warehouse_13.mp3
+[458/508] Processing: Woodland Campsite... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/51_Woodland_Campsite.mp3
+[459/508] Processing: Super Hero... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/50_Super_Hero.mp3
+[460/508] Processing: Goblin's Cave... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/49_Goblins_Cave.mp3
+[461/508] Processing: Overland with Oxen... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/48_Overland_with_Oxen.mp3
+[462/508] Processing: There be Dragons... Downloaded
+[463/508] Processing: Cathedral... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/46_Cathedral.mp3
+[464/508] Processing: Samurai HQ... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/45_Samurai_HQ.mp3
+[465/508] Processing: Victorian London... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/44_Victorian_London.mp3
+[466/508] Processing: Dome City Center... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/43_Dome_City_Center.mp3
+[467/508] Processing: Rise of the Ancients... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/42_Rise_of_the_Ancients.mp3
+[468/508] Processing: Starship Bridge... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/41_Starship_Bridge.mp3
+[469/508] Processing: The Long Rain... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/40_The_Long_Rain.mp3
+[470/508] Processing: Temple of the Eye... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/39_Temple_of_the_Eye.mp3
+[471/508] Processing: Into the Deep... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/38_Into_the_Deep.mp3
+[472/508] Processing: Clash of Kings... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/34_Clash_of_Kings.mp3
+[473/508] Processing: Down by the Sea... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/36_Down_by_the_Sea.mp3
+[474/508] Processing: Catacombs... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/37_Catacombs.mp3
+[475/508] Processing: Los Vangeles 3030... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/30_Los_Vangeles_3030.mp3
+[476/508] Processing: Swamplandia... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/35_Swamplandia.mp3
+[477/508] Processing: Far Above the World... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/33_Far_Above_the_World.mp3
+[478/508] Processing: City and the City... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/32_City_and_the_City.mp3
+[479/508] Processing: Kaltoran Craft FE... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/29_Kaltoran_Craft_FE.mp3
+[480/508] Processing: Nephilim Labs FE... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/28_Nephilim_Labs_FE.mp3
+[481/508] Processing: Frozen Wastes... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/31_Frozen_Wastes.mp3
+[482/508] Processing: Uncommon Valor... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/26_Uncommon_Valor_a.mp3
+[483/508] Processing: Xingu Nights... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/27_Xingu_Nights.mp3
+[484/508] Processing: Deep Space EVA... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/25_Deep_Space_EVA.mp3
+[485/508] Processing: Forbidden Galaxy!... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/24_Forbidden_Galaxy.mp3
+[486/508] Processing: The Slaughtered Ox... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/23_The_Slaughtered_Ox.mp3
+[487/508] Processing: Derelict Freighter... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/21_Derelict_Freighter.mp3
+[488/508] Processing: True West... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/22_True_West_a.mp3
+[489/508] Processing: Dark Continent... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/20_Dark_Continent_aa.mp3
+[490/508] Processing: The Age of Sail... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/19_Age_of_Sail.mp3
+[491/508] Processing: House on the Hill... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/18_House_on_the_Hill.mp3
+[492/508] Processing: Alien Night Club... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/17_Alien_Night_Club.mp3
+[493/508] Processing: Alien Machine Shop... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/15_Alien_Machine_Shop.mp3
+[494/508] Processing: Busy Space Port... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/16_Busy_Space_Port.mp3
+[495/508] Processing: Solemn Vow... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/4_Solemn_Vow-a.mp3
+[496/508] Processing: Abyssal Gaze... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/6_Abyssal_Gaze.mp3
+[497/508] Processing: The Desert Awaits... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/7_The_Desert_Awaits.mp3
+[498/508] Processing: Dust to Dust... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/8_New_Dust_to_Dust.mp3
+[499/508] Processing: Before the Storm... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/9_Before_The_Storm.mp3
+[500/508] Processing: In the Shadows... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/10_In_The_Shadows.mp3
+[501/508] Processing: Shelter from the Storm... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/11_Shelter_from_the_Storm.mp3
+[502/508] Processing: Disembodied Spirits... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/12_Disembodied_Spirits.mp3
+[503/508] Processing: Cave of Time... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/13_Cave_of_Time.mp3
+[504/508] Processing: Protean Fields... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/14_Protean_Fields.mp3
+[505/508] Processing: The Inner Core... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/1_The_Inner_Core.mp3
+[506/508] Processing: Bubbling Pools... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/2_Bubbling_Pools.mp3
+[507/508] Processing: Desert Bazaar... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/5_Desert_Bazaar.mp3
+[508/508] Processing: March of Faith... Error: 403 Client Error: Forbidden for url: https://sounds.tabletopaudio.com/3_The_March_of_the_Faithful.mp3
+
+Done!
+Fetching Tabletop Audio track list...
+Found 508 tracks.
+[1/508] Processing: Danse de Vampyr... Exists
+[2/508] Processing: Flux Array... Exists
+[3/508] Processing: The Verdant Dark... Exists
+[4/508] Processing: Visitation... Exists
+[5/508] Processing: Privy Council... Exists
+[6/508] Processing: Frost Giant Ridge... Exists
+[7/508] Processing: Sentient Eye... Exists
+[8/508] Processing: Crimson Haboob... Exists
+[9/508] Processing: Village Festival... Exists
+[10/508] Processing: Ravaged Lands... Exists
+[11/508] Processing: Urban Rooftop... Downloaded
+[12/508] Processing: Winter's Veil... Downloaded
+[13/508] Processing: Village Raid... Exists
+[14/508] Processing: Dedication Day... Downloaded
+[15/508] Processing: Docks Noir... Exists
+[16/508] Processing: News from the Front... Exists
+[17/508] Processing: Maturation Chamber... Downloaded
+[18/508] Processing: Red Dragon Dawn... Exists
+[19/508] Processing: Stone Barrow... Exists
+[20/508] Processing: The Crown Road... Downloaded
+[21/508] Processing: Manor Dark... Downloaded
+[22/508] Processing: High Alert... Exists
+[23/508] Processing: War Wagon... Downloaded
+[24/508] Processing: Lady of the Wood... Exists
+[25/508] Processing: Ready the Castle... Downloaded
+[26/508] Processing: Ice Harvester Station... Downloaded
+[27/508] Processing: Upriver Recon... Downloaded
+[28/508] Processing: Witches' Dance... Exists
+[29/508] Processing: Pharaoh's Chamber... Downloaded
+[30/508] Processing: Boiler Room... Downloaded
+[31/508] Processing: Gravedigger... Exists
+[32/508] Processing: Lifeboat... Downloaded
+[33/508] Processing: Barghest Fell... Exists
+[34/508] Processing: Lost Contact... Downloaded
+[35/508] Processing: Kingdom of Mist... Downloaded
+[36/508] Processing: Prison Block... Exists
+[37/508] Processing: Ice Mephit Cavern... Downloaded
+[38/508] Processing: Prisoner Transport... Downloaded
+[39/508] Processing: The Threshing Hour... Exists
+[40/508] Processing: Monsoon Temple... Downloaded
+[41/508] Processing: Steampunk Telescope... Downloaded
+[42/508] Processing: Battle Stations... Downloaded
+[43/508] Processing: Drow Slave Camp... Exists
+[44/508] Processing: Light the Beacons... Exists
+[45/508] Processing: Petrified Forest... Exists
+[46/508] Processing: Listening Post... Downloaded
+[47/508] Processing: Foghaven... Exists
+[48/508] Processing: Resurrection... Exists
+[49/508] Processing: Doll Shoppe... Downloaded
+[50/508] Processing: Xenon Refinery... Downloaded
+[51/508] Processing: Deep Blue... Downloaded
+[52/508] Processing: Hunting Grounds... Downloaded
+[53/508] Processing: Drawing Room: Night... Downloaded
+[54/508] Processing: Harper's Waypoint... Exists
+[55/508] Processing: Broken Pantheon... Downloaded
+[56/508] Processing: Capes and Canes... Downloaded
+[57/508] Processing: The Last Express... Downloaded
+[58/508] Processing: Orb of Doom... Downloaded
+[59/508] Processing: Nightlands... Downloaded
+[60/508] Processing: A Royal Visit... Downloaded
+[61/508] Processing: Checkpoint Omega... Downloaded
+[62/508] Processing: The Murky Depths... Exists
+[63/508] Processing: Between Adventures... Exists
+[64/508] Processing: Lava King's Lair... Downloaded
+[65/508] Processing: Yuletide Cantrips... Downloaded
+[66/508] Processing: Primate Lab... Downloaded
+[67/508] Processing: Darkmoor... Exists
+[68/508] Processing: Tech Market... Downloaded
+[69/508] Processing: Map Chamber... Downloaded
+[70/508] Processing: Goodhaven... Exists
+[71/508] Processing: Red Sky Mine... Downloaded
+[72/508] Processing: Dungeon Asylum... Downloaded
+[73/508] Processing: Winter Encampment... Downloaded
+[74/508] Processing: The Undercroft... Downloaded
+[75/508] Processing: Cryo Pods... Downloaded
+[76/508] Processing: Spectral Abbey... Exists
+[77/508] Processing: Lair of the Wyrm... Exists
+[78/508] Processing: Hotel Noir... Downloaded
+[79/508] Processing: Fire Dance... Exists
+[80/508] Processing: Imperial Pursuit... Downloaded
+[81/508] Processing: The Sisterhood... Downloaded
+[82/508] Processing: Bug Hunt... Downloaded
+[83/508] Processing: Stagecoach Heist... Downloaded
+[84/508] Processing: The Stranger... Downloaded
+[85/508] Processing: Frontier Town... Downloaded
+[86/508] Processing: Magical Flora... Exists
+[87/508] Processing: Ghost Ship... Exists
+[88/508] Processing: The Madding Crowd... Downloaded
+[89/508] Processing: Counting House... Downloaded
+[90/508] Processing: Hidden Passage... Downloaded
+[91/508] Processing: Pagan Woods... Exists
+[92/508] Processing: Mainframe... Downloaded
+[93/508] Processing: Rebuilding... Downloaded
+[94/508] Processing: Jungle Bunker... Downloaded
+[95/508] Processing: Stakeout... Downloaded
+[96/508] Processing: Collegium Magica... Downloaded
+[97/508] Processing: Tomb Guardians... Exists
+[98/508] Processing: Ship of the Line... Exists
+[99/508] Processing: Forgotten Forest... Exists
+[100/508] Processing: Docking Procedure... Downloaded
+[101/508] Processing: Nautiloid Escape... Downloaded
+[102/508] Processing: Viking Tavern... Downloaded
+[103/508] Processing: Treacherous Path... Downloaded
+[104/508] Processing: Brood Mother... Exists
+[105/508] Processing: Vampyr... Exists
+[106/508] Processing: Steel Foundry... Downloaded
+[107/508] Processing: The Drowned Tower... Exists
+[108/508] Processing: Feast of Crispian... Exists
+[109/508] Processing: Whispering Caverns... Exists
+[110/508] Processing: Whiteout... Downloaded
+[111/508] Processing: The Misty Marsh... Exists
+[112/508] Processing: Homecoming... Exists
+[113/508] Processing: The Ansible... Downloaded
+[114/508] Processing: Launch Day... Exists
+[115/508] Processing: Demon Army... Downloaded
+[116/508] Processing: Hellhound Alley... Downloaded
+[117/508] Processing: Trireme... Downloaded
+[118/508] Processing: Train Job... Downloaded
+[119/508] Processing: Desert Devotional... Downloaded
+[120/508] Processing: Medieval Market... Exists
+[121/508] Processing: Lord of Bones... Downloaded
+[122/508] Processing: Docking Bay... Downloaded
+[123/508] Processing: The Attic... Exists
+[124/508] Processing: Infiltration... Downloaded
+[125/508] Processing: Western Watchtower... Downloaded
+[126/508] Processing: Banshee's Lair... Downloaded
+[127/508] Processing: Long Rest... Exists
+[128/508] Processing: Halfling Sneak... Exists
+[129/508] Processing: The Great Lift... Downloaded
+[130/508] Processing: Terraforming... Downloaded
+[131/508] Processing: Descent... Exists
+[132/508] Processing: Through the Woods... Downloaded
+[133/508] Processing: Voyage Begins... Exists
+[134/508] Processing: Rise of the Golem... Downloaded
+[135/508] Processing: Hall of Angels... Downloaded
+[136/508] Processing: Infernal Machine... Downloaded
+[137/508] Processing: Den of Iniquity... Downloaded
+[138/508] Processing: Whirlpool... Downloaded
+[139/508] Processing: Awakenings... Downloaded
+[140/508] Processing: Troll Grotto... Downloaded
+[141/508] Processing: Ghosts of Appalachia... Downloaded
+[142/508] Processing: Rope Bridge... Downloaded
+[143/508] Processing: Roc's Nest... Downloaded
+[144/508] Processing: Trail of Ashes... Downloaded
+[145/508] Processing: River of Blood... Downloaded
+[146/508] Processing: Starship Adrift... Downloaded
+[147/508] Processing: Rolling Emporium... Downloaded
+[148/508] Processing: Ancient Beacon... Downloaded
+[149/508] Processing: Pit Fighter... Downloaded
+[150/508] Processing: Skull Island... Downloaded
+[151/508] Processing: Egg Chamber... Downloaded
+[152/508] Processing: Promontory... Downloaded
+[153/508] Processing: Adventure Begins... Exists
+[154/508] Processing: Hydroponics Bay... Downloaded
+[155/508] Processing: Warlock's Whisper... Downloaded
+[156/508] Processing: Spirit of the Plains... Exists
+[157/508] Processing: Black Rider... Downloaded
+[158/508] Processing: Halfling Lodge... Downloaded
+[159/508] Processing: Covert Ops... Downloaded
+[160/508] Processing: Puzzle Dungeon... Downloaded
+[161/508] Processing: Viking Village... Downloaded
+[162/508] Processing: Elven Procession... Exists
+[163/508] Processing: Tinkertown... Downloaded
+[164/508] Processing: High Seas Pursuit... Exists
+[165/508] Processing: YÅkai Forest... Downloaded
+[166/508] Processing: Dungeon Collapse... Downloaded
+[167/508] Processing: Tavern Celebration... Downloaded
+[168/508] Processing: Beggar's Rest... Downloaded
+[169/508] Processing: Starbase Omega... Downloaded
+[170/508] Processing: Red Planet... Downloaded
+[171/508] Processing: Adventure Supply... Downloaded
+[172/508] Processing: Village of the Damned... Exists
+[173/508] Processing: Medieval Banquet... Downloaded
+[174/508] Processing: Abandoned Chapel... Exists
+[175/508] Processing: Harpies' Nest... Downloaded
+[176/508] Processing: Arcane Athenaeum... Downloaded
+[177/508] Processing: Myconid Colony... Downloaded
+[178/508] Processing: Drowned Sailors... Downloaded
+[179/508] Processing: Mega City Slums... Downloaded
+[180/508] Processing: Desert Temple... Downloaded
+[181/508] Processing: Battle Requiem... Downloaded
+[182/508] Processing: Distilled: Tropical... Exists
+[183/508] Processing: Distilled: Tranquility... Downloaded
+[184/508] Processing: Distilled: Warehouse... Downloaded
+[185/508] Processing: Distilled: Highlands... Downloaded
+[186/508] Processing: Distilled: Backwoods... Downloaded
+[187/508] Processing: Distilled: Cooperage... Downloaded
+[188/508] Processing: Invisible Mountain... Downloaded
+[189/508] Processing: Cultist's Cavern... Exists
+[190/508] Processing: Shaman's Hollow... Exists
+[191/508] Processing: The Gaping Maw... Downloaded
+[192/508] Processing: Robot Scrapyard... Downloaded
+[193/508] Processing: Goblin Ambush... Downloaded
+[194/508] Processing: Dragon Rider... Exists
+[195/508] Processing: Shuttle Crash... Downloaded
+[196/508] Processing: Dusk of the Dryad... Downloaded
+[197/508] Processing: Generation Ship... Downloaded
+[198/508] Processing: Swamp Thing... Downloaded
+[199/508] Processing: Moisture Farm... Downloaded
+[200/508] Processing: Bloodgate... Downloaded
+[201/508] Processing: Skullwharf... Downloaded
+[202/508] Processing: Sand Raiders... Downloaded
+[203/508] Processing: Aftermath... Downloaded
+[204/508] Processing: Hidden Valley... Downloaded
+[205/508] Processing: Fog of War... Downloaded
+[206/508] Processing: Summoning... Downloaded
+[207/508] Processing: Floating Market... Downloaded
+[208/508] Processing: Pool of Radiance... Downloaded
+[209/508] Processing: Burn Maneuver... Downloaded
+[210/508] Processing: Necropolis... Downloaded
+[211/508] Processing: Gateway to Hell... Downloaded
+[212/508] Processing: Survivors' Bivouac... Downloaded
+[213/508] Processing: The Frozen Trail... Downloaded
+[214/508] Processing: Closing Time... Downloaded
+[215/508] Processing: Cutpurse Pursuit... Downloaded
+[216/508] Processing: Sanitarium... Downloaded
+[217/508] Processing: Bleakwater Docks... Downloaded
+[218/508] Processing: Investigator's Office... Downloaded
+[219/508] Processing: Wagon Ride... Downloaded
+[220/508] Processing: Ancient Artifact... Downloaded
+[221/508] Processing: Everdeep... Downloaded
+[222/508] Processing: The Strange... Downloaded
+[223/508] Processing: Blastfire Bog... Downloaded
+[224/508] Processing: High Rannoc Village... Downloaded
+[225/508] Processing: Oasis City... Downloaded
+[226/508] Processing: Pattern Recognition... Downloaded
+[227/508] Processing: The Wild Hunt... Downloaded
+[228/508] Processing: Escape from Shadow... Exists
+[229/508] Processing: The City Above... Downloaded
+[230/508] Processing: Blighted Farm... Downloaded
+[231/508] Processing: Farmyard... Downloaded
+[232/508] Processing: A New Beginning... Downloaded
+[233/508] Processing: Forge of Fury... Downloaded
+[234/508] Processing: Lorekeeper Grove... Downloaded
+[235/508] Processing: Jungle Shaman... Downloaded
+[236/508] Processing: Arcane Clockworks... Downloaded
+[237/508] Processing: Starforged: Vault... Downloaded
+[238/508] Processing: Starforged: Fray... Downloaded
+[239/508] Processing: Starforged: Sojourn... Downloaded
+[240/508] Processing: Starforged: Planetside... Downloaded
+[241/508] Processing: Starforged: Space... Downloaded
+[242/508] Processing: Court of the Count... Exists
+[243/508] Processing: Orbital Prison Break... Downloaded
+[244/508] Processing: Shrine of Talos... Downloaded
+[245/508] Processing: Base Assault... Downloaded
+[246/508] Processing: Mysterious Grotto... Exists
+[247/508] Processing: Victorian Slums... Downloaded
+[248/508] Processing: Unto the Breach... Downloaded
+[249/508] Processing: Skyship... Exists
+[250/508] Processing: Grand Theater... Downloaded
+[251/508] Processing: Blighted Forest... Downloaded
+[252/508] Processing: Country Workshop... Downloaded
+[253/508] Processing: Ice Dragon... Downloaded
+[254/508] Processing: The Hearth Inn... Exists
+[255/508] Processing: Desert Planet Souk... Downloaded
+[256/508] Processing: Submerged... Downloaded
+[257/508] Processing: Vault of Terror... Downloaded
+[258/508] Processing: Candledeep... Downloaded
+[259/508] Processing: Wolf Pens... Downloaded
+[260/508] Processing: Steampunk Station... Downloaded
+[261/508] Processing: Alien Reactor... Downloaded
+[262/508] Processing: Oregon Trail... Downloaded
+[263/508] Processing: Magic Shoppe... Downloaded
+[264/508] Processing: Secret Facility... Downloaded
+[265/508] Processing: Vikings... Exists
+[266/508] Processing: Jungle Ruins... Exists
+[267/508] Processing: Spider's Den... Downloaded
+[268/508] Processing: Pirates!... Exists
+[269/508] Processing: Throne Room... Downloaded
+[270/508] Processing: Nordic Noir... Downloaded
+[271/508] Processing: Mind Flayer Chamber... Downloaded
+[272/508] Processing: Training Grounds... Downloaded
+[273/508] Processing: Defiled Temple... Exists
+[274/508] Processing: Rainy Village... Downloaded
+[275/508] Processing: Lush World... Downloaded
+[276/508] Processing: The Orrery... Exists
+[277/508] Processing: Mech War... Downloaded
+[278/508] Processing: Icebound Town... Downloaded
+[279/508] Processing: All Hallows' Eve... Downloaded
+[280/508] Processing: Interrogation Room... Downloaded
+[281/508] Processing: Mushroom Forest... Downloaded
+[282/508] Processing: Terror in the Woods... Exists
+[283/508] Processing: 60s Computer Lab... Downloaded
+[284/508] Processing: New Orleans Noir... Downloaded
+[285/508] Processing: Mansion: Night... Downloaded
+[286/508] Processing: Salt Marsh... Downloaded
+[287/508] Processing: Wuxia Tea House... Downloaded
+[288/508] Processing: Sunken Treasure... Downloaded
+[289/508] Processing: Wuxia Village... Downloaded
+[290/508] Processing: Tinkerer's Workshop... Downloaded
+[291/508] Processing: Sleeping Ogre... Downloaded
+[292/508] Processing: Storm at Sea... Exists
+[293/508] Processing: Waterkeep: Night... Downloaded
+[294/508] Processing: Space Battle... Downloaded
+[295/508] Processing: Castle Kitchen... Downloaded
+[296/508] Processing: Burning Village... Downloaded
+[297/508] Processing: Witch Mountain... Downloaded
+[298/508] Processing: Thieves' Guild... Downloaded
+[299/508] Processing: Temple Garden... Downloaded
+[300/508] Processing: Rat Battle... Downloaded
+[301/508] Processing: Ghost Town... Downloaded
+[302/508] Processing: Biodome... Downloaded
+[303/508] Processing: Heart: High Rise... Downloaded
+[304/508] Processing: Heart: Absolution... Downloaded
+[305/508] Processing: Heart: Meat Corridor... Downloaded
+[306/508] Processing: Heart: Briar... Exists
+[307/508] Processing: Heart: Drowned... Downloaded
+[308/508] Processing: Haven... Downloaded
+[309/508] Processing: Druid Hilltop... Downloaded
+[310/508] Processing: Sun Dappled Trail... Downloaded
+[311/508] Processing: Shadowfell... Downloaded
+[312/508] Processing: Battle of the Amazons... Downloaded
+[313/508] Processing: Crossing the Styx... Downloaded
+[314/508] Processing: Shopping Mall... Downloaded
+[315/508] Processing: Tarrasque Interior... Downloaded
+[316/508] Processing: The Steppes... Downloaded
+[317/508] Processing: Swamp Planet... Downloaded
+[318/508] Processing: Dying World... Downloaded
+[319/508] Processing: 1940s Boardwalk... Exists
+[320/508] Processing: Yuletide... Downloaded
+[321/508] Processing: Barovian Village... Downloaded
+[322/508] Processing: Endgame... Downloaded
+[323/508] Processing: Haunted... Downloaded
+[324/508] Processing: Gravity... Downloaded
+[325/508] Processing: Underground Lake... Downloaded
+[326/508] Processing: Sea of Moving Ice... Downloaded
+[327/508] Processing: Country Village... Exists
+[328/508] Processing: Cyberpunk Bar... Downloaded
+[329/508] Processing: Abandoned Windmill... Downloaded
+[330/508] Processing: Cyberpunk City... Downloaded
+[331/508] Processing: Ice Throne... Downloaded
+[332/508] Processing: Tavern Music... Exists
+[333/508] Processing: Barren Wastes... Downloaded
+[334/508] Processing: Royal Court... Downloaded
+[335/508] Processing: Wizard's Tower... Downloaded
+[336/508] Processing: Robotics Lab... Downloaded
+[337/508] Processing: Castle Jail... Downloaded
+[338/508] Processing: Cry Havoc... Downloaded
+[339/508] Processing: The Underdark... Downloaded
+[340/508] Processing: The Feywild... Downloaded
+[341/508] Processing: Neon Drive... Exists
+[342/508] Processing: Fishing Village... Downloaded
+[343/508] Processing: Quiet Cove... Exists
+[344/508] Processing: RMS Titanic... Downloaded
+[345/508] Processing: Cistern... Downloaded
+[346/508] Processing: Medieval Fair... Downloaded
+[347/508] Processing: Dark Angel... Downloaded
+[348/508] Processing: Forest: Day... Exists
+[349/508] Processing: Shanghai 1930s... Downloaded
+[350/508] Processing: Stables... Downloaded
+[351/508] Processing: Waterkeep... Downloaded
+[352/508] Processing: Field of Heroes... Downloaded
+[353/508] Processing: Star Freighter... Downloaded
+[354/508] Processing: Outpost 31... Downloaded
+[355/508] Processing: Artist's Garret... Downloaded
+[356/508] Processing: Secret Garden... Downloaded
+[357/508] Processing: Nostromo... Downloaded
+[358/508] Processing: Metropolis Fanfare... Downloaded
+[359/508] Processing: Loop Tales... Downloaded
+[360/508] Processing: Lakeside Camp... Downloaded
+[361/508] Processing: Barovian Castle... Exists
+[362/508] Processing: Graveyard... Downloaded
+[363/508] Processing: Floating Ice Castle... Downloaded
+[364/508] Processing: Cotton Club... Downloaded
+[365/508] Processing: War Zone... Exists
+[366/508] Processing: Elegant Dinner Party... Downloaded
+[367/508] Processing: Mummy's Tomb... Exists
+[368/508] Processing: Hermit Hut... Downloaded
+[369/508] Processing: Dark Future... Downloaded
+[370/508] Processing: Sunken Temple... Downloaded
+[371/508] Processing: Desert Winds... Downloaded
+[372/508] Processing: Mill Town... Downloaded
+[373/508] Processing: Temple of Helm... Downloaded
+[374/508] Processing: Dark Matter... Downloaded
+[375/508] Processing: Carriage Journey... Downloaded
+[376/508] Processing: Halfling Festival... Downloaded
+[377/508] Processing: Open Ocean... Downloaded
+[378/508] Processing: The Bog Standard... Downloaded
+[379/508] Processing: Russian Winter... Downloaded
+[380/508] Processing: Weirder Things: 2... Downloaded
+[381/508] Processing: Waiting Time... Downloaded
+[382/508] Processing: Car Chase!... Downloaded
+[383/508] Processing: Endless Voyage... Downloaded
+[384/508] Processing: Existential Dread... Downloaded
+[385/508] Processing: Spire: The Vermissian... Downloaded
+[386/508] Processing: Spire: The Hatchery... Downloaded
+[387/508] Processing: Spire: The Ministry... Downloaded
+[388/508] Processing: Spire: Derelictus... Downloaded
+[389/508] Processing: Spire: New Heaven... Downloaded
+[390/508] Processing: Spire: Amaranth... Downloaded
+[391/508] Processing: Spire: The Heart... Downloaded
+[392/508] Processing: Crossroads... Downloaded
+[393/508] Processing: RavenPuff Common... Downloaded
+[394/508] Processing: Antiquarian Study... Downloaded
+[395/508] Processing: Dwarven City... Downloaded
+[396/508] Processing: Astral Plane... Downloaded
+[397/508] Processing: Ethereal Plane... Downloaded
+[398/508] Processing: Orbital Promenade... Downloaded
+[399/508] Processing: Wild West Saloon... Downloaded
+[400/508] Processing: 747 Interior... Downloaded
+[401/508] Processing: Carnival... Downloaded
+[402/508] Processing: Lonesome West... Downloaded
+[403/508] Processing: Lunar Outpost... Downloaded
+[404/508] Processing: Weirder Things... Downloaded
+[405/508] Processing: River Town... Downloaded
+[406/508] Processing: Testing Chamber... Downloaded
+[407/508] Processing: Vampire's Castle... Downloaded
+[408/508] Processing: Highway... Downloaded
+[409/508] Processing: Volcano... Exists
+[410/508] Processing: Cavern of Lost Souls... Downloaded
+[411/508] Processing: Lost Mine... Downloaded
+[412/508] Processing: City Under Siege... Downloaded
+[413/508] Processing: Windswept Plains... Downloaded
+[414/508] Processing: Arabesque... Exists
+[415/508] Processing: Noir Procedural... Downloaded
+[416/508] Processing: Starship Medical... Downloaded
+[417/508] Processing: Skirmish... Downloaded
+[418/508] Processing: Elven Glade... Downloaded
+[419/508] Processing: Dungeon II: Mechanical... Downloaded
+[420/508] Processing: Winter Woods... Downloaded
+[421/508] Processing: Lively Cafe... Downloaded
+[422/508] Processing: Winter Festival... Downloaded
+[423/508] Processing: Dark City... Downloaded
+[424/508] Processing: Sewers... Downloaded
+[425/508] Processing: Lucha Libre!... Downloaded
+[426/508] Processing: Haunted Ramparts... Downloaded
+[427/508] Processing: Nightmare... Downloaded
+[428/508] Processing: 1920s Speakeasy... Downloaded
+[429/508] Processing: Blacksmith Shoppe... Downloaded
+[430/508] Processing: Medieval Battle... Downloaded
+[431/508] Processing: Steampunk Airship... Downloaded
+[432/508] Processing: Abandoned Fair... Downloaded
+[433/508] Processing: Alchemist's Lab... Downloaded
+[434/508] Processing: Docks District... Downloaded
+[435/508] Processing: Zombies!... Downloaded
+[436/508] Processing: Medieval Library... Downloaded
+[437/508] Processing: Monster Attack!... Downloaded
+[438/508] Processing: Sleeping Dragon... Downloaded
+[439/508] Processing: The Age of Steam... Downloaded
+[440/508] Processing: Forest: Night... Downloaded
+[441/508] Processing: 1940's Office... Downloaded
+[442/508] Processing: Asylum... Downloaded
+[443/508] Processing: Royal Salon... Downloaded
+[444/508] Processing: Dungeon I... Downloaded
+[445/508] Processing: Mountain Pass... Downloaded
+[446/508] Processing: Industrial Shipyard... Downloaded
+[447/508] Processing: Middle Earth:Dawn... Downloaded
+[448/508] Processing: Orbital Platform... Downloaded
+[449/508] Processing: Dark and Stormy... Downloaded
+[450/508] Processing: Dinotopia... Downloaded
+[451/508] Processing: Terror... Downloaded
+[452/508] Processing: Colosseum... Downloaded
+[453/508] Processing: Medieval Town... Downloaded
+[454/508] Processing: Ice Cavern... Downloaded
+[455/508] Processing: Mountain Tavern... Downloaded
+[456/508] Processing: Strangers on a Train... Downloaded
+[457/508] Processing: Warehouse 13... Downloaded
+[458/508] Processing: Woodland Campsite... Downloaded
+[459/508] Processing: Super Hero... Downloaded
+[460/508] Processing: Goblin's Cave... Downloaded
+[461/508] Processing: Overland with Oxen... Downloaded
+[462/508] Processing: There be Dragons... Exists
+[463/508] Processing: Cathedral... Downloaded
+[464/508] Processing: Samurai HQ... Downloaded
+[465/508] Processing: Victorian London... Downloaded
+[466/508] Processing: Dome City Center... Downloaded
+[467/508] Processing: Rise of the Ancients... Downloaded
+[468/508] Processing: Starship Bridge... Downloaded
+[469/508] Processing: The Long Rain... Downloaded
+[470/508] Processing: Temple of the Eye... Downloaded
+[471/508] Processing: Into the Deep... Downloaded
+[472/508] Processing: Clash of Kings... Downloaded
+[473/508] Processing: Down by the Sea... Downloaded
+[474/508] Processing: Catacombs... Downloaded
+[475/508] Processing: Los Vangeles 3030... Downloaded
+[476/508] Processing: Swamplandia... Downloaded
+[477/508] Processing: Far Above the World... Downloaded
+[478/508] Processing: City and the City... Downloaded
+[479/508] Processing: Kaltoran Craft FE... Downloaded
+[480/508] Processing: Nephilim Labs FE... Downloaded
+[481/508] Processing: Frozen Wastes... Downloaded
+[482/508] Processing: Uncommon Valor... Downloaded
+[483/508] Processing: Xingu Nights... Downloaded
+[484/508] Processing: Deep Space EVA... Downloaded
+[485/508] Processing: Forbidden Galaxy!... Downloaded
+[486/508] Processing: The Slaughtered Ox... Downloaded
+[487/508] Processing: Derelict Freighter... Downloaded
+[488/508] Processing: True West... Downloaded
+[489/508] Processing: Dark Continent... Downloaded
+[490/508] Processing: The Age of Sail... Downloaded
+[491/508] Processing: House on the Hill... Downloaded
+[492/508] Processing: Alien Night Club... Downloaded
+[493/508] Processing: Alien Machine Shop... Downloaded
+[494/508] Processing: Busy Space Port... Downloaded
+[495/508] Processing: Solemn Vow... Downloaded
+[496/508] Processing: Abyssal Gaze... Downloaded
+[497/508] Processing: The Desert Awaits... Downloaded
+[498/508] Processing: Dust to Dust... Downloaded
+[499/508] Processing: Before the Storm... Downloaded
+[500/508] Processing: In the Shadows... Downloaded
+[501/508] Processing: Shelter from the Storm... Downloaded
+[502/508] Processing: Disembodied Spirits... Downloaded
+[503/508] Processing: Cave of Time... Downloaded
+[504/508] Processing: Protean Fields... Downloaded
+[505/508] Processing: The Inner Core... Downloaded
+[506/508] Processing: Bubbling Pools... Downloaded
+[507/508] Processing: Desert Bazaar... Downloaded
+[508/508] Processing: March of Faith... Downloaded
+
+Done!

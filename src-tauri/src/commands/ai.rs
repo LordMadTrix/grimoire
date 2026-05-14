@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct OllamaRequest {
     pub model: String,
     pub prompt: String,
+    pub system: String,
     pub stream: bool,
 }
 
@@ -14,13 +15,51 @@ pub struct OllamaResponse {
 }
 
 #[tauri::command]
-pub async fn ask_ollama(prompt: String, model: String, system_prompt: String) -> Result<String, String> {
-    // On ajoute le system_prompt au début de la requête
-    let full_prompt = format!("{}\n\nContexte: {}", system_prompt, prompt);
+pub async fn ask_ollama(_app_handle: tauri::AppHandle, prompt: String, model: String, system_prompt: String) -> Result<String, String> {
+    // Check if ollama is running, if not try to start it from local bin if exists
+    let host = "http://localhost:11434";
+    
+    let client = reqwest::Client::new();
+    
+    // Check if running
+    if let Err(_) = client.get(format!("{}/api/tags", host)).send().await {
+        // Not running, try to start local binary
+        let exe_path = std::env::current_exe().unwrap_or_default();
+        let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
+        let bin_name = if cfg!(windows) { "ollama.exe" } else { "ollama" };
+        let local_bin = base_dir.join("bin").join(bin_name);
+        
+        if local_bin.exists() {
+            println!("Starting local Ollama from {:?}", local_bin);
+            
+            // Configuration portable
+            let models_dir = base_dir.join("models");
+            let config_dir = base_dir.join("config");
+            let _ = std::fs::create_dir_all(&models_dir);
+            let _ = std::fs::create_dir_all(&config_dir);
+
+            let mut child = std::process::Command::new(&local_bin);
+            child.arg("serve");
+            
+            // Définir les variables d'environnement pour la portabilité
+            child.env("OLLAMA_MODELS", &models_dir);
+            if cfg!(windows) {
+                child.env("USERPROFILE", &config_dir);
+            } else {
+                child.env("HOME", &config_dir);
+            }
+
+            let _ = child.spawn();
+            
+            // Attendre un peu que le serveur démarre
+            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+        }
+    }
 
     let req = OllamaRequest {
         model,
-        prompt: full_prompt,
+        prompt,
+        system: system_prompt,
         stream: false,
     };
 

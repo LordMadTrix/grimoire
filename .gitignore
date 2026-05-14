@@ -29,3 +29,11 @@ build/
 
 # Tauri
 src-tauri/target/
+
+# Assets & Vaults
+wfrp_vault/
+example-vault/
+*.zip
+*.pdf
+*.mp4
+*.mkv

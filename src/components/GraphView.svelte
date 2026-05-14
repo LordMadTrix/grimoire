@@ -11,7 +11,14 @@
   let height = $state(0);
 
   type Node = { id: string, title: string, group: string, x?: number, y?: number };
-  type Link = { source: string, target: string };
+  type Link = { source: string, target: string, label: string, rel_type: string };
+
+  const REL_COLORS: Record<string, string> = {
+    ally: '#22c55e', friend: '#22c55e', allié: '#22c55e',
+    enemy: '#ef4444', ennemi: '#ef4444', rival: '#ef4444',
+    family: '#f59e0b', famille: '#f59e0b',
+    neutral: '#8899b7', default: '#4a5568',
+  };
 
   let data = $state<{ nodes: Node[], links: Link[] }>({ nodes: [], links: [] });
 
@@ -43,13 +50,35 @@
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide().radius(30));
 
+    // Arrowhead marker
+    const defs = d3svg.append('defs');
+    defs.append('marker')
+      .attr('id', 'arrow')
+      .attr('viewBox', '0 -4 8 8')
+      .attr('refX', 14).attr('refY', 0)
+      .attr('markerWidth', 6).attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', '#4a5568');
+
     const link = g.append('g')
-      .attr('stroke', '#4a5568')
-      .attr('stroke-opacity', 0.6)
+      .attr('stroke-opacity', 0.7)
       .selectAll('line')
       .data(data.links)
       .join('line')
-      .attr('stroke-width', 1);
+      .attr('stroke-width', (d: any) => d.label ? 2 : 1)
+      .attr('stroke', (d: any) => REL_COLORS[d.rel_type] ?? REL_COLORS[d.label] ?? REL_COLORS.default)
+      .attr('marker-end', 'url(#arrow)');
+
+    // Edge labels for named relations
+    const linkLabel = g.append('g')
+      .selectAll('text')
+      .data(data.links.filter((l: any) => l.label))
+      .join('text')
+      .attr('text-anchor', 'middle')
+      .style('font-size', '8px')
+      .style('fill', (d: any) => REL_COLORS[d.rel_type] ?? REL_COLORS[d.label] ?? '#8899b7')
+      .style('pointer-events', 'none')
+      .text((d: any) => d.label);
 
     const node = g.append('g')
       .selectAll('g')
@@ -92,6 +121,10 @@
         .attr('y1', (d: any) => d.source.y)
         .attr('x2', (d: any) => d.target.x)
         .attr('y2', (d: any) => d.target.y);
+
+      linkLabel
+        .attr('x', (d: any) => (d.source.x + d.target.x) / 2)
+        .attr('y', (d: any) => (d.source.y + d.target.y) / 2 - 3);
 
       node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
     });

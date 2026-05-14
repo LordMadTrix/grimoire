@@ -1,17 +1,19 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { EditorState } from '@codemirror/state';
-  import { EditorView, keymap, highlightActiveLine, lineNumbers, hoverTooltip } from '@codemirror/view';
+  import { EditorView, keymap, highlightActiveLine, lineNumbers, hoverTooltip, WidgetType, MatchDecorator, ViewPlugin, Decoration } from '@codemirror/view';
+  import type { DecorationSet, ViewUpdate } from '@codemirror/view';
   import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
   import { markdown } from '@codemirror/lang-markdown';
   import { autocompletion, CompletionContext, startCompletion } from '@codemirror/autocomplete';
   import { oneDark } from '@codemirror/theme-one-dark';
-  import { searchVault, askOllama, readFile, writeFile, openVault } from '$lib/api';
+  import { searchVault, askOllama, readFile, writeFile, openVault, readFileBase64 } from '$lib/api';
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
   import { getVaultPath, setActiveFile, setActiveContent, setIsDirty, setVaultTree } from '$lib/stores/vault.svelte';
 
-  let { value = '', onInput = () => {}, onSave = () => {} }: {
+  let { value = '', scrollToLine = null, onInput = () => {}, onSave = () => {} }: {
     value: string;
+    scrollToLine?: number | null;
     onInput: (val: string) => void;
     onSave: () => void;
   } = $props();
@@ -20,6 +22,91 @@
 
   let editorParent: HTMLDivElement;
   let view: EditorView;
+
+  // ── Inline images ![[path.png]] ──────────────────────────────
+  class InlineImageWidget extends WidgetType {
+    path: string;
+    constructor(path: string) { super(); this.path = path; }
+    eq(other: InlineImageWidget) { return other.path === this.path; }
+    toDOM() {
+      const wrap = document.createElement('span');
+      wrap.style.display = 'block';
+      const img = document.createElement('img');
+      img.alt = this.path;
+      img.style.cssText = 'max-width:100%;max-height:280px;border-radius:6px;display:block;margin:4px 0;cursor:default';
+      const vp = getVaultPath();
+      if (vp) {
+        readFileBase64(`${vp}/${this.path}`).then(b64 => {
+          const ext = this.path.split('.').pop()?.toLowerCase() ?? 'png';
+          const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
+          img.src = `data:${mime};base64,${b64}`;
+        }).catch(() => {
+          img.style.display = 'none';
+          wrap.appendChild(document.createTextNode(`⚠️ ${this.path}`));
+        });
+      }
+      wrap.appendChild(img);
+      return wrap;
+    }
+    ignoreEvent() { return false; }
+  }
+
+  const imgMatcher = new MatchDecorator({
+    regexp: /!\[\[([^\]]+\.(png|jpg|jpeg|webp|gif))\]\]/gi,
+    decoration: (match) => Decoration.widget({ widget: new InlineImageWidget(match[1]), side: 1 }),
+  });
+
+  // ── Checkbox widget [ ] / [x] ────────────────────────────────
+  class CheckboxWidget extends WidgetType {
+    checked: boolean; from: number;
+    constructor(checked: boolean, from: number) { super(); this.checked = checked; this.from = from; }
+    eq(other: CheckboxWidget) { return other.checked === this.checked; }
+    toDOM(view: EditorView) {
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = this.checked;
+      box.style.cssText = 'cursor:pointer;vertical-align:middle;margin-right:4px;accent-color:#e5a853';
+      box.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const from = this.from;
+        const doc = view.state.doc;
+        const line = doc.lineAt(from);
+        const text = line.text;
+        const newText = this.checked
+          ? text.replace(/\[x\]/i, '[ ]')
+          : text.replace(/\[ \]/, '[x]');
+        view.dispatch({ changes: { from: line.from, to: line.to, insert: newText } });
+      });
+      return box;
+    }
+    ignoreEvent() { return false; }
+  }
+
+  const checkboxMatcher = new MatchDecorator({
+    regexp: /^(\s*[-*]\s+)(\[[ x]\])/gim,
+    decoration: (match, view, pos) => {
+      const checked = match[2].toLowerCase() === '[x]';
+      return Decoration.replace({ widget: new CheckboxWidget(checked, pos + match[1].length) });
+    },
+  });
+
+  const checkboxPlugin = ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      constructor(view: EditorView) { this.decorations = checkboxMatcher.createDeco(view); }
+      update(update: ViewUpdate) { this.decorations = checkboxMatcher.updateDeco(update, this.decorations); }
+    },
+    { decorations: (v) => v.decorations }
+  );
+
+  const inlineImagesPlugin = ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      constructor(view: EditorView) { this.decorations = imgMatcher.createDeco(view); }
+      update(update: ViewUpdate) { this.decorations = imgMatcher.updateDeco(update, this.decorations); }
+    },
+    { decorations: (v) => v.decorations }
+  );
 
   // Autocompletion pour les liens wiki [[...]]
   async function wikiLinkCompletions(context: CompletionContext) {
@@ -89,24 +176,43 @@
     }
   ]);
 
-  function runAI() {
+  function insertAtCursor(e: Event) {
+    const text = (e as CustomEvent).detail?.text;
+    if (!view || !text) return;
+    const pos = view.state.selection.main.head;
+    view.dispatch({ changes: { from: pos, insert: text }, selection: { anchor: pos + text.length } });
+  }
+
+  function runAI(evt?: Event) {
     if (!view || isGenerating) return;
-    
-    let selection = view.state.selection.main;
+
+    // Prompt custom passé via CustomEvent detail
+    const customPrompt = (evt as CustomEvent)?.detail?.prompt as string | undefined;
+
     let promptText = '';
-    let insertPos = selection.to;
+    let insertPos: number;
 
-    if (selection.empty) {
-      const line = view.state.doc.lineAt(selection.from);
-      promptText = line.text;
-      insertPos = line.to;
+    if (customPrompt) {
+      promptText = customPrompt;
+      insertPos = view.state.doc.length;
     } else {
-      promptText = view.state.doc.sliceString(selection.from, selection.to);
-    }
+      const selection = view.state.selection.main;
+      insertPos = selection.to;
 
-    if (!promptText.trim()) {
-      alert("Veuillez sélectionner du texte ou placer votre curseur sur une ligne avec du texte.");
-      return;
+      if (selection.empty) {
+        const line = view.state.doc.lineAt(selection.from);
+        promptText = line.text;
+        insertPos = line.to;
+      } else {
+        promptText = view.state.doc.sliceString(selection.from, selection.to);
+      }
+
+      if (!promptText.trim()) {
+        const fullDoc = view.state.doc.toString().trim();
+        if (!fullDoc) { alert("Le document est vide."); return; }
+        promptText = `Résume ce document de manière structurée et concise (contexte : notes de Maître du Jeu TTRPG) :\n\n${fullDoc}`;
+        insertPos = view.state.doc.length;
+      }
     }
 
     isGenerating = true;
@@ -288,6 +394,7 @@
 
   onMount(() => {
     document.addEventListener('trigger-ai', runAI as any);
+    document.addEventListener('editor-insert', insertAtCursor);
     const state = EditorState.create({
       doc: value,
       extensions: [
@@ -305,6 +412,8 @@
         updateListener,
         wikiLinkHoverTooltip,
         wikiLinkClickHandler,
+        inlineImagesPlugin,
+        checkboxPlugin,
         // Theme custom overrides
         EditorView.theme({
           "&": {
@@ -355,6 +464,7 @@
 
   onDestroy(() => {
     document.removeEventListener('trigger-ai', runAI as any);
+    document.removeEventListener('editor-insert', insertAtCursor);
     if (view) {
       view.destroy();
     }
@@ -366,6 +476,16 @@
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: value }
       });
+    }
+  });
+
+  // Scroller vers une ligne spécifique (outline TOC)
+  $effect(() => {
+    const line = scrollToLine;
+    if (view && line !== null && line !== undefined) {
+      const lineObj = view.state.doc.line(Math.min(line + 1, view.state.doc.lines));
+      view.dispatch({ selection: { anchor: lineObj.from }, scrollIntoView: true });
+      view.focus();
     }
   });
 </script>

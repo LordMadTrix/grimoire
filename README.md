@@ -1,11 +1,14 @@
 <div align="center">
   <img src="public/favicon.svg" alt="Grimoire Logo" width="120" />
   <h1>Grimoire TTRPG</h1>
-  <p><strong>L'outil ultime pour les Maîtres du Jeu : Éditeur Markdown + VTT + IA Locale</strong></p>
+  <p><strong>L'outil ultime pour les Maîtres du Jeu : Éditeur Markdown + VTT + IA Locale + HUB Mobile</strong></p>
+
+  <img src="public/grimoire_hero.png" alt="Grimoire Immersive Suite" width="100%" style="border-radius: 12px; margin: 20px 0;" />
 
   <p>
     <a href="#features">Fonctionnalités</a> •
     <a href="#installation">Installation</a> •
+    <a href="#mobile">Mobile HUB</a> •
     <a href="#architecture">Architecture</a>
   </p>
 </div>
@@ -23,28 +26,28 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 ### 📝 Éditeur Markdown Intelligent
 - **WikiLinks (`[[Lien]]`)** : Liez vos PNJ, lieux et objets magiques avec autocomplétion intelligente.
 - **Rétroliens (Backlinks)** : Ne perdez jamais le fil de vos intrigues.
-- **Auto-Sauvegarde & FTS5** : Sauvegarde automatique et recherche Full-Text ultra-rapide (propulsée par SQLite).
+- **Auto-Sauvegarde & FTS5** : Sauvegarde automatique et recherche Full-Text ultra-rapide.
 
-### 🗺️ Virtual TableTop (VTT) Intégré
-- **Double Fenêtre** : Une vue de contrôle pour le MJ et une vue "Joueur" en plein écran synchronisée.
-- **Brouillard de Guerre Dynamique** : Cachez les zones inexplorées et gérez la vision des pions.
-- **Images de Tokens** : Support des images personnalisées (PNG/JPG) avec masquage circulaire automatique.
-- **Ambiance Sonore** : Diffusez des pistes audio du Vault (MP3/OGG) synchronisées entre le MJ et les joueurs avec contrôle du volume.
-- **Gestion des Pions (Tokens)** : Points de vie, vision, et tracker d'initiative intégré.
+### 🗺️ Virtual TableTop (VTT) "Immersive Suite" (New!)
+- **Dynamic LOS (Line of Sight)** : Les murs et portes projettent des ombres portées en temps réel, bloquant la lumière des tokens.
+- **Mode Blueprint** : Tracez vos murs et configurez des portes interactives que vous pouvez ouvrir/fermer d'un clic.
+- **Zones Sonores Spatialisées** : Créez des régions où la musique d'ambiance s'adapte à la position des joueurs.
+- **Animations & Particules** : Tokens animés (idle, attack, hit) et particules de sang pour un feedback viscéral.
+- **Brouillard de Guerre Dynamique** : Cachez les zones inexplorées avec des outils de révélation précis.
+
+### 📱 HUB Mobile Joueur (Wave 9)
+- **Compagnon Mobile** : Vos joueurs se connectent via un QR Code à un serveur local ultra-fluide.
+- **Combat HUD** : Suivi des PV et boutons d'actions rapides (WFRP2) directement sur smartphone.
+- **Sketchpad Collaboratif** : Les joueurs peuvent dessiner sur leur écran pour pointer un lieu ou expliquer un plan ; le dessin apparaît sur l'écran du MJ.
+- **Soundboard Joueur** : Permettez à vos joueurs de déclencher des sons d'ambiance pour ponctuer leurs actions.
 
 ### 🕸️ Visualisation & IA
-- **Graphe de Liens** : Visualisez les connexions entre vos notes sous forme de graphe interactif (Obsidian-like) pour naviguer dans votre lore.
+- **Graphe de Liens** : Visualisez les connexions entre vos notes sous forme de graphe interactif.
 - **L'Écrivain Fantôme (IA Locale)** : Génération de texte via Ollama (Llama, Mistral...) 100% locale et privée.
-- **Base d'Assets Massive** : Livré avec des centaines de tokens (Caeora, Forgotten Adventures) et de maps prêtes à l'emploi.
 
 ## 🚀 Installation & Développement
 
 Grimoire utilise une architecture moderne et ultra-rapide : **SvelteKit (Svelte 5) + Tauri v2 + Rust + PixiJS v8**.
-
-### Prérequis
-- Node.js (v18+)
-- Rust (cargo)
-- Ollama (optionnel, pour l'IA)
 
 ### Lancer le projet
 
@@ -58,12 +61,9 @@ npm run tauri dev
 
 ## 🛠️ Architecture
 
-- **Frontend** : L'interface est développée en Svelte 5 avec l'utilisation des Runes (`$state`, `$derived`) pour une réactivité chirurgicale. Le VTT est propulsé par PixiJS v8 via `MapCanvas.svelte`.
-- **Backend Desktop** : Rust est utilisé via Tauri pour les opérations lourdes (Système de fichiers, Base de données SQLite FTS5, Appels à Ollama).
-
-## 🤝 Contribution
-
-Si vous souhaitez reprendre le développement, veuillez consulter le fichier `CLAUDE_HANDOVER.md` à la racine pour un résumé exhaustif de l'architecture technique et des règles métier.
+- **Frontend** : Svelte 5 (Runes) + PixiJS v8 pour le rendu haute performance.
+- **Backend Desktop** : Rust (Tauri) pour les accès fichiers, SQLite FTS5 et WebSocket Mobile.
+- **Mobile** : Serveur embarqué en Rust servant une web-app optimisée pour smartphones.
 
 ---
-*Créé avec passion pour les rôlistes.*
+*Créé avec passion pour les rôlistes par LordMadTrix.*

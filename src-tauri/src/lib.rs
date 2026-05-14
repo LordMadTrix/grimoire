@@ -29,6 +29,10 @@ pub fn run() {
             commands::vault::create_directory,
             commands::vault::delete_file,
             commands::vault::rename_entry,
+            commands::vault::open_url,
+            // Game config (addon system)
+            commands::config::load_game_config,
+            commands::config::save_game_config,
             // Search
             commands::search::search_vault,
             commands::search::get_backlinks,
@@ -37,9 +41,25 @@ pub fn run() {
             // Player View
             commands::player_view::list_monitors,
             commands::player_view::open_player_view,
+            commands::player_view::emit_to_player_view,
             // AI
             commands::ai::ask_ollama,
             commands::ai::get_ollama_models,
+            // Player mobile server
+            commands::player_server::start_player_server,
+            commands::player_server::stop_player_server,
+            commands::player_server::broadcast_to_players,
+            commands::player_server::get_player_connections,
+            commands::player_server::get_server_status,
+            commands::player_server::set_game_config,
+            commands::player_server::apply_damage_to_player,
+            commands::player_server::apply_condition_to_player,
+            commands::player_server::remove_condition_from_player,
+            commands::player_server::set_active_turn,
+            commands::player_server::approve_xp_request,
+            commands::player_server::request_roll,
+            commands::player_server::assign_character,
+            commands::player_server::push_map_snapshot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");

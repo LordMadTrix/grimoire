@@ -32,6 +32,9 @@ pub fn init_db(db: &Connection) -> Result<(), rusqlite::Error> {
             value TEXT
         );"
     )?;
+    // Migrate: add label/rel_type columns if they don't exist yet
+    let _ = db.execute("ALTER TABLE links ADD COLUMN label TEXT DEFAULT ''", []);
+    let _ = db.execute("ALTER TABLE links ADD COLUMN rel_type TEXT DEFAULT ''", []);
     Ok(())
 }
 
@@ -78,9 +81,29 @@ pub fn reindex_vault(vault_path: &Path, db: &Connection) -> Result<usize, Box<dy
                 let context = extract_context(&content, cap.get(0).unwrap().start());
 
                 db.execute(
-                    "INSERT OR IGNORE INTO links (source_path, target_path, context) VALUES (?1,?2,?3)",
+                    "INSERT OR IGNORE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,?3,'','')",
                     params![rel_path, target_str, context],
                 )?;
+            }
+        }
+
+        // Extraire les relations nommées du frontmatter (relations: [{target, label, type}])
+        if let Some(caps) = FRONTMATTER_REGEX.captures(&content) {
+            let yaml_str = caps.get(1).unwrap().as_str();
+            if let Ok(yaml) = serde_yaml::from_str::<serde_yaml::Value>(yaml_str) {
+                if let Some(relations) = yaml.get("relations").and_then(|v| v.as_sequence()) {
+                    for rel in relations {
+                        let target = rel.get("target").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                        let label = rel.get("label").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                        let rel_type = rel.get("type").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                        if !target.is_empty() {
+                            let _ = db.execute(
+                                "INSERT OR REPLACE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,'',?3,?4)",
+                                params![rel_path, target, label, rel_type],
+                            );
+                        }
+                    }
+                }
             }
         }
 
@@ -97,8 +120,25 @@ pub fn reindex_vault(vault_path: &Path, db: &Connection) -> Result<usize, Box<dy
     Ok(count)
 }
 
+/// Sanitise une requête utilisateur pour FTS5 — évite les crashes sur caractères spéciaux
+fn sanitize_fts_query(raw: &str) -> String {
+    raw.split_whitespace()
+        .filter(|w| !w.is_empty())
+        .map(|w| {
+            let clean: String = w.chars().filter(|c| *c != '"').collect();
+            format!("\"{}\"*", clean)
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Recherche full-text dans l'index
 pub fn search(db: &Connection, query: &str, limit: usize) -> Result<Vec<SearchResult>, rusqlite::Error> {
+    let safe_query = sanitize_fts_query(query);
+    if safe_query.is_empty() {
+        return Ok(vec![]);
+    }
+
     let mut stmt = db.prepare(
         "SELECT path, title, entity_type, tags,
                 snippet(entities, 4, '<mark>', '</mark>', '…', 32) as snippet,
@@ -109,7 +149,7 @@ pub fn search(db: &Connection, query: &str, limit: usize) -> Result<Vec<SearchRe
          LIMIT ?2"
     )?;
 
-    let results = stmt.query_map(params![query, limit as i64], |row| {
+    let results = stmt.query_map(params![safe_query, limit as i64], |row| {
         Ok(SearchResult {
             path: row.get(0)?,
             title: row.get(1)?,
@@ -169,12 +209,16 @@ pub fn get_graph_data(db: &Connection) -> Result<GraphData, rusqlite::Error> {
     .filter_map(|r| r.ok())
     .collect();
 
-    // Récupérer les liens
-    let mut stmt = db.prepare("SELECT source_path, target_path FROM links")?;
+    // Récupérer les liens avec labels
+    let mut stmt = db.prepare(
+        "SELECT source_path, target_path, COALESCE(label,'') as label, COALESCE(rel_type,'') as rel_type FROM links"
+    )?;
     let links = stmt.query_map([], |row| {
         Ok(GraphLink {
             source: row.get(0)?,
             target: row.get(1)?,
+            label: row.get(2)?,
+            rel_type: row.get(3)?,
         })
     })?
     .filter_map(|r| r.ok())
@@ -219,6 +263,8 @@ pub struct GraphNode {
 pub struct GraphLink {
     pub source: String,
     pub target: String,
+    pub label: String,
+    pub rel_type: String,
 }
 
 // ── Helpers ──────────────────────────────────────────────────────

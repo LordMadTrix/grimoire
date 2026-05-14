@@ -1,4 +1,4 @@
-use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder, Manager};
+use tauri::{AppHandle, Emitter, WebviewUrl, WebviewWindowBuilder, Manager};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -72,4 +72,17 @@ pub async fn open_player_view(app: AppHandle, monitor_index: usize) -> Result<()
     window.show().map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// Émet un événement directement vers la fenêtre "player-view" via le backend Rust.
+/// Contrairement au `emit` frontend (qui reste dans la même fenêtre en Tauri v2),
+/// ce passage par Rust garantit la livraison inter-fenêtres.
+#[tauri::command]
+pub async fn emit_to_player_view(
+    app: AppHandle,
+    event: String,
+    payload: serde_json::Value,
+) -> Result<(), String> {
+    app.emit_to("player-view", &event, payload)
+        .map_err(|e| e.to_string())
 }

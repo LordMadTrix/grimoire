@@ -180,3 +180,13 @@ fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
 
     Ok(entries)
 }
+
+/// Ouvre une URL dans le navigateur par défaut du système
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    std::process::Command::new("xdg-open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

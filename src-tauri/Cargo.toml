@@ -48,3 +48,9 @@ regex = "1"
 walkdir = "2"
 base64 = "0.22.1"
 reqwest = { version = "0.13.3", features = ["json"] }
+
+# Serveur mobile joueurs
+axum = { version = "0.7", features = ["ws"] }
+tower-http = { version = "0.5", features = ["cors"] }
+uuid = { version = "1", features = ["v4"] }
+qrcode = "0.14"

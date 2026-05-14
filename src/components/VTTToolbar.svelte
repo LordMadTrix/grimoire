@@ -1,17 +1,124 @@
 <script lang="ts">
-  import { emitToPlayerView, readFileBase64 } from '$lib/api';
+  import { emitToPlayerView, readFileBase64, readFile } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import {
     vttStore,
     addGmToken, clearGmFow, undoGmFow,
     startCombat, stopCombat,
-    updateGmAudio, setGmAudioVolume
+    updateGmAudio, setGmAudioVolume,
+    updateGmAudio2, setGmAudio2Volume,
+    clearGmPins,
+    setWeather, addSpell, clearSpells,
+    undoDrawPath, clearDrawPaths,
+    undoGmWall, clearGmWalls,
+    addGmAudioZone, removeGmAudioZone,
+    undoMapAction, canUndo,
+    addMapScene, setCampaignTitle,
+    revealAllGmFow, toggleFow,
   } from '$lib/stores/vtt.svelte';
   import type { VaultEntry } from '$lib/api';
+  import SoundBoard from './SoundBoard.svelte';
+  import MonsterLibrary from './MonsterLibrary.svelte';
+  import SessionExport from './SessionExport.svelte';
+  import PlayerMobileManager from './PlayerMobileManager.svelte';
+  import AdventureLibrary from './AdventureLibrary.svelte';
+  import CharacterCreator from './CharacterCreator.svelte';
+  import DiceRoller from './DiceRoller.svelte';
+  import PlayerManager from './PlayerManager.svelte';
 
-  let isBlackout = $state(false);
+  let { 
+    onRoll,
+    onTogglePlayerHub,
+    onTogglePlayerManager
+  }: { 
+    onRoll?: ((result: number, label: string) => void) | null,
+    onTogglePlayerHub?: (() => void) | null,
+    onTogglePlayerManager?: (() => void) | null
+  } = $props();
+
+  function handleDiceRoll(result: number, label: string) {
+    const text = `🎲 ${label} = ${result}`;
+    emitToPlayerView('map_roll', { text });
+    onRoll?.(result, label);
+  }
+
   let showMapPicker = $state(false);
   let showAudioPicker = $state(false);
+  let showAudio2Picker = $state(false);
+  let showHandoutPicker = $state(false);
+  let showTokenPicker = $state(false);
+  let mapPickerSearch = $state('');
+  let tokenPickerSearch = $state('');
+
+  function getAllMd(entries: VaultEntry[], parent = ''): { path: string; name: string }[] {
+    let files: { path: string; name: string }[] = [];
+    for (const e of entries) {
+      if (e.is_dir && e.children) files = [...files, ...getAllMd(e.children, parent + e.name + '/')];
+      else if (e.extension === 'md') files.push({ path: parent + e.name, name: e.name.replace(/\.md$/, '') });
+    }
+    return files;
+  }
+
+  async function sendImageHandout(relativePath: string) {
+    const vaultPath = getVaultPath();
+    if (!vaultPath) return;
+    try {
+      const base64 = await readFileBase64(`${vaultPath}/${relativePath}`);
+      const ext = relativePath.split('.').pop()?.toLowerCase() ?? 'png';
+      const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : 'image/png';
+      await emitToPlayerView('show_handout', { type: 'image', content: `data:${mime};base64,${base64}`, title: relativePath.split('/').pop() });
+      showHandoutPicker = false;
+    } catch (err) { console.error('Handout error:', err); }
+  }
+
+  async function sendNoteHandout(relativePath: string) {
+    const vaultPath = getVaultPath();
+    if (!vaultPath) return;
+    try {
+      const content = await readFile(vaultPath, relativePath);
+      const cleaned = content.replace(/^---\n[\s\S]*?\n---\n?/, '').trim();
+      await emitToPlayerView('show_handout', { type: 'note', content: cleaned, title: relativePath.split('/').pop()?.replace(/\.md$/, '') });
+      showHandoutPicker = false;
+    } catch (err) { console.error('Handout error:', err); }
+  }
+
+  // Timer de session (état partagé via vttStore.sessionTimerStart)
+  let sessionDisplay = $state('00:00');
+  let timerInterval: ReturnType<typeof setInterval> | null = null;
+
+  $effect(() => {
+    const start = vttStore.sessionTimerStart;
+    if (start !== null) {
+      if (!timerInterval) {
+        timerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - vttStore.sessionTimerStart!) / 1000);
+          const h = Math.floor(elapsed / 3600);
+          const m = Math.floor((elapsed % 3600) / 60);
+          const s = elapsed % 60;
+          sessionDisplay = h > 0
+            ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+            : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+      }
+    } else {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      sessionDisplay = '00:00';
+    }
+  });
+
+  function toggleTimer() {
+    if (vttStore.sessionTimerStart !== null) {
+      vttStore.sessionTimerStart = null;
+    } else {
+      vttStore.sessionTimerStart = Date.now();
+    }
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      if (vttStore.currentMap) { e.preventDefault(); undoMapAction(); }
+    }
+  }
 
   function toggleGrid() {
     vttStore.showGrid = !vttStore.showGrid;
@@ -19,8 +126,8 @@
   }
 
   function toggleBlackout() {
-    isBlackout = !isBlackout;
-    emitToPlayerView('toggle_player_blackout', { active: isBlackout });
+    vttStore.isBlackout = !vttStore.isBlackout;
+    emitToPlayerView('toggle_player_blackout', { active: vttStore.isBlackout });
   }
 
   function setGridSize(val: number) {
@@ -43,19 +150,51 @@
     return audios;
   }
 
-  function getAllImages(entries: VaultEntry[], parent = ''): { path: string; name: string }[] {
+  function getAllImages(entries: VaultEntry[], parent = '', dirFilter = ''): { path: string; name: string }[] {
     let images: { path: string; name: string }[] = [];
     for (const e of entries) {
       if (e.is_dir && e.children) {
-        images = [...images, ...getAllImages(e.children, parent + e.name + '/')];
+        images = [...images, ...getAllImages(e.children, parent + e.name + '/', dirFilter)];
       } else {
         const ext = e.extension?.toLowerCase();
         if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp') {
-          images.push({ path: parent + e.name, name: e.name });
+          const fullPath = parent + e.name;
+          if (!dirFilter || fullPath.split('/').includes(dirFilter)) {
+            images.push({ path: fullPath, name: e.name });
+          }
         }
       }
     }
     return images;
+  }
+
+  async function createImageToken(relativePath: string) {
+    const vaultPath = getVaultPath();
+    if (!vaultPath) return;
+    tokenCount++;
+    try {
+      const base64 = await readFileBase64(`${vaultPath}/${relativePath}`);
+      const ext = relativePath.split('.').pop()?.toLowerCase();
+      let mime = 'image/png';
+      if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+      else if (ext === 'webp') mime = 'image/webp';
+      const dataUrl = `data:${mime};base64,${base64}`;
+      const name = relativePath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? `Token ${tokenCount}`;
+      addGmToken({
+        id: Math.random().toString(36).slice(2),
+        name,
+        x: 125 + (tokenCount % 8) * 65,
+        y: 125 + Math.floor(tokenCount / 8) * 65,
+        size: 50,
+        imageUrl: dataUrl,
+        hp: 10,
+        maxHp: 10,
+        visionRange: 0,
+        isEnemy: false,
+      });
+      showTokenPicker = false;
+      tokenPickerSearch = '';
+    } catch (err) { console.error('Token image error:', err); }
   }
 
   function selectAudio(relativePath: string) {
@@ -65,6 +204,10 @@
 
   function stopAudio() {
     updateGmAudio(null);
+  }
+
+  function stopAudio2() {
+    updateGmAudio2(null);
   }
 
   async function selectMap(relativePath: string) {
@@ -77,9 +220,8 @@
       if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
       else if (ext === 'webp') mime = 'image/webp';
       const dataUrl = `data:${mime};base64,${base64}`;
-      vttStore.currentMap = dataUrl;
-      await emitToPlayerView('set_player_map', { url: dataUrl });
-      if (isBlackout) toggleBlackout();
+      const name = relativePath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? relativePath;
+      addMapScene(name, relativePath, dataUrl);
       showMapPicker = false;
     } catch (err) {
       console.error('Failed to load map:', err);
@@ -88,6 +230,7 @@
 
   function closeMap() {
     vttStore.currentMap = null;
+    vttStore.currentMapRelPath = null;
     emitToPlayerView('set_player_map', { url: null });
   }
 
@@ -109,96 +252,270 @@
   }
 </script>
 
-<div class="vtt-toolbar">
-  <div class="toolbar-title">🕹️ Contrôle Joueurs</div>
+<svelte:window onkeydown={handleKeydown} />
 
+<div class="vtt-toolbar">
+  <!-- Ligne 1 : outils VTT (uniquement si carte chargée) -->
   {#if vttStore.currentMap}
+    <div class="toolbar-row">
     <div class="tools-group">
-      <button class="btn" class:active={vttStore.mode === 'select'}    onclick={() => vttStore.mode = 'select'}>👆 Sélect</button>
-      <button class="btn" class:active={vttStore.mode === 'fog-reveal'} onclick={() => vttStore.mode = 'fog-reveal'}>👁️ Révéler</button>
-      <button class="btn" class:active={vttStore.mode === 'fog-hide'}   onclick={() => vttStore.mode = 'fog-hide'}>⬛ Cacher</button>
-      <button class="btn" class:active={vttStore.mode === 'measure'}    onclick={() => vttStore.mode = 'measure'}>📏 Règle</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'select'}    onclick={() => vttStore.mode = 'select'}    title="Sélectionner">👆</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'fog-reveal'} onclick={() => vttStore.mode = 'fog-reveal'} title="Révéler zone (glisser)">👁️</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'fog-hide'}   onclick={() => vttStore.mode = 'fog-hide'}   title="Cacher zone (glisser)">⬛</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'fog-rect'}   onclick={() => vttStore.mode = 'fog-rect'}   title="Zone rectangulaire">▭</button>
+      <button class="btn icon-btn" class:active={!vttStore.fowEnabled} onclick={toggleFow} title={vttStore.fowEnabled ? 'Désactiver le brouillard de guerre' : 'Activer le brouillard de guerre'}>🌫️</button>
+      <button class="btn icon-btn" onclick={revealAllGmFow} title="Tout révéler">🌅</button>
+      <button class="btn icon-btn" onclick={clearGmFow}    title="Tout cacher">🌑</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'measure'}    onclick={() => vttStore.mode = 'measure'}    title="Mesurer une distance">📏</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'ping'}       onclick={() => vttStore.mode = 'ping'}       title="Ping (marqueur temporaire joueurs)">📍</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'pin'}        onclick={() => vttStore.mode = 'pin'}        title="Épingle permanente">📌</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'spell'}      onclick={() => vttStore.mode = 'spell'}      title="Zone de sort">💫</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'draw'}       onclick={() => vttStore.mode = 'draw'}       title="Dessin libre">✏️</button>
+      {#if vttStore.mode === 'draw'}
+        <input type="color" class="draw-color-input" title="Couleur du tracé"
+          value={'#' + vttStore.drawColor.toString(16).padStart(6, '0')}
+          oninput={(e) => { vttStore.drawColor = parseInt((e.target as HTMLInputElement).value.slice(1), 16); }} />
+        <input type="range" class="draw-width-input" min="2" max="20" step="1" value={vttStore.drawWidth} title="Épaisseur"
+          oninput={(e) => { vttStore.drawWidth = Number((e.target as HTMLInputElement).value); }} />
+      {/if}
+      {#if vttStore.drawPaths.length > 0}
+        <button class="btn icon-btn" onclick={undoDrawPath} title="Annuler dernier tracé">✏️↩️</button>
+        <button class="btn icon-btn" onclick={clearDrawPaths} title="Effacer tous les tracés">✏️🗑️</button>
+      {/if}
       <div class="separator"></div>
-      <button class="btn" onclick={createTestToken}>👹 +Token</button>
-      <button class="btn" onclick={undoGmFow} title="Annuler la dernière zone de brouillard">↩️ FOW</button>
-      <button class="btn" onclick={clearGmFow} title="Effacer tout le brouillard">🧹 Reset</button>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'blueprint'} onclick={() => vttStore.mode = 'blueprint'} title="Mode Blueprint (Murs / LOS)">🧱</button>
+      {#if vttStore.mode === 'blueprint'}
+        <button class="btn icon-btn" class:active={vttStore.blueprintType === 'opaque'} onclick={() => vttStore.blueprintType = 'opaque'} title="Mur Opaque">🧱</button>
+        <button class="btn icon-btn" class:active={vttStore.blueprintType === 'door'} onclick={() => vttStore.blueprintType = 'door'} title="Porte">🚪</button>
+      {/if}
+      {#if vttStore.mode === 'blueprint' || vttStore.walls.length > 0}
+        <button class="btn icon-btn" onclick={undoGmWall} title="Annuler dernier mur">🧱↩️</button>
+        <button class="btn icon-btn" onclick={clearGmWalls} title="Effacer tous les murs">🧱🗑️</button>
+      {/if}
+      <button class="btn icon-btn" class:active={vttStore.mode === 'audio-zone'} onclick={() => vttStore.mode = 'audio-zone'} title="Zone Sonore (Ambiance locale)">🎶</button>
       <div class="separator"></div>
-      <button
-        class="btn combat-btn"
-        class:active={vttStore.combatActive}
+      <!-- Météo -->
+      {#each (['none','rain','snow','fog','embers'] as const) as w}
+        <button class="btn icon-btn" class:active={vttStore.weather === w} onclick={() => setWeather(w)}
+          title={w === 'none' ? 'Pas de météo' : w === 'rain' ? 'Pluie' : w === 'snow' ? 'Neige' : w === 'fog' ? 'Brouillard' : 'Braises'}
+        >{w === 'none' ? '☀️' : w === 'rain' ? '🌧️' : w === 'snow' ? '❄️' : w === 'fog' ? '🌫️' : '🔥'}</button>
+      {/each}
+      {#if vttStore.mode === 'spell'}
+        <div class="separator"></div>
+        {#each (['fire','ice','lightning','poison','silence','divine','darkness'] as const) as st}
+          <button class="btn icon-btn" class:active={vttStore.spellType === st} onclick={() => vttStore.spellType = st} title={st}
+          >{st === 'fire' ? '🔥' : st === 'ice' ? '❄️' : st === 'lightning' ? '⚡' : st === 'poison' ? '🧪' : st === 'silence' ? '🔇' : st === 'divine' ? '✨' : '🌑'}</button>
+        {/each}
+        <div class="separator"></div>
+        <button class="btn icon-btn" class:active={vttStore.spellShape === 'circle'} onclick={() => vttStore.spellShape = 'circle'} title="Cercle">⭕</button>
+        <button class="btn icon-btn" class:active={vttStore.spellShape === 'cone'}   onclick={() => vttStore.spellShape = 'cone'}   title="Cône">🔺</button>
+        <button class="btn icon-btn" class:active={vttStore.spellShape === 'line'}   onclick={() => vttStore.spellShape = 'line'}   title="Ligne">➡️</button>
+        {#if vttStore.spellShape === 'circle'}
+          <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Rayon (px)"
+            onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
+        {:else if vttStore.spellShape === 'cone'}
+          <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Portée (px)"
+            onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
+          <input type="range" class="draw-width-input" min="0" max="360" step="5"
+            value={Math.round((vttStore.spellConeAngle ?? Math.PI/3) * 180 / Math.PI)}
+            oninput={(e) => vttStore.spellConeAngle = Number((e.target as HTMLInputElement).value) * Math.PI / 180}
+            title="Ouverture du cône (°)" />
+          <input type="range" class="draw-width-input" min="0" max="360" step="5"
+            value={vttStore.spellAngleDeg}
+            oninput={(e) => { const v = Number((e.target as HTMLInputElement).value); vttStore.spellAngleDeg = v; vttStore.spellAngle = v * Math.PI / 180; }}
+            title="Direction du cône (°)" />
+        {:else if vttStore.spellShape === 'line'}
+          <input type="number" class="spell-radius-input" value={vttStore.spellLength} min="50" max="800" step="25" title="Longueur (px)"
+            onchange={(e) => vttStore.spellLength = Number((e.target as HTMLInputElement).value)} />
+          <input type="range" class="draw-width-input" min="0" max="360" step="5"
+            value={vttStore.spellAngleDeg}
+            oninput={(e) => { const v = Number((e.target as HTMLInputElement).value); vttStore.spellAngleDeg = v; vttStore.spellAngle = v * Math.PI / 180; }}
+            title="Direction (°)" />
+        {/if}
+        {#if vttStore.spells.length > 0}
+          <button class="btn icon-btn" onclick={clearSpells} title="Effacer tous les sorts">🗑️</button>
+        {/if}
+      {/if}
+      <div class="separator"></div>
+      <button class="btn icon-btn" onclick={createTestToken}                                      title="Créer un token coloré">👹</button>
+      <button class="btn icon-btn" onclick={() => { showTokenPicker = true; tokenPickerSearch = ''; }} title="Token depuis image (assets/tokens/)">🖼️</button>
+      <button class="btn icon-btn" onclick={undoGmFow}                                            title="Annuler dernière zone de brouillard">↩️</button>
+      <button class="btn icon-btn" onclick={clearGmFow}                                           title="Effacer tout le brouillard">🧹</button>
+      {#if vttStore.pins.length > 0}
+        <button class="btn icon-btn" onclick={clearGmPins} title="Supprimer toutes les épingles">📌🗑️</button>
+      {/if}
+      <div class="separator"></div>
+      <button class="btn icon-btn combat-btn" class:active={vttStore.combatActive}
         onclick={() => vttStore.combatActive ? stopCombat() : startCombat()}
         title={vttStore.combatActive ? 'Terminer le combat' : 'Démarrer le tracker de combat'}
-      >
-        ⚔️ {vttStore.combatActive ? 'Combat ON' : 'Combat'}
-      </button>
+      >⚔️</button>
+    </div>
     </div>
   {/if}
 
+  <!-- Ligne 2 : actions principales -->
+  <div class="toolbar-row">
   <div class="toolbar-actions">
     {#if !vttStore.currentMap}
-      <button class="btn" onclick={() => showMapPicker = true}>🗺️ Charger Carte</button>
+      <button class="btn icon-btn" onclick={() => showMapPicker = true} title="Charger une carte">🗺️</button>
     {:else}
-      <button class="btn" onclick={() => showMapPicker = true}>🗺️ Carte</button>
-      <button class="btn" onclick={closeMap}>✖️ Fermer</button>
+      <button class="btn icon-btn" onclick={() => showMapPicker = true} title="Changer de carte">🗺️</button>
+      <button class="btn icon-btn" onclick={closeMap} title="Fermer la carte">✖️</button>
+      <div class="separator"></div>
+      <button class="btn icon-btn" class:active={vttStore.mode === 'zoom-rect'} onclick={() => vttStore.mode = 'zoom-rect'} title="Zoomer sur une zone">🔍</button>
+      <button class="btn icon-btn" onclick={() => { vttStore.fitRequest++; vttStore.mode = 'select'; }} title="Réinitialiser le zoom">⌂</button>
+      <button class="btn icon-btn" onclick={undoMapAction} disabled={!canUndo()} title="Annuler (Ctrl+Z)">↩️</button>
     {/if}
 
     <div class="separator"></div>
 
-    <button class="btn" class:active={vttStore.audioSrc} onclick={() => showAudioPicker = true}>
-      🎵 {vttStore.audioSrc ? 'Musique ON' : 'Ambiance'}
+    <button class="btn icon-btn" class:active={!!vttStore.audioSrc} onclick={() => showAudioPicker = true} title={vttStore.audioSrc ? 'Piste 1 en cours' : 'Ambiance — Piste 1'}>
+      {vttStore.audioSrc ? '🔊' : '🎵'}
     </button>
     {#if vttStore.audioSrc}
       <div class="volume-control">
-        <input 
-          type="range" 
-          min="0" max="1" step="0.05" 
-          value={vttStore.audioVolume} 
+        <input type="range" min="0" max="1" step="0.05"
+          value={vttStore.audioVolume}
           oninput={(e) => setGmAudioVolume(Number((e.target as HTMLInputElement).value))}
         />
-        <button class="btn-stop" onclick={stopAudio}>⏹️</button>
+        <button class="btn-stop" onclick={stopAudio} title="Arrêter piste 1">⏹️</button>
+      </div>
+    {/if}
+    <button class="btn icon-btn" class:active={!!vttStore.audio2Src} onclick={() => showAudio2Picker = true} title={vttStore.audio2Src ? 'Piste 2 en cours' : 'Ambiance — Piste 2'}>
+      {vttStore.audio2Src ? '🔈' : '🎶'}
+    </button>
+    {#if vttStore.audio2Src}
+      <div class="volume-control">
+        <input type="range" min="0" max="1" step="0.05"
+          value={vttStore.audio2Volume}
+          oninput={(e) => setGmAudio2Volume(Number((e.target as HTMLInputElement).value))}
+        />
+        <button class="btn-stop" onclick={stopAudio2} title="Arrêter piste 2">⏹️</button>
       </div>
     {/if}
 
+    <div class="separator"></div>
+
+    <button class="btn icon-btn" class:active={vttStore.showGrid} onclick={toggleGrid} title="Afficher/masquer la grille">#️⃣</button>
+    <button class="btn icon-btn blackout-btn" class:active={vttStore.isBlackout} onclick={toggleBlackout} title="Écran noir vue joueur">
+      {vttStore.isBlackout ? '👁️' : '🕶️'}
+    </button>
+
     <div class="grid-control" title="Taille de la grille (px)">
       <span class="grid-label">#</span>
-      <input
-        type="number"
-        class="grid-input"
-        value={vttStore.gridSize}
-        min="10"
-        max="200"
-        step="5"
-        onchange={(e) => setGridSize(Number((e.target as HTMLInputElement).value))}
-      />
+      <input type="number" class="grid-input" value={vttStore.gridSize} min="10" max="200" step="5"
+        onchange={(e) => setGridSize(Number((e.target as HTMLInputElement).value))} />
     </div>
 
-    <button class="btn" class:active={vttStore.showGrid} onclick={toggleGrid}>#️⃣ Grille</button>
-    <button class="btn blackout-btn" class:active={isBlackout} onclick={toggleBlackout}>
-      {isBlackout ? '👁️ Écran' : '🕶️ Écran'}
+    <div class="separator"></div>
+
+    <button class="btn icon-btn timer-btn" class:active={vttStore.sessionTimerStart !== null} onclick={toggleTimer} title="Timer de session">
+      ⏱️ {sessionDisplay}
     </button>
+
+    <div class="separator"></div>
+
+    <DiceRoller onRoll={handleDiceRoll} />
+    <CharacterCreator />
+    <SoundBoard />
+    <MonsterLibrary />
+    <AdventureLibrary />
+    <SessionExport />
+    <button class="btn icon-btn" onclick={() => onTogglePlayerManager?.()} title="Gestionnaire de Groupe (Party Manager)">👥</button>
+    <button class="btn icon-btn" onclick={() => onTogglePlayerHub?.()} title="Tableau de bord des joueurs (Hub)">📱</button>
+
+    <div class="separator"></div>
+
+    <input
+      type="text"
+      class="campaign-title-input"
+      placeholder="Titre de campagne…"
+      value={vttStore.campaignTitle}
+      oninput={(e) => setCampaignTitle((e.target as HTMLInputElement).value)}
+      title="Titre affiché sur l'écran joueur"
+    />
+
+    <div class="separator"></div>
+
+    <button class="btn icon-btn handout-btn" onclick={() => showHandoutPicker = true} title="Envoyer un handout">📤</button>
+  </div>
   </div>
 </div>
 
 <!-- Sélecteur de carte -->
 {#if showMapPicker}
-  {@const images = getAllImages(getVaultTree())}
+  {@const allMaps = getAllImages(getVaultTree(), '', 'maps')}
+  {@const q = mapPickerSearch.toLowerCase()}
+  {@const images = q ? allMaps.filter(m => m.name.toLowerCase().includes(q)) : allMaps}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="picker-backdrop" onclick={() => showMapPicker = false}>
+  <div class="picker-backdrop" onclick={() => { showMapPicker = false; mapPickerSearch = ''; }}>
     <div class="picker-modal" onclick={e => e.stopPropagation()}>
       <div class="picker-header">
         <span>🗺️ Choisir une carte</span>
-        <button class="picker-close" onclick={() => showMapPicker = false}>✕</button>
+        <button class="picker-close" onclick={() => { showMapPicker = false; mapPickerSearch = ''; }}>✕</button>
+      </div>
+      <div class="picker-search-bar">
+        <input
+          type="text"
+          class="picker-search"
+          placeholder="Rechercher une carte…"
+          bind:value={mapPickerSearch}
+          autofocus
+        />
       </div>
       <div class="picker-list">
-        {#if images.length === 0}
-          <div class="picker-empty">Aucune image (PNG, JPG, WebP) dans le vault.</div>
+        {#if allMaps.length === 0}
+          <div class="picker-empty">Aucune image dans le dossier maps/ (ni ses sous-dossiers).</div>
+        {:else if images.length === 0}
+          <div class="picker-empty">Aucun résultat pour "{mapPickerSearch}".</div>
         {:else}
           {#each images as img}
             <button class="picker-item" onclick={() => selectMap(img.path)}>
-              <span class="picker-icon">🖼️</span>
+              <span class="picker-icon">🗺️</span>
               <span class="picker-name">{img.name}</span>
               <span class="picker-path">{img.path}</span>
+            </button>
+          {/each}
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Sélecteur de token image -->
+{#if showTokenPicker}
+  {@const allTokens = getAllImages(getVaultTree(), '', 'tokens').sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))}
+  {@const qt = tokenPickerSearch.toLowerCase()}
+  {@const tokens = qt ? allTokens.filter(t => t.name.toLowerCase().includes(qt)) : allTokens}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="picker-backdrop" onclick={() => { showTokenPicker = false; tokenPickerSearch = ''; }}>
+    <div class="picker-modal" onclick={e => e.stopPropagation()}>
+      <div class="picker-header">
+        <span>🖼️ Choisir un token</span>
+        <button class="picker-close" onclick={() => { showTokenPicker = false; tokenPickerSearch = ''; }}>✕</button>
+      </div>
+      <div class="picker-search-bar">
+        <input
+          type="text"
+          class="picker-search"
+          placeholder="Rechercher un token…"
+          bind:value={tokenPickerSearch}
+          autofocus
+        />
+      </div>
+      <div class="picker-list">
+        {#if allTokens.length === 0}
+          <div class="picker-empty">Aucune image dans le dossier tokens/ (ni ses sous-dossiers).</div>
+        {:else if tokens.length === 0}
+          <div class="picker-empty">Aucun résultat pour "{tokenPickerSearch}".</div>
+        {:else}
+          {#each tokens as tok}
+            <button class="picker-item" onclick={() => createImageToken(tok.path)}>
+              <span class="picker-icon">👹</span>
+              <span class="picker-name">{tok.name.replace(/\.[^.]+$/, '')}</span>
+              <span class="picker-path">{tok.path}</span>
             </button>
           {/each}
         {/if}
@@ -235,64 +552,151 @@
   </div>
 {/if}
 
+{#if showAudio2Picker}
+  {@const audios = getAllAudio(getVaultTree())}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="picker-backdrop" onclick={() => showAudio2Picker = false}>
+    <div class="picker-modal" onclick={e => e.stopPropagation()}>
+      <div class="picker-header">
+        <span>🎶 Ambiance Sonore — Piste 2</span>
+        <button class="picker-close" onclick={() => showAudio2Picker = false}>✕</button>
+      </div>
+      <div class="picker-list">
+        {#if audios.length === 0}
+          <div class="picker-empty">Aucun fichier audio (MP3, WAV, OGG) dans le vault.</div>
+        {:else}
+          {#each audios as aud}
+            <button class="picker-item" onclick={() => { updateGmAudio2(aud.path); showAudio2Picker = false; }}>
+              <span class="picker-icon">🎶</span>
+              <span class="picker-name">{aud.name}</span>
+              <span class="picker-path">{aud.path}</span>
+            </button>
+          {/each}
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Sélecteur de handout -->
+{#if showHandoutPicker}
+  {@const images = getAllImages(getVaultTree())}
+  {@const notes = getAllMd(getVaultTree())}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="picker-backdrop" onclick={() => showHandoutPicker = false}>
+    <div class="picker-modal handout-modal" onclick={e => e.stopPropagation()}>
+      <div class="picker-header">
+        <span>📤 Envoyer un Handout</span>
+        <button class="picker-close" onclick={() => showHandoutPicker = false}>✕</button>
+      </div>
+      <div class="handout-tabs">
+        <div class="handout-section">
+          <div class="handout-section-title">🖼️ Images</div>
+          <div class="picker-list handout-list">
+            {#if images.length === 0}
+              <div class="picker-empty">Aucune image dans le vault.</div>
+            {:else}
+              {#each images as img}
+                <button class="picker-item" onclick={() => sendImageHandout(img.path)}>
+                  <span class="picker-icon">🖼️</span>
+                  <span class="picker-name">{img.name}</span>
+                  <span class="picker-path">{img.path}</span>
+                </button>
+              {/each}
+            {/if}
+          </div>
+        </div>
+        <div class="handout-section">
+          <div class="handout-section-title">📝 Notes</div>
+          <div class="picker-list handout-list">
+            {#if notes.length === 0}
+              <div class="picker-empty">Aucune note dans le vault.</div>
+            {:else}
+              {#each notes as note}
+                <button class="picker-item" onclick={() => sendNoteHandout(note.path)}>
+                  <span class="picker-icon">📝</span>
+                  <span class="picker-name">{note.name}</span>
+                  <span class="picker-path">{note.path}</span>
+                </button>
+              {/each}
+            {/if}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .vtt-toolbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 12px;
+    flex-direction: column;
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    gap: 8px;
   }
 
-  .toolbar-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent);
-    white-space: nowrap;
+  .toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .toolbar-row:not(:last-child) {
+    border-bottom: 1px solid var(--border);
   }
 
   .tools-group {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding-left: 12px;
-    border-left: 1px solid var(--border);
-    flex-wrap: wrap;
+    gap: 3px;
+    flex-shrink: 0;
   }
 
   .toolbar-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-left: auto;
+    gap: 4px;
+    flex-shrink: 0;
   }
 
   .separator {
     width: 1px;
-    height: 18px;
+    height: 14px;
     background: var(--border);
-    margin: 0 2px;
+    margin: 0 1px;
+    flex-shrink: 0;
   }
 
   .btn {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 3px 9px;
+    padding: 2px 7px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .btn:hover { background: var(--bg-hover); color: var(--text-primary); }
   .btn.active {
     background: rgba(229, 168, 83, 0.15);
     border-color: var(--accent);
     color: var(--accent);
+  }
+
+  .icon-btn {
+    padding: 2px 5px;
+    font-size: 14px;
+    min-width: 26px;
+    text-align: center;
   }
 
   .combat-btn.active {
@@ -305,6 +709,17 @@
     background: rgba(200, 50, 50, 0.15);
     border-color: #c83232;
     color: #ff6b6b;
+  }
+
+  .timer-btn {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+    min-width: 70px;
+  }
+  .timer-btn.active {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: #22c55e;
+    color: #22c55e;
   }
 
   .volume-control {
@@ -361,6 +776,19 @@
   .grid-input::-webkit-inner-spin-button,
   .grid-input::-webkit-outer-spin-button { -webkit-appearance: none; }
 
+  .campaign-title-input {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 3px 8px;
+    width: 140px;
+    outline: none;
+  }
+  .campaign-title-input:focus { border-color: var(--accent); }
+  .campaign-title-input::placeholder { color: var(--text-muted); font-style: italic; }
+
   /* Sélecteur de carte */
   .picker-backdrop {
     position: fixed;
@@ -413,6 +841,24 @@
   }
   .picker-close:hover { background: var(--bg-hover); }
 
+  .picker-search-bar {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  }
+
+  .picker-search {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--bg-primary, #0d0f14);
+    border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+    border-radius: 6px;
+    color: var(--text-primary, #e2e8f0);
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .picker-search:focus { border-color: var(--accent, #e5a853); }
+
   .picker-list { overflow-y: auto; padding: 6px; }
 
   .picker-item {
@@ -447,5 +893,114 @@
     text-align: center;
     color: var(--text-muted);
     font-size: 13px;
+  }
+
+  .handout-btn {
+    border-color: var(--accent-secondary, #7c6af5);
+    color: var(--accent-secondary, #7c6af5);
+  }
+  .handout-btn:hover { background: rgba(124, 106, 245, 0.1); }
+
+  .handout-modal { width: 680px; max-height: 70vh; }
+
+  .handout-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .handout-section {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+  .handout-section:last-child { border-right: none; }
+
+  .handout-section-title {
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .handout-list { max-height: 300px; }
+
+  .weather-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 3px;
+  }
+
+  .weather-btn {
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    font-size: 13px;
+    border-radius: 3px;
+  }
+  .weather-btn.active {
+    background: rgba(229, 168, 83, 0.2);
+    border: 1px solid var(--accent);
+  }
+
+  .spell-palette {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 4px;
+  }
+
+  .spell-type-btn {
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    font-size: 13px;
+    border-radius: 3px;
+  }
+  .spell-type-btn.active {
+    background: rgba(124, 106, 245, 0.25);
+    border: 1px solid #7c6af5;
+  }
+
+  .spell-radius-input {
+    width: 42px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    outline: none;
+    color: var(--text-primary);
+    font-size: 11px;
+    text-align: center;
+    padding: 2px 4px;
+    -moz-appearance: textfield;
+  }
+  .spell-radius-input::-webkit-inner-spin-button,
+  .spell-radius-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .draw-color-input {
+    width: 28px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+  }
+  .draw-width-input {
+    width: 60px;
+    accent-color: var(--accent);
   }
 </style>

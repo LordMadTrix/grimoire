@@ -9,12 +9,77 @@
   import InitiativeTracker from './components/InitiativeTracker.svelte';
   import AudioPlayer from './components/AudioPlayer.svelte';
   import GraphView from './components/GraphView.svelte';
+  import RollTables from './components/RollTables.svelte';
+  import Timeline from './components/Timeline.svelte';
+  import SessionDashboard from './components/SessionDashboard.svelte';
+  import Calendar from './components/Calendar.svelte';
+  import PlayerHub from './components/PlayerHub.svelte';
+  import PlayerManager from './components/PlayerManager.svelte';
+  import PlayerMobileManager from './components/PlayerMobileManager.svelte';
+  import MacroBar from './components/MacroBar.svelte';
   import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView } from '$lib/api';
+  import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
   import {
     vttStore,
-    addGmFowShape, updateGmToken, syncStateToPlayerView, replaceGmToken, removeGmToken
+    addGmFowShape, updateGmToken, replaceGmToken, removeGmToken, addGmToken,
+    addGmPin, removeGmPin, revealGmPin,
+    addSpell, removeSpell,
+    addDrawPath,
+    saveGmSession, loadGmSession,
+    addMapScene, switchMapScene, removeMapScene, renameMapScene,
   } from '$lib/stores/vtt.svelte';
+  import { listen } from '@tauri-apps/api/event';
+
+  function handleSpellPlace(x: number, y: number) {
+    addSpell({
+      id: Math.random().toString(36).slice(2),
+      x, y,
+      type: vttStore.spellType,
+      radius: vttStore.spellRadius,
+      shape: vttStore.spellShape,
+      angle: vttStore.spellAngle,
+      length: vttStore.spellLength,
+      coneAngle: vttStore.spellConeAngle,
+    });
+  }
+
+  function handlePinPlace(x: number, y: number) {
+    const label = window.prompt('Nom de l\'épingle :');
+    if (!label?.trim()) return;
+    const isSecret = window.confirm('Épingle secrète (GM seulement jusqu\'à révélation) ?');
+    let secretText: string | undefined;
+    if (isSecret) {
+      secretText = window.prompt('Texte révélé aux joueurs (optionnel) :') ?? undefined;
+    }
+    addGmPin({
+      id: Math.random().toString(36).slice(2),
+      x, y,
+      label: label.trim(),
+      playerVisible: !isSecret,
+      secret: isSecret || undefined,
+      secretText: secretText || undefined,
+    });
+  }
+
+  let tokenDropCount = 0;
+  function handleTokenDrop(imageUrl: string, x: number, y: number) {
+    tokenDropCount++;
+    addGmToken({
+      id: Math.random().toString(36).slice(2),
+      name: imageUrl.split('/').pop()?.replace(/\.[^.]+$/, '') ?? `Token ${tokenDropCount}`,
+      x,
+      y,
+      size: 50,
+      color: 0x3b82f6,
+      hp: 10,
+      maxHp: 10,
+      visionRange: 0,
+      isEnemy: false,
+      imageUrl,
+      visible: true,
+    });
+  }
   import { 
     getVaultTree, setVaultTree, 
     getVaultPath, setVaultPath,
@@ -34,7 +99,53 @@
   let showSettings = $state(false);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
-  let viewMode = $state<'editor' | 'graph'>('editor');
+  let viewMode = $state<'editor' | 'graph' | 'timeline' | 'calendar'>('editor');
+  let rollTablesRef = $state<any>(null);
+  let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let mapRoll = $state<{ text: string; seq: number } | null>(null);
+  let mapRollSeq = 0;
+  let playerHubRef = $state<any>(null);
+  let playerManagerRef = $state<any>(null);
+
+  function handleDiceRoll(result: number, label: string) {
+    const text = `🎲 ${label} = ${result}`;
+    mapRoll = { text, seq: ++mapRollSeq };
+  }
+
+  function handleMapRoll(formula: string) {
+    // Appel externe pour le lancer de dés via le moteur
+    window.dispatchEvent(new CustomEvent('request-roll', { detail: { formula } }));
+  }
+
+  // Auto-save de la session VTT (debounce 2s)
+  $effect(() => {
+    // Tracker toutes les propriétés à persister
+    vttStore.currentMapRelPath;
+    vttStore.fowShapes;
+    vttStore.tokens;
+    vttStore.pins;
+    vttStore.showGrid;
+    vttStore.gridSize;
+    vttStore.isBlackout;
+    vttStore.audioSrc;
+    vttStore.audioVolume;
+    vttStore.combatants;
+    vttStore.combatActive;
+    vttStore.currentTurn;
+    vttStore.spells;
+    vttStore.weather;
+    vttStore.maps;
+    vttStore.activeMapId;
+    vttStore.drawPaths;
+
+    const vp = getVaultPath();
+    if (!vp) return;
+    if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
+    sessionSaveTimer = setTimeout(() => {
+      saveGmSession(vp);
+      sessionSaveTimer = null;
+    }, 2000);
+  });
 
   onMount(async () => {
     const lastVault = localStorage.getItem('last_vault_path');
@@ -45,6 +156,15 @@
         localStorage.removeItem('last_vault_path');
       }
     }
+
+    const unlistenVisualRoll = listen('visual_dice_roll', (event: any) => {
+      const { name, roll } = event.payload;
+      handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
+    });
+
+    return () => {
+      unlistenVisualRoll.then(u => u());
+    };
   });
 
   async function loadVault(vaultPath: string) {
@@ -54,6 +174,9 @@
     await reindex(vaultPath);
     localStorage.setItem('last_vault_path', vaultPath);
     await emitToPlayerView('sync_vault_path', { path: vaultPath });
+    await loadGmSession(vaultPath);
+    // Charger la config du système de jeu (addon)
+    await loadGameConfig(vaultPath);
   }
 
   async function handleOpenVault() {
@@ -128,11 +251,21 @@
 
   function syncStateToPlayerView() {
     emitToPlayerView('sync_vault_path', { path: getVaultPath() });
-    emitToPlayerView('set_player_map', { url: vttStore.currentMap });
+    if (vttStore.currentMap) emitToPlayerView('set_player_map', { url: vttStore.currentMap });
     emitToPlayerView('update_tokens', vttStore.tokens);
     emitToPlayerView('update_fow', vttStore.fowShapes);
+    emitToPlayerView('update_pins', vttStore.pins.filter((p: any) => !p.secret || p.revealed));
+    emitToPlayerView('update_spells', vttStore.spells);
+    emitToPlayerView('update_draw_paths', vttStore.drawPaths);
     emitToPlayerView('toggle_player_grid', { show: vttStore.showGrid });
     emitToPlayerView('toggle_player_blackout', { active: vttStore.isBlackout });
+    emitToPlayerView('set_weather', { weather: vttStore.weather });
+    emitToPlayerView('update_player_audio', {
+      src: vttStore.audioSrc, volume: vttStore.audioVolume,
+      src2: vttStore.audio2Src, volume2: vttStore.audio2Volume,
+    });
+    if (vttStore.campaignTitle) emitToPlayerView('set_campaign_title', { title: vttStore.campaignTitle });
+    emitToPlayerView('toggle_fow', { enabled: vttStore.fowEnabled });
   }
 
   async function openOnMonitor(index: number) {
@@ -181,6 +314,17 @@
     }
   }
 
+  onMount(() => {
+    // Insérer texte dans l'éditeur (depuis RollTables)
+    function handleInsertText(e: Event) {
+      const text = (e as CustomEvent).detail?.text;
+      if (!text) return;
+      document.dispatchEvent(new CustomEvent('editor-insert', { detail: { text } }));
+    }
+    document.addEventListener('insert-text', handleInsertText);
+    return () => document.removeEventListener('insert-text', handleInsertText);
+  });
+
   // Raccourci clavier global
   function handleGlobalKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
@@ -189,6 +333,9 @@
     } else if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
       e.preventDefault();
       if (getVaultPath()) handleNewFile();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+      e.preventDefault();
+      rollTablesRef?.toggle();
     }
   }
 </script>
@@ -197,6 +344,10 @@
 
 <SearchPalette />
 <AudioPlayer src={vttStore.audioSrc} volume={vttStore.audioVolume} />
+<AudioPlayer src={vttStore.audio2Src} volume={vttStore.audio2Volume} />
+<RollTables bind:this={rollTablesRef} />
+<PlayerHub bind:this={playerHubRef} />
+<PlayerManager bind:this={playerManagerRef} />
 
 {#if showMonitorPicker}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -300,12 +451,36 @@
   <!-- Main Content -->
   <main class="main-content">
     {#if getVaultPath()}
-      <VTTToolbar />
+      <VTTToolbar 
+        onRoll={handleDiceRoll} 
+        onTogglePlayerHub={() => playerHubRef?.toggle()} 
+        onTogglePlayerManager={() => playerManagerRef?.toggle()}
+      />
     {/if}
     
     {#if vttStore.currentMap}
       <div style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
-        <div style="flex: 1; min-height: 0;">
+        {#if vttStore.maps.length > 1}
+          <div class="scene-tabs">
+            {#each vttStore.maps as scene}
+              <div class="scene-tab-wrap" class:active={scene.id === vttStore.activeMapId}>
+                <button
+                  class="scene-tab"
+                  onclick={() => switchMapScene(scene.id)}
+                  ondblclick={() => { const n = window.prompt('Renommer la scène :', scene.name); if (n?.trim()) renameMapScene(scene.id, n.trim()); }}
+                  title="Double-clic pour renommer"
+                >{scene.name}</button>
+                <button
+                  class="scene-tab-close"
+                  onclick={(e) => { e.stopPropagation(); if (vttStore.maps.length === 1 || window.confirm(`Supprimer la scène "${scene.name}" ?`)) removeMapScene(scene.id); }}
+                  title="Supprimer cette scène"
+                >×</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        <div class="vtt-viewport">
+          <SessionDashboard />
           <MapCanvas
             mapUrl={vttStore.currentMap}
             gridEnabled={vttStore.showGrid}
@@ -315,11 +490,35 @@
             tokens={vttStore.tokens}
             vaultPath={getVaultPath()}
             vttMode={vttStore.mode}
+            fitRequest={vttStore.fitRequest}
             onFowUpdate={addGmFowShape}
+            pins={vttStore.pins}
+            activeTokenId={vttStore.combatActive && vttStore.combatants[vttStore.currentTurn]?.tokenId
+              ? vttStore.combatants[vttStore.currentTurn].tokenId
+              : null}
+            spells={vttStore.spells}
+            weather={vttStore.weather}
+            externalRoll={mapRoll}
+            drawPaths={vttStore.drawPaths}
+            drawColor={vttStore.drawColor}
+            drawWidth={vttStore.drawWidth}
+            onDrawPath={addDrawPath}
             onTokenMove={updateGmToken}
             onTokenUpdate={replaceGmToken}
             onTokenDelete={removeGmToken}
+            onTokenDrop={handleTokenDrop}
+            onPinPlace={handlePinPlace}
+            onPinDelete={removeGmPin}
+            onPinReveal={revealGmPin}
+            fowEnabled={vttStore.fowEnabled}
+            onSpellPlace={handleSpellPlace}
+            onSpellDelete={removeSpell}
+            walls={vttStore.walls}
+            audioZones={vttStore.audioZones}
           />
+          <div class="macro-bar-container">
+            <MacroBar onRollRequest={handleMapRoll} />
+          </div>
         </div>
         {#if vttStore.combatActive}
           <InitiativeTracker />
@@ -330,12 +529,18 @@
         <div class="view-toggle">
           <button class:active={viewMode === 'editor'} onclick={() => viewMode = 'editor'}>📄 Éditeur</button>
           <button class:active={viewMode === 'graph'} onclick={() => viewMode = 'graph'}>🕸️ Graphe</button>
+          <button class:active={viewMode === 'timeline'} onclick={() => viewMode = 'timeline'}>📜 Timeline</button>
+          <button class:active={viewMode === 'calendar'} onclick={() => viewMode = 'calendar'}>📅 Calendrier</button>
         </div>
       </div>
       {#if viewMode === 'editor'}
         <Editor />
-      {:else}
+      {:else if viewMode === 'graph'}
         <GraphView />
+      {:else if viewMode === 'timeline'}
+        <Timeline />
+      {:else}
+        <Calendar />
       {/if}
     {/if}
   </main>
@@ -414,6 +619,19 @@
     transition: all var(--transition-fast);
   }
   .search-trigger:hover { background: var(--bg-hover); }
+
+  .vtt-viewport {
+    flex: 1;
+    position: relative;
+    background: #000;
+  }
+
+  .macro-bar-container {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 100;
+  }
 
   .sidebar-nav {
     flex: 1;
@@ -598,6 +816,60 @@
     background: var(--accent);
     color: var(--bg-primary);
   }
+
+  /* ── Scene Tabs (multimap) ────────────────────────────────── */
+
+  .scene-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 8px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .scene-tab-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px 4px 0 0;
+    overflow: hidden;
+    transition: all 0.1s;
+  }
+  .scene-tab-wrap:hover { background: var(--bg-hover); }
+  .scene-tab-wrap.active {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+  }
+
+  .scene-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 3px 8px 3px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .scene-tab-wrap:hover .scene-tab { color: var(--text-primary); }
+  .scene-tab-wrap.active .scene-tab { color: var(--accent); font-weight: 600; }
+
+  .scene-tab-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .scene-tab-wrap:hover .scene-tab-close { opacity: 1; }
+  .scene-tab-close:hover { color: #ef4444; }
 
   /* ── Status Bar ───────────────────────────────────────────── */
 

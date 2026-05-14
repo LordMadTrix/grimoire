@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { convertFileSrc } from '@tauri-apps/api/core';
+  import { readFileBase64 } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
 
   let { src, volume, loop = true }: {
@@ -9,6 +9,7 @@
   } = $props();
 
   let audioTag = $state<HTMLAudioElement>();
+  let fullSrc = $state<string | null>(null);
 
   $effect(() => {
     if (audioTag) {
@@ -16,14 +17,30 @@
     }
   });
 
-  let fullSrc = $derived(src ? convertFileSrc(getVaultPath() + '/' + src) : null);
+  $effect(() => {
+    const relativePath = src;
+    const vaultPath = getVaultPath();
+    if (!relativePath || !vaultPath) { fullSrc = null; return; }
+
+    readFileBase64(`${vaultPath}/${relativePath}`).then(base64 => {
+      const ext = relativePath.split('.').pop()?.toLowerCase();
+      let mime = 'audio/mpeg';
+      if (ext === 'wav') mime = 'audio/wav';
+      else if (ext === 'ogg') mime = 'audio/ogg';
+      else if (ext === 'm4a') mime = 'audio/mp4';
+      fullSrc = `data:${mime};base64,${base64}`;
+    }).catch(err => {
+      console.error('AudioPlayer: impossible de charger', relativePath, err);
+      fullSrc = null;
+    });
+  });
 </script>
 
 {#if fullSrc}
-  <audio 
+  <audio
     bind:this={audioTag}
-    src={fullSrc} 
-    {loop} 
+    src={fullSrc}
+    {loop}
     autoplay
   ></audio>
 {/if}

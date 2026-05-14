@@ -1,7 +1,21 @@
 <script lang="ts">
   import type { Token } from '$lib/stores/vtt.svelte';
-
   import { getVaultTree } from '$lib/stores/vault.svelte';
+
+  const CONDITIONS = [
+    { id: 'poisoned',   emoji: '🤢', label: 'Empoisonné' },
+    { id: 'stunned',    emoji: '⚡', label: 'Étourdi' },
+    { id: 'bleeding',   emoji: '🩸', label: 'Saignement' },
+    { id: 'burning',    emoji: '🔥', label: 'Brûlure' },
+    { id: 'frozen',     emoji: '❄️', label: 'Gelé' },
+    { id: 'frightened', emoji: '😱', label: 'Apeuré' },
+    { id: 'charmed',    emoji: '💫', label: 'Charmé' },
+    { id: 'invisible',  emoji: '👻', label: 'Invisible' },
+    { id: 'prone',      emoji: '⬇️', label: 'À terre' },
+    { id: 'silenced',   emoji: '🔇', label: 'Silencieux' },
+    { id: 'blinded',    emoji: '🙈', label: 'Aveuglé' },
+    { id: 'dead',       emoji: '💀', label: 'Mort' },
+  ];
 
   let { token, onClose, onSave, onDelete }: {
     token: Token | null;
@@ -12,15 +26,25 @@
 
   let editToken = $state<Token | null>(null);
   let colorHex = $state('#3b82f6');
+  let auraColorHex = $state('#3b82f6');
   let availableImages = $state<{name: string, path: string}[]>([]);
 
+  // Reset editToken à chaque changement de token (comparaison par ID)
   $effect(() => {
-    if (token && !editToken) {
-      editToken = { ...token };
-      colorHex = pixiToHex(token.color ?? 0x3b82f6);
+    const t = token;
+    if (t?.id !== editToken?.id) {
+      if (t) {
+        editToken = { ...t };
+        colorHex = pixiToHex(t.color ?? 0x3b82f6);
+        auraColorHex = pixiToHex(t.auraColor ?? 0x3b82f6);
+      } else {
+        editToken = null;
+      }
     }
-    
-    // Remplir la liste des images disponibles dans le Vault
+  });
+
+  // Liste des images du vault (indépendant du token courant)
+  $effect(() => {
     const tree = getVaultTree();
     const images: {name: string, path: string}[] = [];
     function traverse(nodes: any[], parent = '') {
@@ -32,7 +56,9 @@
         } else {
           const ext = n.name.split('.').pop()?.toLowerCase();
           if (ext && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
-            images.push({ name: n.name, path: fullPath });
+            if (fullPath.split('/').includes('tokens')) {
+              images.push({ name: n.name, path: fullPath });
+            }
           }
         }
       }
@@ -40,6 +66,18 @@
     traverse(tree);
     availableImages = images.sort((a, b) => a.path.localeCompare(b.path));
   });
+
+  // Grouper les images par dossier parent pour les <optgroup>
+  let groupedImages = $derived((() => {
+    const groups = new Map<string, {name: string, path: string}[]>();
+    for (const img of availableImages) {
+      const parts = img.path.split('/');
+      const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+      if (!groups.has(folder)) groups.set(folder, []);
+      groups.get(folder)!.push(img);
+    }
+    return [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  })());
 
   function pixiToHex(num: number): string {
     return '#' + num.toString(16).padStart(6, '0');
@@ -57,6 +95,7 @@
   function save() {
     if (editToken) {
       editToken.color = hexToPixi(colorHex);
+      editToken.auraColor = hexToPixi(auraColorHex);
       onSave(editToken);
     }
   }
@@ -93,9 +132,13 @@
       <div class="form-group">
         <label for="t-image">Image (optionnel)</label>
         <select id="t-image" bind:value={editToken.imageUrl}>
-          <option value="">Aucune image (Cercle de couleur)</option>
-          {#each availableImages as img}
-            <option value={img.path}>{img.path}</option>
+          <option value="">— Aucune image (cercle de couleur) —</option>
+          {#each groupedImages as [folder, imgs]}
+            <optgroup label={folder || '/'}>
+              {#each imgs as img}
+                <option value={img.path}>{img.name}</option>
+              {/each}
+            </optgroup>
           {/each}
         </select>
       </div>
@@ -132,7 +175,88 @@
             <input type="checkbox" bind:checked={editToken.isEnemy} />
             Ennemi (rouge)
           </label>
+          <label class="checkbox-label">
+            <input type="checkbox" checked={editToken.visible !== false}
+              onchange={(e) => { if (editToken) editToken.visible = (e.target as HTMLInputElement).checked; }} />
+            Visible joueurs
+          </label>
         </div>
+      </div>
+
+      <div class="form-group">
+        <label>Conditions</label>
+        <div class="conditions-grid">
+          {#each CONDITIONS as cond}
+            {@const active = (editToken.conditions ?? []).includes(cond.id)}
+            <div class="cond-row">
+              <label class="cond-chip" class:active>
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onchange={(e) => {
+                    if (!editToken) return;
+                    const set = new Set(editToken.conditions ?? []);
+                    if ((e.target as HTMLInputElement).checked) set.add(cond.id);
+                    else {
+                      set.delete(cond.id);
+                      const d = { ...(editToken.conditionDurations ?? {}) };
+                      delete d[cond.id];
+                      editToken.conditionDurations = d;
+                    }
+                    editToken.conditions = [...set];
+                  }}
+                />
+                {cond.emoji} {cond.label}
+              </label>
+              {#if active}
+                <input
+                  type="number"
+                  class="cond-dur-input"
+                  min="1" max="99" step="1"
+                  placeholder="∞"
+                  value={(editToken.conditionDurations ?? {})[cond.id] ?? ''}
+                  oninput={(e) => {
+                    if (!editToken) return;
+                    const v = parseInt((e.target as HTMLInputElement).value);
+                    const d = { ...(editToken.conditionDurations ?? {}) };
+                    if (isNaN(v) || v <= 0) delete d[cond.id];
+                    else d[cond.id] = v;
+                    editToken.conditionDurations = d;
+                  }}
+                  title="Durée (tours, vide = infinie)"
+                />
+              {/if}
+            </div>
+          {/each}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" bind:checked={editToken.concentrating} />
+          🔮 Concentration active
+        </label>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="t-aura-r">Aura (px, 0=off)</label>
+          <input type="number" id="t-aura-r" bind:value={editToken.auraRadius} min="0" max="300" step="5" placeholder="0" />
+        </div>
+        <div class="form-group">
+          <label for="t-aura-c">Couleur aura</label>
+          <input type="color" id="t-aura-c" value={auraColorHex}
+            oninput={(e) => { auraColorHex = (e.target as HTMLInputElement).value; if (editToken) editToken.auraColor = hexToPixi(auraColorHex); }} />
+        </div>
+        <div class="form-group">
+          <label for="t-light">Lumière (cases)</label>
+          <input type="number" id="t-light" bind:value={editToken.lightRadius} min="0" step="1" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="t-notes">Notes</label>
+        <textarea id="t-notes" bind:value={editToken.notes} rows="2" placeholder="Notes rapides sur ce token…"></textarea>
       </div>
 
       <div class="modal-actions">
@@ -216,6 +340,67 @@
     cursor: pointer;
     padding: 8px 0;
   }
+
+  .conditions-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .cond-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.1s;
+    user-select: none;
+  }
+  .cond-chip input { display: none; }
+  .cond-chip.active {
+    border-color: var(--accent);
+    background: rgba(229, 168, 83, 0.15);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .cond-chip:hover { background: var(--bg-hover); }
+
+  .cond-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cond-dur-input {
+    width: 44px;
+    padding: 2px 4px;
+    font-size: 11px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  textarea {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px;
+    border-radius: 4px;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  textarea:focus { border-color: var(--accent); }
 
   .modal-actions {
     display: flex;
