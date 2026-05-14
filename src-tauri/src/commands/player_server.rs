@@ -593,7 +593,6 @@ async fn handle_player_message(
                 "id": player_id, "name": player_name, "data": env.data
             })).await;
         }
-        // Demande d'XP au MJ
         "request_xp" => {
             let amount = env.data.get("amount").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
             {
@@ -604,6 +603,24 @@ async fn handle_player_message(
             }
             emit_to_gm(state, "player_xp_request", serde_json::json!({
                 "id": player_id, "name": player_name, "amount": amount,
+            })).await;
+        }
+        "sketch_push" => {
+            emit_to_gm(state, "player_sketch_push", serde_json::json!({
+                "id": player_id, "name": player_name, "data": env.data
+            })).await;
+        }
+        "spawn_token" => {
+            // Get current character image if any
+            let mut img = None;
+            {
+                let players = state.players.lock().await;
+                if let Some(p) = players.get(player_id) {
+                    img = p.character.get("portrait").and_then(|v| v.as_str()).map(|s| s.to_string());
+                }
+            }
+            emit_to_gm(state, "player_spawn_token", serde_json::json!({
+                "id": player_id, "name": player_name, "image": img
             })).await;
         }
         _ => {}
@@ -1296,7 +1313,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div id="map-container">
       <img id="map-img" src="" alt="Pas de carte partagée"/>
     </div>
-    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">Synchronisé en temps réel par le MJ</p>
+    <button class="sbtn" onclick="spawnMyToken()" style="margin-top:12px;background:var(--accent);color:#000;font-weight:bold">📍 Placer mon Pion sur la Carte</button>
+    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">Le pion apparaîtra au centre de la vue du MJ</p>
   </div>
 
   <!-- ══ CROQUIS ══ -->
@@ -2422,8 +2440,14 @@ function renderSketch(){
 function clearSketch(){skPoints=[];skCtx.clearRect(0,0,skCanvas.width,skCanvas.height);}
 function sendSketch(){
   if(skPoints.length<2)return;
-  send('sketch_push',{points:skPoints,color:'#e5a853'});
-  showStatus('Croquis envoyé !',true);
+  send('sketch_push',{points:skPoints,color:'#e5a853',name:playerName});
+  skPoints=[]; skCtx.clearRect(0,0,skCanvas.width,skCanvas.height);
+}
+
+function spawnMyToken() {
+  if(!confirm('Voulez-vous placer votre pion sur la carte du MJ ?')) return;
+  send('spawn_token', {});
+  showStatus('Requête de placement envoyée !', true);
 }
 
 // ── AI ────────────────────────────────────────────────────────────────

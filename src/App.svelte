@@ -156,13 +156,37 @@
       }
     }
 
-    const unlistenVisualRoll = listen('visual_dice_roll', (event: any) => {
+    const unlistenVisualRoll = await listen('visual_dice_roll', (event: any) => {
       const { name, roll } = event.payload;
       handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
     });
 
+    const unlistenSketch = await listen('player_sketch_push', (e: any) => {
+      const { data, name } = e.payload;
+      window.dispatchEvent(new CustomEvent('vtt-sketch-push', { 
+        detail: { points: data.points, color: data.color, name } 
+      }));
+    });
+
+    const unlistenSpawn = await listen('player_spawn_token', (e: any) => {
+      const { id, name, image } = e.payload;
+      addGmToken({
+        id: Math.random().toString(36).slice(2),
+        name: name || 'Joueur',
+        x: 500, y: 500,
+        size: 50,
+        imageUrl: image || undefined,
+        visible: true,
+        playerId: id
+      });
+      statusMessage = `Pion de ${name} ajouté sur la carte !`;
+      setTimeout(() => statusMessage = '', 3000);
+    });
+
     return () => {
-      unlistenVisualRoll.then(u => u());
+      unlistenVisualRoll();
+      unlistenSketch();
+      unlistenSpawn();
     };
   });
 
@@ -235,9 +259,7 @@
 
   async function launchPlayerView() {
     try {
-      const monitorList = await listMonitors();
-      if (monitorList.length > 1) {
-        monitors = monitorList;
+      if (monitors.length > 1) {
         showMonitorPicker = true;
       } else {
         await openOnMonitor(0);
