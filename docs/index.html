@@ -74,10 +74,11 @@
                 <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-grimoire-bg font-bold text-xl shadow-lg shadow-grimoire-accent/20">G</div>
                 <span class="text-lg font-bold tracking-widest text-white glow-text">GRIMOIRE</span>
             </div>
-            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-                <a href="#features" class="hover:text-grimoire-accent transition-colors">Fonctionnalités</a>
-                <a href="#immersive" class="hover:text-grimoire-accent transition-colors">Immersive Suite</a>
-                <a href="#mobile" class="hover:text-grimoire-accent transition-colors">Mobile HUB</a>
+            <nav class="hidden lg:flex items-center gap-8 text-sm font-medium text-gray-400">
+                <a href="#vtt" class="hover:text-grimoire-accent transition-colors">VTT Tactique</a>
+                <a href="#notes" class="hover:text-grimoire-accent transition-colors">Notes & Lore</a>
+                <a href="#mobile" class="hover:text-grimoire-accent transition-colors">HUB Mobile</a>
+                <a href="#ai" class="hover:text-grimoire-accent transition-colors">IA Locale</a>
             </nav>
             <div class="flex items-center gap-4">
                 <a href="https://github.com/LordMadTrix/grimoire/releases" class="hidden sm:block px-4 py-2 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-sm font-semibold hover:bg-grimoire-accent hover:text-black transition-all">
@@ -94,143 +95,209 @@
     <main class="flex-grow pt-32 container mx-auto px-6 pb-20 text-center flex flex-col items-center">
         <div class="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-grimoire-accent/20 bg-grimoire-accent/5 text-grimoire-accent text-sm font-medium animate-pulse-slow">
             <span class="w-2 h-2 rounded-full bg-grimoire-accent"></span>
-            Nouvelle Vague : Immersive Suite est là
+            Version 0.1.0 — La Révolution Immersive
         </div>
         <h1 class="text-5xl md:text-8xl font-bold text-white mb-8 leading-tight tracking-tight">
-            L'âme de vos parties <br>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-grimoire-accent via-yellow-200 to-grimoire-accent">en un seul Grimoire.</span>
+            Tout votre univers <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-grimoire-accent via-yellow-200 to-grimoire-accent">dans un seul Grimoire.</span>
         </h1>
         <p class="text-gray-400 text-lg md:text-2xl max-w-3xl mb-12 leading-relaxed">
-            Combinez un éditeur Markdown intelligent, un VTT haute performance avec ombres portées et un HUB mobile pour vos joueurs. Tout est 100% local, privé et ultra-rapide.
+            Le premier outil TTRPG qui fusionne Wiki, Table Virtuelle et IA locale dans une application haute performance.
         </p>
 
         <div class="flex flex-col sm:flex-row gap-6 mb-24">
             <a href="https://github.com/LordMadTrix/grimoire/releases" class="px-10 py-4 rounded-xl bg-grimoire-accent text-[#000] font-bold text-lg hover:scale-105 hover:bg-yellow-400 transition-all shadow-[0_0_30px_rgba(229,168,83,0.3)]">
                 Télécharger pour Windows
             </a>
-            <a href="#features" class="px-10 py-4 rounded-xl glass text-white font-semibold text-lg hover:border-grimoire-accent transition-all">
-                Explorer les fonctions
+            <a href="https://github.com/LordMadTrix/grimoire" class="px-10 py-4 rounded-xl glass text-white font-semibold text-lg hover:border-grimoire-accent transition-all">
+                Voir le code sur GitHub
             </a>
         </div>
 
-        <!-- Featured Image -->
-        <div class="relative w-full max-w-5xl mb-32 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-            <img src="grimoire_hero.png" alt="Grimoire Interface" class="w-full h-auto">
-            <div class="absolute inset-0 bg-gradient-to-t from-grimoire-bg via-transparent to-transparent"></div>
-        </div>
-
-        <!-- Features Grid -->
-        <section id="features" class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl text-left mb-32">
+        <!-- Master Feature Sections -->
+        
+        <!-- Section 1: VTT -->
+        <section id="vtt" class="w-full max-w-6xl mb-32 text-left">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px flex-grow bg-gray-800"></div>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">Virtual TableTop Tactique</h2>
+                <div class="h-px flex-grow bg-gray-800"></div>
+            </div>
             
-            <div class="glass p-8 rounded-2xl card-hover">
-                <div class="w-12 h-12 bg-grimoire-accent/10 rounded-lg flex items-center justify-center text-3xl mb-6">📝</div>
-                <h3 class="text-xl font-bold text-white mb-4">Wiki MJ Intelligent</h3>
-                <p class="text-gray-400 text-sm leading-relaxed">
-                    Lie Jos PNJ, lieux et objets avec les WikiLinks. Rétroliens automatiques et recherche Full-Text SQLite pour ne jamais perdre une info.
-                </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Dynamic LOS</h4>
+                    <p class="text-gray-400 text-sm">Gestion des ombres portées et de la vision des tokens en temps réel via PixiJS v8.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Blueprint Murs</h4>
+                    <p class="text-gray-400 text-sm">Outils de tracé pour murs opaques et portes interactives commutables.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Brouillard de Guerre</h4>
+                    <p class="text-gray-400 text-sm">Masquez et révélez les zones avec précision. Support multi-formes.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Audio Spatial</h4>
+                    <p class="text-gray-400 text-sm">Zones sonores circulaires avec volume progressif basé sur la distance.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Initiative & PV</h4>
+                    <p class="text-gray-400 text-sm">Tracker de combat intégré synchronisé entre toutes les vues.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Météo & FX</h4>
+                    <p class="text-gray-400 text-sm">Pluie, neige, braises et brouillard animés pour une immersion totale.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Tokens Animés</h4>
+                    <p class="text-gray-400 text-sm">Particules de sang, effets de secousse et feedback visuel de combat.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Double Écran</h4>
+                    <p class="text-gray-400 text-sm">Fenêtre dédiée pour les joueurs, contrôlée par le MJ.</p>
+                </div>
             </div>
-
-            <div class="glass p-8 rounded-2xl card-hover border-grimoire-accent/20">
-                <div class="w-12 h-12 bg-grimoire-accent/10 rounded-lg flex items-center justify-center text-3xl mb-6">👁️</div>
-                <h3 class="text-xl font-bold text-white mb-4">Vision Dynamique</h3>
-                <p class="text-gray-400 text-sm leading-relaxed">
-                    Un VTT PixiJS v8 performant. Brouillard de guerre, ombres portées en temps réel et murs blueprint pour une immersion totale.
-                </p>
-            </div>
-
-            <div class="glass p-8 rounded-2xl card-hover">
-                <div class="w-12 h-12 bg-grimoire-accent/10 rounded-lg flex items-center justify-center text-3xl mb-6">🪄</div>
-                <h3 class="text-xl font-bold text-white mb-4">IA Locale Ollama</h3>
-                <p class="text-gray-400 text-sm leading-relaxed">
-                    L'Écrivain Fantôme vous aide à rédiger. Génération de scénarios et de lore sans aucune donnée envoyée sur le cloud.
-                </p>
-            </div>
-
         </section>
 
-        <!-- Immersive Suite -->
-        <section id="immersive" class="w-full max-w-6xl mb-32 text-left bg-grimoire-card rounded-3xl p-12 border border-white/5 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-grimoire-accent/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div>
-                    <h2 class="text-grimoire-accent font-bold uppercase tracking-widest text-sm mb-4">Vague 9 : Immersive Suite</h2>
-                    <h3 class="text-4xl font-bold text-white mb-6">Redéfinissez l'ambiance.</h3>
-                    <ul class="space-y-6">
-                        <li class="flex gap-4">
-                            <div class="text-grimoire-accent text-xl mt-1">✓</div>
-                            <div>
-                                <h4 class="text-white font-semibold">Murs & Portes Blueprint</h4>
-                                <p class="text-gray-400 text-sm">Tracez vos plans directement. Ouvrez les portes 🚪 d'un clic pour révéler la lumière.</p>
-                            </div>
-                        </li>
-                        <li class="flex gap-4">
-                            <div class="text-grimoire-accent text-xl mt-1">✓</div>
-                            <div>
-                                <h4 class="text-white font-semibold">Audio Spatialisé</h4>
-                                <p class="text-gray-400 text-sm">Créez des zones sonores 🎶. Le volume s'adapte à la position des joueurs sur la carte.</p>
-                            </div>
-                        </li>
-                        <li class="flex gap-4">
-                            <div class="text-grimoire-accent text-xl mt-1">✓</div>
-                            <div>
-                                <h4 class="text-white font-semibold">Ombres en Temps Réel</h4>
-                                <p class="text-gray-400 text-sm">Calculs de Line-of-Sight (LOS) fluides pour une exploration stressante et réaliste.</p>
-                            </div>
-                        </li>
+        <!-- Section 2: Notes -->
+        <section id="notes" class="w-full max-w-6xl mb-32 text-left">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px flex-grow bg-gray-800"></div>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">Wiki & Gestion de Lore</h2>
+                <div class="h-px flex-grow bg-gray-800"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white/5 p-8 rounded-3xl border border-white/5">
+                    <h4 class="text-xl font-bold text-white mb-4">Éditeur Markdown</h4>
+                    <ul class="text-gray-400 text-sm space-y-3">
+                        <li>• WikiLinks `[[Nom]]` avec autocomplétion</li>
+                        <li>• Rétroliens (Backlinks) automatiques</li>
+                        <li>• Checklists interactives</li>
+                        <li>• Images inline et export PDF</li>
                     </ul>
                 </div>
-                <div class="rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-black">
-                     <img src="favicon.svg" alt="Preview" class="w-32 h-32 mx-auto my-20 opacity-20">
+                <div class="bg-white/5 p-8 rounded-3xl border border-white/5">
+                    <h4 class="text-xl font-bold text-white mb-4">Base de Données FTS5</h4>
+                    <ul class="text-gray-400 text-sm space-y-3">
+                        <li>• Recherche instantanée dans tout le vault</li>
+                        <li>• Support de milliers de notes sans latence</li>
+                        <li>• Indexation SQLite ultra-performante</li>
+                    </ul>
+                </div>
+                <div class="bg-white/5 p-8 rounded-3xl border border-white/5">
+                    <h4 class="text-xl font-bold text-white mb-4">Outils de Campagne</h4>
+                    <ul class="text-gray-400 text-sm space-y-3">
+                        <li>• Graphe de Lore interactif (D3.js)</li>
+                        <li>• Calendrier & Timeline personnalisables</li>
+                        <li>• Générateur de rencontres et PNJ</li>
+                    </ul>
                 </div>
             </div>
         </section>
 
-        <!-- Mobile HUB -->
-        <section id="mobile" class="w-full max-w-6xl mb-32 text-center">
-            <h2 class="text-4xl font-bold text-white mb-12">Le HUB Mobile dans votre poche.</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="glass p-6 rounded-xl">
-                    <div class="text-2xl mb-3">🎨</div>
-                    <h4 class="text-white font-semibold mb-2">Sketchpad</h4>
-                    <p class="text-gray-400 text-xs">Dessinez sur votre téléphone pour pointer un lieu sur le VTT.</p>
+        <!-- Section 3: Mobile -->
+        <section id="mobile" class="w-full max-w-6xl mb-32 text-left">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px flex-grow bg-gray-800"></div>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">HUB Mobile Compagnon</h2>
+                <div class="h-px flex-grow bg-gray-800"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center glass p-12 rounded-3xl">
+                <div>
+                    <h3 class="text-3xl font-bold text-white mb-6">Le jeu, au creux de la main.</h3>
+                    <p class="text-gray-400 mb-8 leading-relaxed">Vos joueurs se connectent simplement via un QR Code. Pas d'application à installer, tout passe par le navigateur mobile via un serveur local sécurisé.</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+                            <span class="font-bold text-grimoire-accent">Sketchpad</span>
+                            <p class="text-xs text-gray-500 mt-1">Dessinez des tactiques en direct sur la carte du MJ.</p>
+                        </div>
+                        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+                            <span class="font-bold text-grimoire-accent">Soundboard</span>
+                            <p class="text-xs text-gray-500 mt-1">Les joueurs déclenchent des FX d'ambiance.</p>
+                        </div>
+                        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+                            <span class="font-bold text-grimoire-accent">Combat HUD</span>
+                            <p class="text-xs text-gray-500 mt-1">Actions rapides et suivi des PV en temps réel.</p>
+                        </div>
+                        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+                            <span class="font-bold text-grimoire-accent">Journal</span>
+                            <p class="text-xs text-gray-500 mt-1">Prise de notes synchronisée avec le coffre du MJ.</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="glass p-6 rounded-xl">
-                    <div class="text-2xl mb-3">⚔️</div>
-                    <h4 class="text-white font-semibold mb-2">Combat HUD</h4>
-                    <p class="text-gray-400 text-xs">Suivi des PV et actions rapides synchronisés.</p>
-                </div>
-                <div class="glass p-6 rounded-xl">
-                    <div class="text-2xl mb-3">🔊</div>
-                    <h4 class="text-white font-semibold mb-2">Soundboard</h4>
-                    <p class="text-gray-400 text-xs">Déclenchez des sons d'ambiance depuis votre mobile.</p>
-                </div>
-                <div class="glass p-6 rounded-xl">
-                    <div class="text-2xl mb-3">💬</div>
-                    <h4 class="text-white font-semibold mb-2">Chat & Dés</h4>
-                    <p class="text-gray-400 text-xs">Lancez vos dés et réagissez avec des emojis en direct.</p>
+                <div class="flex justify-center">
+                    <div class="w-64 h-[500px] bg-grimoire-card rounded-[3rem] border-8 border-black shadow-2xl relative overflow-hidden">
+                        <div class="absolute top-0 w-full h-6 bg-black"></div>
+                        <div class="p-6">
+                            <div class="w-full h-4 bg-grimoire-accent/20 rounded mb-4"></div>
+                            <div class="space-y-3">
+                                <div class="w-full h-32 bg-grimoire-accent/10 rounded-xl border border-grimoire-accent/20"></div>
+                                <div class="w-2/3 h-4 bg-gray-800 rounded"></div>
+                                <div class="w-full h-4 bg-gray-800 rounded"></div>
+                                <div class="w-full h-4 bg-gray-800 rounded"></div>
+                                <div class="flex gap-2">
+                                    <div class="w-1/3 h-8 bg-grimoire-accent rounded-lg"></div>
+                                    <div class="w-1/3 h-8 bg-gray-700 rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-0 w-full h-12 bg-black/80 flex items-center justify-around px-4">
+                             <div class="w-6 h-6 rounded-full bg-grimoire-accent/40"></div>
+                             <div class="w-6 h-6 rounded-full bg-gray-700"></div>
+                             <div class="w-6 h-6 rounded-full bg-gray-700"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Tech Stack -->
-        <div class="w-full max-w-4xl border-t border-gray-800 pt-12 opacity-50">
-            <div class="flex flex-wrap justify-center gap-12 text-sm font-semibold tracking-widest uppercase">
-                <span>Svelte 5</span>
-                <span>Tauri v2</span>
-                <span>Rust</span>
-                <span>PixiJS v8</span>
-                <span>Ollama</span>
+        <!-- Section 4: AI -->
+        <section id="ai" class="w-full max-w-6xl mb-32 text-left">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px flex-grow bg-gray-800"></div>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">IA Locale & Confidentialité</h2>
+                <div class="h-px flex-grow bg-gray-800"></div>
             </div>
-        </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div class="glass p-10 rounded-3xl border-grimoire-accent/10">
+                    <h3 class="text-2xl font-bold text-white mb-4">L'Écrivain Fantôme</h3>
+                    <p class="text-gray-400 leading-relaxed mb-6">Connectez Grimoire à votre instance Ollama locale. Générez du lore, complétez vos descriptions ou créez des PNJ complexes d'un seul raccourci clavier.</p>
+                    <ul class="text-sm text-gray-500 space-y-2">
+                        <li>• Zéro Cloud : Vos données restent chez vous.</li>
+                        <li>• Mode MJ : L'IA adopte un ton narratif et sombre.</li>
+                        <li>• TTS : Synthèse vocale intégrée pour faire parler l'IA.</li>
+                    </ul>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <blockquote class="text-xl italic text-gray-300 border-l-4 border-grimoire-accent pl-6 py-2">
+                        "L'IA n'est pas là pour remplacer votre créativité, mais pour la décupler au moment où vous en avez le plus besoin."
+                    </blockquote>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final Call to Action -->
+        <section class="py-20">
+            <h2 class="text-4xl font-bold text-white mb-8">Prêt à transformer vos sessions ?</h2>
+            <a href="https://github.com/LordMadTrix/grimoire/releases" class="px-12 py-5 rounded-2xl bg-grimoire-accent text-black font-black text-xl hover:scale-110 transition-all shadow-2xl">
+                TÉLÉCHARGER GRIMOIRE v0.1.0
+            </a>
+            <p class="mt-6 text-gray-500 text-sm">Gratuit, Open Source et fièrement local.</p>
+        </section>
+
     </main>
 
     <!-- Footer -->
     <footer class="border-t border-gray-800 py-12 text-center text-gray-500 text-sm glass">
-        <p class="mb-4">Créé avec passion pour les rôlistes par LordMadTrix.</p>
+        <p class="mb-4">Créé avec passion pour les Maîtres du Jeu par LordMadTrix.</p>
         <div class="flex justify-center gap-6">
             <a href="https://github.com/LordMadTrix/grimoire" class="hover:text-white transition-colors">GitHub</a>
-            <a href="#" class="hover:text-white transition-colors">Documentation</a>
-            <a href="https://github.com/LordMadTrix/grimoire/releases" class="hover:text-white transition-colors">Télécharger</a>
+            <a href="https://github.com/LordMadTrix/grimoire/releases" class="hover:text-white transition-colors">Releases</a>
+            <a href="mailto:contact@grimoire-vtt.io" class="hover:text-white transition-colors">Contact</a>
         </div>
     </footer>
 
