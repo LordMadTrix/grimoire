@@ -9,12 +9,15 @@
     updateGmAudio2, setGmAudio2Volume,
     clearGmPins,
     setWeather, addSpell, clearSpells,
+    startCountdown, stopCountdown,
     undoDrawPath, clearDrawPaths,
     undoGmWall, clearGmWalls,
     addGmAudioZone, removeGmAudioZone,
     undoMapAction, canUndo,
-    addMapScene, setCampaignTitle,
+    addMapScene, replaceActiveScene, setCampaignTitle,
+    setSpotlightToken, sendAmbientText,
     revealAllGmFow, toggleFow,
+    clearTerrainZones,
   } from '$lib/stores/vtt.svelte';
   import type { VaultEntry } from '$lib/api';
   import SoundBoard from './SoundBoard.svelte';
@@ -25,6 +28,17 @@
   import CharacterCreator from './CharacterCreator.svelte';
   import DiceRoller from './DiceRoller.svelte';
   import PlayerManager from './PlayerManager.svelte';
+  import QuickNpcModal from './QuickNpcModal.svelte';
+  import QuickLootModal from './QuickLootModal.svelte';
+  import HandoutModal from './HandoutModal.svelte';
+  import NpcRelationMap from './NpcRelationMap.svelte';
+  import CombatLog from './CombatLog.svelte';
+  import DamageCalculator from './DamageCalculator.svelte';
+  import EncounterGenerator from './EncounterGenerator.svelte';
+  import RoomGenerator from './RoomGenerator.svelte';
+  import WeatherPlanner from './WeatherPlanner.svelte';
+  import DurationTracker from './DurationTracker.svelte';
+  import SharedNotesModal from './SharedNotesModal.svelte';
 
   let { 
     onRoll,
@@ -49,6 +63,48 @@
   let showTokenPicker = $state(false);
   let mapPickerSearch = $state('');
   let tokenPickerSearch = $state('');
+  let ambientTextInput = $state('');
+
+  // Countdown
+  let showCountdownPicker = $state(false);
+  let countdownSecs = $state(30);
+
+  $effect(() => {
+    if (vttStore.countdownEnd === null && showCountdownPicker) { /* keep open */ }
+  });
+
+  function handleCountdown() {
+    if (vttStore.countdownEnd !== null) { stopCountdown(); }
+    else { startCountdown(countdownSecs); showCountdownPicker = false; }
+  }
+
+  // Narration météo
+  const WEATHER_NARR: Record<string, string[]> = {
+    none: ["Le ciel est dégagé, le temps clément.", "Un soleil discret éclaire la scène."],
+    rain: ["Une pluie froide cingle vos visages.", "Les pavés luisent sous une averse persistante.", "La pluie tambourine sur vos armures."],
+    snow: ["Des flocons silencieux enveloppent le paysage d'un linceul blanc.", "Le froid mord. La neige crisse sous vos bottes.", "Un rideau de neige efface les repères familiers."],
+    fog: ["Un brouillard épais avale les contours du monde.", "La brume se lève, transformant chaque ombre en menace.", "Dans ce fog dense, même les sons semblent étouffés."],
+    embers: ["Des braises volent dans l'air chaud, portées par un vent de cendres.", "Une chaleur oppressante fait danser l'air au-dessus des ruines."],
+    storm: ["La tempête rugit. Le tonnerre fait trembler les fondations.", "Des éclairs déchirent le ciel. Il faut trouver un abri."],
+  };
+  function sendWeatherNarrative() {
+    const w = vttStore.weather ?? 'none';
+    const list = WEATHER_NARR[w] ?? WEATHER_NARR.none;
+    sendAmbientText(list[Math.floor(Math.random() * list.length)]);
+  }
+
+  // NPC
+  let showNpcModal = $state(false);
+  let showLootModal = $state(false);
+  let showHandoutModal = $state(false);
+  let showRelationMap = $state(false);
+  let showCombatLogPanel = $state(false);
+  let showDamageCalc = $state(false);
+  let showEncounterGen = $state(false);
+  let showRoomGen = $state(false);
+  let showWeatherPlanner = $state(false);
+  let showDurationTracker = $state(false);
+  let showSharedNotes = $state(false);
 
   function getAllMd(entries: VaultEntry[], parent = ''): { path: string; name: string }[] {
     let files: { path: string; name: string }[] = [];
@@ -210,7 +266,7 @@
     updateGmAudio2(null);
   }
 
-  async function selectMap(relativePath: string) {
+  async function selectMap(relativePath: string, asNewScene = false) {
     const vaultPath = getVaultPath();
     if (!vaultPath) return;
     try {
@@ -221,7 +277,11 @@
       else if (ext === 'webp') mime = 'image/webp';
       const dataUrl = `data:${mime};base64,${base64}`;
       const name = relativePath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? relativePath;
-      addMapScene(name, relativePath, dataUrl);
+      if (asNewScene) {
+        addMapScene(name, relativePath, dataUrl);
+      } else {
+        replaceActiveScene(name, relativePath, dataUrl);
+      }
       showMapPicker = false;
     } catch (err) {
       console.error('Failed to load map:', err);
@@ -300,6 +360,7 @@
           title={w === 'none' ? 'Pas de météo' : w === 'rain' ? 'Pluie' : w === 'snow' ? 'Neige' : w === 'fog' ? 'Brouillard' : 'Braises'}
         >{w === 'none' ? '☀️' : w === 'rain' ? '🌧️' : w === 'snow' ? '❄️' : w === 'fog' ? '🌫️' : '🔥'}</button>
       {/each}
+      <button class="btn icon-btn" onclick={sendWeatherNarrative} title="Narration météo → texte d'ambiance joueur">🌦️</button>
       {#if vttStore.mode === 'spell'}
         <div class="separator"></div>
         {#each (['fire','ice','lightning','poison','silence','divine','darkness'] as const) as st}
@@ -349,6 +410,19 @@
         onclick={() => vttStore.combatActive ? stopCombat() : startCombat()}
         title={vttStore.combatActive ? 'Terminer le combat' : 'Démarrer le tracker de combat'}
       >⚔️</button>
+      <div class="separator"></div>
+      <!-- Terrain -->
+      <button class="btn icon-btn" class:active={vttStore.mode === 'terrain'} onclick={() => vttStore.mode = 'terrain'} title="Zones de terrain (glisser pour dessiner)">🗺️</button>
+      {#if vttStore.mode === 'terrain'}
+        {#each ([['difficult','🏔️','Difficile'],['water','🌊','Eau'],['fire','🔥','Feu'],['poison','🧪','Poison'],['safe','✅','Sûr']] as const) as [t, icon, label]}
+          <button class="btn icon-btn" class:active={vttStore.terrainType === t} onclick={() => vttStore.terrainType = t} title={label}>{icon}</button>
+        {/each}
+        {#if vttStore.terrainZones.length > 0}
+          <button class="btn icon-btn" onclick={clearTerrainZones} title="Effacer toutes les zones terrain">🗺️🗑️</button>
+        {/if}
+      {/if}
+      <!-- Export PNG -->
+      <button class="btn icon-btn" onclick={() => vttStore.exportRequest++} title="Exporter carte en PNG">🖼️💾</button>
     </div>
     </div>
   {/if}
@@ -413,14 +487,47 @@
       ⏱️ {sessionDisplay}
     </button>
 
+    <!-- Countdown joueur -->
+    <button class="btn icon-btn" class:active={vttStore.countdownEnd !== null}
+      onclick={() => { if (vttStore.countdownEnd !== null) stopCountdown(); else showCountdownPicker = !showCountdownPicker; }}
+      title="Compte à rebours visible joueurs">⏳</button>
+    {#if showCountdownPicker && vttStore.countdownEnd === null}
+      <div class="cd-picker">
+        {#each [15, 30, 60, 120] as s}
+          <button class="btn cd-preset" onclick={() => { countdownSecs = s; startCountdown(s); showCountdownPicker = false; }}>{s}s</button>
+        {/each}
+        <input type="number" class="grid-input" bind:value={countdownSecs} min="5" max="600" step="5" style="width:46px" title="Secondes"/>
+        <button class="btn icon-btn" onclick={() => { startCountdown(countdownSecs); showCountdownPicker = false; }}>▶️</button>
+      </div>
+    {/if}
+
     <div class="separator"></div>
 
     <DiceRoller onRoll={handleDiceRoll} />
     <CharacterCreator />
+    <button class="btn icon-btn" onclick={() => showNpcModal = true} title="Générateur de PNJ rapide">🧟</button>
+    {#if showNpcModal}<QuickNpcModal onclose={() => showNpcModal = false} />{/if}
+    <button class="btn icon-btn" onclick={() => showLootModal = true} title="Générateur de butin">💰</button>
+    {#if showLootModal}<QuickLootModal onclose={() => showLootModal = false} />{/if}
+    <button class="btn icon-btn" onclick={() => showHandoutModal = true} title="Envoyer handout joueur">📤</button>
+    {#if showHandoutModal}<HandoutModal onclose={() => showHandoutModal = false} />{/if}
     <SoundBoard />
     <MonsterLibrary />
     <AdventureLibrary />
     <SessionExport />
+    <button class="btn icon-btn" onclick={() => showRelationMap = !showRelationMap} title="Carte des relations PNJ" class:active={showRelationMap}>🕸️</button>
+    <button class="btn icon-btn" onclick={() => showCombatLogPanel = !showCombatLogPanel} title="Log de combat" class:active={showCombatLogPanel}>📜</button>
+    <button class="btn icon-btn" onclick={() => showDamageCalc = true} title="Calculateur de dégâts" class:active={showDamageCalc}>💥</button>
+    {#if showDamageCalc}<DamageCalculator onclose={() => showDamageCalc = false} />{/if}
+    <button class="btn icon-btn" onclick={() => showEncounterGen = true} title="Générateur de rencontre" class:active={showEncounterGen}>⚡</button>
+    {#if showEncounterGen}<EncounterGenerator onclose={() => showEncounterGen = false} />{/if}
+    <button class="btn icon-btn" onclick={() => showRoomGen = true} title="Générateur de salle" class:active={showRoomGen}>🏚️</button>
+    {#if showRoomGen}<RoomGenerator onclose={() => showRoomGen = false} />{/if}
+    <button class="btn icon-btn" onclick={() => showWeatherPlanner = true} title="Planificateur météo">🌦️</button>
+    {#if showWeatherPlanner}<WeatherPlanner onclose={() => showWeatherPlanner = false} />{/if}
+    <button class="btn icon-btn" onclick={() => showDurationTracker = !showDurationTracker} title="Suivi des durées" class:active={showDurationTracker}>⏱️</button>
+    <button class="btn icon-btn" onclick={() => showSharedNotes = true} title="Notes partagées avec les joueurs">📋</button>
+    {#if showSharedNotes}<SharedNotesModal onclose={() => showSharedNotes = false} />{/if}
     <button class="btn icon-btn" onclick={() => onTogglePlayerManager?.()} title="Gestionnaire de Groupe (Party Manager)">👥</button>
     <button class="btn icon-btn" onclick={() => onTogglePlayerHub?.()} title="Tableau de bord des joueurs (Hub)">📱</button>
 
@@ -437,10 +544,65 @@
 
     <div class="separator"></div>
 
+    <!-- Texte d'ambiance → vue joueur -->
+    <form class="ambient-form" onsubmit={(e) => { e.preventDefault(); const v = ambientTextInput.trim(); if (v) { sendAmbientText(v); ambientTextInput = ''; } }}>
+      <input
+        type="text"
+        class="ambient-input"
+        placeholder="Texte d'ambiance…"
+        bind:value={ambientTextInput}
+        title="Envoyer un texte d'ambiance sur l'écran joueur"
+      />
+      <button type="submit" class="btn icon-btn" title="Envoyer le texte">🎭</button>
+    </form>
+
+    <!-- Spotlight token -->
+    <button
+      class="btn icon-btn"
+      class:active={vttStore.spotlightTokenId !== null}
+      onclick={() => vttStore.spotlightTokenId !== null ? setSpotlightToken(null) : null}
+      title={vttStore.spotlightTokenId ? 'Retirer le spotlight (clic droit sur token pour activer)' : 'Clic droit sur un token pour le spotlight'}
+    >🔦</button>
+
+    <div class="separator"></div>
+
     <button class="btn icon-btn handout-btn" onclick={() => showHandoutPicker = true} title="Envoyer un handout">📤</button>
   </div>
   </div>
 </div>
+
+<!-- Panneau Relations PNJ -->
+{#if showRelationMap}
+  <div class="float-panel float-panel-wide">
+    <div class="float-panel-header">
+      <span>🕸️ Carte des Relations PNJ</span>
+      <button onclick={() => showRelationMap = false}>✕</button>
+    </div>
+    <NpcRelationMap />
+  </div>
+{/if}
+
+<!-- Panneau Log de combat -->
+{#if showCombatLogPanel}
+  <div class="float-panel">
+    <div class="float-panel-header">
+      <span>📜 Log de Combat</span>
+      <button onclick={() => showCombatLogPanel = false}>✕</button>
+    </div>
+    <CombatLog />
+  </div>
+{/if}
+
+<!-- Panneau Suivi des durées -->
+{#if showDurationTracker}
+  <div class="float-panel float-panel-narrow">
+    <div class="float-panel-header">
+      <span>⏱️ Durées & Effets</span>
+      <button onclick={() => showDurationTracker = false}>✕</button>
+    </div>
+    <DurationTracker />
+  </div>
+{/if}
 
 <!-- Sélecteur de carte -->
 {#if showMapPicker}
@@ -471,11 +633,14 @@
           <div class="picker-empty">Aucun résultat pour "{mapPickerSearch}".</div>
         {:else}
           {#each images as img}
-            <button class="picker-item" onclick={() => selectMap(img.path)}>
-              <span class="picker-icon">🗺️</span>
-              <span class="picker-name">{img.name}</span>
-              <span class="picker-path">{img.path}</span>
-            </button>
+            <div class="picker-item-row">
+              <button class="picker-item" onclick={() => selectMap(img.path)}>
+                <span class="picker-icon">🗺️</span>
+                <span class="picker-name">{img.name}</span>
+                <span class="picker-path">{img.path}</span>
+              </button>
+              <button class="picker-item-new" onclick={() => selectMap(img.path, true)} title="Ouvrir dans une nouvelle scène">＋</button>
+            </div>
           {/each}
         {/if}
       </div>
@@ -722,6 +887,26 @@
     color: #22c55e;
   }
 
+  .cd-picker {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 6px;
+  }
+  .cd-preset {
+    padding: 3px 7px;
+    font-size: 11px;
+    background: var(--bg-tertiary, #1c2233);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .cd-preset:hover { border-color: var(--accent); color: var(--accent); }
+
   .volume-control {
     display: flex;
     align-items: center;
@@ -775,6 +960,22 @@
   }
   .grid-input::-webkit-inner-spin-button,
   .grid-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .ambient-form {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .ambient-input {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 11px;
+    padding: 3px 6px;
+    width: 130px;
+  }
+  .ambient-input:focus { outline: none; border-color: #a855f7; }
 
   .campaign-title-input {
     background: var(--bg-tertiary);
@@ -861,11 +1062,17 @@
 
   .picker-list { overflow-y: auto; padding: 6px; }
 
+  .picker-item-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .picker-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
+    flex: 1;
     padding: 10px 12px;
     background: transparent;
     border: none;
@@ -875,6 +1082,20 @@
     transition: background 0.1s;
   }
   .picker-item:hover { background: var(--bg-hover); }
+
+  .picker-item-new {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--accent);
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.1s;
+    line-height: 1;
+  }
+  .picker-item-new:hover { background: rgba(229,168,83,0.12); }
 
   .picker-icon { font-size: 18px; flex-shrink: 0; }
   .picker-name { font-size: 14px; color: var(--text-primary); font-weight: 500; }
@@ -931,50 +1152,6 @@
 
   .handout-list { max-height: 300px; }
 
-  .weather-group {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 3px;
-  }
-
-  .weather-btn {
-    border: none;
-    background: transparent;
-    padding: 2px 4px;
-    font-size: 13px;
-    border-radius: 3px;
-  }
-  .weather-btn.active {
-    background: rgba(229, 168, 83, 0.2);
-    border: 1px solid var(--accent);
-  }
-
-  .spell-palette {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 4px;
-  }
-
-  .spell-type-btn {
-    border: none;
-    background: transparent;
-    padding: 2px 4px;
-    font-size: 13px;
-    border-radius: 3px;
-  }
-  .spell-type-btn.active {
-    background: rgba(124, 106, 245, 0.25);
-    border: 1px solid #7c6af5;
-  }
-
   .spell-radius-input {
     width: 42px;
     background: transparent;
@@ -1003,4 +1180,33 @@
     width: 60px;
     accent-color: var(--accent);
   }
+
+  .float-panel {
+    position: fixed;
+    bottom: 60px;
+    right: 16px;
+    z-index: 600;
+    width: 340px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border, #2d3748);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    overflow: hidden;
+  }
+  .float-panel-wide { width: min(900px, 95vw); }
+  .float-panel-narrow { width: 280px; }
+  .float-panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 700; color: var(--accent);
+  }
+  .float-panel-header button {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 14px;
+  }
+  .float-panel-header button:hover { color: var(--text-primary); }
 </style>

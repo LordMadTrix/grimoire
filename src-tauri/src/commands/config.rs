@@ -183,7 +183,7 @@ fn default_wfrp_config() -> GameConfig {
         s("soc", "Sociabilité",          Some("2d6")),
     ];
 
-    let mut h = |pairs: &[(&str, i32)]| -> HashMap<String, i32> {
+    let h = |pairs: &[(&str, i32)]| -> HashMap<String, i32> {
         pairs.iter().map(|(k, v)| (k.to_string(), *v)).collect()
     };
 

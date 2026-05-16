@@ -8,7 +8,7 @@
     type ServerInfo, type PlayerInfo,
   } from '$lib/api';
   import { vttStore } from '$lib/stores/vtt.svelte';
-  import { getVaultPath, getVaultTree, getActiveFile } from '$lib/stores/vault.svelte.ts';
+  import { getVaultPath, getVaultTree, getActiveFile } from '$lib/stores/vault.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { fade, fly, scale } from 'svelte/transition';
 
@@ -87,17 +87,18 @@
     try { players = await getPlayerConnections(); } catch {}
   }
 
-  onMount(async () => {
-    serverInfo = await getServerStatus();
-    if (serverInfo) pollInterval = setInterval(refreshPlayers, 3000);
-    
-    const unjoined = await listen<any>('player_joined', refreshPlayers);
-    const unleft = await listen<any>('player_left', refreshPlayers);
-    const unupd = await listen<any>('player_character_update', refreshPlayers);
-
+  const _unlistenHub: (() => void)[] = [];
+  onMount(() => {
+    (async () => {
+      serverInfo = await getServerStatus();
+      if (serverInfo) pollInterval = setInterval(refreshPlayers, 3000);
+      _unlistenHub.push(await listen<any>('player_joined', refreshPlayers));
+      _unlistenHub.push(await listen<any>('player_left', refreshPlayers));
+      _unlistenHub.push(await listen<any>('player_character_update', refreshPlayers));
+    })();
     return () => {
       if (pollInterval) clearInterval(pollInterval);
-      unjoined(); unleft(); unupd();
+      _unlistenHub.forEach(fn => fn());
     };
   });
 
@@ -265,7 +266,7 @@
                 </div>
                 <div class="server-details">
                   <div class="url-box">{serverInfo.url}</div>
-                  <button class="btn-ghost" onclick={() => navigator.clipboard.writeText(serverInfo.url)}>Copier l'URL</button>
+                  <button class="btn-ghost" onclick={() => navigator.clipboard.writeText(serverInfo!.url)}>Copier l'URL</button>
                 </div>
                 <button class="btn-danger" onclick={async () => { await invoke('stop_player_server'); serverInfo = null; }}>Arrêter le serveur</button>
               </div>

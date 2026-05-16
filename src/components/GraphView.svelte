@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
   import { invoke } from '@tauri-apps/api/core';
   import { setActiveFile, setActiveContent } from '$lib/stores/vault.svelte';
@@ -21,6 +21,8 @@
   };
 
   let data = $state<{ nodes: Node[], links: Link[] }>({ nodes: [], links: [] });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let simulation: d3.Simulation<any, any> | null = null;
 
   async function loadData() {
     try {
@@ -34,6 +36,8 @@
   function renderGraph() {
     if (!svg || data.nodes.length === 0) return;
 
+    if (simulation) { simulation.stop(); simulation = null; }
+
     const d3svg = d3.select(svg);
     d3svg.selectAll('*').remove();
 
@@ -44,7 +48,7 @@
       g.attr('transform', event.transform);
     }));
 
-    const simulation = d3.forceSimulation(data.nodes as any)
+    simulation = d3.forceSimulation(data.nodes as any)
       .force('link', d3.forceLink(data.links).id((d: any) => d.id).distance(100))
       .force('charge', d3.forceManyBody().strength(-200))
       .force('center', d3.forceCenter(width / 2, height / 2))
@@ -115,7 +119,7 @@
       .style('fill', '#e2e8f0')
       .style('pointer-events', 'none');
 
-    simulation.on('tick', () => {
+    simulation!.on('tick', () => {
       link
         .attr('x1', (d: any) => d.source.x)
         .attr('y1', (d: any) => d.source.y)
@@ -132,6 +136,10 @@
 
   onMount(() => {
     loadData();
+  });
+
+  onDestroy(() => {
+    if (simulation) { simulation.stop(); simulation = null; }
   });
 
   $effect(() => {

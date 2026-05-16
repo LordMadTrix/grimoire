@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grimoire — Tutoriel Visuel du Maître du Jeu</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2233;
+    --border: #2d3748;
+    --accent: #e5a853;
+    --text: #c9d1d9;
+    --muted: #8899b7;
+    --red: #ef4444;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+
+  /* ── Page structure ─── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  .hero {
+    text-align: center; padding: 48px 24px 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 56px;
+  }
+  .hero-icon { font-size: 64px; margin-bottom: 16px; }
+  .hero h1 { font-size: 36px; color: var(--accent); font-weight: 800; letter-spacing: -0.5px; }
+  .hero p { color: var(--muted); font-size: 16px; margin-top: 10px; }
+
+  /* ── Section ─── */
+  .section { margin-bottom: 72px; }
+  .section-title {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    border-left: 4px solid var(--accent); padding-left: 14px;
+    margin-bottom: 28px;
+  }
+
+  /* ── UI mockup frame ─── */
+  .ui-frame {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 40px rgba(0,0,0,.6);
+  }
+  .ui-titlebar {
+    background: #010409; padding: 8px 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+  .ui-titlebar-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; margin-right: auto; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+
+  /* ── Toolbar mockup ─── */
+  .toolbar-mock {
+    background: #010409; padding: 5px 10px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 3px;
+    border-bottom: 1px solid var(--border);
+    min-height: 36px;
+  }
+  .tb-btn {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px; padding: 4px 7px; font-size: 13px; cursor: default;
+    color: var(--text); display: inline-flex; align-items: center; gap: 3px;
+    white-space: nowrap;
+  }
+  .tb-btn.active { background: rgba(229,168,83,0.2); border-color: var(--accent); color: var(--accent); }
+  .tb-btn.small { padding: 3px 5px; font-size: 11px; }
+  .tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+  .tb-input {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--muted); padding: 3px 8px; font-size: 11px;
+    width: 120px;
+  }
+  .tb-input.narrow { width: 60px; }
+
+  /* ── Content area ─── */
+  .content-area {
+    display: flex; height: 420px; overflow: hidden;
+  }
+  .sidebar-mock {
+    width: 200px; background: var(--bg3); border-right: 1px solid var(--border);
+    padding: 10px; flex-shrink: 0;
+  }
+  .sb-header { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 4px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .sb-item { padding: 4px 6px; border-radius: 4px; font-size: 12px; cursor: default; display: flex; align-items: center; gap: 6px; }
+  .sb-item:hover { background: rgba(255,255,255,0.04); }
+  .sb-folder { color: var(--accent); }
+  .sb-file { color: var(--muted); font-size: 11px; }
+  .sb-count { margin-left: auto; font-size: 10px; color: var(--muted); }
+
+  /* ── Map area ─── */
+  .map-area {
+    flex: 1; position: relative; overflow: hidden;
+    background: #080b10;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .map-img-placeholder {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.08); font-size: 80px; user-select: none;
+  }
+  .token-mock {
+    position: absolute; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: white;
+    border: 3px solid;
+  }
+  .hp-bar-mock {
+    position: absolute; height: 5px; border-radius: 3px; background: rgba(0,0,0,0.8);
+    overflow: hidden;
+  }
+  .hp-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Dashboard mock ─── */
+  .dashboard-mock {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(10,12,16,0.9); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; width: 180px; padding: 8px 10px;
+    font-size: 11px; backdrop-filter: blur(8px);
+  }
+  .dash-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+  .dash-round { color: var(--accent); font-weight: 700; }
+  .dash-combatant {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 0; font-size: 10px;
+    border-left: 2px solid transparent;
+  }
+  .dash-combatant.active { border-left-color: var(--accent); padding-left: 4px; color: var(--accent); }
+  .dash-hpbar { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .dash-hpfill { height: 100%; border-radius: 2px; }
+
+  /* ── Macro bar mock ─── */
+  .macrobar-mock {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(13,17,23,0.92); border: 1px solid rgba(229,168,83,0.3);
+    border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;
+    width: 340px;
+  }
+  .macro-presets { display: flex; gap: 4px; }
+  .macro-btn {
+    background: rgba(229,168,83,0.08); border: 1px solid rgba(229,168,83,0.25);
+    border-radius: 6px; padding: 5px 8px; cursor: default; color: var(--accent);
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    min-width: 50px;
+  }
+  .macro-icon { font-size: 15px; }
+  .macro-label { font-size: 9px; color: var(--muted); }
+  .macro-input-row { display: flex; gap: 4px; }
+  .macro-input {
+    flex: 1; background: #0d1117; border: 1px solid #30363d;
+    color: var(--muted); padding: 5px 9px; border-radius: 4px; font-size: 11px;
+  }
+
+  /* ── Minimap mock ─── */
+  .minimap-mock {
+    position: absolute; bottom: 10px; right: 10px;
+    width: 130px; height: 90px;
+    background: rgba(0,0,0,0.7); border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--muted);
+  }
+
+  /* ── Move path mockup ─── */
+  .move-path {
+    position: absolute; pointer-events: none;
+  }
+
+  /* ── Scene tabs ─── */
+  .scene-tabs-mock {
+    background: #010409; padding: 4px 10px;
+    display: flex; gap: 4px; border-bottom: 1px solid var(--border);
+  }
+  .scene-tab-mock {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 5px 5px 0 0; padding: 3px 12px; font-size: 11px;
+    color: var(--muted); cursor: default;
+  }
+  .scene-tab-mock.active { background: var(--bg); border-bottom-color: var(--bg); color: var(--accent); }
+
+  /* ── Editor view ─── */
+  .editor-tabs {
+    display: flex; gap: 4px; padding: 10px 12px;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    justify-content: center;
+  }
+  .editor-tab {
+    padding: 6px 16px; border-radius: 20px; font-size: 12px; cursor: default;
+    background: var(--bg3); border: 1px solid var(--border); color: var(--muted);
+  }
+  .editor-tab.active { background: rgba(229,168,83,0.15); border-color: var(--accent); color: var(--accent); }
+  .editor-empty {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; color: var(--muted);
+  }
+  .editor-empty h2 { color: var(--accent); font-size: 28px; }
+  .shortcut-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .kbd {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: monospace;
+    color: var(--text);
+  }
+  .editor-content-area { display: flex; height: 380px; }
+
+  /* ── Callout system ─── */
+  .annotated { position: relative; }
+  .callout {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 11px; font-weight: 800;
+    color: #000;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,.8);
+    cursor: default;
+    animation: popIn 0.3s ease;
+  }
+  @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+  .callout-line {
+    position: absolute; z-index: 9;
+    background: rgba(255,255,255,0.25); height: 1px; transform-origin: left center;
+  }
+  .c1  { background: #ef4444; }
+  .c2  { background: #f97316; }
+  .c3  { background: #eab308; }
+  .c4  { background: #22c55e; }
+  .c5  { background: #14b8a6; }
+  .c6  { background: #3b82f6; }
+  .c7  { background: #8b5cf6; }
+  .c8  { background: #ec4899; }
+  .c9  { background: #e5a853; }
+  .c10 { background: #94a3b8; }
+  .c11 { background: #ef4444; }
+  .c12 { background: #22c55e; }
+
+  /* ── Legend ─── */
+  .legend { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+  .legend-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+  }
+  .legend-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #000; flex-shrink: 0;
+  }
+  .legend-content { flex: 1; }
+  .legend-title { font-weight: 700; color: var(--text); font-size: 13px; }
+  .legend-desc { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .legend-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .tag {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 7px; font-size: 10px; color: var(--muted);
+  }
+  .tag.accent { background: rgba(229,168,83,0.1); border-color: rgba(229,168,83,0.3); color: var(--accent); }
+
+  /* ── Two columns ─── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .feature-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .feature-card h3 { font-size: 14px; color: var(--accent); margin-bottom: 8px; }
+  .feature-card p { font-size: 12px; color: var(--muted); }
+  .feature-card ul { padding-left: 16px; margin-top: 6px; }
+  .feature-card li { font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+
+  /* ── Quick ref table ─── */
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ref-table th {
+    text-align: left; padding: 8px 12px;
+    background: var(--bg3); color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+  }
+  .ref-table td {
+    padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: var(--text);
+  }
+  .ref-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .ref-table .icon { font-size: 16px; }
+
+  /* ── TOC ─── */
+  .toc {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 24px; margin-bottom: 48px;
+  }
+  .toc h2 { color: var(--accent); font-size: 15px; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 5px; }
+  .toc a { color: var(--blue); text-decoration: none; font-size: 13px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .two-col { grid-template-columns: 1fr; }
+    .content-area { height: auto; flex-direction: column; }
+    .sidebar-mock { width: 100%; height: 80px; }
+    .map-area { height: 300px; }
+    .macrobar-mock { width: 95%; left: 50%; transform: translateX(-50%); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-icon">📜</div>
+    <h1>Grimoire — Guide du Maître du Jeu</h1>
+    <p>Tutoriel visuel complet de l'interface · VTT · Éditeur · Outils de session</p>
+  </div>
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h2>📋 Sommaire</h2>
+    <ol>
+      <li><a href="#vtt">Vue VTT — Carte interactive</a></li>
+      <li><a href="#editor">Vue Éditeur — Notes & Campagne</a></li>
+      <li><a href="#shortcuts">Référence rapide — Outils VTT</a></li>
+      <li><a href="#wave10">Outils MJ Wave 10 — Calculateur, Notes partagées, Terrain…</a></li>
+      <li><a href="#workflow">Flux de travail GM typique</a></li>
+    </ol>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 1 — VTT MAP VIEW                       -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="vtt">
+    <h2 class="section-title">① Vue VTT — Carte Interactive</h2>
+    <p style="color:var(--muted);margin-bottom:20px">L'interface principale du MJ quand une carte est chargée. Chaque zone est annotée ci-dessous.</p>
+
+    <!-- MOCKUP VUE VTT -->
+    <div class="ui-frame annotated" id="vtt-frame">
+      <!-- Titlebar -->
+      <div class="ui-titlebar">
+        <span class="ui-titlebar-dot dot-red"></span>
+        <span class="ui-titlebar-dot dot-yellow"></span>
+        <span class="ui-titlebar-dot dot-green"></span>
+        Grimoire — Maître du Jeu
+      </div>
+
+      <!-- Toolbar Row 1 — VTT Tools -->
+      <div class="toolbar-mock" style="background:#010409;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--muted);margin-right:3px">Outils :</span>
+        <div class="tb-btn active">👆</div>
+        <div class="tb-btn">👁️</div>
+        <div class="tb-btn">⬛</div>
+        <div class="tb-btn">▭</div>
+        <div class="tb-btn">🌫️</div>
+        <div class="tb-btn">🌅</div>
+        <div class="tb-btn">🌑</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn">📏</div>
+        <div class="tb-btn">📍</div>
+        <div class="tb-btn">📌</div>
+        <div class="tb-btn">💫</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn">✏️</div>
+        <div class="tb-btn">🧱</div>
+        <div class="tb-btn">🔊</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn" title="Météo">☀️</div>
+        <div class="tb-btn">🌧️</div>
+        <div class="tb-btn">❄️</div>
+        <div class="tb-btn">🌫️</div>
+        <div class="tb-btn">🔥</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn" title="Combat">⚔️</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn" title="Terrain">🗺️</div>
+        <div class="tb-btn" title="Export PNG">🖼️💾</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn">🔍</div>
+        <div class="tb-btn">⌂</div>
+        <div class="tb-btn">↩️</div>
+      </div>
+
+      <!-- Toolbar Row 2 — Session Tools -->
+      <div class="toolbar-mock" style="flex-wrap:wrap;gap:2px">
+        <div class="tb-btn small">🗺️</div>
+        <div class="tb-btn small">✖️</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">🔍</div>
+        <div class="tb-btn small">⌂</div>
+        <div class="tb-btn small">↩️</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">🎵</div>
+        <div class="tb-btn small">🎶</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small active">#️⃣</div>
+        <div class="tb-btn small">🕶️</div>
+        <span class="tb-input narrow" style="width:40px;text-align:center;color:var(--text)">50</span>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">⏱️ 00:00</div>
+        <div class="tb-btn small">⏳</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">🎲</div>
+        <div class="tb-btn small">✕ Perso</div>
+        <div class="tb-btn small">🧟</div>
+        <div class="tb-btn small">💰</div>
+        <div class="tb-btn small">📤</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">🕸️</div>
+        <div class="tb-btn small">📜</div>
+        <div class="tb-btn small" title="Calculateur dégâts">💥</div>
+        <div class="tb-btn small" title="Générateur rencontre">⚡</div>
+        <div class="tb-btn small" title="Générateur salle">🏚️</div>
+        <div class="tb-btn small" title="Météo planner">🌦️</div>
+        <div class="tb-btn small" title="Durées">⏱️</div>
+        <div class="tb-btn small" title="Notes partagées">📋</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">👥</div>
+        <div class="tb-btn small">📱</div>
+        <div class="tb-sep"></div>
+        <span class="tb-input" style="color:var(--muted)">Titre de campagne…</span>
+        <div class="tb-sep"></div>
+        <span class="tb-input" style="color:var(--muted)">Texte d'ambiance…</span>
+        <div class="tb-btn small active" style="background:rgba(229,168,83,0.3)">🎭</div>
+        <div class="tb-btn small">🔦</div>
+      </div>
+
+      <!-- Scene Tabs -->
+      <div class="scene-tabs-mock">
+        <div class="scene-tab-mock">drachenfels_clock_…</div>
+        <div class="scene-tab-mock active">Map_TheSleekHo… ✕</div>
+        <div class="tb-btn small" style="font-size:11px;border-radius:50%;width:20px;height:20px;padding:0;display:flex;align-items:center;justify-content:center">+</div>
+      </div>
+
+      <!-- Content Area -->
+      <div class="content-area">
+        <!-- Sidebar -->
+        <div class="sidebar-mock">
+          <div class="sb-header">wfrp_vault</div>
+          <div class="sb-item sb-folder">📁 Campaigns <span class="sb-count">1</span></div>
+          <div class="sb-item sb-folder">📁 scenarios <span class="sb-count">37</span></div>
+          <div class="sb-item sb-folder">📁 world <span class="sb-count">3</span></div>
+          <div class="sb-item sb-file">📄 00-index.md</div>
+          <div class="sb-item sb-file">📄 02-races.md</div>
+          <div class="sb-item sb-file">📄 04-magie.md</div>
+          <div class="sb-item" style="margin-top:auto">
+            <button style="background:#1a2d1a;border:1px solid #22c55e;color:#22c55e;border-radius:6px;padding:5px 8px;font-size:11px;cursor:default;width:100%">🧑‍💻 Lancer Vue Joueurs</button>
+          </div>
+        </div>
+
+        <!-- Map area -->
+        <div class="map-area">
+          <div class="map-img-placeholder">🗺️</div>
+
+          <!-- Tokens mockup -->
+          <div class="token-mock" style="width:44px;height:44px;top:30%;left:35%;background:rgba(59,130,246,0.3);border-color:#3b82f6">
+            <span>K</span>
+          </div>
+          <div class="hp-bar-mock" style="width:40px;top:calc(30% + 27px);left:calc(35% - 2px)">
+            <div class="hp-fill" style="width:80%;background:#22c55e"></div>
+          </div>
+
+          <div class="token-mock" style="width:44px;height:44px;top:50%;left:55%;background:rgba(239,68,68,0.3);border-color:#ef4444">
+            <span>E</span>
+          </div>
+          <div class="hp-bar-mock" style="width:40px;top:calc(50% + 27px);left:calc(55% - 2px)">
+            <div class="hp-fill" style="width:40%;background:#ef4444"></div>
+          </div>
+
+          <!-- SVG move path mockup -->
+          <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none" viewBox="0 0 600 420">
+            <line x1="226" y1="155" x2="350" y2="210" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6 4" opacity="0.7"/>
+            <circle cx="226" cy="155" r="4" fill="#fbbf24" opacity="0.9"/>
+            <text x="288" y="175" fill="#fbbf24" font-size="11" font-weight="bold" text-anchor="middle" stroke="black" stroke-width="2">3 cases</text>
+            <text x="288" y="175" fill="#fbbf24" font-size="11" font-weight="bold" text-anchor="middle">3 cases</text>
+          </svg>
+
+          <!-- Dashboard -->
+          <div class="dashboard-mock">
+            <div class="dash-row">
+              <span class="dash-round">⚔️ R.1</span>
+              <span style="color:var(--muted)">☀️</span>
+              <span style="color:#22c55e;font-size:10px">⏱️ 00:00</span>
+              <span style="margin-left:auto;font-size:11px">▶</span>
+            </div>
+            <div style="display:flex;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.08);align-items:center">
+              <button style="background:rgba(255,255,255,0.07);border:none;color:var(--text);border-radius:3px;padding:1px 6px;font-size:10px">◀</button>
+              <span style="color:var(--accent);font-size:11px;font-weight:700;flex:1;text-align:center">Kriegfried</span>
+              <button style="background:rgba(255,255,255,0.07);border:none;color:var(--text);border-radius:3px;padding:1px 6px;font-size:10px">▶</button>
+            </div>
+            <div class="dash-combatant active">
+              <span style="width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kriegfried</span>
+              <div class="dash-hpbar"><div class="dash-hpfill" style="width:80%;background:#22c55e"></div></div>
+              <span style="font-size:9px;color:var(--muted)">12/15</span>
+            </div>
+            <div class="dash-combatant" style="color:#f87171">
+              <span style="width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Skaven</span>
+              <div class="dash-hpbar"><div class="dash-hpfill" style="width:30%;background:#ef4444"></div></div>
+              <span style="font-size:9px;color:var(--muted)">3/10</span>
+            </div>
+          </div>
+
+          <!-- Macro bar -->
+          <div class="macrobar-mock">
+            <div class="macro-presets">
+              <div class="macro-btn"><span class="macro-icon">🎲</span><span class="macro-label">d100</span></div>
+              <div class="macro-btn"><span class="macro-icon">🎯</span><span class="macro-label">d20</span></div>
+              <div class="macro-btn"><span class="macro-icon">💚</span><span class="macro-label">Soin</span></div>
+              <div class="macro-btn"><span class="macro-icon">⚔️</span><span class="macro-label">Attaque</span></div>
+              <div class="macro-btn"><span class="macro-icon">💥</span><span class="macro-label">Hit</span></div>
+              <div class="macro-btn" style="border-style:dashed;color:var(--muted)"><span class="macro-icon">+</span></div>
+            </div>
+            <div class="macro-input-row">
+              <div class="macro-input">/roll 2d10 + 5 ou commande…</div>
+              <div class="tb-btn small">▶</div>
+              <div class="tb-btn small">🕐</div>
+            </div>
+          </div>
+
+          <!-- Minimap -->
+          <div class="minimap-mock">Minimap</div>
+        </div>
+      </div>
+
+      <!-- CALLOUTS VTT -->
+      <!-- 1 - Toolbar VTT Row 1 -->
+      <div class="callout c1" style="top:37px;left:220px">1</div>
+      <!-- 2 - Toolbar Row 2 -->
+      <div class="callout c2" style="top:60px;left:220px">2</div>
+      <!-- 3 - Scene Tabs -->
+      <div class="callout c3" style="top:90px;left:320px">3</div>
+      <!-- 4 - Sidebar -->
+      <div class="callout c4" style="top:180px;left:10px">4</div>
+      <!-- 5 - Map Canvas -->
+      <div class="callout c5" style="top:200px;left:400px">5</div>
+      <!-- 6 - Move Path -->
+      <div class="callout c6" style="top:165px;left:310px">6</div>
+      <!-- 7 - HP bar -->
+      <div class="callout c7" style="top:230px;left:240px">7</div>
+      <!-- 8 - Dashboard -->
+      <div class="callout c8" style="top:135px;right:10px">8</div>
+      <!-- 9 - MacroBar -->
+      <div class="callout c9" style="bottom:70px;left:240px">9</div>
+      <!-- 10 - Minimap -->
+      <div class="callout c10" style="bottom:15px;right:10px">10</div>
+    </div>
+
+    <!-- LEGEND VTT -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-num c1">1</div>
+        <div class="legend-content">
+          <div class="legend-title">🛠️ Outils VTT (Ligne 1)</div>
+          <div class="legend-desc">Tous les outils de manipulation de carte. Cliquer sur un outil l'active (surligné en doré). Visible uniquement quand une carte est chargée.</div>
+          <div class="legend-tags">
+            <span class="tag">👆 Sélection</span><span class="tag">👁️ Révéler zone</span><span class="tag">⬛ Cacher zone</span>
+            <span class="tag">▭ Zone rect.</span><span class="tag">📏 Mesurer</span><span class="tag">📍 Ping joueur</span>
+            <span class="tag">💫 Sorts AOE</span><span class="tag">✏️ Dessin libre</span><span class="tag">🧱 Murs LOS</span>
+            <span class="tag">☀️🌧️❄️🌫️🔥 Météo</span><span class="tag">⚔️ Combat</span>
+            <span class="tag accent">🗺️ Terrain (glisser)</span><span class="tag accent">🖼️💾 Export PNG</span>
+          </div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c2">2</div>
+        <div class="legend-content">
+          <div class="legend-title">⚙️ Outils de session (Ligne 2)</div>
+          <div class="legend-desc">Outils de gestion de session, audio, tokens, communication avec les joueurs. Toujours visible.</div>
+          <div class="legend-tags">
+            <span class="tag">🗺️ Changer de carte</span><span class="tag">🎵🎶 Musique 2 pistes</span>
+            <span class="tag">#️⃣ Grille (taille)</span><span class="tag">🕶️ Écran noir</span>
+            <span class="tag">⏱️ Timer session</span><span class="tag">⏳ Compte à rebours</span>
+            <span class="tag">🧟 PNJ rapide</span><span class="tag">💰 Butin</span><span class="tag accent">📤 Handout</span>
+            <span class="tag">🕸️ Relations PNJ</span><span class="tag">📜 Log combat</span>
+            <span class="tag accent">💥 Calculateur dégâts</span><span class="tag accent">⚡ Générateur rencontre</span>
+            <span class="tag accent">🏚️ Générateur salle</span><span class="tag accent">🌦️ Météo planner</span>
+            <span class="tag accent">⏱️ Durées</span><span class="tag accent">📋 Notes partagées</span>
+            <span class="tag">👥 Groupe</span><span class="tag">📱 Hub mobile</span>
+            <span class="tag">🔦 Spotlight token</span>
+          </div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c3">3</div>
+        <div class="legend-content">
+          <div class="legend-title">🗂️ Onglets de scènes</div>
+          <div class="legend-desc">Chaque scène est un onglet avec sa propre carte, ses tokens, son brouillard de guerre et ses épingles. Cliquer bascule entre les scènes. Le <strong>+</strong> ajoute une nouvelle scène.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c4">4</div>
+        <div class="legend-content">
+          <div class="legend-title">📁 Sidebar — Vault de fichiers</div>
+          <div class="legend-desc">Arborescence des notes et assets de la campagne. Clic droit → Nouveau fichier. Le bouton vert <strong>Lancer Vue Joueurs</strong> ouvre la fenêtre de projection pour les joueurs.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c5">5</div>
+        <div class="legend-content">
+          <div class="legend-title">🗺️ Zone de carte (Canvas PixiJS)</div>
+          <div class="legend-desc">Zone interactive principale. Scroll = zoom · Clic molette ou clic droit = pan (déplacer la vue) · Ces déplacements sont synchronisés en temps réel sur l'écran des joueurs.</div>
+          <div class="legend-tags">
+            <span class="tag">🔍 Zoom min/max : 5% – 800%</span>
+            <span class="tag">📡 Sync temps réel joueurs</span>
+          </div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c6">6</div>
+        <div class="legend-content">
+          <div class="legend-title">➡️ Chemin de déplacement</div>
+          <div class="legend-desc">Quand vous faites glisser un token, une ligne pointillée dorée indique le chemin et le nombre de cases parcouru. Pratique pour respecter les règles de mouvement.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c7">7</div>
+        <div class="legend-content">
+          <div class="legend-title">❤️ Barre de HP sur les tokens</div>
+          <div class="legend-desc">Visible par les joueurs ET le MJ. La largeur est proportionnelle à la taille du token. Couleur : vert &gt;50%, jaune 20–50%, rouge &lt;20%.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c8">8</div>
+        <div class="legend-content">
+          <div class="legend-title">📊 Tableau de bord de session</div>
+          <div class="legend-desc">Flottant en haut à droite. Affiche le round actuel (R.1, R.2…), le timer, la météo, les boutons ◀▶ de tour, et la liste des combattants avec leurs HP. Cliquer sur 📜 ouvre le mini-log de combat.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c9">9</div>
+        <div class="legend-content">
+          <div class="legend-title">⚡ Barre de macros</div>
+          <div class="legend-desc">Boutons de commandes rapides. Chaque macro a une icône + étiquette. Drag-and-drop pour réorganiser. Clic droit sur une macro pour la modifier. Le champ texte accepte des commandes directes.</div>
+          <div class="legend-tags">
+            <span class="tag">/roll 2d10</span><span class="tag">/heal group 5</span>
+            <span class="tag">/anim attack</span><span class="tag accent">Drag-and-drop</span>
+          </div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c10">10</div>
+        <div class="legend-content">
+          <div class="legend-title">🗺️ Minimap</div>
+          <div class="legend-desc">Vue d'ensemble de la carte en bas à droite. Montre la position de la caméra actuelle par rapport à la carte entière.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 2 — EDITOR VIEW                        -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="editor">
+    <h2 class="section-title">② Vue Éditeur — Notes & Campagne</h2>
+    <p style="color:var(--muted);margin-bottom:20px">Accessible quand aucune carte n'est chargée, ou en fermant le VTT. Centralise toutes vos notes de campagne.</p>
+
+    <div class="ui-frame annotated" id="editor-frame">
+      <div class="ui-titlebar">
+        <span class="ui-titlebar-dot dot-red"></span>
+        <span class="ui-titlebar-dot dot-yellow"></span>
+        <span class="ui-titlebar-dot dot-green"></span>
+        Grimoire — Maître du Jeu
+      </div>
+
+      <!-- Toolbar simplifié -->
+      <div class="toolbar-mock">
+        <div class="tb-btn small">🗺️</div>
+        <div class="tb-btn small">🎵</div>
+        <div class="tb-btn small">🎶</div>
+        <div class="tb-btn small active">⬛</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">⏱️ 00:00</div>
+        <div class="tb-btn small">⏳</div>
+        <div class="tb-btn small">✕ Perso</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn small">🧟 PNJ</div>
+        <div class="tb-btn small">💰 Butin</div>
+        <div class="tb-btn small">📤</div>
+        <div class="tb-sep"></div>
+        <span class="tb-input" style="color:var(--muted)">Titre de campagne…</span>
+        <span class="tb-input" style="color:var(--muted)">Texte d'ambiance…</span>
+        <div class="tb-btn small active" style="background:rgba(229,168,83,0.3)">🎭</div>
+      </div>
+
+      <!-- Mode Tabs -->
+      <div class="editor-tabs">
+        <div class="editor-tab active">📝 Éditeur</div>
+        <div class="editor-tab">🌐 Graphe</div>
+        <div class="editor-tab">📅 Timeline</div>
+        <div class="editor-tab">🗓️ Calendrier</div>
+      </div>
+
+      <!-- Content -->
+      <div class="editor-content-area">
+        <!-- Sidebar -->
+        <div class="sidebar-mock">
+          <div class="sb-header" style="display:flex;align-items:center;gap:4px">
+            <span>wfrp_vault</span>
+            <span style="margin-left:auto;font-size:10px;cursor:default;opacity:0.5">🔍</span>
+          </div>
+          <input style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:3px 7px;font-size:10px;color:var(--muted);width:100%;margin-bottom:6px" placeholder="Filtrer…" readonly/>
+          <div class="sb-item sb-folder">📂 ASSETS <span class="sb-count">5</span></div>
+          <div class="sb-item sb-folder">📁 NOTES</div>
+          <div class="sb-item sb-folder" style="padding-left:16px">📁 Campaigns <span class="sb-count">1</span></div>
+          <div class="sb-item sb-folder" style="padding-left:16px">📁 scenarios <span class="sb-count">37</span></div>
+          <div class="sb-item sb-folder" style="padding-left:16px">📁 world <span class="sb-count">3</span></div>
+          <div class="sb-item sb-file" style="padding-left:24px">📄 00-index.md</div>
+          <div class="sb-item sb-file" style="padding-left:24px">📄 01-etats.md</div>
+          <div style="margin-top:8px;display:flex;gap:4px">
+            <button style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:4px;font-size:10px;cursor:default">📄 Nouveau</button>
+            <button style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:4px;font-size:10px;cursor:default">🔄 Réindexer</button>
+          </div>
+        </div>
+
+        <!-- Editor empty state -->
+        <div class="editor-empty">
+          <div style="font-size:52px">📜</div>
+          <h2>Grimoire</h2>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Sélectionnez un fichier dans la barre latérale</div>
+          <div class="shortcut-row"><span class="kbd">Ctrl</span><span>+</span><span class="kbd">N</span> <span style="color:var(--muted)">Nouveau fichier</span></div>
+          <div class="shortcut-row"><span class="kbd">Ctrl</span><span>+</span><span class="kbd">P</span> <span style="color:var(--muted)">Rechercher</span></div>
+          <div class="shortcut-row"><span class="kbd">Ctrl</span><span>+</span><span class="kbd">S</span> <span style="color:var(--muted)">Sauvegarder</span></div>
+          <div class="shortcut-row"><span class="kbd">Ctrl</span><span>+</span><span class="kbd">J</span> <span style="color:var(--muted)">Générer avec Ollama</span></div>
+          <div class="shortcut-row"><span class="kbd">Ctrl</span><span>+</span><span class="kbd">Clic</span> <span style="color:var(--muted)">Suivre un lien wiki</span></div>
+        </div>
+      </div>
+
+      <!-- CALLOUTS EDITOR -->
+      <div class="callout c1" style="top:37px;left:200px">1</div>
+      <div class="callout c2" style="top:62px;left:200px">2</div>
+      <div class="callout c3" style="top:100px;left:500px">3</div>
+      <div class="callout c4" style="top:160px;left:10px">4</div>
+      <div class="callout c5" style="top:200px;left:220px">5</div>
+      <div class="callout c6" style="top:350px;left:520px">6</div>
+    </div>
+
+    <!-- LEGEND EDITOR -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-num c1">1</div>
+        <div class="legend-content">
+          <div class="legend-title">🛠️ Barre d'outils simplifiée</div>
+          <div class="legend-desc">Quand aucune carte n'est active, la toolbar n'affiche que les outils de session : changer de carte, audio, timer, outils GM (PNJ, Butin, Handout), titre de campagne et texte d'ambiance.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c2">2</div>
+        <div class="legend-content">
+          <div class="legend-title">🎯 Bouton Vue Joueurs</div>
+          <div class="legend-desc">Le bouton <strong>🎭</strong> (surligné en doré) lance ou met au premier plan la fenêtre de projection. Cette fenêtre est celle que vos joueurs voient sur un écran secondaire ou en partage d'écran.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c3">3</div>
+        <div class="legend-content">
+          <div class="legend-title">📂 Onglets de modes</div>
+          <div class="legend-desc">Bascule entre les quatre vues principales de l'éditeur.</div>
+          <div class="legend-tags">
+            <span class="tag accent">📝 Éditeur</span> Notes Markdown avec rendu en direct
+            <span class="tag accent">🌐 Graphe</span> Réseau visuel des notes liées
+            <span class="tag accent">📅 Timeline</span> Chronologie des événements
+            <span class="tag accent">🗓️ Calendrier</span> Calendrier de campagne personnalisé
+          </div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c4">4</div>
+        <div class="legend-content">
+          <div class="legend-title">📁 Gestionnaire de fichiers</div>
+          <div class="legend-desc">Arborescence complète de votre vault. Le champ de filtre cherche dans les noms de fichiers en temps réel. <strong>Clic droit</strong> sur un dossier pour créer/renommer/supprimer. Le bouton Réindexer reconstruit le graphe de liens.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c5">5</div>
+        <div class="legend-content">
+          <div class="legend-title">✏️ Zone d'édition</div>
+          <div class="legend-desc">Éditeur Markdown avancé (CodeMirror). Supports : syntaxe WFRP, liens wiki <code>[[Nom]]</code>, titres, listes, tableaux, blocs de code. L'IA Ollama (Ctrl+J) peut générer du contenu de campagne.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num c6">6</div>
+        <div class="legend-content">
+          <div class="legend-title">⌨️ Raccourcis clavier</div>
+          <div class="legend-desc">Affichés dans l'état vide. Tous les raccourcis fonctionnent depuis n'importe où dans l'éditeur.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 3 — REFERENCE TABLES                   -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="shortcuts">
+    <h2 class="section-title">③ Référence rapide</h2>
+
+    <div class="two-col" style="margin-bottom:24px">
+      <div class="feature-card">
+        <h3>🗺️ Navigation carte</h3>
+        <ul>
+          <li>🖱️ <strong>Scroll</strong> — Zoom in/out (5% – 800%)</li>
+          <li>🖱️ <strong>Clic molette + drag</strong> — Déplacer la vue</li>
+          <li>🖱️ <strong>Clic droit + drag</strong> — Déplacer la vue (alt)</li>
+          <li>🖱️ <strong>Drag token</strong> — Déplacer (snap grille + chemin)</li>
+          <li>⇧ <strong>Shift + clic token</strong> — Multi-sélection</li>
+          <li>🖱️ <strong>Clic droit token</strong> — Roue des conditions (🎡)</li>
+          <li>⇧🖱️ <strong>Shift + clic droit</strong> — Paramètres du token</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>⌨️ Raccourcis globaux</h3>
+        <ul>
+          <li><strong>Ctrl+N</strong> — Nouveau fichier</li>
+          <li><strong>Ctrl+P</strong> — Palette de recherche</li>
+          <li><strong>Ctrl+S</strong> — Sauvegarder</li>
+          <li><strong>Ctrl+J</strong> — Générer avec IA (Ollama)</li>
+          <li><strong>Ctrl+Z</strong> — Annuler action VTT</li>
+          <li><strong>Ctrl+Clic</strong> — Suivre lien wiki [[…]]</li>
+          <li><strong>Esc</strong> — Fermer modale ouverte</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>⚔️ Combat</h3>
+        <ul>
+          <li>Démarrer le combat depuis l'outil ⚔️</li>
+          <li>Les tokens sont importés automatiquement</li>
+          <li>◀ ▶ dans le dashboard pour changer de tour</li>
+          <li>Le round s'incrémente automatiquement</li>
+          <li><strong>R.1, R.2…</strong> visible par les joueurs</li>
+          <li>HP bas = mort automatiquement logguée (💀)</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>🎲 Commandes macros</h3>
+        <ul>
+          <li><code>/roll 2d10+5</code> — Jet de dés</li>
+          <li><code>/roll 1d100</code> — Jet percentile</li>
+          <li><code>/heal group 5</code> — Soin de tous les alliés</li>
+          <li><code>/anim attack</code> — Animation attaque</li>
+          <li><code>/anim hit</code> — Animation touché</li>
+          <li>Clic droit → éditer icône/nom/commande</li>
+        </ul>
+      </div>
+    </div>
+
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>Outil</th><th>Icône</th><th>Description</th><th>Raccourci souris</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Sélection</td><td class="icon">👆</td><td>Sélectionner et déplacer les tokens. Shift+clic pour multi-sélection.</td><td>Drag pour déplacer</td></tr>
+        <tr><td>Révéler zone</td><td class="icon">👁️</td><td>Dessine une zone qui révèle le brouillard de guerre aux joueurs. Les tokens dans la zone deviennent visibles côté joueur.</td><td>Drag = cercle de révélation</td></tr>
+        <tr><td>Cacher zone</td><td class="icon">⬛</td><td>Redessine le brouillard sur une zone précédemment révélée. Les tokens dans la zone redeviennent invisibles côté joueur.</td><td>Drag = cercle de masque</td></tr>
+        <tr><td>Zone rect.</td><td class="icon">▭</td><td>Révèle ou cache une zone rectangulaire précise.</td><td>Drag = rectangle</td></tr>
+        <tr><td>Mesurer</td><td class="icon">📏</td><td>Mesure une distance en cases (1,5m/case par défaut). Affiche en temps réel.</td><td>Drag = ligne de mesure</td></tr>
+        <tr><td>Ping</td><td class="icon">📍</td><td>Envoie un marqueur temporaire visible par les joueurs sur leur écran.</td><td>Clic = ping</td></tr>
+        <tr><td>Épingle</td><td class="icon">📌</td><td>Place une épingle permanente avec texte sur la carte.</td><td>Clic = épingle</td></tr>
+        <tr><td>Sort</td><td class="icon">💫</td><td>Place un marqueur de zone de sort (cercle, cône, ligne) visible par les joueurs.</td><td>Clic = placer sort</td></tr>
+        <tr><td>Dessin libre</td><td class="icon">✏️</td><td>Trace des annotations directement sur la carte.</td><td>Drag = tracé libre</td></tr>
+        <tr><td>Murs (LOS)</td><td class="icon">🏗️</td><td>Dessine des murs pour le système de ligne de vue.</td><td>Drag = tracé de mur</td></tr>
+        <tr><td>Terrain</td><td class="icon">🗺️</td><td>Dessine une zone de terrain colorée (difficile, eau, feu, poison…).</td><td>Drag = rectangle terrain</td></tr>
+        <tr><td>Zoom rect.</td><td class="icon">🔍+</td><td>Zoom sur une zone précise de la carte.</td><td>Drag = rectangle de zoom</td></tr>
+        <tr><td>Export PNG</td><td class="icon">🖼️💾</td><td>Exporte la carte PixiJS en image PNG haute résolution.</td><td>Clic = télécharger</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 3b — WAVE 10 TOOLS                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="wave10">
+    <h2 class="section-title">③ bis — Outils MJ (Wave 10 + 13)</h2>
+
+    <div class="two-col" style="grid-template-columns:repeat(3,1fr)">
+      <div class="feature-card">
+        <h3>💥 Calculateur de Dégâts</h3>
+        <ul>
+          <li>Saisir une formule : <code>2d6+4</code>, <code>1d10</code>…</li>
+          <li>Sélectionner une ou plusieurs cibles dans l'initiative</li>
+          <li>Option "Demi-dégâts" (sorts de sauvegarde)</li>
+          <li>Applique HP et logue dans le combat log</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>📋 Notes Partagées</h3>
+        <ul>
+          <li>Saisir un titre et un corps de note</li>
+          <li>Envoyer d'un clic → overlay sur l'écran joueur</li>
+          <li>Les joueurs ferment eux-mêmes la note</li>
+          <li>Historique des notes envoyées dans le modal</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>⏱️ Suivi des Durées</h3>
+        <ul>
+          <li>Présets rapides : 🕯️ Torche, ✨ Lumière magique, 🔮 Concentration…</li>
+          <li>Ajout manuel : icône + label + nombre de rounds</li>
+          <li>Barre de progression colorée (vert → rouge)</li>
+          <li>Pulse rouge urgent à ≤1 round restant</li>
+          <li>"-1 Round" pour tout avancer simultanément</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>🌦️ Planificateur Météo</h3>
+        <ul>
+          <li>Planifier jusqu'à 7 jours de météo</li>
+          <li>6 types : Dégagé, Pluie, Neige, Brouillard, Tempête, Braises</li>
+          <li>Narration automatique par type</li>
+          <li>▶ Appliquer : applique sur la carte immédiatement</li>
+          <li>📋 Copier MD : exporte le plan en Markdown</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>⚡ Générateur de Rencontre</h3>
+        <ul>
+          <li>Lieu (12 options) × Moment (7) × Menace (15) × Rebondissement (10)</li>
+          <li>Bouton 🎲 pour relancer chaque facteur</li>
+          <li>Intensité : Mineure → Légendaire</li>
+          <li>📋 Copier pour coller dans vos notes</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h3>🏚️ Générateur de Salle</h3>
+        <ul>
+          <li>Forme + Taille + Usage + Éclairage</li>
+          <li>Odeur + Son ambiant + Sorties + Contenu</li>
+          <li>Piège possible + Objet caché</li>
+          <li>Bouton 🎲 pour regénérer, 📋 pour copier</li>
+        </ul>
+      </div>
+      <div class="feature-card" style="border-color:var(--accent)">
+        <h3>👾 Pack Mimic (Wave 13)</h3>
+        <ul>
+          <li>4 tokens illustrés : Coffre, Porte, Baril, Table</li>
+          <li>Intégrés dans la bibliothèque de monstres (🐉)</li>
+          <li>Prêts à spawner avec stats (PV, CA, Taille)</li>
+          <li>Format circulaire optimisé pour le VTT</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px">
+      <div style="font-weight:700;color:var(--accent);margin-bottom:14px;font-size:15px">🖱️ Interactions Avancées — Tokens</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;color:var(--muted)">
+        <div>
+          <div style="color:var(--text);font-weight:600;margin-bottom:6px">Clic droit sur un token</div>
+          <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:4px">
+            <li>→ <strong style="color:var(--accent)">Roue de Conditions</strong> (8 conditions radialement)</li>
+            <li>→ Cliquer une condition pour la toggler</li>
+            <li>→ Bouton <strong style="color:#ef4444">🗑️</strong> au centre pour supprimer le token</li>
+            <li>→ Cliquer en dehors pour fermer</li>
+          </ul>
+        </div>
+        <div>
+          <div style="color:var(--text);font-weight:600;margin-bottom:6px">Shift + Clic droit</div>
+          <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:4px">
+            <li>→ Ouvre <strong style="color:var(--accent)">Paramètres du Token</strong></li>
+            <li>→ HP/MaxHP, conditions + durées, concentration</li>
+            <li>→ Aura, lumière, note, lien wiki</li>
+          </ul>
+        </div>
+        <div>
+          <div style="color:var(--text);font-weight:600;margin-bottom:6px">Drag token (mode sélection)</div>
+          <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:4px">
+            <li>→ Chemin jaune pointillé affiché</li>
+            <li>→ Compteur "N cases" en temps réel</li>
+            <li>→ Snap sur la grille à la release</li>
+          </ul>
+        </div>
+        <div>
+          <div style="color:var(--text);font-weight:600;margin-bottom:6px">Mode Terrain (🗺️)</div>
+          <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:4px">
+            <li>→ Choisir type : 🏔️ Difficile, 🌊 Eau, 🔥 Feu…</li>
+            <li>→ Drag pour dessiner le rectangle</li>
+            <li>→ Zone colorée semi-transparente avec label</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wave 13 — bugfixes FOW -->
+    <div style="margin-top:20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px">
+      <div style="font-weight:700;color:var(--accent);margin-bottom:12px;font-size:15px">🌫️ Brouillard de Guerre — Comportement (Wave 13)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;color:var(--muted)">
+        <div>
+          <div style="color:var(--text);font-weight:600;margin-bottom:6px">Visibilité des tokens</div>
+          <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:4px">
+            <li>→ Tokens <strong>cachés</strong> dans toute zone non révélée</li>
+            <li>→ Tokens <strong>visibles</strong> uniquement dans les zones 👁️ révélées</li>
+            <li>→ Zone ⬛ <em>hide</em> masque un token même dans une zone révélée</li>
+            <li>→ Token.visible=false = toujours caché (masque MJ)</li>
+          </ul>
+        </div>
+        <div>
+          <div style="color:var(--text);font-weight:600;margin-bottom:6px">Toggle 🌫️ (activer/désactiver)</div>
+          <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:4px">
+            <li>→ <strong>Désactiver</strong> : carte et tokens entièrement visibles</li>
+            <li>→ <strong>Réactiver</strong> : repart de zéro — tout caché</li>
+            <li>→ Les formes précédentes sont effacées au toggle ON</li>
+            <li>→ Redessiner les zones révélées avec 👁️</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 4 — WORKFLOW                           -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="workflow">
+    <h2 class="section-title">④ Flux de travail GM typique</h2>
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">1</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1">
+          <div style="font-weight:700;color:var(--accent);margin-bottom:4px">Préparer la session</div>
+          <div style="font-size:12px;color:var(--muted)">Onglet <strong>AdventureLibrary</strong> (📚) → ouvrir un scénario → remplir l'objectif de session, les actes, les PNJs clés. Utiliser <strong>🕸️ Relations PNJ</strong> pour mapper les connexions entre personnages importants.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">2</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1">
+          <div style="font-weight:700;color:var(--blue);margin-bottom:4px">Lancer la session</div>
+          <div style="font-size:12px;color:var(--muted)">Charger la carte (bouton 🗺️ ou onglet de scène) → cliquer <strong>🎭 Lancer Vue Joueurs</strong> → projeter la fenêtre joueur → démarrer le timer ⏱️.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--green);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">3</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1">
+          <div style="font-weight:700;color:var(--green);margin-bottom:4px">Explorer et narrer</div>
+          <div style="font-size:12px;color:var(--muted)">Utiliser 👁️ pour révéler les zones au fil de l'exploration. Placer des 📌 épingles avec descriptions. Utiliser le champ <strong>Texte d'ambiance</strong> pour afficher des textes narratifs sur l'écran joueur. Envoyer des handouts 📤 pour des images ou documents.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">4</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1">
+          <div style="font-weight:700;color:var(--red);margin-bottom:4px">Combat</div>
+          <div style="font-size:12px;color:var(--muted)">Spawner des tokens ennemis avec 🧟 PNJ rapide (auto-taille sur la grille) → ⚔️ Démarrer combat → les joueurs voient le tracker d'initiative avec le round. Modifier les HP dans le tableau de bord, consulter le 📜 log de combat en temps réel.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">5</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1">
+          <div style="font-weight:700;color:var(--purple);margin-bottom:4px">Fin de session</div>
+          <div style="font-size:12px;color:var(--muted)">Onglet <strong>📚 AdventureLibrary</strong> → section Journal de session → noter résumé, joueurs présents. Cliquer <strong>Export MD</strong> pour copier le résumé en Markdown. Exporter les stats via 📊 SessionExport.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:32px;border-top:1px solid var(--border);color:var(--muted);font-size:12px">
+    <div style="font-size:24px;margin-bottom:8px">📜</div>
+    <strong style="color:var(--accent)">Grimoire</strong> — TTRPG Campaign Manager &amp; VTT<br>
+    Svelte 5 · Tauri v2 · PixiJS v8 · Ollama
+  </div>
+
+</div>
+</body>
+</html>

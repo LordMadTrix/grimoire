@@ -18,6 +18,7 @@ pub fn run() {
             .build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(DbState(Mutex::new(db)))
         .invoke_handler(tauri::generate_handler![
             // Vault filesystem
@@ -60,6 +61,9 @@ pub fn run() {
             commands::player_server::request_roll,
             commands::player_server::assign_character,
             commands::player_server::push_map_snapshot,
+            commands::player_server::send_private_message,
+            commands::player_server::start_poll,
+            commands::player_server::end_poll,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");

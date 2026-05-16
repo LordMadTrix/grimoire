@@ -19,7 +19,8 @@
 10. [Créateur de personnage](#10-créateur-de-personnage)
 11. [IA Ollama](#11-ia-ollama)
 12. [Configuration du système de jeu](#12-configuration-du-système-de-jeu)
-13. [Raccourcis clavier](#13-raccourcis-clavier)
+13. [Outils MJ Avancés (Waves 10-13)](#13-outils-mj-avancés-waves-10-13)
+14. [Raccourcis clavier](#14-raccourcis-clavier)
 
 ---
 
@@ -265,6 +266,13 @@ Bouton **🗺️** dans la barre d'outils → le VTT s'affiche à la place de l'
 1. Dans la sidebar, naviguez vers `assets/tokens/`
 2. **Glissez** une image sur la carte
 3. Le token s'aligne automatiquement sur la grille
+
+#### Pack Mimic
+
+Grimoire inclut un pack spécial de **Mimics** illustrés. Pour les utiliser :
+1. Ouvrez la bibliothèque de monstres (icône 🐉).
+2. Cherchez "Mimic" (Coffre, Porte, Baril, Table).
+3. Cliquez sur le **+** pour les faire apparaître sur la carte avec leur illustration dédiée.
 
 #### Contrôles sur un token
 
@@ -767,7 +775,27 @@ Grimoire cherche les fichiers avec `grimoire_type: game_config` à chaque ouvert
 
 ---
 
-## 13. Raccourcis clavier
+## 13. Outils MJ Avancés (Waves 10-13)
+
+### ConditionWheel
+**Clic droit** sur un token → roue radiale. Permet d'appliquer/retirer 8 conditions (Étourdi, Saignant, etc.) d'un clic. Le bouton central 🗑️ retire toutes les conditions.
+
+### Calculateur de Dégâts
+Bouton **💥** → Entrez une formule (ex: `2d6+4`). Vous pouvez appliquer les dégâts à un ou plusieurs tokens sélectionnés, avec option de réduction (demi-dégâts).
+
+### Générateurs Automatiques
+- **⚡ Rencontres** : Génère une liste de monstres adaptée au niveau de danger.
+- **🏚️ Salles** : Description d'ambiance, mobilier et pièges pour une pièce.
+- **🌦️ Météo Planner** : Prévision sur 7 jours avec effets visuels synchronisés (VTT).
+- **🕸️ Relation Map** : Visualisez les liens sociaux entre vos PNJ.
+
+### Notes Partagées & Durées
+- **📋 Notes** : Tapez un texte et envoyez-le à tous les joueurs (apparaît en overlay sur leur mobile).
+- **⏱️ Durées** : Suivez les effets temporaires (Torche, Sort, Poison) round par round.
+
+---
+
+## 14. Raccourcis clavier
 
 ### Éditeur
 

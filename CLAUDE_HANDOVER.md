@@ -66,6 +66,24 @@ Application desktop pour Maîtres du Jeu TTRPG. Chemin : `/home/madtrix/Document
 - **Composants récursifs** (Sidebar) : `<script module>` pour état partagé
 - **`$derived.by(() => {...})`** pour les dérivations complexes (pas `$derived(() => fn)`)
 - **Pas de TypeScript parameter properties dans `<script>`** : définir séparément
+- **`$state<T>` générique interdit avec TS 6** → utiliser `let x: T = $state({...})`
+- **Variable nommée `state` interdite** → conflit avec la rune `$state` dans les templates (Svelte traite `$state` en template comme store auto-sub)
+- **`onMount(async)` retournant cleanup** → TS 6 refuse `Promise<() => void>` ; pattern obligatoire :
+  ```typescript
+  const _unlisten: (() => void)[] = [];
+  onMount(() => {
+    (async () => { _unlisten.push(await listen(...)); })();
+    return () => _unlisten.forEach(fn => fn());
+  });
+  ```
+- **Import `.svelte.ts` avec extension** → utiliser `.svelte` sans `.ts`
+- **`bind:this` canvas + narrowing null** → pattern deux étapes :
+  ```typescript
+  if (!canvas) return cleanup;
+  const ctxRaw = canvas.getContext('2d');
+  if (!ctxRaw) return cleanup;
+  const ctx: CanvasRenderingContext2D = ctxRaw; // TS narrow dans les closures
+  ```
 
 ---
 
@@ -88,7 +106,7 @@ vttStore = $state({
   fowShapes: [] as FowShape[],
   tokens: [] as Token[],
   pins: [] as MapPin[],
-  mode: 'select' as 'select'|'fog-reveal'|'fog-hide'|'fog-rect'|'measure'|'ping'|'pin'|'spell'|'zoom-rect'|'draw',
+  mode: 'select' as 'select'|'fog-reveal'|'fog-hide'|'fog-rect'|'measure'|'ping'|'pin'|'spell'|'zoom-rect'|'draw'|'blueprint'|'audio-zone'|'terrain',
   fitRequest: 0,
   showGrid: true,
   gridSize: 50,
@@ -117,6 +135,13 @@ vttStore = $state({
   drawColor: 0xe5a853 as number,
   drawWidth: 4,
   campaignTitle: '' as string,                        // ← Vague 7
+  walls: [] as WallDef[],                             // ← Vague 9
+  audioZones: [] as AudioZoneDef[],                   // ← Vague 9
+  combatLog: [] as CombatLogEntry[],                  // ← Wave 10
+  terrainZones: [] as TerrainZone[],                  // ← Wave 10
+  terrainType: 'difficult' as TerrainZone['type'],    // ← Wave 10
+  sharedNotes: [] as SharedNote[],                    // ← Wave 10
+  exportRequest: 0,                                   // ← Wave 10 (incrémenté pour export PNG)
 })
 ```
 
@@ -155,10 +180,28 @@ type SpellMarker = {
   coneAngle?: number;              // ← Vague 6 — ouverture cône
 };
 
-type DrawPath = { id: string; points: {x,y}[]; color: number; width: number };
-type MapScene = { id: string; name: string; relPath: string|null; fowShapes: FowShape[]; tokens: Token[]; pins: MapPin[]; spells: SpellMarker[] };
+type DrawPath = { id: string; points: {x: number; y: number}[]; color: number; width: number };
+type WallDef = {
+  id: string;
+  points: { x: number; y: number }[];
+  type: 'opaque' | 'door';
+  isOpen?: boolean;
+};
+type AudioZoneDef = {
+  id: string; x: number; y: number;
+  radius: number; audioSrc: string; volume: number;
+};
+type MapScene = {
+  id: string; name: string; relPath: string|null;
+  fowShapes: FowShape[]; tokens: Token[]; pins: MapPin[]; spells: SpellMarker[];
+  walls: WallDef[]; audioZones: AudioZoneDef[];
+};
 type FowShape = { type: 'circle'|'rect'; op: 'reveal'|'hide'; x: number; y: number; radius?: number; width?: number; height?: number };
 type Combatant = { id: string; name: string; initiative: number; hp: number; maxHp: number; isEnemy: boolean; tokenId?: string };
+// ← Wave 10 types:
+type CombatLogEntry = { id: number; round: number; timestamp: number; type: 'damage'|'heal'|'death'|'turn'|'condition'|'info'; actor: string; value?: number; detail?: string };
+type TerrainZone = { id: string; x: number; y: number; w: number; h: number; type: 'difficult'|'water'|'fire'|'poison'|'safe'|'custom'; color?: number; label?: string };
+type SharedNote = { id: string; title: string; body: string; ts: number };
 
 type UndoEntry =
   | { type: 'fow'; shapes: FowShape[] }
@@ -178,7 +221,11 @@ type UndoEntry =
 6. `pinLayer` + `pinContainers` Map
 7. `spellLayer` + `spellContainers` Map (AOE world-space — cercle/cône/ligne)
 8. `drawLayer` + freehand paths
-9. `previewShape`
+9. `wallLayer` + murs/portes blueprint (lignes PixiJS) ← Vague 9
+10. `audioZoneLayer` + zones sonores (cercles semi-transparents, GM seulement) ← Vague 9
+11. `terrainLayer` + zones terrain (rectangles colorés semi-transparents + labels) ← Wave 10
+12. `movePathG` + chemin de déplacement (ligne jaune pointillée) ← Wave 10
+13. `previewShape`
 - `weatherLayer` → `app.stage` (screen-space)
 - `floatTextLayer` → `app.stage` (screen-space, textes dés flottants)
 - `minimapCanvas` → overlay HTML (bottom-right, GM seulement)
@@ -194,6 +241,8 @@ type UndoEntry =
   vaultPath, vttMode, fitRequest, activeTokenId,
   externalPing, externalCamera, externalRoll,
   drawPaths, drawColor, drawWidth,
+  walls?: WallDef[],       // ← Vague 9
+  audioZones?: AudioZoneDef[],  // ← Vague 9
   onFowUpdate, onTokenMove, onTokenUpdate, onTokenDelete, onTokenDrop,
   onPinPlace, onPinDelete,
   onPinReveal,    // ← Vague 6 — toggle pin.revealed (clic droit sur pin secret)
@@ -229,6 +278,13 @@ setWeather(w)
 
 // Draw
 addDrawPath(path), undoDrawPath(), clearDrawPaths()
+
+// Murs & Blueprint ← Vague 9
+addGmWall(wall), removeGmWall(id), clearGmWalls(), undoGmWall()
+toggleGmDoor(id)   // bascule isOpen sur un mur de type 'door'
+
+// Zones Audio ← Vague 9
+addGmAudioZone(zone), removeGmAudioZone(id)
 
 // Undo global
 pushUndo(entry), undoMapAction(), canUndo()
@@ -525,6 +581,12 @@ GM → Vue Joueur (Tauri emit/listen) :
   set_campaign_title  → { title }                     ← Vague 7
   dice_roll_broadcast → { die, total, formula }       ← Vague 8
   map_snapshot        → { dataUrl }                   ← Vague 8
+  update_combatants   → { combatants, active, currentTurn, combatRound }  ← Wave 10
+  spotlight_token     → { tokenId }                   ← Wave 10
+  ambient_text        → { text }                      ← Wave 10
+  shared_note         → { id, title, body }           ← Wave 10
+  update_terrain      → TerrainZone[]                 ← Wave 10
+  fit_camera          → {}  ← Wave 13 (signal : joueur fait son propre fitMapToScreen)
 ```
 
 ---
@@ -610,6 +672,79 @@ fn sanitize_fts_query(raw: &str) -> String {
 
 ## VTT — Fonctionnalités par vague
 
+### Wave 13 — Bugfixes FOW + UX (2026-05-16)
+
+**Brouillard de guerre — tokens cachés côté joueur**
+- **`isTokenRevealed(tx, ty)`** — nouvelle fonction dans `MapCanvas.svelte`. Appelée dans le **ticker PIXI** (60fps) pour chaque token côté joueur (`!isGM`). Lit `fowEnabled` et `fowShapes` directement depuis la closure sans dépendance à la réactivité Svelte.
+  - `fowEnabled=false` → toujours révélé (token visible)
+  - Aucune forme `reveal` → en brouillard (token caché)
+  - Dans une forme `reveal` + dans une forme `hide` → en brouillard (hide masque le reveal)
+  - Dans une forme `reveal` sans `hide` → révélé (token visible)
+- **Ticker PIXI** — logique fog ajoutée dans la boucle d'animation : `container.visible = !gmHidden && !inFog` pour tous les tokens côté joueur.
+
+**ConditionWheel — bouton suppression token**
+- `onDelete?: (id: string) => void` ajouté à `ConditionWheel.svelte`
+- Bouton 🗑️ dans le SVG (cercle rouge au centre bas de la roue), visible uniquement si `onDelete` est fourni
+- Câblé dans `MapCanvas.svelte` : `onDelete={(id) => { onTokenDelete(id); condWheelTokenId = null; }}`
+
+**Fit-to-screen PlayerView**
+- Quand le MJ clique "fit to screen" (fitRequest), `MapCanvas` émet maintenant `fit_camera` (en plus de `sync_camera`)
+- `PlayerView.svelte` : listener `fit_camera` → `playerFitRequest++` → passé comme `fitRequest` au `MapCanvas` joueur
+- Résultat : chaque vue calcule son propre `fitMapToScreen()` avec ses propres dimensions d'écran
+
+**toggleFow — réinitialisation des formes**
+- Quand le fog est ré-activé (OFF→ON), `toggleFow()` vide maintenant `vttStore.fowShapes` et émet `update_fow: []` au joueur
+- Comportement : réactivation = ardoise vierge (tout caché), le MJ redessine les zones à révéler
+
+**Bug fix — MonsterLibrary.svelte**
+- Import manquant `readFileBase64` ajouté depuis `$lib/api`
+
+---
+
+### Wave 10–12 (complète — 2026-05-16)
+
+**GM Tools & Utilitaires**
+- **ConditionWheel** (`ConditionWheel.svelte`) — roue radiale SVG (8 conditions) positionnée au clic droit sur un token. Clic + shift = TokenSettingsModal. Coordonnées : `e.global.x/y` PixiJS → position écran fixe, centrage via `transform:translate(-50%,-50%)`.
+- **Combat Log** (`CombatLog.svelte`) — log auto-scroll, typé (damage/heal/death/turn/condition/info), export clipboard, bouton clear. Entrées auto-ajoutées par `nextTurn()` et `updateCombatantHp()` dans le store.
+- **Damage Calculator** (`DamageCalculator.svelte`) — parser regex dice (`parseDice()`), sélection multi-cibles combattants, support demi-dégâts, appelle `updateCombatantHp()`.
+- **NPC Relation Map** (`NpcRelationMap.svelte`) — graphe SVG drag-drop, 5 types de liens (ally/enemy/neutral/family/secret), flèches colorées avec markers SVG, export SVG.
+- **Quick Loot Modal** (`QuickLootModal.svelte`) — 4 niveaux de richesse, système de rareté (commun 55%/rare 14%/légendaire 4%), copy Markdown.
+- **Handout Modal** (`HandoutModal.svelte`) — mode image ou note, file picker → FileReader → base64, appelle `sendHandout()`.
+- **Encounter Generator** (`EncounterGenerator.svelte`) — 12 lieux × 7 temps × 15 menaces × 10 rebondissements, copy Markdown.
+- **Room Generator** (`RoomGenerator.svelte`) — forme/taille/usage/odeur/son/sorties/contenu, copy Markdown.
+- **Weather Planner** (`WeatherPlanner.svelte`) — planificateur 1-7 jours, sélecteur météo par jour + narration + note, appliquer à la carte, copy Markdown.
+- **Duration Tracker** (`DurationTracker.svelte`) — présets (torche/lumière/concentration/poison), +/- rounds par entrée, tick all, animation pulse urgente à ≤1 round.
+- **Shared Notes** (`SharedNotesModal.svelte`) — compose titre+corps, envoie à tous via `addSharedNote()`, historique liste. Affiché côté joueur en overlay (queue FIFO, dismissable).
+- **Session Dashboard mini-log** (`SessionDashboard.svelte`) — bouton 📜 toggle mini-log (6 dernières entrées combatLog, inversé).
+- **MacroBar** (`MacroBar.svelte`) — réécrit : drag-drop réordonnance, édition inline clic-droit, historique 12 commandes, `/heal` logue dans combatLog.
+
+**VTT MapCanvas**
+- **Camera sync throttlée** — `emitCameraThrottled()` (80ms) pendant pan/zoom ; `emitCamera()` sur release. Zoom clamped `ZOOM_MIN=0.05` / `ZOOM_MAX=8`.
+- **Terrain Zones** — mode 'terrain' : glisser pour dessiner un rectangle, `addTerrainZone()` sur release. 5 types (difficile/eau/feu/poison/sûr) avec couleurs distinctes. Rendu `terrainLayer` PixiJS avec label.
+- **Export PNG** — `vttStore.exportRequest++` → `$effect` dans MapCanvas → `exportMapPng()` via `app.renderer.extract.canvas()`.
+- **Token size = grid** — `addGmToken` normalise `size` à `vttStore.gridSize` si `size <= 0`.
+- **Movement path** — ligne jaune pointillée + label "N cases" pendant le drag d'un token (`movePathG: PIXI.Graphics`).
+- **HP bar proportionnelle** — `barW = Math.max(30, token.size * 0.85)`.
+
+**Store (`vtt.svelte.ts`) — Nouvelles fonctions**
+```typescript
+addCombatLogEntry(entry), clearCombatLog()
+addTerrainZone(zone), removeTerrainZone(id), clearTerrainZones()  // → emit update_terrain
+addSharedNote(title, body), removeSharedNote(id)                  // → emit shared_note
+sendHandout(type, content, title?)                                 // → emit show_handout
+setSpotlightToken(id)                                             // → emit spotlight_token
+sendAmbientText(text)                                             // → emit ambient_text
+```
+
+**PlayerView.svelte — Nouveaux listeners**
+```
+update_combatants → { combatants, active, currentTurn, combatRound }  (badge R.N sur initiative)
+spotlight_token   → { tokenId }
+ambient_text      → { text }  (overlay 6s auto-dismiss)
+shared_note       → { id, title, body }  (queue FIFO, overlay dismissable)
+countdown_start/stop → compte à rebours anneau SVG
+```
+
 ### Vague 8 (complète — 2026-05-14)
 - **Journal de Campagne Mobile** — Onglet "Journal" sur mobile; auto-save côté GM dans `Journal/Journal_DD-MM-YYYY.md`.
 - **Mini-Map Mobile (Snapshots)** — Bouton "Pousser Carte" GM; capture canvas PixiJS → JPEG base64 → broadcast aux mobiles.
@@ -664,7 +799,54 @@ fn sanitize_fts_query(raw: &str) -> String {
 
 ---
 
-## État du projet (2026-05-13)
+## Bugs corrigés (session 2026-05-16)
+
+50+ erreurs TypeScript et 1 warning Rust corrigés :
+
+- **`vtt.svelte.ts`** — propriétés dupliquées dans `saveGmSession()` (`drawPaths`, `walls`, `audioZones` apparaissaient deux fois dans le littéral objet) → suppression des lignes dupliquées
+- **`vtt.svelte.ts`** — types `WallDef` et `AudioZoneDef` extraits en types exportés ; `MapScene` mis à jour pour utiliser ces types ; `SessionData` corrigé (champs sans `?` optionnel)
+- **`MapCanvas.svelte`** — `renderDrawPaths()` manquante → ajoutée (PixiJS v8 `setStrokeStyle` + `stroke()`)
+- **`MapCanvas.svelte`** — `'blueprint'`/`'audio-zone'` absents du type union `vttMode` → ajoutés
+- **`MapCanvas.svelte`** — imports `vttStore`, `addGmWall`, `addGmAudioZone`, `toggleGmDoor`, `removeGmAudioZone` manquants → ajoutés
+- **`MapCanvas.svelte`** — `minimapCanvas` typé `$state(undefined as unknown as HTMLCanvasElement)` → `$state<HTMLCanvasElement | null>(null)`
+- **`MapCanvas.svelte`** — fuite mémoire : cleanup `zoneAudioObjects` dans `onDestroy` → ajouté
+- **`Calendar.svelte`** — `$state<CalState>({...})` (générique interdit TS 6) + variable nommée `state` (conflit rune dans template) → renommée `cal`, type explicite `let cal: CalState = $state({...})`
+- **`PlayerHub.svelte`** — import `.svelte.ts` avec extension → suppression de `.ts`
+- **`PlayerHub.svelte`** — `onMount(async) → Promise<cleanup>` refusé par TS 6 → pattern IIFE + tableau `_unlistenHub`
+- **`PlayerHub.svelte`** — `serverInfo.url` → `serverInfo!.url` (null possible)
+- **`App.svelte`** — même correction `onMount(async)` → IIFE + `_unlistenApp[]`
+- **`PlayerView.svelte`** — narrowing `ctx` null dans closures (TS 6) → pattern deux étapes `ctxRaw`/`ctx`
+- **`PlayerView.svelte`** — `$state<any[]>([])` remplacé par types stricts : `FowShape[]`, `Token[]`, `MapPin[]`, `DrawPath[]`, `SpellMarker[]`, `WallDef[]`, `AudioZoneDef[]`
+- **`PlayerView.svelte`** — `t.hp / t.maxHp` potentiellement undefined → `t.hp ?? t.maxHp ?? 0` et `t.maxHp ?? 1`
+- **`PlayerManager.svelte`** — `createDirectory` manquant dans les imports de `$lib/api` → ajouté
+- **`VTTToolbar.svelte`** — 42 lignes de CSS mort (sélecteurs `.weather-*`, `.spell-*` inutilisés) → supprimés
+- **`GraphView.svelte`** — simulation D3 non stoppée avant re-render (fuite mémoire) → stop + null + `onDestroy` ajoutés
+- **`tsconfig.app.json`** — `"baseUrl": "."` déprécié rejeté par TS → supprimé ; paths mis à jour avec préfixe `./`
+- **`src-tauri/Cargo.toml`** — dépendance `opener = "0.7"` ajoutée pour URL cross-platform
+- **`src-tauri/commands/vault.rs`** — `xdg-open` (Linux seulement) remplacé par `opener::open_browser()` (cross-platform)
+- **`src-tauri/commands/config.rs`** — `let mut h = |pairs|` → `let h = |pairs|` (warning `unused_mut` Rust)
+
+---
+
+## Composants Wave 10–12 — Tableau de référence
+
+| Composant | Bouton | Type | Notes |
+|---|---|---|---|
+| `DamageCalculator` | 💥 | Modal (backdrop propre) | `onclose` requis |
+| `EncounterGenerator` | ⚡ | Modal (backdrop propre) | `onclose` requis |
+| `RoomGenerator` | 🏚️ | Modal (backdrop propre) | `onclose` requis |
+| `WeatherPlanner` | 🌦️ | Modal (backdrop propre) | `onclose` requis |
+| `SharedNotesModal` | 📋 | Modal (backdrop propre) | `onclose` requis |
+| `CombatLog` | 📜 | Float panel | Pas de `onclose`, contrôlé par toolbar |
+| `NpcRelationMap` | 🕸️ | Float panel wide | Idem |
+| `DurationTracker` | ⏱️ | Float panel narrow | Idem |
+| `ConditionWheel` | (clic droit token) | Position fixed screen-space | Coordonnées PixiJS `e.global.x/y` |
+| `HandoutModal` | 📤 | Modal | `onclose` requis |
+| `QuickLootModal` | 💰 | Modal | `onclose` requis |
+
+---
+
+## État du projet (2026-05-16)
 
 ### Fonctionnalités complètes
 - Onboarding + wizard vault
@@ -692,7 +874,7 @@ fn sanitize_fts_query(raw: &str) -> String {
   - **Combat HUD Mobile** : Interface optimisée pour le suivi des PV et actions rapides en combat.
   - **Animations & Particules** : Feedback visuel viscéral (sang, tremblements d'écran lors des coups critiques).
 
-### Bugs corrigés (sessions 2026-05-10 à 2026-05-12)
+### Bugs corrigés (sessions 2026-05-10 à 2026-05-16)
 - Token images : `convertFileSrc` → `readFileBase64` pipeline
 - Token names mixés : `$effect` compare par `t?.id !== editToken?.id`
 - Token WebGL atlas corruption : `tokenSprite.visible = false` jusqu'au `img.onload`
@@ -711,6 +893,7 @@ fn sanitize_fts_query(raw: &str) -> String {
 - `CharacterCreator` profil : `profil.ini` → `profil.init`
 - `CharacterCreator` compétences : `comps: skills` (tableau, pas string)
 - Code Cleanup (Wave 9 Final) : Correction des types TypeScript (`any`), suppression des logs de debug, optimisation de la persistance multimap et nettoyage des assets par défaut.
+- **Session 2026-05-16** : 50+ erreurs TS/Svelte corrigées — types dupliqués, `WallDef`/`AudioZoneDef` centralisés, pattern `onMount` IIFE, narrowing canvas TS 6, `renderDrawPaths` manquant, `Calendar` renommé `cal`, imports manquants, CSS mort supprimé, simulation D3 cleanée, `tsconfig` baseUrl corrigé, `opener` cross-platform pour Rust.
 
 ## État de Production (v0.1.0)
 - **Cible** : Windows (x64) & Linux (Debian/Ubuntu).

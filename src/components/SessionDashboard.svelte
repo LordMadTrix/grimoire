@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { vttStore, nextTurn, prevTurn } from '$lib/stores/vtt.svelte';
+  import { vttStore, nextTurn, prevTurn, syncCombatantsToPlayerView } from '$lib/stores/vtt.svelte';
+
+  const TYPE_ICON: Record<string, string> = { damage: '⚔️', heal: '💚', death: '💀', turn: '🎯', condition: '🔮', info: 'ℹ️' };
+  const TYPE_COLOR: Record<string, string> = { damage: '#ef4444', heal: '#22c55e', death: '#7f1d1d', turn: '#e5a853', condition: '#a855f7', info: '#8899b7' };
+
+  let showLog = $state(false);
 
   let timerDisplay = $state('00:00');
   let timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -47,6 +52,7 @@
       <button class="timer-btn" class:active={vttStore.sessionTimerStart !== null} onclick={toggleTimer} title="Timer session">
         ⏱️ {timerDisplay}
       </button>
+      <button class="log-btn" class:active={showLog} onclick={() => showLog = !showLog} title="Log de combat">📜</button>
     </div>
     <button class="collapse-btn" onclick={() => collapsed = !collapsed}>{collapsed ? '◀' : '▶'}</button>
   </div>
@@ -72,6 +78,22 @@
         </div>
       {/each}
     </div>
+
+    {#if showLog}
+      <div class="mini-log">
+        {#if vttStore.combatLog.length === 0}
+          <div class="mini-log-empty">Aucune action</div>
+        {:else}
+          {#each vttStore.combatLog.slice(-6).reverse() as entry (entry.id)}
+            <div class="mini-log-row">
+              <span style="color:{TYPE_COLOR[entry.type]}">{TYPE_ICON[entry.type]}</span>
+              <span class="mini-log-actor" style="color:{TYPE_COLOR[entry.type]}">{entry.actor}</span>
+              {#if entry.detail}<span class="mini-log-detail">{entry.detail}</span>{/if}
+            </div>
+          {/each}
+        {/if}
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -131,6 +153,24 @@
   }
   .timer-btn.active { color: #22c55e; }
   .timer-btn:hover { background: rgba(255,255,255,0.06); }
+  .log-btn {
+    background: transparent; border: none; cursor: pointer; font-size: 12px; opacity: 0.6; padding: 1px 3px;
+  }
+  .log-btn.active { opacity: 1; }
+  .log-btn:hover { opacity: 1; }
+  .mini-log {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 5px 10px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .mini-log-empty { font-size: 10px; color: #4a5568; font-style: italic; }
+  .mini-log-row {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; font-family: monospace; padding: 1px 0;
+  }
+  .mini-log-actor { font-weight: 700; }
+  .mini-log-detail { color: #8899b7; }
 
   .collapse-btn {
     background: transparent;

@@ -16,6 +16,8 @@
   import PlayerManager from './components/PlayerManager.svelte';
   import PlayerMobileManager from './components/PlayerMobileManager.svelte';
   import MacroBar from './components/MacroBar.svelte';
+  import NotificationToast from './components/NotificationToast.svelte';
+  import { notifStore } from '$lib/stores/notifications.svelte';
   import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView } from '$lib/api';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
@@ -27,6 +29,7 @@
     addDrawPath,
     saveGmSession, loadGmSession,
     addMapScene, switchMapScene, removeMapScene, renameMapScene,
+    syncCombatantsToPlayerView,
   } from '$lib/stores/vtt.svelte';
   import { listen } from '@tauri-apps/api/event';
 
@@ -137,6 +140,9 @@
     vttStore.activeMapId;
     vttStore.drawPaths;
 
+    // Sync combat state to player view automatically
+    syncCombatantsToPlayerView();
+
     const vp = getVaultPath();
     if (!vp) return;
     if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
@@ -146,48 +152,66 @@
     }, 2000);
   });
 
-  onMount(async () => {
-    const lastVault = localStorage.getItem('last_vault_path');
-    if (lastVault) {
-      try {
-        await loadVault(lastVault);
-      } catch {
-        localStorage.removeItem('last_vault_path');
+  const _unlistenApp: (() => void)[] = [];
+  onMount(() => {
+    (async () => {
+      const lastVault = localStorage.getItem('last_vault_path');
+      if (lastVault) {
+        try { await loadVault(lastVault); }
+        catch { localStorage.removeItem('last_vault_path'); }
       }
-    }
-
-    const unlistenVisualRoll = await listen('visual_dice_roll', (event: any) => {
-      const { name, roll } = event.payload;
-      handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
-    });
-
-    const unlistenSketch = await listen('player_sketch_push', (e: any) => {
-      const { data, name } = e.payload;
-      window.dispatchEvent(new CustomEvent('vtt-sketch-push', { 
-        detail: { points: data.points, color: data.color, name } 
+      _unlistenApp.push(await listen('visual_dice_roll', (event: any) => {
+        const { name, roll } = event.payload;
+        handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
+        notifStore.add('🎲', name, `Jet : ${roll.total}${roll.formula ? ' ('+roll.formula+')' : ''}`, 'info', 4000);
       }));
-    });
-
-    const unlistenSpawn = await listen('player_spawn_token', (e: any) => {
-      const { id, name, image } = e.payload;
-      addGmToken({
-        id: Math.random().toString(36).slice(2),
-        name: name || 'Joueur',
-        x: 500, y: 500,
-        size: 50,
-        imageUrl: image || undefined,
-        visible: true,
-        playerId: id
-      });
-      statusMessage = `Pion de ${name} ajouté sur la carte !`;
-      setTimeout(() => statusMessage = '', 3000);
-    });
-
-    return () => {
-      unlistenVisualRoll();
-      unlistenSketch();
-      unlistenSpawn();
-    };
+      _unlistenApp.push(await listen('player_sketch_push', (e: any) => {
+        const { data, name } = e.payload;
+        window.dispatchEvent(new CustomEvent('vtt-sketch-push', {
+          detail: { points: data.points, color: data.color, name }
+        }));
+        notifStore.add('✏️', name, 'A envoyé un sketch', 'info', 3000);
+      }));
+      _unlistenApp.push(await listen('player_spawn_token', (e: any) => {
+        const { id, name, image } = e.payload;
+        addGmToken({
+          id: Math.random().toString(36).slice(2),
+          name: name || 'Joueur',
+          x: 500, y: 500,
+          size: 50,
+          imageUrl: image || undefined,
+          visible: true,
+          playerId: id
+        });
+        notifStore.add('🎭', name, 'Veut placer son pion sur la carte', 'info', 5000);
+      }));
+      _unlistenApp.push(await listen('player_joined', (e: any) => {
+        notifStore.add('👤', 'Joueur connecté', e.payload.name, 'success', 5000);
+      }));
+      _unlistenApp.push(await listen('player_left', (e: any) => {
+        notifStore.add('👤', 'Joueur déconnecté', e.payload.name, 'warn', 4000);
+      }));
+      _unlistenApp.push(await listen('player_chat', (e: any) => {
+        const { name, message, private: priv, group } = e.payload;
+        if (priv) notifStore.add('🔒', `Chuchotement — ${name}`, message, 'warn', 8000);
+        else if (!group) notifStore.add('💬', name, message, 'info', 5000);
+      }));
+      _unlistenApp.push(await listen('player_xp_request', (e: any) => {
+        const { name, amount } = e.payload;
+        notifStore.add('✨', 'Demande XP', `${name} demande ${amount} XP`, 'warn', 0);
+      }));
+      _unlistenApp.push(await listen('player_poll_vote', (e: any) => {
+        notifStore.add('📊', 'Vote', `${e.payload.name} : ${e.payload.option}`, 'info', 3000);
+      }));
+      _unlistenApp.push(await listen('player_initiative', (e: any) => {
+        const { name, data } = e.payload;
+        notifStore.add('⚡', 'Initiative', `${name} : ${data?.result ?? '?'}`, 'info', 4000);
+      }));
+      _unlistenApp.push(await listen('player_roll', (e: any) => {
+        notifStore.add('🎲', e.payload.name, JSON.stringify(e.payload.data ?? ''), 'info', 4000);
+      }));
+    })();
+    return () => _unlistenApp.forEach(fn => fn());
   });
 
   async function loadVault(vaultPath: string) {
@@ -287,6 +311,7 @@
     });
     if (vttStore.campaignTitle) emitToPlayerView('set_campaign_title', { title: vttStore.campaignTitle });
     emitToPlayerView('toggle_fow', { enabled: vttStore.fowEnabled });
+    syncCombatantsToPlayerView();
   }
 
   async function openOnMonitor(index: number) {
@@ -493,7 +518,7 @@
                 >{scene.name}</button>
                 <button
                   class="scene-tab-close"
-                  onclick={(e) => { e.stopPropagation(); if (vttStore.maps.length === 1 || window.confirm(`Supprimer la scène "${scene.name}" ?`)) removeMapScene(scene.id); }}
+                  onclick={(e) => { e.stopPropagation(); removeMapScene(scene.id); }}
                   title="Supprimer cette scène"
                 >×</button>
               </div>
@@ -536,6 +561,7 @@
             onSpellDelete={removeSpell}
             walls={vttStore.walls}
             audioZones={vttStore.audioZones}
+            terrainZones={vttStore.terrainZones}
           />
           <div class="macro-bar-container">
             <MacroBar onRollRequest={handleMapRoll} />
@@ -572,6 +598,8 @@
     {statusMessage}
   </div>
 {/if}
+
+<NotificationToast />
 
 <style>
   .app-layout {
@@ -857,8 +885,8 @@
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
     border-radius: 4px 4px 0 0;
-    overflow: hidden;
     transition: all 0.1s;
+    flex-shrink: 0;
   }
   .scene-tab-wrap:hover { background: var(--bg-hover); }
   .scene-tab-wrap.active {
@@ -870,27 +898,30 @@
     background: transparent;
     border: none;
     color: var(--text-muted);
-    padding: 3px 8px 3px 12px;
+    padding: 3px 4px 3px 10px;
     font-size: 11px;
     cursor: pointer;
     white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .scene-tab-wrap:hover .scene-tab { color: var(--text-primary); }
   .scene-tab-wrap.active .scene-tab { color: var(--accent); font-weight: 600; }
 
   .scene-tab-close {
+    flex-shrink: 0;
     background: transparent;
     border: none;
-    color: var(--text-muted);
-    padding: 2px 6px;
-    font-size: 13px;
+    color: #ef4444;
+    padding: 2px 8px;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
     line-height: 1;
-    opacity: 0;
-    transition: opacity 0.15s, color 0.15s;
+    transition: opacity 0.15s;
   }
-  .scene-tab-wrap:hover .scene-tab-close { opacity: 1; }
-  .scene-tab-close:hover { color: #ef4444; }
+  .scene-tab-close:hover { opacity: 0.7; }
 
   /* ── Status Bar ───────────────────────────────────────────── */
 

@@ -6,6 +6,7 @@
     getPlayerConnections, getServerStatus,
     applyDamageToPlayer, applyConditionToPlayer, removeConditionFromPlayer,
     setActiveTurn, approveXpRequest,
+    sendPrivateMessage, startPoll, endPoll,
     type ServerInfo, type PlayerInfo,
   } from '$lib/api';
   import { vttStore } from '$lib/stores/vtt.svelte';
@@ -31,6 +32,16 @@
   let showHandoutForm = $state(false);
   let handoutTitle    = $state('');
   let handoutText     = $state('');
+
+  // Sondage rapide
+  let showPollForm    = $state(false);
+  let pollQuestion    = $state('');
+  let pollOptions     = $state(['', '']);
+  let pollActive      = $state(false);
+  let pollResults     = $state<Record<string, { count: number; voters: string[] }>>({});
+
+  // Message privé
+  let privateInputs   = $state<Record<string, string>>({});
 
   const CONDITIONS = ['Étourdi','Assommé','À Terre','Aveuglé','Effrayé','Paralysé','Empoisonné','Saignant'];
 
@@ -111,6 +122,33 @@
 
   function copyUrl() {
     if (serverInfo) navigator.clipboard.writeText(serverInfo.url);
+  }
+
+  async function handleSendPrivate(playerId: string) {
+    const msg = privateInputs[playerId]?.trim();
+    if (!msg) return;
+    try {
+      await sendPrivateMessage(playerId, msg);
+      addLog('MJ → ' + pName(playerId), `🔒 ${msg}`);
+      privateInputs = { ...privateInputs, [playerId]: '' };
+    } catch (e) { addLog('Erreur', String(e)); }
+  }
+
+  async function handleStartPoll() {
+    const opts = pollOptions.filter(o => o.trim());
+    if (!pollQuestion.trim() || opts.length < 2) return;
+    pollResults = {};
+    opts.forEach(o => { pollResults[o] = { count: 0, voters: [] }; });
+    await startPoll(pollQuestion.trim(), opts);
+    pollActive = true;
+    showPollForm = false;
+    addLog('Système', `📊 Sondage lancé : "${pollQuestion}"`);
+  }
+
+  async function handleEndPoll() {
+    await endPoll();
+    pollActive = false;
+    addLog('Système', '📊 Sondage terminé');
   }
 
   // ── Card expand/collapse ─────────────────────────────────────────────────────
@@ -218,7 +256,16 @@
     }));
     unlistens.push(await listen<any>('player_play_sound', ({ payload }) => {
       addLog(payload.name, `🔊 a joué un son (${payload.sound_id})`);
-      // Logique pour jouer le son côté GM si désiré
+    }));
+    unlistens.push(await listen<any>('player_poll_vote', ({ payload }) => {
+      const opt = payload.option as string;
+      if (!pollResults[opt]) pollResults[opt] = { count: 0, voters: [] };
+      if (!pollResults[opt].voters.includes(payload.name)) {
+        pollResults[opt].count++;
+        pollResults[opt].voters.push(payload.name);
+        pollResults = { ...pollResults };
+      }
+      addLog(payload.name, `📊 a voté : "${opt}"`);
     }));
   });
 
@@ -350,6 +397,17 @@
                     >
                       {p.active_turn ? '⏹ Fin du tour' : '⚡ C\'est son tour'}
                     </button>
+                    <!-- Message privé -->
+                    <div class="pm-ctrl-row">
+                      <input
+                        class="pm-ctrl-inp"
+                        placeholder="Message privé…"
+                        bind:value={privateInputs[p.id]}
+                        onkeydown={(e) => e.key === 'Enter' && handleSendPrivate(p.id)}
+                        style="flex:1"
+                      />
+                      <button class="pm-ctrl-btn" onclick={() => handleSendPrivate(p.id)}>🔒 Envoyer</button>
+                    </div>
                   </div>
                 {/if}
 
@@ -373,6 +431,9 @@
             <button class="pm-btn-action" onclick={broadcastCombat}>⚔️ Combat</button>
             <button class="pm-btn-action" onclick={pingAll}>📢 Ping</button>
             <button class="pm-btn-action" class:pm-btn-action-active={showHandoutForm} onclick={() => showHandoutForm = !showHandoutForm}>📋 Handout</button>
+            <button class="pm-btn-action" class:pm-btn-action-active={showPollForm || pollActive} onclick={() => { if (pollActive) handleEndPoll(); else showPollForm = !showPollForm; }}>
+              {pollActive ? '📊 Terminer sondage' : '📊 Sondage'}
+            </button>
           </div>
 
           {#if showHandoutForm}
@@ -393,6 +454,42 @@
               <button class="pm-btn-start" onclick={sendHandout} style="font-size:12px;padding:7px">
                 📤 Envoyer à tous les joueurs
               </button>
+            </div>
+          {/if}
+
+          <!-- Formulaire de sondage -->
+          {#if showPollForm && !pollActive}
+            <div class="pm-handout-form">
+              <input class="pm-ctrl-inp" placeholder="Question du sondage…" bind:value={pollQuestion} style="width:100%" />
+              {#each pollOptions as _, i}
+                <div class="pm-ctrl-row">
+                  <input class="pm-ctrl-inp" placeholder="Option {i+1}…" bind:value={pollOptions[i]} style="flex:1" />
+                  {#if pollOptions.length > 2}
+                    <button class="pm-ctrl-btn pm-ctrl-red" onclick={() => pollOptions = pollOptions.filter((_, j) => j !== i)}>✕</button>
+                  {/if}
+                </div>
+              {/each}
+              {#if pollOptions.length < 4}
+                <button class="pm-btn-ghost" onclick={() => pollOptions = [...pollOptions, '']}>+ Option</button>
+              {/if}
+              <button class="pm-btn-start" onclick={handleStartPoll} style="font-size:12px;padding:7px">📊 Lancer le sondage</button>
+            </div>
+          {/if}
+
+          <!-- Résultats du sondage en cours -->
+          {#if pollActive}
+            <div class="pm-poll-results">
+              <div class="pm-section-title">📊 {pollQuestion}</div>
+              {#each Object.entries(pollResults) as [opt, res]}
+                {@const total = Object.values(pollResults).reduce((s, r) => s + r.count, 0)}
+                <div class="pm-poll-row">
+                  <span class="pm-poll-opt">{opt}</span>
+                  <div class="pm-poll-bar-wrap">
+                    <div class="pm-poll-bar" style="width:{total > 0 ? (res.count/total*100).toFixed(0) : 0}%"></div>
+                  </div>
+                  <span class="pm-poll-count">{res.count}</span>
+                </div>
+              {/each}
             </div>
           {/if}
 
@@ -909,4 +1006,20 @@
   .pm-log-time { color: var(--text-muted); }
   .pm-log-from { color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pm-log-msg  { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Poll ──────────────────────────────────────────────────────── */
+  .pm-poll-results {
+    background: var(--bg-primary);
+    border-radius: 6px;
+    padding: 8px;
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .pm-poll-row { display: flex; align-items: center; gap: 6px; }
+  .pm-poll-opt { font-size: 11px; color: var(--text-primary); width: 80px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pm-poll-bar-wrap { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+  .pm-poll-bar { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s; }
+  .pm-poll-count { font-size: 11px; color: var(--accent); width: 18px; text-align: right; flex-shrink: 0; }
 </style>

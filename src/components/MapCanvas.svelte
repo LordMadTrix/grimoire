@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import * as PIXI from 'pixi.js';
-  import type { FowShape, Token, MapPin, SpellMarker, DrawPath } from '$lib/stores/vtt.svelte';
+  import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef, TerrainZone } from '$lib/stores/vtt.svelte';
+  import { vttStore, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone } from '$lib/stores/vtt.svelte';
+  import ConditionWheel from './ConditionWheel.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
   import { readFileBase64, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
@@ -16,7 +18,7 @@
     tokens = [],
     pins = [] as MapPin[],
     vaultPath = '',
-    vttMode = 'select',
+    vttMode = 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain',
     fitRequest = 0,
     activeTokenId = null as string | null,
     externalPing = null as { x: number; y: number; seq: number } | null,
@@ -39,8 +41,10 @@
     onDrawPath = (_path: DrawPath) => {},
     onPinReveal = (_id: string) => {},
     fowEnabled = true,
-    walls = [] as { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[],
-    audioZones = [] as { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[],
+    walls = [] as WallDef[],
+    audioZones = [] as AudioZoneDef[],
+    spotlightTokenId = null as string | null,
+    terrainZones = [] as TerrainZone[],
   }: {
     mapUrl?: string | null;
     gridEnabled?: boolean;
@@ -52,7 +56,7 @@
     spells?: SpellMarker[];
     weather?: string;
     vaultPath?: string;
-    vttMode?: 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw';
+    vttMode?: 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain';
     fitRequest?: number;
     activeTokenId?: string | null;
     externalPing?: { x: number; y: number; seq: number } | null;
@@ -73,12 +77,14 @@
     onDrawPath?: (path: DrawPath) => void;
     onPinReveal?: (id: string) => void;
     fowEnabled?: boolean;
-    walls?: { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[];
-    audioZones?: { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[];
+    walls?: WallDef[];
+    audioZones?: AudioZoneDef[];
+    spotlightTokenId?: string | null;
+    terrainZones?: TerrainZone[];
   } = $props();
 
   let canvasContainer: HTMLDivElement;
-  let minimapCanvas: HTMLCanvasElement;
+  let minimapCanvas = $state<HTMLCanvasElement | null>(null);
   let minimapImg: HTMLImageElement | null = null;
   let minimapImgReady = false;
   let app: PIXI.Application;
@@ -130,6 +136,7 @@
   let drawLayer: PIXI.Container;
   let wallLayer: PIXI.Container;
   let audioZoneLayer: PIXI.Container;
+  let terrainLayer: PIXI.Graphics;
   let zoneAudioObjects: Map<string, HTMLAudioElement> = new Map();
   let currentFreeDrawG: PIXI.Graphics | null = null;
   let currentFreeDrawPoints: { x: number; y: number }[] = [];
@@ -165,6 +172,10 @@
   let selectedTokenIds = $state<Set<string>>(new Set());
   let dragOffsets = new Map<string, { dx: number; dy: number }>();
 
+  // Chemin de déplacement
+  let movePathG: PIXI.Graphics;
+  let movePathStart: { x: number; y: number } | null = null;
+
   // État du dessin
   let isDrawing = false;
   let drawStartX = 0;
@@ -175,6 +186,19 @@
   let isPanning = false;
   let lastPanX = 0;
   let lastPanY = 0;
+
+  // Throttle pour emitCamera (max 1 envoi / 80ms)
+  let _emitCameraTimer: ReturnType<typeof setTimeout> | null = null;
+  function emitCameraThrottled() {
+    if (_emitCameraTimer) return;
+    _emitCameraTimer = setTimeout(() => {
+      _emitCameraTimer = null;
+      emitCamera();
+    }, 80);
+  }
+
+  const ZOOM_MIN = 0.05;
+  const ZOOM_MAX = 8;
 
   function emitCamera() {
     if (!isGM || !worldContainer) return;
@@ -223,11 +247,15 @@
   $effect(() => {
     if (!fitRequest || !appReady || !worldContainer) return;
     fitMapToScreen();
+    if (isGM) emitToPlayerView('fit_camera', {});
     emitCamera();
   });
 
   // Édition de token
   let editingTokenId = $state<string | null>(null);
+  let condWheelTokenId = $state<string | null>(null);
+  let condWheelX = $state(0);
+  let condWheelY = $state(0);
 
   onMount(async () => {
     app = new PIXI.Application();
@@ -261,6 +289,9 @@
     audioZoneLayer = new PIXI.Container();
     worldContainer.addChild(audioZoneLayer);
 
+    terrainLayer = new PIXI.Graphics();
+    worldContainer.addChild(terrainLayer);
+
     pinLayer = new PIXI.Container();
     worldContainer.addChild(pinLayer);
 
@@ -283,6 +314,9 @@
 
     previewShape = new PIXI.Graphics();
     worldContainer.addChild(previewShape);
+
+    movePathG = new PIXI.Graphics();
+    worldContainer.addChild(movePathG);
 
     window.addEventListener('resize', handleResize);
 
@@ -332,6 +366,13 @@
           container.pivot.x = 0;
           if (isGM) container.alpha = token.visible === false ? 0.45 : 1;
           else container.alpha = 1;
+        }
+
+        // ── Visibilité brouillard de guerre (joueur uniquement) ──
+        if (!isGM) {
+          const gmHidden = token.visible === false;
+          const inFog = !isTokenRevealed(token.x, token.y);
+          container.visible = !gmHidden && !inFog;
         }
       }
 
@@ -539,12 +580,18 @@
 
   onDestroy(() => {
     window.removeEventListener('resize', handleResize);
+    if (_emitCameraTimer) clearTimeout(_emitCameraTimer);
     if (app && isGM) {
       app.canvas.removeEventListener('wheel', onWheel);
     }
     if (fowTexture) fowTexture.destroy(true);
     if (lightTexture) lightTexture.destroy(true);
     if (app) app.destroy(true, { children: true, texture: true });
+    for (const audio of zoneAudioObjects.values()) {
+      audio.pause();
+      audio.src = '';
+    }
+    zoneAudioObjects.clear();
   });
 
   // Réagir aux changements de carte
@@ -581,6 +628,7 @@
   $effect(() => {
     tokens; // track
     selectedTokenIds; // track (pour anneaux de sélection)
+    spotlightTokenId; // track (pour halo spotlight)
     if (!appReady) return;
     renderTokens();
   });
@@ -618,6 +666,20 @@
     walls; // track
     if (!appReady) return;
     renderWalls();
+  });
+
+  // Zones terrain
+  $effect(() => {
+    terrainZones; // track
+    if (!appReady || !terrainLayer) return;
+    renderTerrain();
+  });
+
+  // Export PNG déclenché depuis le toolbar
+  $effect(() => {
+    const req = vttStore.exportRequest;
+    if (!req || !appReady) return;
+    exportMapPng();
   });
 
   // Zones sonores
@@ -875,6 +937,25 @@
     container.destroy({ children: true });
   }
 
+  function isTokenRevealed(tx: number, ty: number): boolean {
+    if (!fowEnabled) return true;
+    function covers(s: FowShape): boolean {
+      if (s.type === 'circle') {
+        const dx = tx - s.x, dy = ty - s.y;
+        return Math.sqrt(dx * dx + dy * dy) <= (s.radius ?? 0);
+      }
+      const w = s.width ?? 0, h = s.height ?? 0;
+      const x1 = w >= 0 ? s.x : s.x + w;
+      const y1 = h >= 0 ? s.y : s.y + h;
+      return tx >= x1 && tx <= x1 + Math.abs(w) && ty >= y1 && ty <= y1 + Math.abs(h);
+    }
+    // Le token est révélé s'il est dans une zone reveal ET pas dans une zone hide (hide masque un reveal)
+    const inReveal = fowShapes.some(s => s.op === 'reveal' && covers(s));
+    if (!inReveal) return false;
+    const inHide = fowShapes.some(s => s.op === 'hide' && covers(s));
+    return !inHide;
+  }
+
   function renderTokens() {
     if (!tokenLayer || !backgroundSprite) return;
 
@@ -931,7 +1012,16 @@
           container.eventMode = 'static';
           container.cursor = 'pointer';
           container.on('pointerdown', (e) => onTokenPointerDown(e, token.id));
-          container.on('rightclick', (e) => { e.stopPropagation(); editingTokenId = token.id; });
+          container.on('rightclick', (e) => {
+            e.stopPropagation();
+            if (e.shiftKey) {
+              editingTokenId = token.id;
+            } else {
+              condWheelTokenId = token.id;
+              condWheelX = e.global.x;
+              condWheelY = e.global.y;
+            }
+          });
         }
         tokenLayer.addChild(container);
         tokenSprites.set(token.id, container);
@@ -1034,13 +1124,13 @@
       textT.text = token.name || 'Inconnu';
       textT.y = -r - 10;
 
-      // Barre de vie — API PixiJS v8
+      // Barre de vie — proportionnelle au token
       hpBar.clear();
       if (token.maxHp && token.maxHp > 0) {
         const hp = token.hp ?? token.maxHp;
         const pct = Math.max(0, Math.min(1, hp / token.maxHp));
-        const barW = 40;
-        const barH = 6;
+        const barW = Math.max(30, token.size * 0.85);
+        const barH = Math.max(5, token.size * 0.1);
         hpBar.rect(-barW / 2, r + 4, barW, barH);
         hpBar.fill({ color: 0x000000, alpha: 0.8 });
         hpBar.rect(-barW / 2 + 1, r + 5, (barW - 2) * pct, barH - 2);
@@ -1085,6 +1175,24 @@
         container.removeChild(concRing); concRing.destroy(); delete (container as any).__concRing;
       }
 
+      // Spotlight halo (doré pulsant — visible côté joueur et GM)
+      let spotRing = (container as any).__spotRing as PIXI.Graphics | undefined;
+      if (spotlightTokenId === token.id) {
+        if (!spotRing) {
+          spotRing = new PIXI.Graphics();
+          container.addChildAt(spotRing, 0); // sous tout le reste
+          (container as any).__spotRing = spotRing;
+        }
+        spotRing.clear();
+        spotRing.setStrokeStyle({ width: 6, color: 0xe5a853, alpha: 0.85 });
+        spotRing.circle(0, 0, r + 16).stroke();
+        spotRing.setStrokeStyle({ width: 2, color: 0xfde68a, alpha: 0.4 });
+        spotRing.circle(0, 0, r + 26).stroke();
+        spotRing.circle(0, 0, r + 16).fill({ color: 0xe5a853, alpha: 0.06 });
+      } else if (spotRing) {
+        container.removeChild(spotRing); spotRing.destroy(); delete (container as any).__spotRing;
+      }
+
       // Conditions
       const condStr = (token.conditions ?? []).map(c => CONDITION_EMOJIS[c] ?? '').join('');
       let condText = (container as any).__condText as PIXI.Text | undefined;
@@ -1113,21 +1221,27 @@
     e.preventDefault();
     if (!worldContainer) return;
 
-    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+    const rawDelta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, worldContainer.scale.x * rawDelta));
+    const zoomDelta = newScale / worldContainer.scale.x;
+
     const globalPos = new PIXI.Point(e.offsetX, e.offsetY);
     const localPos = worldContainer.toLocal(globalPos);
 
-    worldContainer.scale.x *= zoomDelta;
-    worldContainer.scale.y *= zoomDelta;
+    worldContainer.scale.x = newScale;
+    worldContainer.scale.y = newScale;
 
     worldContainer.x = globalPos.x - localPos.x * worldContainer.scale.x;
     worldContainer.y = globalPos.y - localPos.y * worldContainer.scale.y;
+
+    emitCameraThrottled();
   }
 
   function onTokenPointerDown(e: any, id: string) {
     e.stopPropagation();
     if (e.button === 2) {
-      editingTokenId = id;
+      condWheelTokenId = id;
+    condWheelX = 400; condWheelY = 300;
     } else if (vttMode === 'select') {
       if (e.shiftKey) {
         const newSel = new Set(selectedTokenIds);
@@ -1136,9 +1250,9 @@
       } else {
         if (!selectedTokenIds.has(id)) selectedTokenIds = new Set();
         draggedTokenId = id;
-        // Calculer les offsets pour le drag groupé
         const mainToken = tokens.find(t => t.id === id);
         if (mainToken) {
+          movePathStart = { x: mainToken.x, y: mainToken.y };
           dragOffsets = new Map();
           for (const selId of selectedTokenIds) {
             if (selId === id) continue;
@@ -1204,6 +1318,7 @@
       worldContainer.y += dy;
       lastPanX = e.global.x;
       lastPanY = e.global.y;
+      emitCameraThrottled();
       return;
     }
 
@@ -1232,10 +1347,37 @@
       if (sprite) {
         sprite.x = localPos.x;
         sprite.y = localPos.y;
-        // Déplacer aussi les autres tokens sélectionnés
         for (const [selId, off] of dragOffsets) {
           const sel = tokenSprites.get(selId);
           if (sel) { sel.x = localPos.x + off.dx; sel.y = localPos.y + off.dy; }
+        }
+        // Chemin de déplacement
+        if (movePathStart && movePathG) {
+          const dx = localPos.x - movePathStart.x;
+          const dy = localPos.y - movePathStart.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const cases = Math.round((dist / gridSize) * 10) / 10;
+          movePathG.clear();
+          movePathG.setStrokeStyle({ width: 2, color: 0xfbbf24, alpha: 0.85 });
+          // Ligne pointillée
+          const steps = Math.ceil(dist / 12);
+          for (let i = 0; i < steps; i++) {
+            const t0 = i / steps;
+            const t1 = Math.min(1, (i + 0.55) / steps);
+            movePathG.moveTo(movePathStart.x + dx * t0, movePathStart.y + dy * t0);
+            movePathG.lineTo(movePathStart.x + dx * t1, movePathStart.y + dy * t1);
+          }
+          movePathG.stroke();
+          movePathG.circle(movePathStart.x, movePathStart.y, 4).fill({ color: 0xfbbf24, alpha: 0.9 });
+          if (!movePathG.children[0]) {
+            const distText = new PIXI.Text({ text: '', style: { fontFamily: 'sans-serif', fontSize: 13, fontWeight: 'bold', fill: 0xfbbf24, stroke: { color: 0x000000, width: 3 } } });
+            distText.anchor.set(0.5);
+            movePathG.addChild(distText);
+          }
+          const distLabel = movePathG.children[0] as PIXI.Text;
+          distLabel.text = `${cases} case${cases !== 1 ? 's' : ''}`;
+          distLabel.x = movePathStart.x + dx / 2;
+          distLabel.y = movePathStart.y + dy / 2 - 14;
         }
       }
     } else if (isDrawing && previewShape && backgroundSprite) {
@@ -1288,6 +1430,15 @@
         previewShape.rect(drawStartX, drawStartY, dx, dy);
         previewShape.fill({ color: 0xf59e0b, alpha: 0.12 });
         previewShape.stroke();
+      } else if (vttMode === 'terrain') {
+        if (previewShape.children[0]) previewShape.children[0].visible = false;
+        const dx = localPos.x - drawStartX;
+        const dy = localPos.y - drawStartY;
+        const tColor = TERRAIN_COLORS[vttStore.terrainType] ?? 0x7f4f00;
+        previewShape.setStrokeStyle({ width: 2, color: tColor, alpha: 0.9 });
+        previewShape.rect(drawStartX, drawStartY, dx, dy);
+        previewShape.fill({ color: tColor, alpha: 0.22 });
+        previewShape.stroke();
       } else {
         if (previewShape.children[0]) previewShape.children[0].visible = false;
         const isReveal = vttMode === 'fog-reveal';
@@ -1306,6 +1457,7 @@
   function onPointerUp(e: PIXI.FederatedPointerEvent) {
     if (isPanning) {
       isPanning = false;
+      emitCamera();
       return;
     }
 
@@ -1356,6 +1508,8 @@
       }
       dragOffsets = new Map();
       draggedTokenId = null;
+      movePathStart = null;
+      if (movePathG) movePathG.clear();
     } else if (isDrawing && backgroundSprite) {
       isDrawing = false;
       previewShape.clear();
@@ -1383,6 +1537,20 @@
       if (vttMode === 'fog-rect') {
         if (Math.abs(dx) > 5 && Math.abs(dy) > 5) {
           onFowUpdate({ type: 'rect', op: 'reveal', x: drawStartX, y: drawStartY, width: dx, height: dy });
+        }
+        return;
+      }
+
+      if (vttMode === 'terrain') {
+        if (Math.abs(dx) > 10 && Math.abs(dy) > 10) {
+          addTerrainZone({
+            id: Math.random().toString(36).slice(2),
+            x: dx > 0 ? drawStartX : drawStartX + dx,
+            y: dy > 0 ? drawStartY : drawStartY + dy,
+            w: Math.abs(dx),
+            h: Math.abs(dy),
+            type: vttStore.terrainType,
+          });
         }
         return;
       }
@@ -1683,6 +1851,20 @@
     onTokenDrop(imagePath, x, y);
   }
 
+  function renderDrawPaths() {
+    if (!drawLayer) return;
+    drawLayer.removeChildren();
+    for (const path of drawPaths) {
+      if (path.points.length < 2) continue;
+      const g = new PIXI.Graphics();
+      g.setStrokeStyle({ width: path.width, color: path.color, cap: 'round', join: 'round' });
+      g.moveTo(path.points[0].x, path.points[0].y);
+      for (let i = 1; i < path.points.length; i++) g.lineTo(path.points[i].x, path.points[i].y);
+      g.stroke();
+      drawLayer.addChild(g);
+    }
+  }
+
   function renderWalls() {
     if (!wallLayer) return;
     wallLayer.removeChildren();
@@ -1716,6 +1898,45 @@
     }
     // Si on n'est pas MJ, on cache les murs (ils servent juste physiquement à l'ombre)
     wallLayer.visible = isGM;
+  }
+
+  const TERRAIN_COLORS: Record<string, number> = {
+    difficult: 0x7f4f00, water: 0x0088cc, fire: 0xff4400, poison: 0x00aa00, safe: 0x00ff88, custom: 0x8844ff,
+  };
+  const TERRAIN_LABELS: Record<string, string> = {
+    difficult:'Terrain Difficile', water:'Eau', fire:'Feu', poison:'Poison', safe:'Zone Sûre', custom:'Personnalisé',
+  };
+
+  function renderTerrain() {
+    if (!terrainLayer) return;
+    terrainLayer.clear();
+    for (const zone of terrainZones) {
+      const color = zone.color ?? TERRAIN_COLORS[zone.type] ?? 0xffffff;
+      terrainLayer.rect(zone.x, zone.y, zone.w, zone.h);
+      terrainLayer.fill({ color, alpha: 0.22 });
+      terrainLayer.setStrokeStyle({ width: 2, color, alpha: 0.6 });
+      terrainLayer.rect(zone.x, zone.y, zone.w, zone.h).stroke();
+      // Label
+      if (!terrainLayer.children.find((c: any) => c.__zoneId === zone.id)) {
+        const t = new PIXI.Text({
+          text: zone.label || TERRAIN_LABELS[zone.type] || zone.type,
+          style: { fontFamily: 'sans-serif', fontSize: 11, fill: color, stroke: { color: 0x000000, width: 2 } }
+        });
+        t.anchor.set(0.5);
+        t.position.set(zone.x + zone.w / 2, zone.y + zone.h / 2);
+        (t as any).__zoneId = zone.id;
+        terrainLayer.addChild(t);
+      }
+    }
+  }
+
+  export function exportMapPng() {
+    if (!app || !worldContainer) return;
+    const texture = app.renderer.extract.texture(worldContainer);
+    const canvas = app.renderer.extract.canvas(worldContainer) as HTMLCanvasElement;
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url; a.download = 'grimoire-map.png'; a.click();
   }
 
   function renderAudioZones() {
@@ -1881,6 +2102,16 @@
       onTokenDelete(id);
       editingTokenId = null;
     }}
+  />
+{/if}
+
+{#if condWheelTokenId && isGM}
+  <ConditionWheel
+    tokenId={condWheelTokenId}
+    x={condWheelX}
+    y={condWheelY}
+    onclose={() => condWheelTokenId = null}
+    onDelete={(id) => { onTokenDelete(id); condWheelTokenId = null; }}
   />
 {/if}
 

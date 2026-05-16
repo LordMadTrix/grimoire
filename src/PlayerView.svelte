@@ -3,13 +3,14 @@
   import AudioPlayer from './components/AudioPlayer.svelte';
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
+  import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef } from '$lib/stores/vtt.svelte';
 
   let currentMap     = $state<string | null>(null);
   let showGrid       = $state(true);
   let isBlackout     = $state(false);
-  let fowShapes      = $state<any[]>([]);
-  let tokens         = $state<any[]>([]);
-  let pins           = $state<any[]>([]);
+  let fowShapes      = $state<FowShape[]>([]);
+  let tokens         = $state<Token[]>([]);
+  let pins           = $state<MapPin[]>([]);
   let vaultPath      = $state<string>('');
   let audioSrc       = $state<string | null>(null);
   let audioVolume    = $state(0.5);
@@ -18,17 +19,42 @@
   let externalPing   = $state<{ x: number; y: number; seq: number } | null>(null);
   let pingSeq        = 0;
   let externalCamera = $state<{ scaleX: number; scaleY: number; x: number; y: number } | null>(null);
+  let playerFitRequest = $state(0);
   let externalRoll   = $state<{ text: string; seq: number } | null>(null);
   let rollSeq        = 0;
-  let drawPaths      = $state<any[]>([]);
+  let drawPaths      = $state<DrawPath[]>([]);
   let handout        = $state<{ type: 'image' | 'note'; content: string; title?: string } | null>(null);
   let weather        = $state('none');
-  let spells         = $state<any[]>([]);
+  let spells         = $state<SpellMarker[]>([]);
   let campaignTitle  = $state('');
   let fowEnabled     = $state(true);
   let partyState     = $state<any[]>([]);
-  let walls          = $state<any[]>([]);
-  let audioZones     = $state<any[]>([]);
+  let walls          = $state<WallDef[]>([]);
+  let audioZones     = $state<AudioZoneDef[]>([]);
+
+  // ── Nouvelles fonctionnalités vague 10 ───────────────────────────
+  let combatants     = $state<any[]>([]);
+  let combatActive   = $state(false);
+  let currentTurn    = $state(0);
+  let combatRound    = $state(1);
+  let spotlightTokenId = $state<string | null>(null);
+  let ambientText    = $state<string | null>(null);
+  let ambientTextTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── Notes partagées ──────────────────────────────────────────────
+  type SharedNoteOverlay = { id: string; title: string; body: string };
+  let sharedNoteQueue = $state<SharedNoteOverlay[]>([]);
+  let currentSharedNote = $derived(sharedNoteQueue[0] ?? null);
+  function dismissSharedNote() {
+    sharedNoteQueue = sharedNoteQueue.slice(1);
+  }
+
+  // ── Countdown joueur ─────────────────────────────────────────────
+  let countdownEnd   = $state<number | null>(null);
+  let countdownTotal = $state(30);
+  let countdownRemaining = $state(0);
+  let countdownDone  = $state(false);
+  let _cdInterval: ReturnType<typeof setInterval> | null = null;
 
   // ── Canvas étoilé ────────────────────────────────────────────────
   let starfieldCanvas: HTMLCanvasElement;
@@ -55,17 +81,50 @@
     listen('set_weather',            (e: any) => { weather       = e.payload.weather ?? 'none'; }).then(fn => unlistens.push(fn));
     listen('update_spells',          (e: any) => { spells        = e.payload ?? [];          }).then(fn => unlistens.push(fn));
     listen('sync_camera',            (e: any) => { externalCamera = e.payload;               }).then(fn => unlistens.push(fn));
+    listen('fit_camera',             ()        => { playerFitRequest++;                        }).then(fn => unlistens.push(fn));
     listen('map_roll',               (e: any) => { externalRoll  = { text: e.payload.text, seq: ++rollSeq }; }).then(fn => unlistens.push(fn));
     listen('update_draw_paths',      (e: any) => { drawPaths     = e.payload ?? [];          }).then(fn => unlistens.push(fn));
     listen('set_campaign_title',     (e: any) => { campaignTitle = e.payload.title ?? '';    }).then(fn => unlistens.push(fn));
     listen('toggle_fow',             (e: any) => { fowEnabled    = e.payload.enabled ?? true; }).then(fn => unlistens.push(fn));
     listen('sync_party_state',       (e: any) => { partyState    = e.payload.players ?? [];   }).then(fn => unlistens.push(fn));
-    listen('update_walls',           (e: any) => { walls         = e.payload ?? [];           }).then(fn => unlistens.push(fn));
-    listen('update_audio_zones',     (e: any) => { audioZones    = e.payload ?? [];           }).then(fn => unlistens.push(fn));
+    listen('update_walls',           (e: any) => { walls            = e.payload ?? [];                         }).then(fn => unlistens.push(fn));
+    listen('update_audio_zones',     (e: any) => { audioZones       = e.payload ?? [];                         }).then(fn => unlistens.push(fn));
+    listen('update_combatants',      (e: any) => { combatants = e.payload.combatants ?? []; combatActive = e.payload.active ?? false; currentTurn = e.payload.currentTurn ?? 0; combatRound = e.payload.combatRound ?? 1; }).then(fn => unlistens.push(fn));
+    listen('spotlight_token',        (e: any) => { spotlightTokenId = e.payload.tokenId ?? null;               }).then(fn => unlistens.push(fn));
+    listen('ambient_text',           (e: any) => {
+      if (ambientTextTimer) clearTimeout(ambientTextTimer);
+      ambientText = e.payload.text ?? null;
+      if (ambientText) ambientTextTimer = setTimeout(() => { ambientText = null; }, 6000);
+    }).then(fn => unlistens.push(fn));
+    listen('countdown_start', (e: any) => {
+      countdownEnd = e.payload.endAt;
+      countdownTotal = e.payload.total ?? 30;
+      countdownDone = false;
+      if (_cdInterval) clearInterval(_cdInterval);
+      _cdInterval = setInterval(() => {
+        const rem = Math.ceil(((countdownEnd ?? Date.now()) - Date.now()) / 1000);
+        countdownRemaining = Math.max(0, rem);
+        if (rem <= 0) {
+          clearInterval(_cdInterval!); _cdInterval = null;
+          countdownDone = true;
+          setTimeout(() => { countdownEnd = null; countdownDone = false; }, 3000);
+        }
+      }, 150);
+    }).then(fn => unlistens.push(fn));
+    listen('countdown_stop', () => {
+      countdownEnd = null; countdownDone = false;
+      if (_cdInterval) { clearInterval(_cdInterval); _cdInterval = null; }
+    }).then(fn => unlistens.push(fn));
+    listen('shared_note', (e: any) => {
+      const { id, title, body } = e.payload;
+      sharedNoteQueue = [...sharedNoteQueue, { id, title, body }];
+    }).then(fn => unlistens.push(fn));
 
     // ── Starfield ────────────────────────────────────────────────
-    const ctx = starfieldCanvas?.getContext('2d');
-    if (!ctx) return () => { unlistens.forEach(fn => fn()); };
+    if (!starfieldCanvas) return () => { unlistens.forEach(fn => fn()); };
+    const ctxRaw = starfieldCanvas.getContext('2d');
+    if (!ctxRaw) return () => { unlistens.forEach(fn => fn()); };
+    const ctx: CanvasRenderingContext2D = ctxRaw;
 
     const W = starfieldCanvas.width  = window.innerWidth;
     const H = starfieldCanvas.height = window.innerHeight;
@@ -224,12 +283,14 @@
         weather={weather}
         vaultPath={vaultPath}
         isGM={false}
+        fitRequest={playerFitRequest}
         externalPing={externalPing}
         externalCamera={externalCamera}
         externalRoll={externalRoll}
         drawPaths={drawPaths}
         walls={walls}
         audioZones={audioZones}
+        spotlightTokenId={spotlightTokenId}
       />
 
       <!-- Vignette torche pulsante -->
@@ -261,14 +322,69 @@
     </div>
   {/if}
 
+  <!-- ── Overlay initiative (combat actif) ── -->
+  {#if currentMap && !isBlackout && combatActive && combatants.length > 0}
+    <div class="initiative-overlay">
+      <div class="init-title">⚔️ Initiative <span class="init-round">R.{combatRound}</span></div>
+      {#each combatants as c, i (c.id)}
+        {@const pct = c.maxHp > 0 ? Math.max(0, Math.min(1, c.hp / c.maxHp)) : 0}
+        <div class="init-row" class:init-active={i === currentTurn}>
+          <span class="init-num">{i + 1}</span>
+          <span class="init-name">{c.name}</span>
+          <div class="init-hp-wrap">
+            <div class="init-hp-fill" style="width:{(pct*100).toFixed(0)}%;background:{pct>0.5?'#22c55e':pct>0.25?'#eab308':'#ef4444'}"></div>
+          </div>
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- ── Texte d'ambiance ── -->
+  {#if ambientText}
+    <div class="ambient-overlay">{ambientText}</div>
+  {/if}
+
+  <!-- ── Note partagée MJ ── -->
+  {#if currentSharedNote}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="shared-note-overlay" onclick={dismissSharedNote}>
+      <div class="shared-note-card" onclick={e => e.stopPropagation()}>
+        <div class="shared-note-header">
+          <span class="shared-note-icon">📋</span>
+          <span class="shared-note-title">{currentSharedNote.title}</span>
+        </div>
+        <div class="shared-note-body">{currentSharedNote.body}</div>
+        <button class="shared-note-close" onclick={dismissSharedNote}>✕ Fermer</button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- ── Countdown joueur ── -->
+  {#if countdownEnd !== null}
+    {@const pct = countdownTotal > 0 ? Math.max(0, countdownRemaining / countdownTotal) : 0}
+    {@const circ = 276.5}
+    <div class="countdown-wrap" class:countdown-urgent={countdownRemaining <= 5 && !countdownDone} class:countdown-done={countdownDone}>
+      <svg class="countdown-ring" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="44" class="cd-track" />
+        <circle cx="50" cy="50" r="44" class="cd-fill"
+          stroke-dasharray="{circ} {circ}"
+          stroke-dashoffset="{circ - circ * pct}"
+          transform="rotate(-90 50 50)"
+        />
+      </svg>
+      <span class="countdown-num">{countdownDone ? '⏰' : countdownRemaining}</span>
+    </div>
+  {/if}
+
   <!-- Panneau statut groupe (tokens non-ennemis avec HP/conditions) -->
   {#if currentMap && !isBlackout}
     {@const partyTokens = tokens.filter((t: any) => !t.isEnemy && t.visible !== false && t.maxHp && t.maxHp > 0)}
     {#if partyTokens.length > 0}
       <div class="party-status">
         {#each partyTokens as t (t.id)}
-          {@const hp = t.hp ?? t.maxHp}
-          {@const pct = Math.max(0, Math.min(1, hp / t.maxHp))}
+          {@const hp = t.hp ?? t.maxHp ?? 0}
+          {@const pct = Math.max(0, Math.min(1, hp / (t.maxHp ?? 1)))}
           <div class="party-member">
             <span class="party-name">{t.name}</span>
             <div class="party-hpbar-wrap">
@@ -512,6 +628,145 @@
   }
 
   /* ── Panneau statut groupe ────────────────────────────────────── */
+  /* ── Initiative overlay ──────────────────────────────────────── */
+  .initiative-overlay {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(0,0,0,0.72);
+    border: 1px solid rgba(229,168,83,0.35);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: none;
+    z-index: 500;
+    min-width: 150px;
+    backdrop-filter: blur(4px);
+  }
+  .init-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #e5a853;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .init-round {
+    background: #e5a853;
+    color: #000;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 9px;
+  }
+  .init-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  .init-row.init-active {
+    background: rgba(229,168,83,0.18);
+    outline: 1px solid rgba(229,168,83,0.5);
+  }
+  .init-num {
+    font-size: 9px;
+    color: #e5a853;
+    width: 12px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .init-name {
+    font-size: 11px;
+    color: #e2e8f0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .init-hp-wrap {
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .init-hp-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  /* ── Texte d'ambiance ────────────────────────────────────────── */
+  .ambient-overlay {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.78);
+    border: 1px solid rgba(229,168,83,0.4);
+    border-radius: 10px;
+    padding: 12px 28px;
+    color: #e5a853;
+    font-size: 16px;
+    font-family: Georgia, serif;
+    font-style: italic;
+    letter-spacing: 0.03em;
+    text-align: center;
+    max-width: 60%;
+    pointer-events: none;
+    z-index: 600;
+    animation: ambientFade 6s ease forwards;
+    backdrop-filter: blur(6px);
+  }
+  @keyframes ambientFade {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    12%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ── Countdown joueur ───────────────────────────────────────── */
+  .countdown-wrap {
+    position: absolute;
+    bottom: 80px;
+    right: 24px;
+    width: 88px;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 550;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.7));
+  }
+  .countdown-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cd-track { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 6; }
+  .cd-fill {
+    fill: none;
+    stroke: #e5a853;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.2s linear, stroke 0.4s;
+  }
+  .countdown-num {
+    position: relative;
+    font-size: 26px;
+    font-weight: 800;
+    color: #e5a853;
+    font-family: monospace;
+    line-height: 1;
+  }
+  .countdown-urgent .cd-fill { stroke: #ef4444; animation: cdPulse 0.6s ease-in-out infinite; }
+  .countdown-urgent .countdown-num { color: #ef4444; }
+  .countdown-done .countdown-num { font-size: 30px; }
+  @keyframes cdPulse { 0%,100% { opacity:1 } 50% { opacity:.4 } }
+
   .party-status {
     position: absolute;
     bottom: 14px;
@@ -629,6 +884,65 @@
     background: rgba(255,255,255,0.08);
     color: #fff;
   }
+
+  /* ── Note partagée MJ ── */
+  .shared-note-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 700;
+    animation: fadeIn 0.3s ease;
+  }
+  .shared-note-card {
+    background: #1a1c24;
+    border: 1px solid rgba(229,168,83,0.4);
+    border-radius: 12px;
+    padding: 24px 28px;
+    max-width: 480px;
+    width: 90vw;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 40px rgba(229,168,83,0.06);
+    animation: slideUp 0.25s ease;
+  }
+  .shared-note-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .shared-note-icon { font-size: 20px; }
+  .shared-note-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #e5a853;
+    font-family: 'Georgia', serif;
+  }
+  .shared-note-body {
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #d4c9b0;
+    white-space: pre-wrap;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  .shared-note-close {
+    align-self: center;
+    background: transparent;
+    border: 1px solid rgba(229,168,83,0.4);
+    border-radius: 20px;
+    color: #e5a853;
+    padding: 6px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  .shared-note-close:hover { background: rgba(229,168,83,0.12); }
 
   /* ── Liste légère des joueurs ── */
   .remote-party {

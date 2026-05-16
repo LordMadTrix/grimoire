@@ -30,6 +30,7 @@ pub struct ServerInner {
 pub struct SavedCharacter {
     pub data: serde_json::Value,
     pub path: Option<String>,
+    pub password: Option<String>,
 }
 
 static SERVER: OnceLock<std::sync::Arc<ServerInner>> = OnceLock::new();
@@ -289,6 +290,7 @@ pub async fn assign_character(player_id: String, path: String, character: serde_
         srv.saved_characters.lock().await.insert(p.name.clone(), SavedCharacter {
             data: character.clone(),
             path: Some(path.clone()),
+            password: None,
         });
     }
 
@@ -350,6 +352,39 @@ pub async fn get_server_status() -> Result<Option<ServerInfo>, String> {
     }
 }
 
+#[tauri::command]
+pub async fn send_private_message(player_id: String, message: String) -> Result<(), String> {
+    let srv = get_server();
+    let msg = serde_json::to_string(&WsEnvelope {
+        event: "private_message".into(),
+        data: serde_json::json!({ "from": "MJ", "message": message, "target_id": player_id }),
+    }).map_err(|e| e.to_string())?;
+    send_to_player(srv, &player_id, msg).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn start_poll(question: String, options: Vec<String>) -> Result<(), String> {
+    let srv = get_server();
+    let msg = serde_json::to_string(&WsEnvelope {
+        event: "poll_start".into(),
+        data: serde_json::json!({ "question": question, "options": options }),
+    }).map_err(|e| e.to_string())?;
+    let _ = srv.broadcast_tx.send(msg);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn end_poll() -> Result<(), String> {
+    let srv = get_server();
+    let msg = serde_json::to_string(&WsEnvelope {
+        event: "poll_end".into(),
+        data: serde_json::json!({}),
+    }).map_err(|e| e.to_string())?;
+    let _ = srv.broadcast_tx.send(msg);
+    Ok(())
+}
+
 // ── HTTP handlers ─────────────────────────────────────────────────────────────
 
 async fn serve_player_app() -> impl IntoResponse {
@@ -368,16 +403,38 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     let mut rx = state.broadcast_tx.subscribe();
 
     // Wait for join message
-    let name = if let Some(Ok(Message::Text(raw))) = socket.recv().await {
+    let (name, password) = if let Some(Ok(Message::Text(raw))) = socket.recv().await {
         if let Ok(env) = serde_json::from_str::<WsEnvelope>(&raw) {
             if env.event == "join" {
-                env.data.get("name")
+                let n = env.data.get("name")
                     .and_then(|v| v.as_str())
                     .unwrap_or("Joueur")
-                    .to_string()
-            } else { "Joueur".to_string() }
-        } else { "Joueur".to_string() }
+                    .to_string();
+                let p = env.data.get("password")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                (n, p)
+            } else { ("Joueur".to_string(), None) }
+        } else { ("Joueur".to_string(), None) }
     } else { return; };
+
+    // Vérification du mot de passe si un compte existe
+    {
+        let chars = state.saved_characters.lock().await;
+        if let Some(saved) = chars.get(&name) {
+            if let Some(ref saved_pwd) = saved.password {
+                let provided = password.as_deref().unwrap_or("");
+                if provided != saved_pwd {
+                    let msg = serde_json::to_string(&WsEnvelope {
+                        event: "auth_error".into(),
+                        data: serde_json::json!({ "message": "Mot de passe incorrect pour ce personnage." }),
+                    }).unwrap_or_default();
+                    let _ = socket.send(Message::Text(msg)).await;
+                    return;
+                }
+            }
+        }
+    }
 
     // Register player
     {
@@ -393,10 +450,23 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
         });
     }
 
+    // Enregistrer le mot de passe pour les nouveaux joueurs
+    {
+        let mut chars = state.saved_characters.lock().await;
+        if !chars.contains_key(&name) && password.is_some() {
+            chars.insert(name.clone(), SavedCharacter {
+                data: serde_json::Value::Null,
+                path: None,
+                password: password.clone(),
+            });
+        }
+    }
+
     // Notify GM of new player
     emit_to_gm(&state, "player_joined", serde_json::json!({
         "id": player_id, "name": name
     })).await;
+    notify_os(&state, "Joueur connecté", &name).await;
     broadcast_group_state(&state).await;
 
     // Send welcome
@@ -481,8 +551,12 @@ async fn handle_player_message(
                     path = p.character_path.clone();
                 }
             }
-            state.saved_characters.lock().await
-                .insert(player_name.to_string(), SavedCharacter { data: char_data.clone(), path: path.clone() });
+            {
+                let existing_pwd = state.saved_characters.lock().await
+                    .get(player_name).and_then(|s| s.password.clone());
+                state.saved_characters.lock().await
+                    .insert(player_name.to_string(), SavedCharacter { data: char_data.clone(), path: path.clone(), password: existing_pwd });
+            }
             emit_to_gm(state, "player_character_update", serde_json::json!({
                 "id": player_id, "name": player_name, "character": char_data, "path": path
             })).await;
@@ -537,11 +611,16 @@ async fn handle_player_message(
         }
         // Chat privé vers le MJ uniquement
         "chat" | "whisper" => {
+            let msg_text = env.data.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let is_whisper = env.event == "whisper";
             emit_to_gm(state, "player_chat", serde_json::json!({
                 "id": player_id, "name": player_name,
-                "message": env.data.get("message").and_then(|v| v.as_str()).unwrap_or(""),
-                "private": env.event == "whisper",
+                "message": msg_text,
+                "private": is_whisper,
             })).await;
+            if is_whisper {
+                notify_os(state, &format!("Chuchotement — {}", player_name), &msg_text).await;
+            }
         }
         // Chat de groupe — relayé à tous les joueurs
         "group_chat" => {
@@ -604,6 +683,7 @@ async fn handle_player_message(
             emit_to_gm(state, "player_xp_request", serde_json::json!({
                 "id": player_id, "name": player_name, "amount": amount,
             })).await;
+            notify_os(state, &format!("Demande XP — {}", player_name), &format!("{} demande {} XP", player_name, amount)).await;
         }
         "sketch_push" => {
             emit_to_gm(state, "player_sketch_push", serde_json::json!({
@@ -623,6 +703,12 @@ async fn handle_player_message(
                 "id": player_id, "name": player_name, "image": img
             })).await;
         }
+        "poll_vote" => {
+            let option = env.data.get("option").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            emit_to_gm(state, "player_poll_vote", serde_json::json!({
+                "id": player_id, "name": player_name, "option": option
+            })).await;
+        }
         _ => {}
     }
 }
@@ -630,6 +716,13 @@ async fn handle_player_message(
 async fn emit_to_gm(state: &std::sync::Arc<ServerInner>, event: &str, data: serde_json::Value) {
     if let Some(handle) = state.app_handle.lock().await.as_ref() {
         let _ = handle.emit(event, data);
+    }
+}
+
+async fn notify_os(state: &std::sync::Arc<ServerInner>, title: &str, body: &str) {
+    use tauri_plugin_notification::NotificationExt;
+    if let Some(handle) = state.app_handle.lock().await.as_ref() {
+        let _ = handle.notification().builder().title(title).body(body).show();
     }
 }
 
@@ -852,6 +945,31 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .handout-overlay .ho-title{color:var(--accent);font-size:15px;font-weight:700;margin-top:12px;text-align:center}
 .handout-overlay .ho-text{color:var(--text);font-size:13px;line-height:1.6;max-width:400px;text-align:left;white-space:pre-wrap;margin-top:8px;max-height:35vh;overflow-y:auto}
 .handout-overlay .ho-close{margin-top:16px;padding:10px 28px;background:var(--accent);border:none;border-radius:8px;color:#000;font-weight:700;font-size:14px;cursor:pointer}
+/* ── Sondage overlay ── */
+.poll-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9998;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px}
+.poll-overlay.active{display:flex}
+.poll-question{color:var(--accent);font-size:18px;font-weight:700;text-align:center;max-width:320px}
+.poll-options{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px}
+.poll-opt-btn{padding:14px;background:var(--bg3);border:2px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;cursor:pointer;transition:all .15s;text-align:center}
+.poll-opt-btn.voted{border-color:var(--accent);background:rgba(229,168,83,.18);color:var(--accent);font-weight:700}
+/* ── Toast Stack ── */
+#toast-stack{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:8px;z-index:9997;width:calc(100% - 24px);max-width:360px;pointer-events:none}
+.toast{display:flex;align-items:flex-start;gap:10px;background:rgba(10,12,18,.96);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-size:13px;pointer-events:all;box-shadow:0 6px 24px rgba(0,0,0,.75);animation:toastIn .25s ease}
+.toast-success{border-left:3px solid var(--green)}
+.toast-danger{border-left:3px solid var(--red)}
+.toast-warn{border-left:3px solid #eab308}
+.toast-accent{border-left:3px solid var(--accent)}
+.toast-info{border-left:3px solid #60a5fa}
+.toast-icon{font-size:18px;flex-shrink:0;line-height:1;padding-top:1px}
+.toast-body{flex:1;min-width:0}
+.toast-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;color:var(--muted)}
+.toast-success .toast-title{color:var(--green)}.toast-danger .toast-title{color:var(--red)}.toast-warn .toast-title{color:#eab308}.toast-accent .toast-title{color:var(--accent)}.toast-info .toast-title{color:#60a5fa}
+.toast-msg{line-height:1.4;word-break:break-word}
+.toast-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;flex-shrink:0;align-self:flex-start}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(6px)}}
+/* ── Timestamps dans Reçus ── */
+.recv-time{font-size:10px;color:var(--muted);padding:4px 12px}
 /* ── Journal ── */
 .journ-area{width:100%;flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:14px;line-height:1.6;outline:none;resize:none;font-family:serif}
 /* ── Map ── */
@@ -885,6 +1003,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <h1>⚔️ Grimoire WFRP</h1>
   <p>Warhammer Fantasy — Rejoignez la table de votre Maître du Jeu</p>
   <input class="jinp" id="player-name" placeholder="Votre nom de personnage" maxlength="40"/>
+  <input class="jinp" id="player-password" type="password" placeholder="Mot de passe (facultatif)" maxlength="64"/>
+  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:-8px">Le mot de passe protège votre profil pour le retrouver à la prochaine session.</p>
+  <div id="join-error" style="color:#ef4444;font-size:13px;text-align:center;display:none"></div>
   <button class="jbtn" onclick="joinGame()">Rejoindre la Table</button>
 </div>
 
@@ -911,6 +1032,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div id="ho-text" class="ho-text"></div>
     <button class="ho-close" onclick="closeHandout()">Fermer</button>
   </div>
+
+  <!-- Sondage -->
+  <div id="poll-overlay" class="poll-overlay">
+    <div class="poll-question" id="poll-question"></div>
+    <div class="poll-options" id="poll-options"></div>
+  </div>
+
+  <!-- Toast stack -->
+  <div id="toast-stack"></div>
 
   <div id="roll-request-overlay">
     <div class="rr-box">
@@ -1228,6 +1358,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     </div>
     <div class="roll-result" id="roll-result">—</div>
     <div id="roll-history"></div>
+
+    <!-- Stats dés -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+      <div class="sec" style="margin:0;border:none">Statistiques</div>
+      <button onclick="toggleDiceStats()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer" id="stats-toggle-btn">📊 Afficher</button>
+    </div>
+    <div id="dice-stats-panel" style="display:none;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
 
     <div class="sec">Test de Compétence</div>
     <div id="test-grid" class="test-grid"></div>
@@ -1992,8 +2129,44 @@ function fureurUlric(){
   item.innerHTML='Fureur d\'Ulric <span>'+total+'</span>';
   hist.prepend(item);
   while(hist.children.length>12)hist.removeChild(hist.lastChild);
+  trackRoll(10, total);
   send('roll',{die:10,raw:total,modifier:0,total,formula:'Fureur d\'Ulric: '+formula});
   send('dice_roll_broadcast',{die:10,total,formula:'Fureur d\'Ulric'});
+}
+
+// ── Dice Stats ─────────────────────────────────────────────────────────
+let diceStats={};
+let statsVisible=false;
+function trackRoll(sides,val){
+  if(!diceStats[sides])diceStats[sides]={n:0,sum:0,min:999,max:0};
+  const s=diceStats[sides];s.n++;s.sum+=val;s.min=Math.min(s.min,val);s.max=Math.max(s.max,val);
+  if(statsVisible)renderDiceStats();
+}
+function renderDiceStats(){
+  const panel=document.getElementById('dice-stats-panel');if(!panel)return;
+  const keys=Object.keys(diceStats).sort((a,b)=>+a-+b);
+  if(!keys.length){panel.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center">Aucun jet enregistré</div>';return;}
+  panel.innerHTML=keys.map(d=>{
+    const s=diceStats[d];const avg=(s.sum/s.n).toFixed(1);
+    const mideal=(+d+1)/2;const bar=Math.min(100,(s.sum/s.n)/(+d)*100).toFixed(0);
+    return '<div style="margin-bottom:8px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">'
+      +'<span style="color:var(--accent);font-weight:700">d'+d+'</span>'
+      +'<span style="color:var(--muted)">'+s.n+' jets · moy <b style=color:var(--text)>'+avg+'</b> · théorique '+mideal.toFixed(1)+'</span></div>'
+      +'<div style="display:flex;gap:4px;font-size:10px;color:var(--muted)">'
+      +'<span>min <b style=color:var(--red)>'+s.min+'</b></span>'
+      +'<div style="flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;align-self:center;overflow:hidden">'
+      +'<div style="height:100%;width:'+bar+'%;background:var(--accent);border-radius:3px"></div></div>'
+      +'<span>max <b style=color:var(--green)>'+s.max+'</b></span></div></div>';
+  }).join('');
+}
+function toggleDiceStats(){
+  statsVisible=!statsVisible;
+  const panel=document.getElementById('dice-stats-panel');
+  const btn=document.getElementById('stats-toggle-btn');
+  panel.style.display=statsVisible?'block':'none';
+  btn.textContent=statsVisible?'📊 Masquer':'📊 Afficher';
+  if(statsVisible)renderDiceStats();
 }
 
 // ── Dice ───────────────────────────────────────────────────────────────
@@ -2019,6 +2192,7 @@ function rollDie(sides){
   item.innerHTML=formula+' <span>'+total+'</span>';
   hist.prepend(item);
   while(hist.children.length>12)hist.removeChild(hist.lastChild);
+  trackRoll(sides, raw);
   send('roll',{die:sides,raw,modifier:mod,total,formula});
   send('dice_roll_broadcast',{die:sides,total,formula});
 }
@@ -2075,14 +2249,23 @@ function connect(){
   ws=new WebSocket(proto+'://'+location.host+'/ws');
   ws.onopen=()=>{
     reconnDelay=1000;
-    ws.send(JSON.stringify({event:'join',data:{name:playerName}}));
-    showStatus('Connecté',true);
+    ws.send(JSON.stringify({event:'join',data:{name:playerName,password:playerPassword||undefined}}));
+    showStatus('Connexion…',true);
   };
   ws.onmessage=(e)=>{
     try{
       const env=JSON.parse(e.data);
       if(env.event==='welcome'){
         playerId=env.data.id;
+        // Connexion confirmée : afficher l'app
+        document.getElementById('join').style.display='none';
+        document.getElementById('app').style.display='flex';
+        if(!document.getElementById('f-nom').value)sv('f-nom',playerName);
+        showStatus('Connecté',true);
+      }else if(env.event==='auth_error'){
+        const errEl=document.getElementById('join-error');
+        if(errEl){errEl.textContent=env.data.message||'Mot de passe incorrect.';errEl.style.display='block';}
+        ws.close();ws=null;
       }else if(env.event==='game_config'){
         gameConfig=env.data;
         populateRaceDropdown();
@@ -2091,15 +2274,13 @@ function connect(){
         // Personnage sauvegardé côté serveur — priorité sur localStorage
         loadCharFromData(env.data);
         localStorage.setItem('grimoire_wfrp2',JSON.stringify(ch));
-        showStatus('Personnage restauré !',true);
-        setTimeout(()=>showStatus('Connecté',true),2000);
+        showToast('🧙','Personnage','Profil restauré avec succès','success',4000);
       }else if(env.event==='push_character'){
         // MJ envoie un perso créé depuis le Créateur de personnage
         if(!env.data.playerId||env.data.playerId===playerId){
           loadCharFromData(env.data.character||env.data);
           localStorage.setItem('grimoire_wfrp2',JSON.stringify(ch));
-          showStatus('Nouveau personnage reçu du MJ !',true);
-          setTimeout(()=>showStatus('Connecté',true),2500);
+          showToast('📋','Personnage','Nouveau personnage assigné par le MJ','success',5000);
         }
       }else if(env.event==='scene'){
         renderCombat(env.data);
@@ -2119,25 +2300,25 @@ function connect(){
         ch.bless=env.data.bless;
         sv('f-bless',ch.bless);updateHealthState();
         const delta=env.data.damage;
-        showStatus(delta>0?'💥 -'+delta+' blessures':'💚 +'+Math.abs(delta)+' soins',delta<=0||env.data.bless>0);
-        setTimeout(()=>showStatus('Connecté',true),2500);
+        if(delta>0){showToast('💥','Dégâts','-'+delta+' blessures','danger',4000);if(navigator.vibrate)navigator.vibrate([150,80,150]);}
+        else{showToast('💚','Soins','+'+Math.abs(delta)+' soins','success',4000);}
       }else if(env.event==='condition_added'){
         if(env.data.target_id!==playerId)return;
         myConditions=env.data.conditions||[];
         renderMyConditions();
-        showStatus('⚠️ Condition : '+env.data.condition,false);
-        setTimeout(()=>showStatus('Connecté',true),3000);
+        showToast('⚠️','Condition',env.data.condition,'warn',5000);
+        if(navigator.vibrate)navigator.vibrate([100,50,100]);
       }else if(env.event==='condition_removed'){
         if(env.data.target_id!==playerId)return;
         myConditions=env.data.conditions||[];
         renderMyConditions();
+        showToast('✓','Condition retirée',env.data.condition,'success',3000);
       }else if(env.event==='your_turn'){
         const isMe=env.data.target_id===playerId;
         const bar=document.getElementById('your-turn-bar');
         if(bar)bar.style.display=(isMe&&env.data.active)?'block':'none';
         if(isMe&&env.data.active){
-          showStatus('⚡ C\'est votre tour !',true);
-          setTimeout(()=>showStatus('Connecté',true),4000);
+          showToast('⚔️','Combat','C\'est votre tour !','warn',0);
           if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);
           try{
             const ac=new(window.AudioContext||window.webkitAudioContext)();
@@ -2156,17 +2337,19 @@ function connect(){
         if(env.data.target_id!==playerId)return;
         ch.xp=env.data.total_xp;
         sv('p-xp',ch.xp);sc();
-        showStatus('💫 +'+env.data.amount+' XP approuvés ! Total : '+env.data.total_xp,true);
+        showToast('✨','XP','+'+env.data.amount+' XP ! Total : '+env.data.total_xp,'accent',7000);
         const pm=document.getElementById('xp-pending-msg');if(pm)pm.textContent='';
-        setTimeout(()=>showStatus('Connecté',true),4000);
       }else if(env.event==='player_reaction'){
         addReactionFeed(env.data.from,env.data.emoji);
       }else if(env.event==='handout'){
         showHandout(env.data);
         addToRecus(env.data);
+        showToast('📜','Document reçu',env.data.title||'Nouveau document du MJ','accent',8000);
+        if(navigator.vibrate)navigator.vibrate([60,40,60]);
       }else if(env.event==='request_roll'){
         if(!env.data.target_id || env.data.target_id === playerId) {
           showRollRequest(env.data);
+          showToast('🎲','Jet demandé',env.data.stat||'','warn',0);
         }
       }else if(env.event==='ai_response'){
         addAiMsg(env.data.response || env.data.error, false);
@@ -2176,6 +2359,14 @@ function connect(){
       }else if(env.event==='sketch_sync'){
         if(env.data.target_id === playerId) return;
         drawExternalSketch(env.data.points, env.data.color);
+      }else if(env.event==='poll_start'){
+        showPollOverlay(env.data.question, env.data.options||[]);
+      }else if(env.event==='poll_end'){
+        closePoll();
+      }else if(env.event==='private_message'){
+        if(!env.data.target_id||env.data.target_id===playerId){
+          showPrivateMessage(env.data.message||'');
+        }
       }
     }catch(err){}
   };
@@ -2190,16 +2381,51 @@ function send(event,data){
 }
 
 // ── UI ─────────────────────────────────────────────────────────────────
+let playerPassword=null;
 function joinGame(){
   const n=document.getElementById('player-name').value.trim();
   if(!n){alert('Entrez votre nom de personnage !');return;}
+  playerPassword=document.getElementById('player-password').value.trim()||null;
   playerName=n;
   localStorage.setItem('grimoire_player_name',n);
+  if(playerPassword)localStorage.setItem('grimoire_player_pwd',playerPassword);
   if(!ch.nom)ch.nom=n;
-  document.getElementById('join').style.display='none';
-  document.getElementById('app').style.display='flex';
-  if(!document.getElementById('f-nom').value)sv('f-nom',n);
+  // Ne pas cacher le join avant d'avoir la confirmation du serveur
   connect();
+}
+function showPollOverlay(question, options){
+  const o=document.getElementById('poll-overlay');
+  document.getElementById('poll-question').textContent=question;
+  const c=document.getElementById('poll-options');
+  c.innerHTML='';
+  options.forEach(opt=>{
+    const btn=document.createElement('button');
+    btn.className='poll-opt-btn';btn.textContent=opt;
+    btn.onclick=()=>{
+      if(btn.classList.contains('voted'))return;
+      document.querySelectorAll('.poll-opt-btn').forEach(b=>b.classList.remove('voted'));
+      btn.classList.add('voted');
+      send('poll_vote',{option:opt});
+    };
+    c.appendChild(btn);
+  });
+  o.classList.add('active');
+}
+function closePoll(){
+  document.getElementById('poll-overlay').classList.remove('active');
+}
+function showToast(icon,title,msg,type='info',duration=5000){
+  const stack=document.getElementById('toast-stack');
+  if(!stack)return;
+  const el=document.createElement('div');
+  el.className='toast toast-'+type;
+  el.innerHTML='<span class="toast-icon">'+icon+'</span><div class="toast-body"><div class="toast-title">'+title+'</div><div class="toast-msg">'+esc(msg||'')+'</div></div><button class="toast-close" onclick="this.parentElement.remove()">×</button>';
+  stack.appendChild(el);
+  if(duration>0)setTimeout(()=>{el.style.animation='toastOut .25s ease forwards';setTimeout(()=>el.remove(),250);},duration);
+}
+function showPrivateMessage(msg){
+  showToast('🔒','Message du MJ',msg,'accent',10000);
+  if(navigator.vibrate)navigator.vibrate([80,40,80]);
 }
 function showTab(btn,id){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -2379,12 +2605,17 @@ function closeRollRequest(){
 }
 
 function addToRecus(data){
+  data._time=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   recus.unshift(data);
+  // Persister dans localStorage
+  try{localStorage.setItem('grimoire_recus',JSON.stringify(recus.slice(0,30)));}catch(e){}
   const list=document.getElementById('recv-list');
   if(!list)return;
   const item=document.createElement('div');item.className='recv-item';
   const titleDiv=document.createElement('div');titleDiv.className='recv-title';titleDiv.textContent=data.title||'Handout';
   item.appendChild(titleDiv);
+  const timeDiv=document.createElement('div');timeDiv.className='recv-time';timeDiv.textContent=data._time;
+  item.appendChild(timeDiv);
   if(data.image_url){
     const img=document.createElement('img');img.src=data.image_url;img.style.cursor='pointer';
     img.onclick=()=>showHandout(data);
@@ -2394,6 +2625,15 @@ function addToRecus(data){
   if(list.firstChild&&list.firstChild.textContent&&list.firstChild.textContent.includes('Aucun')){list.innerHTML='';}
   list.prepend(item);
 }
+// Restaurer les reçus depuis localStorage
+(function restoreRecus(){
+  try{
+    const saved=localStorage.getItem('grimoire_recus');
+    if(!saved)return;
+    const arr=JSON.parse(saved);
+    arr.forEach(d=>addToRecus(d));
+  }catch(e){}
+})();
 
 function sendJournal(){
   const text=document.getElementById('journ-text').value.trim();
@@ -2504,7 +2744,10 @@ sc = function() {
 buildProf();buildDice();loadChar();
 const sn=localStorage.getItem('grimoire_player_name');
 if(sn)document.getElementById('player-name').value=sn;
+const sp=localStorage.getItem('grimoire_player_pwd');
+if(sp)document.getElementById('player-password').value=sp;
 document.getElementById('player-name').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
+document.getElementById('player-password').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
 document.getElementById('comp-new').addEventListener('keydown',e=>{if(e.key==='Enter')addComp();});
 
 // Update onmessage to handle AI and Map

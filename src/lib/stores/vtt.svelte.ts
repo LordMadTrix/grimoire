@@ -99,6 +99,37 @@ export type DrawPath = {
   width: number;
 };
 
+export type WallDef = {
+  id: string;
+  points: { x: number; y: number }[];
+  type: 'opaque' | 'door';
+  isOpen?: boolean;
+};
+
+export type AudioZoneDef = {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  audioSrc: string;
+  volume: number;
+};
+
+export type TerrainZone = {
+  id: string;
+  x: number; y: number; w: number; h: number;
+  type: 'difficult' | 'water' | 'fire' | 'poison' | 'safe' | 'custom';
+  color?: number;
+  label?: string;
+};
+
+export type SharedNote = {
+  id: string;
+  title: string;
+  body: string;
+  ts: number;
+};
+
 export type Combatant = {
   id: string;
   name: string;
@@ -109,6 +140,17 @@ export type Combatant = {
   tokenId?: string;
 };
 
+export type CombatLogEntry = {
+  id: number;
+  round: number;
+  timestamp: number;
+  type: 'damage' | 'heal' | 'death' | 'turn' | 'condition' | 'info';
+  actor: string;
+  target?: string;
+  value?: number;
+  detail?: string;
+};
+
 export type MapScene = {
   id: string;
   name: string;
@@ -117,8 +159,8 @@ export type MapScene = {
   tokens: Token[];
   pins: MapPin[];
   spells: SpellMarker[];
-  walls: { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[];
-  audioZones: { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[];
+  walls: WallDef[];
+  audioZones: AudioZoneDef[];
 };
 
 export const vttStore = $state({
@@ -127,7 +169,7 @@ export const vttStore = $state({
   fowShapes: [] as FowShape[],
   tokens: [] as Token[],
   pins: [] as MapPin[],
-  mode: 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone',
+  mode: 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain',
   fitRequest: 0,
   showGrid: true,
   gridSize: 50,
@@ -158,14 +200,17 @@ export const vttStore = $state({
   // Timer de session
   sessionTimerStart: null as number | null,
 
+  // Countdown joueur (compte à rebours visible sur PlayerView)
+  countdownEnd: null as number | null,
+
   // Écran noir vue joueur
   isBlackout: false,
 
   // Blueprint / Murs (Ligne de vue)
-  walls: [] as { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[],
+  walls: [] as WallDef[],
   currentWallPath: null as {x:number, y:number}[] | null,
   blueprintType: 'opaque' as 'opaque' | 'door',
-  audioZones: [] as { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[],
+  audioZones: [] as AudioZoneDef[],
 
   // Multimap — scènes
   maps: [] as MapScene[],
@@ -182,12 +227,104 @@ export const vttStore = $state({
 
   // Localisation de token (déclenche le centrage caméra)
   locateTokenId: null as string | null,
+
+  // Spotlight — halo doré sur un token côté joueur
+  spotlightTokenId: null as string | null,
+
+  // Combat log
+  combatLog: [] as CombatLogEntry[],
+
+  // Terrain zones
+  terrainZones: [] as TerrainZone[],
+  terrainType: 'difficult' as TerrainZone['type'],
+
+  // Notes partagées
+  sharedNotes: [] as SharedNote[],
+
+  // Export trigger (incrémenté pour déclencher l'export PNG depuis le toolbar)
+  exportRequest: 0,
 });
 
 // ── Campaign Title ────────────────────────────────────────────────
 export function setCampaignTitle(title: string) {
   vttStore.campaignTitle = title;
   emitToPlayerView('set_campaign_title', { title });
+}
+
+// ── Spotlight ─────────────────────────────────────────────────────
+export function setSpotlightToken(id: string | null) {
+  vttStore.spotlightTokenId = id;
+  emitToPlayerView('spotlight_token', { tokenId: id });
+}
+
+// ── Combat sync vers vue joueur ───────────────────────────────────
+export function syncCombatantsToPlayerView() {
+  emitToPlayerView('update_combatants', {
+    combatants: vttStore.combatants,
+    active: vttStore.combatActive,
+    currentTurn: vttStore.currentTurn,
+    combatRound: vttStore.combatRound,
+  });
+}
+
+let _logId = 0;
+export function addCombatLogEntry(entry: Omit<CombatLogEntry, 'id' | 'round' | 'timestamp'>) {
+  const full: CombatLogEntry = {
+    ...entry,
+    id: _logId++,
+    round: vttStore.combatRound,
+    timestamp: Date.now(),
+  };
+  vttStore.combatLog = [...vttStore.combatLog.slice(-199), full];
+}
+
+export function clearCombatLog() {
+  vttStore.combatLog = [];
+}
+
+// ── Terrain zones ─────────────────────────────────────────────────
+export function addTerrainZone(zone: TerrainZone) {
+  vttStore.terrainZones = [...vttStore.terrainZones, zone];
+  emitToPlayerView('update_terrain', vttStore.terrainZones);
+}
+export function removeTerrainZone(id: string) {
+  vttStore.terrainZones = vttStore.terrainZones.filter(z => z.id !== id);
+  emitToPlayerView('update_terrain', vttStore.terrainZones);
+}
+export function clearTerrainZones() {
+  vttStore.terrainZones = [];
+  emitToPlayerView('update_terrain', []);
+}
+
+// ── Notes partagées ───────────────────────────────────────────────
+let _noteId = 0;
+export function addSharedNote(title: string, body: string) {
+  const note: SharedNote = { id: String(_noteId++), title, body, ts: Date.now() };
+  vttStore.sharedNotes = [note, ...vttStore.sharedNotes];
+  emitToPlayerView('shared_note', note);
+}
+export function removeSharedNote(id: string) {
+  vttStore.sharedNotes = vttStore.sharedNotes.filter(n => n.id !== id);
+}
+
+// ── Ambient Text (texte d'ambiance sur la vue joueur) ─────────────
+export function sendHandout(type: 'image' | 'note', content: string, title?: string) {
+  emitToPlayerView('show_handout', { type, content, title });
+}
+
+export function sendAmbientText(text: string) {
+  emitToPlayerView('ambient_text', { text });
+}
+
+export function startCountdown(seconds: number) {
+  const endAt = Date.now() + seconds * 1000;
+  vttStore.countdownEnd = endAt;
+  emitToPlayerView('countdown_start', { endAt, total: seconds });
+}
+
+export function stopCountdown() {
+  vttStore.countdownEnd = null;
+  emitToPlayerView('countdown_stop', {});
 }
 
 // ── Weather & Spells ──────────────────────────────────────────────
@@ -266,6 +403,29 @@ function applyScene(scene: MapScene) {
   vttStore.audioZones = scene.audioZones || [];
 }
 
+export function replaceActiveScene(name: string, relPath: string | null, dataUrl: string | null) {
+  const scene = vttStore.maps.find(m => m.id === vttStore.activeMapId);
+  if (scene) {
+    scene.name = name;
+    scene.relPath = relPath;
+    scene.fowShapes = [];
+    scene.tokens = [];
+    scene.pins = [];
+    scene.spells = [];
+    scene.walls = [];
+    scene.audioZones = [];
+  }
+  vttStore.currentMapRelPath = relPath;
+  vttStore.currentMap = dataUrl;
+  vttStore.fowShapes = [];
+  vttStore.tokens = [];
+  vttStore.pins = [];
+  vttStore.spells = [];
+  vttStore.walls = [];
+  vttStore.audioZones = [];
+  emitToPlayerView('set_player_map', { url: dataUrl });
+}
+
 export function addMapScene(name: string, relPath: string | null, dataUrl: string | null) {
   snapshotActiveScene();
   const scene: MapScene = {
@@ -332,8 +492,14 @@ export function clearGmFow() {
 }
 
 export function toggleFow() {
-  vttStore.fowEnabled = !vttStore.fowEnabled;
-  emitToPlayerView('toggle_fow', { enabled: vttStore.fowEnabled });
+  const enabling = !vttStore.fowEnabled;
+  vttStore.fowEnabled = enabling;
+  if (enabling) {
+    // Réactivation du brouillard : repartir de zéro (tout caché)
+    vttStore.fowShapes = [];
+    emitToPlayerView('update_fow', []);
+  }
+  emitToPlayerView('toggle_fow', { enabled: enabling });
 }
 
 export function revealAllGmFow() {
@@ -377,7 +543,8 @@ export function replaceGmToken(token: Token) {
 
 export function addGmToken(token: Token) {
   pushUndo({ type: 'tokens', tokens: [...vttStore.tokens] });
-  vttStore.tokens = [...vttStore.tokens, token];
+  const sized: Token = { ...token, size: token.size > 0 ? token.size : vttStore.gridSize };
+  vttStore.tokens = [...vttStore.tokens, sized];
   emitToPlayerView('update_tokens', vttStore.tokens);
 }
 
@@ -447,6 +614,8 @@ export function nextTurn() {
   const next = (vttStore.currentTurn + 1) % vttStore.combatants.length;
   if (next === 0) vttStore.combatRound++;
   vttStore.currentTurn = next;
+  const nextC = vttStore.combatants[next];
+  if (nextC) addCombatLogEntry({ type: 'turn', actor: nextC.name, detail: `Tour ${next === 0 ? 'Round ' + vttStore.combatRound : ''}` });
 }
 
 export function prevTurn() {
@@ -456,8 +625,20 @@ export function prevTurn() {
 
 export function updateCombatantHp(id: string, hp: number) {
   const c = vttStore.combatants.find(c => c.id === id);
-  if (c) c.hp = Math.max(0, hp);
-  // Sync HP vers le token VTT associé
+  if (c) {
+    const prev = c.hp;
+    const next = Math.max(0, hp);
+    const delta = next - prev;
+    c.hp = next;
+    if (delta !== 0) {
+      addCombatLogEntry({
+        type: delta < 0 ? (next === 0 ? 'death' : 'damage') : 'heal',
+        actor: c.name,
+        value: Math.abs(delta),
+        detail: delta < 0 ? `-${Math.abs(delta)} PV` : `+${delta} PV`,
+      });
+    }
+  }
   const combatant = vttStore.combatants.find(c => c.id === id);
   if (combatant?.tokenId) {
     const token = vttStore.tokens.find(t => t.id === combatant.tokenId);
@@ -563,6 +744,9 @@ interface SessionData {
   tokens: Token[];
   pins: MapPin[];
   spells: SpellMarker[];
+  drawPaths: DrawPath[];
+  walls: WallDef[];
+  audioZones: AudioZoneDef[];
   showGrid: boolean;
   gridSize: number;
   isBlackout: boolean;
@@ -577,9 +761,6 @@ interface SessionData {
   campaignTitle?: string;
   maps?: MapScene[];
   activeMapId?: string | null;
-  drawPaths?: DrawPath[];
-  walls?: { id: string, points: {x:number, y:number}[], type: 'opaque' | 'door', isOpen?: boolean }[];
-  audioZones?: { id: string, x: number, y: number, radius: number, audioSrc: string, volume: number }[];
 }
 
 export async function saveGmSession(vaultPath: string) {
@@ -609,9 +790,6 @@ export async function saveGmSession(vaultPath: string) {
     campaignTitle: vttStore.campaignTitle,
     maps: vttStore.maps,
     activeMapId: vttStore.activeMapId,
-    drawPaths: vttStore.drawPaths,
-    walls: vttStore.walls,
-    audioZones: vttStore.audioZones,
   };
   try {
     await writeFile(vaultPath, SESSION_PATH, JSON.stringify(data, null, 2));

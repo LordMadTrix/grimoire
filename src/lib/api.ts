@@ -175,3 +175,15 @@ export async function assignCharacter(playerId: string, path: string, character:
 export async function pushMapSnapshot(imgData: string): Promise<void> {
   return invoke('push_map_snapshot', { imgData });
 }
+
+export async function sendPrivateMessage(playerId: string, message: string): Promise<void> {
+  return invoke('send_private_message', { playerId, message });
+}
+
+export async function startPoll(question: string, options: string[]): Promise<void> {
+  return invoke('start_poll', { question, options });
+}
+
+export async function endPoll(): Promise<void> {
+  return invoke('end_poll');
+}

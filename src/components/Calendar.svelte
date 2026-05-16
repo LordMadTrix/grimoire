@@ -21,14 +21,14 @@
     events: CalEvent[];
   }
 
-  let state = $state<CalState>({ day: 1, month: 1, year: 1432, events: [] });
+  let cal: CalState = $state({ day: 1, month: 1, year: 1432, events: [] });
   let loaded = $state(false);
 
   $effect(() => {
     const vp = getVaultPath();
     if (!vp || loaded) return;
     readFile(vp, '.grimoire/calendar.json').then(raw => {
-      try { const d = JSON.parse(raw); state.day = d.day ?? 1; state.month = d.month ?? 1; state.year = d.year ?? 1432; state.events = d.events ?? []; }
+      try { const d = JSON.parse(raw); cal.day = d.day ?? 1; cal.month = d.month ?? 1; cal.year = d.year ?? 1432; cal.events = d.events ?? []; }
       catch {}
       loaded = true;
     }).catch(() => { loaded = true; });
@@ -38,52 +38,52 @@
     const vp = getVaultPath();
     if (!vp) return;
     try {
-      await writeFile(vp, '.grimoire/calendar.json', JSON.stringify({ day: state.day, month: state.month, year: state.year, events: state.events }, null, 2));
+      await writeFile(vp, '.grimoire/calendar.json', JSON.stringify({ day: cal.day, month: cal.month, year: cal.year, events: cal.events }, null, 2));
     } catch {
-      try { await createDirectory(vp, '.grimoire'); await writeFile(vp, '.grimoire/calendar.json', JSON.stringify({ day: state.day, month: state.month, year: state.year, events: state.events }, null, 2)); }
+      try { await createDirectory(vp, '.grimoire'); await writeFile(vp, '.grimoire/calendar.json', JSON.stringify({ day: cal.day, month: cal.month, year: cal.year, events: cal.events }, null, 2)); }
       catch {}
     }
   }
 
   function advance(days: number) {
-    let d = state.day + days;
-    let m = state.month;
-    let y = state.year;
+    let d = cal.day + days;
+    let m = cal.month;
+    let y = cal.year;
     while (d > DAYS_PER_MONTH) { d -= DAYS_PER_MONTH; m++; }
     while (m > MONTHS_PER_YEAR) { m -= MONTHS_PER_YEAR; y++; }
-    state.day = d; state.month = m; state.year = y;
+    cal.day = d; cal.month = m; cal.year = y;
     save();
   }
 
   function retreat(days: number) {
-    let d = state.day - days;
-    let m = state.month;
-    let y = state.year;
+    let d = cal.day - days;
+    let m = cal.month;
+    let y = cal.year;
     while (d < 1) { d += DAYS_PER_MONTH; m--; }
     while (m < 1) { m += MONTHS_PER_YEAR; y--; }
-    state.day = d; state.month = m; state.year = y;
+    cal.day = d; cal.month = m; cal.year = y;
     save();
   }
 
-  let dayOfWeek = $derived(((state.day - 1 + (state.month - 1) * DAYS_PER_MONTH + (state.year - 1) * DAYS_PER_MONTH * MONTHS_PER_YEAR) % 7 + 7) % 7);
+  let dayOfWeek = $derived(((cal.day - 1 + (cal.month - 1) * DAYS_PER_MONTH + (cal.year - 1) * DAYS_PER_MONTH * MONTHS_PER_YEAR) % 7 + 7) % 7);
 
-  let monthEvents = $derived(state.events.filter(e => e.month === state.month && e.year === state.year));
+  let monthEvents = $derived(cal.events.filter((e: CalEvent) => e.month === cal.month && e.year === cal.year));
 
   let showForm = $state(false);
   let formTitle = $state('');
   let formType = $state('session');
-  let formDay = $state(state.day);
+  let formDay = $state(cal.day);
 
   function addEvent() {
     if (!formTitle.trim()) return;
-    state.events = [...state.events, { id: Math.random().toString(36).slice(2), day: formDay, month: state.month, year: state.year, title: formTitle.trim(), type: formType }];
+    cal.events = [...cal.events, { id: Math.random().toString(36).slice(2), day: formDay, month: cal.month, year: cal.year, title: formTitle.trim(), type: formType }];
     save();
     showForm = false;
     formTitle = '';
   }
 
   function removeEvent(id: string) {
-    state.events = state.events.filter(e => e.id !== id);
+    cal.events = cal.events.filter((e: CalEvent) => e.id !== id);
     save();
   }
 
@@ -96,11 +96,11 @@
   <div class="cal-date-display">
     <div class="cal-dayname">{DAYS[dayOfWeek]}</div>
     <div class="cal-main-date">
-      <span class="cal-day">{state.day}</span>
+      <span class="cal-day">{cal.day}</span>
       <span class="cal-sep">/</span>
-      <span class="cal-month">{MONTHS[state.month - 1]}</span>
+      <span class="cal-month">{MONTHS[cal.month - 1]}</span>
       <span class="cal-sep">/</span>
-      <span class="cal-year">An {state.year}</span>
+      <span class="cal-year">An {cal.year}</span>
     </div>
   </div>
 
@@ -118,8 +118,8 @@
   </div>
 
   <div class="cal-events-header">
-    <span>Événements — {MONTHS[state.month - 1]}</span>
-    <button class="cal-add-btn" onclick={() => { showForm = !showForm; formDay = state.day; }}>＋</button>
+    <span>Événements — {MONTHS[cal.month - 1]}</span>
+    <button class="cal-add-btn" onclick={() => { showForm = !showForm; formDay = cal.day; }}>＋</button>
   </div>
 
   {#if showForm}
@@ -140,7 +140,7 @@
       <div class="cal-empty">Aucun événement ce mois-ci</div>
     {:else}
       {#each monthEvents.sort((a, b) => a.day - b.day) as ev}
-        <div class="cal-event" class:today={ev.day === state.day}>
+        <div class="cal-event" class:today={ev.day === cal.day}>
           <span class="ev-day">J.{ev.day}</span>
           <span class="ev-icon">{TYPE_ICONS[ev.type] ?? '📌'}</span>
           <span class="ev-title">{ev.title}</span>

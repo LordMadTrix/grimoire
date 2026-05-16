@@ -1,7 +1,7 @@
 <script lang="ts">
   import { addGmToken } from '$lib/stores/vtt.svelte';
   import { vttStore } from '$lib/stores/vtt.svelte';
-  import { readFile, writeFile } from '$lib/api';
+  import { readFile, writeFile, readFileBase64 } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
 
   let visible = $state(false);
@@ -19,6 +19,7 @@
     size: 'Tiny' | 'Small' | 'Medium' | 'Large' | 'Huge' | 'Gargantuan';
     isEnemy: boolean;
     color: number;
+    imageUrl?: string;
   }
 
   const SIZE_PX: Record<string, number> = {
@@ -46,6 +47,11 @@
     { name: 'Méduse',   type: 'Monstruosité', cr: '6', hp: 127, ac: 15, size: 'Medium', isEnemy: true, color: 0x0891b2 },
     { name: 'Manticore', type: 'Monstruosité', cr: '3', hp: 68, ac: 14, size: 'Large', isEnemy: true, color: 0xb45309 },
     { name: 'Liche',    type: 'Mort-vivant', cr: '21', hp: 135, ac: 17, size: 'Medium', isEnemy: true, color: 0x4c1d95 },
+    // Pack Mimic
+    { name: 'Mimic Coffre', type: 'Monstruosité', cr: '2', hp: 58, ac: 12, size: 'Medium', isEnemy: true, color: 0x92400e, imageUrl: 'Assets/Mimics/chest.png' },
+    { name: 'Mimic Porte',  type: 'Monstruosité', cr: '3', hp: 75, ac: 14, size: 'Large',  isEnemy: true, color: 0x6b7280, imageUrl: 'Assets/Mimics/door.png' },
+    { name: 'Mimic Baril',  type: 'Monstruosité', cr: '2', hp: 45, ac: 12, size: 'Medium', isEnemy: true, color: 0x78350f, imageUrl: 'Assets/Mimics/barrel.png' },
+    { name: 'Mimic Table',  type: 'Monstruosité', cr: '2', hp: 52, ac: 12, size: 'Medium', isEnemy: true, color: 0xa16207, imageUrl: 'Assets/Mimics/table.png' },
   ];
 
   let customMonsters = $state<Monster[]>([]);
@@ -57,6 +63,21 @@
       try { customMonsters = JSON.parse(raw) ?? []; } catch {}
     }).catch(() => {});
   });
+  
+  let monsterImages = $state<Record<string, string>>({});
+  async function getMonsterImage(path: string) {
+    if (monsterImages[path]) return monsterImages[path];
+    const vp = getVaultPath();
+    if (!vp) return '';
+    try {
+      const b64 = await readFileBase64(`${vp}/${path}`);
+      const ext = path.split('.').pop()?.toLowerCase() ?? 'png';
+      const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
+      const url = `data:${mime};base64,${b64}`;
+      monsterImages[path] = url;
+      return url;
+    } catch { return ''; }
+  }
 
   let allMonsters = $derived([...BUILTIN, ...customMonsters]);
   function crToNum(s: string): number {
@@ -90,6 +111,7 @@
       maxHp: m.hp,
       isEnemy: m.isEnemy,
       visible: true,
+      imageUrl: m.imageUrl,
     });
   }
 
@@ -201,7 +223,19 @@
       <div class="ml-list">
         {#each filtered as m}
           <div class="ml-row">
-            <div class="ml-color" style="background: #{m.color.toString(16).padStart(6,'0')}"></div>
+            {#if m.imageUrl}
+              {#await getMonsterImage(m.imageUrl)}
+                <div class="ml-color" style="background: #{m.color.toString(16).padStart(6,'0')}"></div>
+              {:then url}
+                {#if url}
+                  <img src={url} class="ml-img" alt={m.name} />
+                {:else}
+                  <div class="ml-color" style="background: #{m.color.toString(16).padStart(6,'0')}"></div>
+                {/if}
+              {/await}
+            {:else}
+              <div class="ml-color" style="background: #{m.color.toString(16).padStart(6,'0')}"></div>
+            {/if}
             <div class="ml-info">
               <span class="ml-name">{m.name}</span>
               <span class="ml-meta">CR {m.cr} · {m.type} · {m.size}</span>
@@ -409,6 +443,15 @@
     border-radius: 50%;
     flex-shrink: 0;
     border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .ml-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--accent);
   }
 
   .ml-info {

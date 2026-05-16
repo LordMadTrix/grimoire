@@ -2,10 +2,10 @@
   import { onMount } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { listen } from '@tauri-apps/api/event';
-  import { 
-    getPlayerConnections, broadcastToPlayers, 
+  import {
+    getPlayerConnections, broadcastToPlayers,
     applyDamageToPlayer, type PlayerInfo,
-    readFile, writeFile, type VaultEntry,
+    readFile, writeFile, createDirectory, type VaultEntry,
     assignCharacter, applyConditionToPlayer, removeConditionFromPlayer
   } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
