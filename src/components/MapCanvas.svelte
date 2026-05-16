@@ -1053,10 +1053,11 @@
       tokenSprite.anchor.set(0.5);
 
       if (token.imageUrl) {
+        const isBuiltin = token.imageUrl.startsWith('/');
         const vPath = vaultPath || getVaultPath();
-        if (!vPath) { tokenSprite.visible = false; return; }
+        if (!vPath && !isBuiltin) { tokenSprite.visible = false; return; }
 
-        const cacheKey = vPath + '/' + token.imageUrl;
+        const cacheKey = isBuiltin ? token.imageUrl : (vPath + '/' + token.imageUrl);
 
         if (tokenSprite.texture?.label === cacheKey && tokenSprite.texture.width > 0) {
           // Texture déjà en cache — appliquer taille et rendre visible
@@ -1067,15 +1068,10 @@
           tokenSprite.visible = false;
           loadingTextures.add(cacheKey);
 
-          // Même stratégie que la carte : readFileBase64 → data URL → Image → Texture
-          const ext = token.imageUrl.split('.').pop()?.toLowerCase() ?? 'png';
-          const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
-
-          readFileBase64(cacheKey).then(b64 => {
-            const img = new Image();
-            img.onload = () => {
+          if (isBuiltin) {
+            // Chargement direct pour les assets built-in
+            PIXI.Assets.load(token.imageUrl).then(tex => {
               if (container && tokenSprite) {
-                const tex = PIXI.Texture.from(img);
                 tex.label = cacheKey;
                 tokenSprite.texture = tex;
                 tokenSprite.width = token.size;
@@ -1083,17 +1079,39 @@
                 tokenSprite.visible = true;
               }
               loadingTextures.delete(cacheKey);
-            };
-            img.onerror = () => {
+            }).catch(() => {
               loadingTextures.delete(cacheKey);
               tokenSprite.visible = false;
-            };
-            img.src = `data:${mime};base64,${b64}`;
-          }).catch(err => {
-            console.error('Token image load error:', cacheKey, err);
-            loadingTextures.delete(cacheKey);
-            tokenSprite.visible = false;
-          });
+            });
+          } else {
+            // Même stratégie que la carte : readFileBase64 → data URL → Image → Texture
+            const ext = token.imageUrl.split('.').pop()?.toLowerCase() ?? 'png';
+            const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
+
+            readFileBase64(cacheKey).then(b64 => {
+              const img = new Image();
+              img.onload = () => {
+                if (container && tokenSprite) {
+                  const tex = PIXI.Texture.from(img);
+                  tex.label = cacheKey;
+                  tokenSprite.texture = tex;
+                  tokenSprite.width = token.size;
+                  tokenSprite.height = token.size;
+                  tokenSprite.visible = true;
+                }
+                loadingTextures.delete(cacheKey);
+              };
+              img.onerror = () => {
+                loadingTextures.delete(cacheKey);
+                tokenSprite.visible = false;
+              };
+              img.src = `data:${mime};base64,${b64}`;
+            }).catch(err => {
+              console.error('Token image load error:', cacheKey, err);
+              loadingTextures.delete(cacheKey);
+              tokenSprite.visible = false;
+            });
+          }
         }
         // Si chargement en cours : on ne touche pas à visible
         

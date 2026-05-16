@@ -48,10 +48,10 @@
     { name: 'Manticore', type: 'Monstruosité', cr: '3', hp: 68, ac: 14, size: 'Large', isEnemy: true, color: 0xb45309 },
     { name: 'Liche',    type: 'Mort-vivant', cr: '21', hp: 135, ac: 17, size: 'Medium', isEnemy: true, color: 0x4c1d95 },
     // Pack Mimic
-    { name: 'Mimic Coffre', type: 'Monstruosité', cr: '2', hp: 58, ac: 12, size: 'Medium', isEnemy: true, color: 0x92400e, imageUrl: 'Assets/Mimics/chest.png' },
-    { name: 'Mimic Porte',  type: 'Monstruosité', cr: '3', hp: 75, ac: 14, size: 'Large',  isEnemy: true, color: 0x6b7280, imageUrl: 'Assets/Mimics/door.png' },
-    { name: 'Mimic Baril',  type: 'Monstruosité', cr: '2', hp: 45, ac: 12, size: 'Medium', isEnemy: true, color: 0x78350f, imageUrl: 'Assets/Mimics/barrel.png' },
-    { name: 'Mimic Table',  type: 'Monstruosité', cr: '2', hp: 52, ac: 12, size: 'Medium', isEnemy: true, color: 0xa16207, imageUrl: 'Assets/Mimics/table.png' },
+    { name: 'Mimic Coffre', type: 'Monstruosité', cr: '2', hp: 58, ac: 12, size: 'Medium', isEnemy: true, color: 0x92400e, imageUrl: '/tokens/mimics/chest.png' },
+    { name: 'Mimic Porte',  type: 'Monstruosité', cr: '3', hp: 75, ac: 14, size: 'Large',  isEnemy: true, color: 0x6b7280, imageUrl: '/tokens/mimics/door.png' },
+    { name: 'Mimic Baril',  type: 'Monstruosité', cr: '2', hp: 45, ac: 12, size: 'Medium', isEnemy: true, color: 0x78350f, imageUrl: '/tokens/mimics/barrel.png' },
+    { name: 'Mimic Table',  type: 'Monstruosité', cr: '2', hp: 52, ac: 12, size: 'Medium', isEnemy: true, color: 0xa16207, imageUrl: '/tokens/mimics/table.png' },
   ];
 
   let customMonsters = $state<Monster[]>([]);
@@ -67,6 +67,10 @@
   let monsterImages = $state<Record<string, string>>({});
   async function getMonsterImage(path: string) {
     if (monsterImages[path]) return monsterImages[path];
+    if (path.startsWith('/')) {
+      monsterImages[path] = path; // Browser can handle root-relative paths for public assets
+      return path;
+    }
     const vp = getVaultPath();
     if (!vp) return '';
     try {
