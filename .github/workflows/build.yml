@@ -48,6 +48,6 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "Grimoire v__VERSION__"
-          releaseBody: "Release automatique"
-          releaseDraft: true
+          releaseBody: "### 🐉 Grimoire v0.1.2 — Mimic Pack & GM Tools\n\nCette version apporte le support complet des outils MJ avancés et l'intégration du Pack Mimic.\n\n#### ✨ Nouveautés :\n- **Pack Mimic** : 4 tokens illustrés intégrés à la bibliothèque.\n- **ConditionWheel** : Gestion radiale des conditions sur les tokens.\n- **Calculateur de Dégâts** : Outil de calcul et d'application de dégâts multi-cibles.\n- **Générateurs MJ** : Rencontres, Salles, Météo et Relations PNJ.\n- **Suivi des Durées** : Countdown automatique des effets (Torches, Sorts).\n- **Notes Partagées** : Overlay de notes en temps réel pour les joueurs.\n- **Export PNG** : Capture haute résolution de la carte VTT.\n\n*Prêt pour l'aventure !*"
+          releaseDraft: false
           prerelease: false
