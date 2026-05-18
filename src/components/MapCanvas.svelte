@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import * as PIXI from 'pixi.js';
-  import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef, TerrainZone } from '$lib/stores/vtt.svelte';
-  import { vttStore, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone } from '$lib/stores/vtt.svelte';
+  import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef, TerrainZone, TileType } from '$lib/stores/vtt.svelte';
+  import { vttStore, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone, setDungeonTile, pushDungeonUndo } from '$lib/stores/vtt.svelte';
   import ConditionWheel from './ConditionWheel.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
   import { readFileBase64, emitToPlayerView } from '$lib/api';
@@ -18,7 +18,7 @@
     tokens = [],
     pins = [] as MapPin[],
     vaultPath = '',
-    vttMode = 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain',
+    vttMode = 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint',
     fitRequest = 0,
     activeTokenId = null as string | null,
     externalPing = null as { x: number; y: number; seq: number } | null,
@@ -56,7 +56,7 @@
     spells?: SpellMarker[];
     weather?: string;
     vaultPath?: string;
-    vttMode?: 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain';
+    vttMode?: 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint';
     fitRequest?: number;
     activeTokenId?: string | null;
     externalPing?: { x: number; y: number; seq: number } | null;
@@ -131,6 +131,12 @@
   let weatherG: PIXI.Graphics;
   interface WeatherParticle { x: number; y: number; vx: number; vy: number; alpha: number; size: number; }
   const weatherParticles: WeatherParticle[] = [];
+
+  // Dungeon tile layer
+  let dungeonLayer: PIXI.Container;
+  let dungeonHoverG: PIXI.Graphics;
+  let lastHoverCol = -1;
+  let lastHoverRow = -1;
 
   // Freehand draw layer
   let drawLayer: PIXI.Container;
@@ -274,6 +280,9 @@
     gridGraphics = new PIXI.Graphics();
     worldContainer.addChild(gridGraphics);
 
+    dungeonLayer = new PIXI.Container();
+    worldContainer.addChild(dungeonLayer);
+
     fogLayer = new PIXI.Container();
     worldContainer.addChild(fogLayer);
 
@@ -300,6 +309,9 @@
 
     drawLayer = new PIXI.Container();
     worldContainer.addChild(drawLayer);
+
+    dungeonHoverG = new PIXI.Graphics();
+    worldContainer.addChild(dungeonHoverG);
 
     particleLayer = new PIXI.Container();
     worldContainer.addChild(particleLayer);
@@ -675,6 +687,26 @@
     renderTerrain();
   });
 
+  // Dungeon tiles
+  $effect(() => {
+    vttStore.dungeonTiles; // track
+    gridSize;              // track
+    if (!appReady || !dungeonLayer) return;
+    renderDungeonTiles();
+  });
+
+  // Dungeon hover / cursor
+  $effect(() => {
+    if (!appReady) return;
+    if (vttMode !== 'dungeon-paint') {
+      clearDungeonHover();
+    }
+    if (app?.canvas) {
+      (app.canvas as HTMLCanvasElement).style.cursor =
+        vttMode === 'dungeon-paint' ? 'crosshair' : '';
+    }
+  });
+
   // Export PNG déclenché depuis le toolbar
   $effect(() => {
     const req = vttStore.exportRequest;
@@ -1022,6 +1054,20 @@
               condWheelY = e.global.y;
             }
           });
+          container.on('pointerenter', () => {
+            hoveredTokenId = token.id;
+            if (vttMode === 'select') {
+              const rh = (container as any).__resizeHandle as PIXI.Graphics | undefined;
+              if (rh) rh.visible = true;
+            }
+          });
+          container.on('pointerleave', () => {
+            if (hoveredTokenId === token.id) hoveredTokenId = null;
+            if (!selectedTokenIds.has(token.id)) {
+              const rh = (container as any).__resizeHandle as PIXI.Graphics | undefined;
+              if (rh) rh.visible = false;
+            }
+          });
         }
         tokenLayer.addChild(container);
         tokenSprites.set(token.id, container);
@@ -1176,6 +1222,33 @@
         if (selRing) { container.removeChild(selRing); selRing.destroy(); delete (container as any).__selRing; }
       }
 
+      // Poignée de redimensionnement (tout token sélectionné ou survolé, mode select)
+      if (isGM) {
+        let rh = (container as any).__resizeHandle as PIXI.Graphics | undefined;
+        if (!rh) {
+          rh = new PIXI.Graphics();
+          rh.eventMode = 'static';
+          rh.cursor = 'nwse-resize';
+          rh.on('pointerdown', (ev: PIXI.FederatedPointerEvent) => {
+            ev.stopPropagation();
+            isResizing = true;
+            resizingTokenId = token.id;
+          });
+          container.addChild(rh);
+          (container as any).__resizeHandle = rh;
+        }
+        const hp = r * 0.707 + 4;
+        rh.clear();
+        rh.circle(hp, hp, 6).fill(0xffffff);
+        rh.setStrokeStyle({ width: 2, color: 0x6366f1, alpha: 1 });
+        rh.circle(hp, hp, 6).stroke();
+        // Visible si sélectionné, ou si survolé en mode select
+        rh.visible = vttMode === 'select' && (selectedTokenIds.has(token.id) || hoveredTokenId === token.id);
+      } else {
+        const rh = (container as any).__resizeHandle as PIXI.Graphics | undefined;
+        if (rh) rh.visible = false;
+      }
+
       // Anneau de concentration
       let concRing = (container as any).__concRing as PIXI.Graphics | undefined;
       if (token.concentrating) {
@@ -1239,6 +1312,17 @@
     e.preventDefault();
     if (!worldContainer) return;
 
+    // Alt + hover over token → resize token
+    if (e.altKey && hoveredTokenId && isGM && vttMode === 'select') {
+      const tok = tokens.find(t => t.id === hoveredTokenId);
+      if (tok) {
+        const step = Math.max(5, Math.round(tok.size * 0.1));
+        const newSize = Math.max(10, Math.min(400, tok.size + (e.deltaY > 0 ? -step : step)));
+        if (newSize !== tok.size) onTokenUpdate({ ...tok, size: newSize });
+        return;
+      }
+    }
+
     const rawDelta = e.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, worldContainer.scale.x * rawDelta));
     const zoomDelta = newScale / worldContainer.scale.x;
@@ -1282,7 +1366,48 @@
     }
   }
 
+  // Track whether we're actively painting dungeon tiles
+  let isDungeonPainting = false;
+
+  // Token resize
+  let hoveredTokenId: string | null = null;
+  let isResizing = false;
+  let resizingTokenId: string | null = null;
+
+  function updateDungeonHover(col: number, row: number, isErase: boolean) {
+    if (col === lastHoverCol && row === lastHoverRow) return;
+    lastHoverCol = col;
+    lastHoverRow = row;
+    dungeonHoverG.clear();
+    const color = isErase ? 0xef4444 : 0x3b82f6;
+    dungeonHoverG
+      .rect(col * gridSize, row * gridSize, gridSize, gridSize)
+      .fill({ color, alpha: 0.25 });
+    dungeonHoverG.setStrokeStyle({ width: 2, color, alpha: 1 });
+    dungeonHoverG
+      .rect(col * gridSize, row * gridSize, gridSize, gridSize)
+      .stroke();
+  }
+
+  function clearDungeonHover() {
+    dungeonHoverG?.clear();
+    lastHoverCol = -1;
+    lastHoverRow = -1;
+  }
+
   function onPointerDown(e: PIXI.FederatedPointerEvent) {
+    if (vttMode === 'dungeon-paint') {
+      isDungeonPainting = true;
+      pushDungeonUndo();
+      const localPos = worldContainer.toLocal(e.global);
+      const col = Math.floor(localPos.x / gridSize);
+      const row = Math.floor(localPos.y / gridSize);
+      const isErase = e.button === 2;
+      updateDungeonHover(col, row, isErase);
+      setDungeonTile(col, row, isErase ? 'void' : vttStore.dungeonBrush);
+      return;
+    }
+
     if (e.button === 1 || e.button === 2) {
       isPanning = true;
       lastPanX = e.global.x;
@@ -1329,6 +1454,30 @@
   }
 
   function onPointerMove(e: PIXI.FederatedPointerEvent) {
+    if (isResizing && resizingTokenId) {
+      const tok = tokens.find(t => t.id === resizingTokenId);
+      if (tok) {
+        const localPos = worldContainer.toLocal(e.global);
+        const dx = localPos.x - tok.x;
+        const dy = localPos.y - tok.y;
+        const newSize = Math.max(10, Math.min(400, Math.round(Math.sqrt(dx * dx + dy * dy) * 2)));
+        if (newSize !== tok.size) onTokenUpdate({ ...tok, size: newSize });
+      }
+      return;
+    }
+
+    if (vttMode === 'dungeon-paint') {
+      const localPos = worldContainer.toLocal(e.global);
+      const col = Math.floor(localPos.x / gridSize);
+      const row = Math.floor(localPos.y / gridSize);
+      const isErase = e.buttons === 2;
+      updateDungeonHover(col, row, isErase);
+      if (isDungeonPainting) {
+        setDungeonTile(col, row, isErase ? 'void' : vttStore.dungeonBrush);
+      }
+      return;
+    }
+
     if (isPanning) {
       const dx = e.global.x - lastPanX;
       const dy = e.global.y - lastPanY;
@@ -1473,6 +1622,17 @@
   }
 
   function onPointerUp(e: PIXI.FederatedPointerEvent) {
+    if (isResizing) {
+      isResizing = false;
+      resizingTokenId = null;
+      return;
+    }
+
+    if (isDungeonPainting) {
+      isDungeonPainting = false;
+      return;
+    }
+
     if (isPanning) {
       isPanning = false;
       emitCamera();
@@ -1924,6 +2084,119 @@
   const TERRAIN_LABELS: Record<string, string> = {
     difficult:'Terrain Difficile', water:'Eau', fire:'Feu', poison:'Poison', safe:'Zone Sûre', custom:'Personnalisé',
   };
+
+  // ── Dungeon Tiles ─────────────────────────────────────────────────
+  function drawTileGraphics(g: PIXI.Graphics, type: TileType, x: number, y: number, size: number) {
+    switch (type) {
+      case 'floor_stone':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.setStrokeStyle({ width: 1, color: 0x6b7280, alpha: 0.5 });
+        g.moveTo(x + size / 2, y).lineTo(x + size / 2, y + size).stroke();
+        g.moveTo(x, y + size / 2).lineTo(x + size, y + size / 2).stroke();
+        break;
+      case 'wall_stone':
+        g.rect(x, y, size, size).fill(0x374151);
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.rect(x + 2, y + 2, size / 2 - 3, size / 2 - 3).fill(0x4b5563).stroke();
+        g.rect(x + size / 2 + 1, y + 2, size / 2 - 3, size / 2 - 3).fill(0x4b5563).stroke();
+        g.rect(x + 2, y + size / 2 + 1, size / 2 - 3, size / 2 - 3).fill(0x4b5563).stroke();
+        g.rect(x + size / 2 + 1, y + size / 2 + 1, size / 2 - 3, size / 2 - 3).fill(0x4b5563).stroke();
+        break;
+      case 'floor_wood':
+        g.rect(x, y, size, size).fill(0x92400e);
+        g.setStrokeStyle({ width: 1, color: 0xb45309, alpha: 0.6 });
+        for (let i = 1; i < 4; i++) {
+          g.moveTo(x, y + size * i / 4).lineTo(x + size, y + size * i / 4).stroke();
+        }
+        break;
+      case 'wall_wood':
+        g.rect(x, y, size, size).fill(0x713f12);
+        g.setStrokeStyle({ width: 2, color: 0x92400e, alpha: 1 });
+        for (let i = 1; i < 4; i++) {
+          g.moveTo(x + size * i / 4, y).lineTo(x + size * i / 4, y + size).stroke();
+        }
+        break;
+      case 'water':
+        g.rect(x, y, size, size).fill(0x1d4ed8);
+        g.setStrokeStyle({ width: 1, color: 0x3b82f6, alpha: 0.7 });
+        g.moveTo(x, y + size * 0.3).bezierCurveTo(x + size * 0.3, y + size * 0.2, x + size * 0.7, y + size * 0.4, x + size, y + size * 0.3).stroke();
+        g.moveTo(x, y + size * 0.6).bezierCurveTo(x + size * 0.3, y + size * 0.5, x + size * 0.7, y + size * 0.7, x + size, y + size * 0.6).stroke();
+        break;
+      case 'lava':
+        g.rect(x, y, size, size).fill(0xea580c);
+        g.ellipse(x + size * 0.3, y + size * 0.4, size * 0.2, size * 0.15).fill(0xc2410c);
+        g.ellipse(x + size * 0.7, y + size * 0.6, size * 0.15, size * 0.12).fill(0xc2410c);
+        break;
+      case 'void':
+        g.rect(x, y, size, size).fill(0x111827);
+        break;
+      case 'door_closed':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.rect(x + size * 0.2, y + size * 0.1, size * 0.6, size * 0.8).fill(0x92400e);
+        g.setStrokeStyle({ width: 1, color: 0x713f12, alpha: 1 });
+        g.rect(x + size * 0.2, y + size * 0.1, size * 0.6, size * 0.8).stroke();
+        g.circle(x + size * 0.65, y + size * 0.5, size * 0.05).fill(0xfbbf24);
+        break;
+      case 'door_open':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.rect(x + size * 0.05, y + size * 0.1, size * 0.15, size * 0.8).fill(0x92400e);
+        g.setStrokeStyle({ width: 1, color: 0x111827, alpha: 0.5 });
+        g.rect(x + size * 0.05, y + size * 0.1, size * 0.15, size * 0.8).stroke();
+        break;
+      case 'stairs_down':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.setStrokeStyle({ width: 2, color: 0x4b5563, alpha: 1 });
+        for (let i = 0; i < 5; i++) {
+          const step = size / 5;
+          g.rect(x + i * step * 0.5, y + i * step, size - i * step * 0.5, step).fill(i % 2 === 0 ? 0x9ca3af : 0x6b7280).stroke();
+        }
+        break;
+      case 'stairs_up':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.setStrokeStyle({ width: 2, color: 0x4b5563, alpha: 1 });
+        for (let i = 0; i < 5; i++) {
+          const step = size / 5;
+          g.rect(x, y + i * step, size - i * step * 0.5, step).fill(i % 2 === 0 ? 0x9ca3af : 0x6b7280).stroke();
+        }
+        break;
+      case 'pillar':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.circle(x + size / 2, y + size / 2, size * 0.35).fill(0x4b5563);
+        g.setStrokeStyle({ width: 2, color: 0x374151, alpha: 1 });
+        g.circle(x + size / 2, y + size / 2, size * 0.35).stroke();
+        break;
+      case 'floor_dirt':
+        g.rect(x, y, size, size).fill(0xd97706);
+        g.circle(x + size * 0.2, y + size * 0.3, 2).fill(0xb45309);
+        g.circle(x + size * 0.7, y + size * 0.6, 2).fill(0xb45309);
+        g.circle(x + size * 0.5, y + size * 0.8, 2).fill(0xb45309);
+        break;
+      case 'chest':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.rect(x + size * 0.1, y + size * 0.3, size * 0.8, size * 0.5).fill(0x92400e);
+        g.setStrokeStyle({ width: 1, color: 0x713f12, alpha: 1 });
+        g.rect(x + size * 0.1, y + size * 0.3, size * 0.8, size * 0.25).fill(0xb45309).stroke();
+        g.rect(x + size * 0.4, y + size * 0.45, size * 0.2, size * 0.15).fill(0xfbbf24);
+        break;
+      case 'trap':
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        g.setStrokeStyle({ width: 3, color: 0xef4444, alpha: 0.9 });
+        g.moveTo(x + size * 0.2, y + size * 0.2).lineTo(x + size * 0.8, y + size * 0.8).stroke();
+        g.moveTo(x + size * 0.8, y + size * 0.2).lineTo(x + size * 0.2, y + size * 0.8).stroke();
+        break;
+    }
+  }
+
+  function renderDungeonTiles() {
+    if (!dungeonLayer) return;
+    dungeonLayer.removeChildren().forEach(c => (c as PIXI.Graphics).destroy());
+    if (vttStore.dungeonTiles.length === 0) return;
+    const g = new PIXI.Graphics();
+    for (const tile of vttStore.dungeonTiles) {
+      drawTileGraphics(g, tile.type, tile.col * gridSize, tile.row * gridSize, gridSize);
+    }
+    dungeonLayer.addChild(g);
+  }
 
   function renderTerrain() {
     if (!terrainLayer) return;

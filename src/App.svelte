@@ -16,6 +16,8 @@
   import PlayerManager from './components/PlayerManager.svelte';
   import PlayerMobileManager from './components/PlayerMobileManager.svelte';
   import MacroBar from './components/MacroBar.svelte';
+  import DungeonEditor from './components/DungeonEditor.svelte';
+  import UpdateModal from './components/UpdateModal.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView } from '$lib/api';
@@ -72,7 +74,7 @@
       name: imageUrl.split('/').pop()?.replace(/\.[^.]+$/, '') ?? `Token ${tokenDropCount}`,
       x,
       y,
-      size: 50,
+      size: vttStore.gridSize,
       color: 0x3b82f6,
       hp: 10,
       maxHp: 10,
@@ -108,6 +110,7 @@
   let mapRollSeq = 0;
   let playerHubRef = $state<any>(null);
   let playerManagerRef = $state<any>(null);
+  let updateModalRef = $state<any>(null);
 
   function handleDiceRoll(result: number, label: string) {
     const text = `🎲 ${label} = ${result}`;
@@ -160,6 +163,7 @@
         try { await loadVault(lastVault); }
         catch { localStorage.removeItem('last_vault_path'); }
       }
+      setTimeout(() => updateModalRef?.runCheck(), 8000);
       _unlistenApp.push(await listen('visual_dice_roll', (event: any) => {
         const { name, roll } = event.payload;
         handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
@@ -461,9 +465,14 @@
         <button onclick={handleOpenVault} class="footer-btn" title="Changer de vault">
           📂 Changer de Vault
         </button>
-        <button onclick={() => showSettings = true} class="footer-btn" title="Réglages">
-          ⚙️ Réglages
-        </button>
+        <div class="footer-row">
+          <button onclick={() => showSettings = true} class="footer-btn half" title="Réglages">
+            ⚙️ Réglages
+          </button>
+          <button onclick={() => updateModalRef?.runCheck()} class="footer-btn half" title="Vérifier les mises à jour">
+            🔄 Mises à jour
+          </button>
+        </div>
       </div>
     {:else}
       <div class="welcome">
@@ -566,6 +575,9 @@
           <div class="macro-bar-container">
             <MacroBar onRollRequest={handleMapRoll} />
           </div>
+          {#if vttStore.showDungeonEditor}
+            <DungeonEditor />
+          {/if}
         </div>
         {#if vttStore.combatActive}
           <InitiativeTracker />
@@ -599,6 +611,7 @@
   </div>
 {/if}
 
+<UpdateModal bind:this={updateModalRef} />
 <NotificationToast />
 
 <style>

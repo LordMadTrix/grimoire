@@ -28,7 +28,7 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Rétroliens (Backlinks)** : Ne perdez jamais le fil de vos intrigues.
 - **Auto-Sauvegarde & FTS5** : Sauvegarde automatique et recherche Full-Text ultra-rapide.
 
-### 🗺️ Virtual TableTop (VTT) "Immersive Suite" (Wave 13!)
+### 🗺️ Virtual TableTop (VTT) "Immersive Suite"
 - **Dynamic LOS (Line of Sight)** : Les murs et portes projettent des ombres portées en temps réel, bloquant la lumière des tokens.
 - **Mode Blueprint** : Tracez vos murs et configurez des portes interactives que vous pouvez ouvrir/fermer d'un clic.
 - **Zones Sonores Spatialisées** : Créez des régions où la musique d'ambiance s'adapte à la position des joueurs.
@@ -38,6 +38,8 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Log de Combat** : Historique typé (dégâts/soins/morts/tours) avec export presse-papiers.
 - **Export PNG** : Exportez la carte actuelle en image haute résolution d'un clic (🖼️💾).
 - **Chemin de Déplacement** : Ligne pointillée jaune + compteur de cases pendant le déplacement d'un token.
+- **🏰 Éditeur de Donjon** : Dessinez des donjons tile-by-tile avec 15 types de tuiles vectorielles (murs, sols, portes, escaliers, pièges…), salles rapides en un clic, undo Ctrl+Z.
+- **Redimensionnement de tokens** : Survolez n'importe quel token → poignée ⬤ apparaît dans le coin ; glissez-la pour redimensionner. `Alt+molette` pour un ajustement rapide. Les tokens déposés s'adaptent automatiquement à la taille de la grille courante.
 
 ### 📱 HUB Mobile Joueur (Wave 9)
 - **Compagnon Mobile** : Vos joueurs se connectent via un QR Code à un serveur local ultra-fluide.
@@ -46,6 +48,7 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Soundboard Joueur** : Permettez à vos joueurs de déclencher des sons d'ambiance pour ponctuer leurs actions.
 
 ### 🎲 Outils MJ — Wave 10 + 13
+Tous accessibles via le bouton **🔧** de la barre d'outils VTT (panneau déroulant).
 - **ConditionWheel** : Clic droit sur un token → roue radiale SVG pour toggler 8 conditions + bouton 🗑️ suppression directe.
 - **Calculateur de Dégâts** : Parseur de formules de dés (`2d6+4`), multi-cibles, demi-dégâts.
 - **Notes Partagées** : Envoyez des notes GM aux joueurs en temps réel ; elles s'affichent comme un overlay dismissable sur l'écran joueur.
@@ -58,6 +61,18 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 ### 🕸️ Visualisation & IA
 - **Graphe de Liens** : Visualisez les connexions entre vos notes sous forme de graphe interactif.
 - **L'Écrivain Fantôme (IA Locale)** : Génération de texte via Ollama (Llama, Mistral...) 100% locale et privée.
+
+## ⌨️ Raccourcis clavier
+
+| Raccourci | Contexte | Action |
+|-----------|----------|--------|
+| `Ctrl+K` | Éditeur | Palette de recherche |
+| `Ctrl+J` | Éditeur | Génération IA sur la sélection |
+| `Ctrl+Z` | VTT Donjon | Annuler la dernière session de peinture |
+| `1`–`9`, `0` | VTT Donjon | Sélectionner une tuile de la palette |
+| `E` | VTT Donjon | Mode Effacer (gomme) |
+| `Alt` + Molette | VTT — token survolé | Redimensionner le token |
+| Poignée ⬤ (coin du token) | VTT — mode Sélect | Redimensionner par glisser-déposer |
 
 ## 🚀 Installation & Développement
 
@@ -78,6 +93,7 @@ npm run tauri dev
 - **Frontend** : Svelte 5 (Runes) + PixiJS v8 pour le rendu haute performance.
 - **Backend Desktop** : Rust (Tauri) pour les accès fichiers, SQLite FTS5 et WebSocket Mobile.
 - **Mobile** : Serveur embarqué en Rust servant une web-app optimisée pour smartphones.
+- **Mises à jour** : Vérification automatique au démarrage via un manifest JSON hébergé sur GitHub.
 
 ---
 *Créé avec passion pour les rôlistes par LordMadTrix.*

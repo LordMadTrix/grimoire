@@ -64,6 +64,9 @@ pub fn run() {
             commands::player_server::send_private_message,
             commands::player_server::start_poll,
             commands::player_server::end_poll,
+            // Updater
+            commands::update::check_for_updates,
+            commands::update::get_current_version,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");

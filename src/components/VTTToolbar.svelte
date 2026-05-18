@@ -105,6 +105,15 @@
   let showWeatherPlanner = $state(false);
   let showDurationTracker = $state(false);
   let showSharedNotes = $state(false);
+  let showToolsOverflow = $state(false);
+  let toolbarEl: HTMLElement | undefined;
+  let toolbarH = $state(56);
+  $effect(() => {
+    if (!toolbarEl) return;
+    const ro = new ResizeObserver(() => { toolbarH = toolbarEl!.offsetHeight; });
+    ro.observe(toolbarEl);
+    return () => ro.disconnect();
+  });
 
   function getAllMd(entries: VaultEntry[], parent = ''): { path: string; name: string }[] {
     let files: { path: string; name: string }[] = [];
@@ -314,7 +323,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="vtt-toolbar">
+<div class="vtt-toolbar" bind:this={toolbarEl}>
   <!-- Ligne 1 : outils VTT (uniquement si carte chargée) -->
   {#if vttStore.currentMap}
     <div class="toolbar-row">
@@ -421,6 +430,13 @@
           <button class="btn icon-btn" onclick={clearTerrainZones} title="Effacer toutes les zones terrain">🗺️🗑️</button>
         {/if}
       {/if}
+      <!-- Dungeon Editor -->
+      <button class="btn icon-btn" class:active={vttStore.showDungeonEditor}
+        onclick={() => {
+          vttStore.showDungeonEditor = !vttStore.showDungeonEditor;
+          vttStore.mode = vttStore.showDungeonEditor ? 'dungeon-paint' : 'select';
+        }}
+        title="Éditeur de Donjon">🏰</button>
       <!-- Export PNG -->
       <button class="btn icon-btn" onclick={() => vttStore.exportRequest++} title="Exporter carte en PNG">🖼️💾</button>
     </div>
@@ -504,72 +520,73 @@
     <div class="separator"></div>
 
     <DiceRoller onRoll={handleDiceRoll} />
+    <div class="separator"></div>
+    <button class="btn icon-btn" onclick={() => onTogglePlayerManager?.()} title="Gestionnaire de Groupe (Party Manager)">👥</button>
+    <button class="btn icon-btn" onclick={() => onTogglePlayerHub?.()} title="Tableau de bord des joueurs (Hub)">📱</button>
+    <div class="separator"></div>
+    <button class="btn icon-btn overflow-toggle" class:active={showToolsOverflow}
+      onclick={(e) => { e.stopPropagation(); showToolsOverflow = !showToolsOverflow; }}
+      title="Plus d'outils">🔧</button>
+  </div>
+  </div>
+</div>
+
+<!-- Backdrop overflow -->
+{#if showToolsOverflow}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="overflow-backdrop" onclick={() => showToolsOverflow = false}></div>
+{/if}
+
+<!-- Panneau d'outils avancés (toujours monté) -->
+<div class="tools-overflow-panel" class:overflow-visible={showToolsOverflow} style="top:{toolbarH}px">
+  <div class="overflow-grid">
     <CharacterCreator />
-    <button class="btn icon-btn" onclick={() => showNpcModal = true} title="Générateur de PNJ rapide">🧟</button>
-    {#if showNpcModal}<QuickNpcModal onclose={() => showNpcModal = false} />{/if}
-    <button class="btn icon-btn" onclick={() => showLootModal = true} title="Générateur de butin">💰</button>
-    {#if showLootModal}<QuickLootModal onclose={() => showLootModal = false} />{/if}
-    <button class="btn icon-btn" onclick={() => showHandoutModal = true} title="Envoyer handout joueur">📤</button>
-    {#if showHandoutModal}<HandoutModal onclose={() => showHandoutModal = false} />{/if}
     <SoundBoard />
     <MonsterLibrary />
     <AdventureLibrary />
     <SessionExport />
-    <button class="btn icon-btn" onclick={() => showRelationMap = !showRelationMap} title="Carte des relations PNJ" class:active={showRelationMap}>🕸️</button>
-    <button class="btn icon-btn" onclick={() => showCombatLogPanel = !showCombatLogPanel} title="Log de combat" class:active={showCombatLogPanel}>📜</button>
-    <button class="btn icon-btn" onclick={() => showDamageCalc = true} title="Calculateur de dégâts" class:active={showDamageCalc}>💥</button>
-    {#if showDamageCalc}<DamageCalculator onclose={() => showDamageCalc = false} />{/if}
-    <button class="btn icon-btn" onclick={() => showEncounterGen = true} title="Générateur de rencontre" class:active={showEncounterGen}>⚡</button>
-    {#if showEncounterGen}<EncounterGenerator onclose={() => showEncounterGen = false} />{/if}
-    <button class="btn icon-btn" onclick={() => showRoomGen = true} title="Générateur de salle" class:active={showRoomGen}>🏚️</button>
-    {#if showRoomGen}<RoomGenerator onclose={() => showRoomGen = false} />{/if}
-    <button class="btn icon-btn" onclick={() => showWeatherPlanner = true} title="Planificateur météo">🌦️</button>
-    {#if showWeatherPlanner}<WeatherPlanner onclose={() => showWeatherPlanner = false} />{/if}
-    <button class="btn icon-btn" onclick={() => showDurationTracker = !showDurationTracker} title="Suivi des durées" class:active={showDurationTracker}>⏱️</button>
-    <button class="btn icon-btn" onclick={() => showSharedNotes = true} title="Notes partagées avec les joueurs">📋</button>
-    {#if showSharedNotes}<SharedNotesModal onclose={() => showSharedNotes = false} />{/if}
-    <button class="btn icon-btn" onclick={() => onTogglePlayerManager?.()} title="Gestionnaire de Groupe (Party Manager)">👥</button>
-    <button class="btn icon-btn" onclick={() => onTogglePlayerHub?.()} title="Tableau de bord des joueurs (Hub)">📱</button>
-
-    <div class="separator"></div>
-
-    <input
-      type="text"
-      class="campaign-title-input"
-      placeholder="Titre de campagne…"
+    <button class="btn overflow-tool-btn" onclick={() => showNpcModal = true} title="Générateur de PNJ rapide">🧟<br><small>NPC</small></button>
+    <button class="btn overflow-tool-btn" onclick={() => showLootModal = true} title="Générateur de butin">💰<br><small>Butin</small></button>
+    <button class="btn overflow-tool-btn" onclick={() => showHandoutModal = true} title="Envoyer handout joueur">📤<br><small>Handout</small></button>
+    <button class="btn overflow-tool-btn" class:active={showRelationMap} onclick={() => showRelationMap = !showRelationMap} title="Carte des relations PNJ">🕸️<br><small>Relations</small></button>
+    <button class="btn overflow-tool-btn" class:active={showCombatLogPanel} onclick={() => showCombatLogPanel = !showCombatLogPanel} title="Log de combat">📜<br><small>Combat</small></button>
+    <button class="btn overflow-tool-btn" onclick={() => showDamageCalc = true} title="Calculateur de dégâts">💥<br><small>Dégâts</small></button>
+    <button class="btn overflow-tool-btn" onclick={() => showEncounterGen = true} title="Générateur de rencontre">⚡<br><small>Rencontre</small></button>
+    <button class="btn overflow-tool-btn" onclick={() => showRoomGen = true} title="Générateur de salle">🏚️<br><small>Salle</small></button>
+    <button class="btn overflow-tool-btn" onclick={() => showWeatherPlanner = true} title="Planificateur météo">🌦️<br><small>Météo</small></button>
+    <button class="btn overflow-tool-btn" class:active={showDurationTracker} onclick={() => showDurationTracker = !showDurationTracker} title="Suivi des durées">⏱️<br><small>Durées</small></button>
+    <button class="btn overflow-tool-btn" onclick={() => showSharedNotes = true} title="Notes partagées avec les joueurs">📋<br><small>Notes</small></button>
+    <button class="btn overflow-tool-btn" class:active={vttStore.spotlightTokenId !== null}
+      onclick={() => vttStore.spotlightTokenId !== null ? setSpotlightToken(null) : null}
+      title={vttStore.spotlightTokenId ? 'Retirer le spotlight' : 'Spotlight (clic droit token)'}>🔦<br><small>Spotlight</small></button>
+    <button class="btn overflow-tool-btn handout-btn" onclick={() => showHandoutPicker = true} title="Envoyer un handout">📤<br><small>Envoyer</small></button>
+  </div>
+  <div class="overflow-inputs">
+    <input type="text" class="campaign-title-input" placeholder="Titre de campagne…"
       value={vttStore.campaignTitle}
       oninput={(e) => setCampaignTitle((e.target as HTMLInputElement).value)}
       title="Titre affiché sur l'écran joueur"
     />
-
-    <div class="separator"></div>
-
-    <!-- Texte d'ambiance → vue joueur -->
     <form class="ambient-form" onsubmit={(e) => { e.preventDefault(); const v = ambientTextInput.trim(); if (v) { sendAmbientText(v); ambientTextInput = ''; } }}>
-      <input
-        type="text"
-        class="ambient-input"
-        placeholder="Texte d'ambiance…"
+      <input type="text" class="ambient-input" placeholder="Texte d'ambiance…"
         bind:value={ambientTextInput}
         title="Envoyer un texte d'ambiance sur l'écran joueur"
       />
       <button type="submit" class="btn icon-btn" title="Envoyer le texte">🎭</button>
     </form>
-
-    <!-- Spotlight token -->
-    <button
-      class="btn icon-btn"
-      class:active={vttStore.spotlightTokenId !== null}
-      onclick={() => vttStore.spotlightTokenId !== null ? setSpotlightToken(null) : null}
-      title={vttStore.spotlightTokenId ? 'Retirer le spotlight (clic droit sur token pour activer)' : 'Clic droit sur un token pour le spotlight'}
-    >🔦</button>
-
-    <div class="separator"></div>
-
-    <button class="btn icon-btn handout-btn" onclick={() => showHandoutPicker = true} title="Envoyer un handout">📤</button>
-  </div>
   </div>
 </div>
+
+<!-- Modals -->
+{#if showNpcModal}<QuickNpcModal onclose={() => showNpcModal = false} />{/if}
+{#if showLootModal}<QuickLootModal onclose={() => showLootModal = false} />{/if}
+{#if showHandoutModal}<HandoutModal onclose={() => showHandoutModal = false} />{/if}
+{#if showDamageCalc}<DamageCalculator onclose={() => showDamageCalc = false} />{/if}
+{#if showEncounterGen}<EncounterGenerator onclose={() => showEncounterGen = false} />{/if}
+{#if showRoomGen}<RoomGenerator onclose={() => showRoomGen = false} />{/if}
+{#if showWeatherPlanner}<WeatherPlanner onclose={() => showWeatherPlanner = false} />{/if}
+{#if showSharedNotes}<SharedNotesModal onclose={() => showSharedNotes = false} />{/if}
 
 <!-- Panneau Relations PNJ -->
 {#if showRelationMap}
@@ -810,8 +827,12 @@
     padding: 3px 8px;
     overflow-x: auto;
     overflow-y: hidden;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
+  .toolbar-row::-webkit-scrollbar { height: 3px; }
+  .toolbar-row::-webkit-scrollbar-track { background: transparent; }
+  .toolbar-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   .toolbar-row:not(:last-child) {
     border-bottom: 1px solid var(--border);
   }
@@ -1209,4 +1230,75 @@
     color: var(--text-muted); font-size: 14px;
   }
   .float-panel-header button:hover { color: var(--text-primary); }
+
+  /* ── Overflow panel ──────────────────────────────────────────── */
+
+  .overflow-toggle {
+    border-color: #7c6af5;
+    color: #7c6af5;
+  }
+  .overflow-toggle:hover { background: rgba(124,106,245,0.1); }
+  .overflow-toggle.active {
+    background: rgba(124,106,245,0.15);
+    border-color: #7c6af5;
+    color: #c4b5fd;
+  }
+
+  .overflow-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 299;
+  }
+
+  .tools-overflow-panel {
+    display: none;
+    position: fixed;
+    right: 8px;
+    z-index: 300;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    padding: 10px;
+    width: min(560px, 96vw);
+    flex-direction: column;
+    gap: 8px;
+    animation: slideDown 0.15s ease-out;
+  }
+  .tools-overflow-panel.overflow-visible { display: flex; }
+
+  .overflow-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .overflow-tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 6px 8px;
+    font-size: 18px;
+    min-width: 52px;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .overflow-tool-btn small {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-family: sans-serif;
+  }
+  .overflow-tool-btn.active small { color: var(--accent); }
+
+  .overflow-inputs {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
 </style>

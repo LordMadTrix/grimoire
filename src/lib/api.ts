@@ -187,3 +187,20 @@ export async function startPoll(question: string, options: string[]): Promise<vo
 export async function endPoll(): Promise<void> {
   return invoke('end_poll');
 }
+
+// ── Updater ──────────────────────────────────────────────────────
+
+export interface UpdateManifest {
+  version: string;
+  changelog: string;
+  download_url: string;
+  release_date: string;
+}
+
+export async function checkForUpdates(): Promise<UpdateManifest | null> {
+  return invoke<UpdateManifest | null>('check_for_updates');
+}
+
+export async function getCurrentVersion(): Promise<string> {
+  return invoke<string>('get_current_version');
+}

@@ -20,7 +20,8 @@
 11. [IA Ollama](#11-ia-ollama)
 12. [Configuration du système de jeu](#12-configuration-du-système-de-jeu)
 13. [Outils MJ Avancés (Waves 10-13)](#13-outils-mj-avancés-waves-10-13)
-14. [Raccourcis clavier](#14-raccourcis-clavier)
+14. [Éditeur de Donjon](#14-éditeur-de-donjon)
+15. [Raccourcis clavier](#15-raccourcis-clavier)
 
 ---
 
@@ -258,6 +259,10 @@ Bouton **🗺️** dans la barre d'outils → le VTT s'affiche à la place de l'
 | **⬛ Blackout** | Écran noir total sur la vue joueur |
 | **🔊 Audio** | Charger et jouer un fichier audio (synchronisé côté joueur) |
 | **⚔️ Initiative** | Ouvrir le tracker de combat |
+| **🏰 Donjon** | Ouvrir l'éditeur de donjon tile-by-tile |
+| **🔧 Outils** | Panneau secondaire : tous les outils MJ avancés |
+
+> **Astuce** : si la barre d'outils semble incomplète, cliquez **🔧** pour afficher le panneau d'outils avancés (calculateur de dégâts, générateurs, soundboard, etc.).
 
 ### Tokens
 
@@ -279,7 +284,11 @@ Grimoire inclut un pack spécial de **Mimics** illustrés. Pour les utiliser :
 | Action | Résultat |
 |--------|----------|
 | **Clic gauche** + glisser (mode Sélect) | Déplacer le token |
-| **Clic droit** sur un token | Ouvrir les paramètres |
+| **Clic droit** sur un token | Ouvrir les paramètres / ConditionWheel |
+| **Poignée ⬤** (coin du token sélectionné) | Redimensionner par glisser |
+| **Alt + molette** sur un token survolé | Redimensionner rapidement |
+
+> **Redimensionner un token** : sélectionnez-le (clic gauche), une poignée blanche apparaît dans le coin inférieur droit. Glissez-la pour ajuster la taille librement. Alternativement, survolez le token et faites `Alt+molette` pour des incréments précis (min 10 px, max 400 px).
 
 #### Paramètres d'un token (clic droit)
 
@@ -795,7 +804,85 @@ Bouton **💥** → Entrez une formule (ex: `2d6+4`). Vous pouvez appliquer les 
 
 ---
 
-## 14. Raccourcis clavier
+## 14. Éditeur de Donjon
+
+L'éditeur de donjon permet de dessiner des plans de donjons tile-by-tile directement sur la carte VTT, avec un ensemble de tuiles vectorielles.
+
+### Ouvrir l'éditeur
+
+Bouton **🏰** dans la barre d'outils VTT → un panneau flottant s'ouvre à gauche de la carte.
+
+### Interface
+
+```
+┌─────────────────────────────────┐
+│  🏰 Éditeur de Donjon           │
+├─────────────────────────────────┤
+│  Palette de tuiles              │
+│  ┌──┬──┬──┬──┬──┐              │
+│  │ 1│ 2│ 3│ 4│ 5│  ← Murs, sols│
+│  │⬛│🟫│  │ /│⬛│              │
+│  ├──┼──┼──┼──┼──┤              │
+│  │ 6│ 7│ 8│ 9│ 0│              │
+│  │🚪│🪜│ T│ P│ ◆│              │
+│  └──┴──┴──┴──┴──┘              │
+├─────────────────────────────────┤
+│  Clic droit ou E = effacer      │
+│  Ctrl+Z = annuler               │
+├─────────────────────────────────┤
+│  [Presets ▾] [↩ Undo] [🗑 Clear]│
+└─────────────────────────────────┘
+```
+
+### Types de tuiles
+
+| Touche | Tuile | Description |
+|--------|-------|-------------|
+| `1` | Mur pierre | Mur solide (opaque pour le LOS) |
+| `2` | Sol pierre | Plancher basique |
+| `3` | Sol terre | Terrain naturel |
+| `4` | Mur diagonal | Angle ou paroi oblique |
+| `5` | Vide | Efface la tuile (même effet que clic droit) |
+| `6` | Porte | Passage (peut être ouvert/fermé en mode Blueprint) |
+| `7` | Escalier haut | Montée vers l'étage supérieur |
+| `8` | Escalier bas | Descente |
+| `9` | Trappe | Passage caché dans le sol |
+| `0` | Pilier | Obstacle central dans une salle |
+| `E` | Effacer | Passe en mode gomme |
+
+### Peindre des tuiles
+
+1. Sélectionnez une tuile dans la palette (ou appuyez sur la touche correspondante)
+2. **Clic gauche + glisser** sur la carte → peint la tuile sur chaque case survolée
+3. **Clic droit + glisser** → efface les cases (équivalent à la tuile Vide)
+4. Une surbrillance bleue (peinture) ou rouge (efface) indique la case ciblée
+5. Le curseur devient une croix `✛` quand le mode donjon est actif
+
+### Presets de salle
+
+Le menu déroulant **Presets** insère une salle pré-dessinée centrée sur la vue :
+- **Salle 5×5** — petite pièce carrée
+- **Salle 10×8** — salle moyenne rectangulaire
+- **Salle ronde** — pièce circulaire avec murs courbés
+
+### Annuler / Effacer
+
+| Action | Résultat |
+|--------|----------|
+| `Ctrl+Z` (ou bouton ↩) | Annule la dernière session de peinture |
+| Bouton **🗑 Clear** | Efface **toutes** les tuiles du donjon |
+
+> L'annulation (undo) capture un instantané avant chaque session de peinture (mousedown → mouseup), pas tuile par tuile. Vous pouvez annuler autant d'étapes que l'historique le permet.
+
+### Interaction avec le reste du VTT
+
+- Les tuiles de donjon sont rendues **sous** les tokens et le brouillard de guerre.
+- Les **murs** de donjon bloquent le Line of Sight (mode LOS) comme les murs Blueprint.
+- Les **portes** peuvent être configurées comme ouvertes/fermées depuis le mode Blueprint.
+
+---
+
+## 15. Raccourcis clavier
 
 ### Éditeur
 
@@ -810,8 +897,21 @@ Bouton **💥** → Entrez une formule (ex: `2d6+4`). Vous pouvez appliquer les 
 
 | Raccourci | Action |
 |-----------|--------|
-| Molette | Zoom |
+| Molette | Zoom avant/arrière |
 | Clic milieu + glisser | Pan (déplacer la vue) |
+| Clic droit + glisser | Pan (déplacer la vue) |
+| `Alt` + Molette (sur un token) | Redimensionner le token survolé |
+
+### Éditeur de Donjon (mode 🏰 actif)
+
+| Raccourci | Action |
+|-----------|--------|
+| `1` – `9` | Sélectionner tuile 1 à 9 de la palette |
+| `0` | Sélectionner tuile 10 (Pilier) |
+| `E` / `e` | Passer en mode Effacer (gomme) |
+| `Ctrl+Z` | Annuler la dernière session de peinture |
+| Clic gauche + glisser | Peindre la tuile sélectionnée |
+| Clic droit + glisser | Effacer des cases |
 
 ### App mobile (joueur)
 
@@ -840,4 +940,5 @@ Ces types servent à la recherche FTS5 (filtrage par `entity_type`) et au graphe
 ---
 
 *Grimoire — v0.1.0 — Application desktop open-source pour MJ TTRPG*  
-*Svelte 5 + Tauri v2 + PixiJS v8 + SQLite FTS5 + Ollama*
+*Svelte 5 + Tauri v2 + PixiJS v8 + SQLite FTS5 + Ollama*  
+*Nouvelles fonctionnalités : Éditeur de Donjon · Redimensionnement de tokens · Barre d'outils compacte (🔧)*

@@ -4,7 +4,8 @@ import { emitToPlayerView, writeFile, readFile, createDirectory, readFileBase64 
 type UndoEntry =
   | { type: 'fow'; shapes: FowShape[] }
   | { type: 'draw'; paths: DrawPath[] }
-  | { type: 'tokens'; tokens: Token[] };
+  | { type: 'tokens'; tokens: Token[] }
+  | { type: 'dungeon'; tiles: DungeonTile[] };
 
 const undoStack: UndoEntry[] = [];
 const MAX_UNDO = 30;
@@ -28,7 +29,13 @@ export function undoMapAction() {
   } else if (entry.type === 'tokens') {
     vttStore.tokens = entry.tokens;
     emitToPlayerView('update_tokens', vttStore.tokens);
+  } else if (entry.type === 'dungeon') {
+    vttStore.dungeonTiles = entry.tiles;
   }
+}
+
+export function pushDungeonUndo() {
+  pushUndo({ type: 'dungeon', tiles: [...vttStore.dungeonTiles] });
 }
 
 export type FowShape = {
@@ -123,6 +130,19 @@ export type TerrainZone = {
   label?: string;
 };
 
+export type TileType =
+  'floor_stone' | 'floor_wood' | 'floor_dirt' |
+  'wall_stone' | 'wall_wood' |
+  'door_closed' | 'door_open' |
+  'stairs_down' | 'stairs_up' |
+  'pillar' | 'water' | 'lava' | 'void' | 'chest' | 'trap';
+
+export type DungeonTile = {
+  col: number;
+  row: number;
+  type: TileType;
+};
+
 export type SharedNote = {
   id: string;
   title: string;
@@ -169,7 +189,7 @@ export const vttStore = $state({
   fowShapes: [] as FowShape[],
   tokens: [] as Token[],
   pins: [] as MapPin[],
-  mode: 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain',
+  mode: 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint',
   fitRequest: 0,
   showGrid: true,
   gridSize: 50,
@@ -243,6 +263,11 @@ export const vttStore = $state({
 
   // Export trigger (incrémenté pour déclencher l'export PNG depuis le toolbar)
   exportRequest: 0,
+
+  // Dungeon tile editor
+  dungeonTiles: [] as DungeonTile[],
+  dungeonBrush: 'floor_stone' as TileType,
+  showDungeonEditor: false,
 });
 
 // ── Campaign Title ────────────────────────────────────────────────
@@ -294,6 +319,23 @@ export function removeTerrainZone(id: string) {
 export function clearTerrainZones() {
   vttStore.terrainZones = [];
   emitToPlayerView('update_terrain', []);
+}
+
+// ── Dungeon Tiles ─────────────────────────────────────────────────
+export function setDungeonTile(col: number, row: number, type: TileType) {
+  const existing = vttStore.dungeonTiles.findIndex(t => t.col === col && t.row === row);
+  if (type === 'void') {
+    if (existing >= 0) vttStore.dungeonTiles = vttStore.dungeonTiles.filter((_, i) => i !== existing);
+  } else if (existing >= 0) {
+    vttStore.dungeonTiles[existing].type = type;
+    vttStore.dungeonTiles = [...vttStore.dungeonTiles];
+  } else {
+    vttStore.dungeonTiles = [...vttStore.dungeonTiles, { col, row, type }];
+  }
+}
+
+export function clearDungeonTiles() {
+  vttStore.dungeonTiles = [];
 }
 
 // ── Notes partagées ───────────────────────────────────────────────
@@ -761,6 +803,7 @@ interface SessionData {
   campaignTitle?: string;
   maps?: MapScene[];
   activeMapId?: string | null;
+  dungeonTiles?: DungeonTile[];
 }
 
 export async function saveGmSession(vaultPath: string) {
@@ -790,6 +833,7 @@ export async function saveGmSession(vaultPath: string) {
     campaignTitle: vttStore.campaignTitle,
     maps: vttStore.maps,
     activeMapId: vttStore.activeMapId,
+    dungeonTiles: vttStore.dungeonTiles,
   };
   try {
     await writeFile(vaultPath, SESSION_PATH, JSON.stringify(data, null, 2));
@@ -830,6 +874,7 @@ export async function loadGmSession(vaultPath: string): Promise<boolean> {
     vttStore.drawPaths = data.drawPaths ?? [];
     vttStore.walls = data.walls ?? [];
     vttStore.audioZones = data.audioZones ?? [];
+    vttStore.dungeonTiles = data.dungeonTiles ?? [];
 
     // Recharger la carte depuis le chemin relatif (active scene first)
     const activeScene = vttStore.maps.find(m => m.id === vttStore.activeMapId);
