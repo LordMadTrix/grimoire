@@ -1,0 +1,216 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-05-31",
+  "tokens": [
+    {
+      "name": "Épéiste",
+      "url": "https://game-icons.net/1x1/lorc/broadsword.svg",
+      "cat": "heroes",
+      "isEnemy": false,
+      "hp": 20,
+      "size": 50,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Archer",
+      "url": "https://game-icons.net/1x1/lorc/bow-arrow.svg",
+      "cat": "heroes",
+      "isEnemy": false,
+      "hp": 14,
+      "size": 50,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Mage",
+      "url": "https://game-icons.net/1x1/lorc/wizard-staff.svg",
+      "cat": "heroes",
+      "isEnemy": false,
+      "hp": 10,
+      "size": 50,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Paladin",
+      "url": "https://game-icons.net/1x1/lorc/crusader-helmet.svg",
+      "cat": "heroes",
+      "isEnemy": false,
+      "hp": 22,
+      "size": 50,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Druide",
+      "url": "https://game-icons.net/1x1/lorc/oak-leaf.svg",
+      "cat": "heroes",
+      "isEnemy": false,
+      "hp": 14,
+      "size": 50,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Barbare",
+      "url": "https://game-icons.net/1x1/lorc/battle-axe.svg",
+      "cat": "heroes",
+      "isEnemy": false,
+      "hp": 26,
+      "size": 55,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Vampire",
+      "url": "https://game-icons.net/1x1/lorc/vampire-dracula.svg",
+      "cat": "enemies",
+      "isEnemy": true,
+      "hp": 40,
+      "size": 55,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Golem",
+      "url": "https://game-icons.net/1x1/lorc/stone-golem.svg",
+      "cat": "enemies",
+      "isEnemy": true,
+      "hp": 60,
+      "size": 65,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Araignée géante",
+      "url": "https://game-icons.net/1x1/lorc/spider.svg",
+      "cat": "enemies",
+      "isEnemy": true,
+      "hp": 16,
+      "size": 50,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Troll",
+      "url": "https://game-icons.net/1x1/lorc/troll.svg",
+      "cat": "enemies",
+      "isEnemy": true,
+      "hp": 45,
+      "size": 65,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Spectre",
+      "url": "https://game-icons.net/1x1/lorc/ghost.svg",
+      "cat": "enemies",
+      "isEnemy": true,
+      "hp": 22,
+      "size": 50,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Minotaure",
+      "url": "https://game-icons.net/1x1/lorc/minotaur.svg",
+      "cat": "enemies",
+      "isEnemy": true,
+      "hp": 50,
+      "size": 65,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Prêtre",
+      "url": "https://game-icons.net/1x1/lorc/bishop.svg",
+      "cat": "npcs",
+      "isEnemy": false,
+      "hp": 12,
+      "size": 45,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Forgeron",
+      "url": "https://game-icons.net/1x1/lorc/anvil.svg",
+      "cat": "npcs",
+      "isEnemy": false,
+      "hp": 14,
+      "size": 45,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Espion",
+      "url": "https://game-icons.net/1x1/lorc/spy.svg",
+      "cat": "npcs",
+      "isEnemy": false,
+      "hp": 10,
+      "size": 45,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    },
+    {
+      "name": "Alchimiste",
+      "url": "https://game-icons.net/1x1/lorc/alchemist-flask.svg",
+      "cat": "npcs",
+      "isEnemy": false,
+      "hp": 8,
+      "size": 45,
+      "license": "CC BY 3.0 - game-icons.net/lorc"
+    }
+  ],
+  "maps": [
+    {
+      "name": "Crypte Ancienne",
+      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/donjon.png",
+      "desc": "Donjon sombre avec salle du trône et cellules",
+      "license": "Grimoire — libre d'utilisation"
+    },
+    {
+      "name": "Taverne",
+      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/taverne.png",
+      "desc": "Intérieur de taverne médiévale",
+      "license": "Grimoire — libre d'utilisation"
+    },
+    {
+      "name": "Forêt",
+      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/foret.png",
+      "desc": "Zone forestière avec clairière",
+      "license": "Grimoire — libre d'utilisation"
+    }
+  ],
+  "tables": [
+    {
+      "name": "Météo aléatoire",
+      "rolls": [
+        { "range": "1-2",   "result": "Tempête violente — visibilité réduite" },
+        { "range": "3-4",   "result": "Pluie battante — terrain difficile" },
+        { "range": "5-6",   "result": "Brouillard épais — -2 aux attaques à distance" },
+        { "range": "7-9",   "result": "Ciel couvert, vent froid" },
+        { "range": "10-14", "result": "Temps nuageux, sec" },
+        { "range": "15-17", "result": "Beau temps ensoleillé" },
+        { "range": "18-19", "result": "Chaleur écrasante — CON DD 12 chaque heure" },
+        { "range": "20",    "result": "Phénomène magique — aurora ou pluie de pierres" }
+      ]
+    },
+    {
+      "name": "Rumeurs de taverne",
+      "rolls": [
+        { "range": "1-2",   "result": "Un trésor enfoui dans les ruines au nord" },
+        { "range": "3-4",   "result": "Des monstres attaquent les caravanes sur la route royale" },
+        { "range": "5-6",   "result": "Le seigneur local est possédé" },
+        { "range": "7-8",   "result": "Une guilde de voleurs recrutent discrètement" },
+        { "range": "9-10",  "result": "Un dragon s'est réveillé dans les montagnes" },
+        { "range": "11-12", "result": "La fontaine du village guérit toutes les maladies" },
+        { "range": "13-14", "result": "Des cultistes se réunissent dans les sous-sols" },
+        { "range": "15-16", "result": "Un artefact légendaire a été volé au temple" },
+        { "range": "17-18", "result": "Un prince voyage incognito parmi le peuple" },
+        { "range": "19-20", "result": "La fin du monde est imminente selon un prophète fou" }
+      ]
+    },
+    {
+      "name": "Complications de voyage",
+      "rolls": [
+        { "range": "1",     "result": "Embuscade de bandits (1d6+2)" },
+        { "range": "2-3",   "result": "Pont effondré — détour de 2 jours" },
+        { "range": "4-5",   "result": "Tempête — trouver un abri ou prendre 1d6 dégâts" },
+        { "range": "6-7",   "result": "Rencontre avec un groupe de réfugiés" },
+        { "range": "8-9",   "result": "Cavalier royal porteur d'un message urgent" },
+        { "range": "10-11", "result": "Monture blessée — ralentissement" },
+        { "range": "12-13", "result": "Village abandonné mystérieusement" },
+        { "range": "14-15", "result": "Passage de créatures magiques inoffensives" },
+        { "range": "16-17", "result": "Trouvaille sur la route (objet ou corps)" },
+        { "range": "18-19", "result": "Raccourci secret découvert" },
+        { "range": "20",    "result": "Arrivée inopinée chez un allié providentiel" }
+      ]
+    }
+  ]
+}

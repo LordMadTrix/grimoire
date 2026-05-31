@@ -337,6 +337,8 @@
     if (!vaultPath) return;
     statusMessage = 'Réindexation…';
     try {
+      const tree = await openVault(vaultPath);
+      setVaultTree(tree);
       const count = await reindex(vaultPath);
       statusMessage = `${count} fichiers réindexés`;
     } catch {

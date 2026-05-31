@@ -204,3 +204,7 @@ export async function checkForUpdates(): Promise<UpdateManifest | null> {
 export async function getCurrentVersion(): Promise<string> {
   return invoke<string>('get_current_version');
 }
+
+export async function openUrl(url: string): Promise<void> {
+  return invoke<void>('open_url', { url });
+}

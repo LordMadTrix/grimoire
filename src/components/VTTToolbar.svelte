@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SharedLibrary from './SharedLibrary.svelte';
   import { emitToPlayerView, readFileBase64, readFile } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import {
@@ -61,6 +62,7 @@
   let showAudio2Picker = $state(false);
   let showHandoutPicker = $state(false);
   let showTokenPicker = $state(false);
+  let showSharedLibrary = $state(false);
   let mapPickerSearch = $state('');
   let tokenPickerSearch = $state('');
   let ambientTextInput = $state('');
@@ -224,7 +226,7 @@
         const ext = e.extension?.toLowerCase();
         if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp') {
           const fullPath = parent + e.name;
-          if (!dirFilter || fullPath.split('/').includes(dirFilter)) {
+          if (!dirFilter || fullPath.split('/').some(s => s.toLowerCase() === dirFilter.toLowerCase())) {
             images.push({ path: fullPath, name: e.name });
           }
         }
@@ -408,6 +410,7 @@
       {/if}
       <div class="separator"></div>
       <button class="btn icon-btn" onclick={createTestToken}                                      title="Créer un token coloré">👹</button>
+      <button class="btn icon-btn" onclick={() => showSharedLibrary = true}                       title="Bibliothèque commune (tokens, maps, tables)">📚</button>
       <button class="btn icon-btn" onclick={() => { showTokenPicker = true; tokenPickerSearch = ''; }} title="Token depuis image (assets/tokens/)">🖼️</button>
       <button class="btn icon-btn" onclick={undoGmFow}                                            title="Annuler dernière zone de brouillard">↩️</button>
       <button class="btn icon-btn" onclick={clearGmFow}                                           title="Effacer tout le brouillard">🧹</button>
@@ -663,6 +666,11 @@
       </div>
     </div>
   </div>
+{/if}
+
+<!-- Bibliothèque commune -->
+{#if showSharedLibrary}
+  <SharedLibrary onClose={() => showSharedLibrary = false} />
 {/if}
 
 <!-- Sélecteur de token image -->

@@ -342,6 +342,7 @@
       app.stage.on('pointerupoutside', onPointerUp);
       app.canvas.addEventListener('wheel', onWheel);
       app.canvas.addEventListener('contextmenu', e => e.preventDefault());
+      document.addEventListener('contextmenu', e => e.preventDefault());
     }
 
     // Ticker principal : tour de combat + sorts + météo + shake
@@ -383,8 +384,13 @@
         // ── Visibilité brouillard de guerre (joueur uniquement) ──
         if (!isGM) {
           const gmHidden = token.visible === false;
-          const inFog = !isTokenRevealed(token.x, token.y);
-          container.visible = !gmHidden && !inFog;
+          // Un token est visible s'il est dans une zone révélée OU dans la vision d'un autre token joueur
+          const inFow = isTokenRevealed(token.x, token.y);
+          const inVision = tokens.some(t =>
+            !t.isEnemy && t.visionRange && t.visionRange > 0 &&
+            Math.sqrt((token.x - t.x) ** 2 + (token.y - t.y) ** 2) <= t.visionRange * gridSize
+          );
+          container.visible = !gmHidden && (inFow || inVision);
         }
       }
 
@@ -1342,8 +1348,12 @@
   function onTokenPointerDown(e: any, id: string) {
     e.stopPropagation();
     if (e.button === 2) {
+      if (e.shiftKey) {
+        editingTokenId = id;
+        return;
+      }
       condWheelTokenId = id;
-    condWheelX = 400; condWheelY = 300;
+      condWheelX = e.global?.x ?? 400; condWheelY = e.global?.y ?? 300;
     } else if (vttMode === 'select') {
       if (e.shiftKey) {
         const newSel = new Set(selectedTokenIds);
