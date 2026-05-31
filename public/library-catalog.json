@@ -1,28 +1,32 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "updated": "2026-05-31",
   "tokens": [
-    { "name": "Épéiste",     "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=swordsman&size=128&backgroundColor=1e3a8a",    "cat": "heroes",  "isEnemy": false, "hp": 20, "size": 50 },
-    { "name": "Archer",      "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=archer&size=128&backgroundColor=14532d",       "cat": "heroes",  "isEnemy": false, "hp": 14, "size": 50 },
-    { "name": "Mage",        "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=wizard&size=128&backgroundColor=581c87",       "cat": "heroes",  "isEnemy": false, "hp": 10, "size": 50 },
-    { "name": "Paladin",     "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=paladin&size=128&backgroundColor=78350f",      "cat": "heroes",  "isEnemy": false, "hp": 22, "size": 50 },
-    { "name": "Druide",      "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=druid&size=128&backgroundColor=064e3b",        "cat": "heroes",  "isEnemy": false, "hp": 14, "size": 50 },
-    { "name": "Barbare",     "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=barbarian&size=128&backgroundColor=7f1d1d",    "cat": "heroes",  "isEnemy": false, "hp": 26, "size": 55 },
-    { "name": "Vampire",     "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=vampire&size=128&backgroundColor=3b0764",      "cat": "enemies", "isEnemy": true,  "hp": 40, "size": 55 },
-    { "name": "Golem",       "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=golem&size=128&backgroundColor=374151",        "cat": "enemies", "isEnemy": true,  "hp": 60, "size": 65 },
-    { "name": "Araignée",    "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=spider&size=128&backgroundColor=1c1917",       "cat": "enemies", "isEnemy": true,  "hp": 16, "size": 50 },
-    { "name": "Troll",       "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=troll&size=128&backgroundColor=14532d",        "cat": "enemies", "isEnemy": true,  "hp": 45, "size": 65 },
-    { "name": "Spectre",     "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=ghost&size=128&backgroundColor=1e1b4b",        "cat": "enemies", "isEnemy": true,  "hp": 22, "size": 50 },
-    { "name": "Minotaure",   "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=minotaur&size=128&backgroundColor=431407",     "cat": "enemies", "isEnemy": true,  "hp": 50, "size": 65 },
-    { "name": "Prêtre",      "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=priest&size=128&backgroundColor=713f12",       "cat": "npcs",    "isEnemy": false, "hp": 12, "size": 45 },
-    { "name": "Forgeron",    "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=blacksmith&size=128&backgroundColor=292524",   "cat": "npcs",    "isEnemy": false, "hp": 14, "size": 45 },
-    { "name": "Espion",      "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=spy&size=128&backgroundColor=0c0a09",          "cat": "npcs",    "isEnemy": false, "hp": 10, "size": 45 },
-    { "name": "Alchimiste",  "url": "https://api.dicebear.com/9.x/bottts-neutral/png?seed=alchemist&size=128&backgroundColor=0c4a6e",    "cat": "npcs",    "isEnemy": false, "hp": 8,  "size": 45 }
+    { "name": "Mage",         "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/mage.png",       "cat": "heroes",  "isEnemy": false, "hp": 10, "size": 50 },
+    { "name": "Guerrier",     "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/guerrier.png",   "cat": "heroes",  "isEnemy": false, "hp": 20, "size": 50 },
+    { "name": "Nain",         "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/nain.png",       "cat": "heroes",  "isEnemy": false, "hp": 18, "size": 50 },
+    { "name": "Viking",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/viking.png",     "cat": "heroes",  "isEnemy": false, "hp": 22, "size": 50 },
+    { "name": "Barbare",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/barbare.png",    "cat": "heroes",  "isEnemy": false, "hp": 26, "size": 55 },
+    { "name": "Chevalier",    "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/chevalier.png",  "cat": "heroes",  "isEnemy": false, "hp": 24, "size": 50 },
+    { "name": "Archer",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/archer.png",     "cat": "heroes",  "isEnemy": false, "hp": 14, "size": 50 },
+    { "name": "Rôdeur",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/rodeur.png",     "cat": "heroes",  "isEnemy": false, "hp": 16, "size": 50 },
+    { "name": "Prêtresse",    "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/pretresse.png",  "cat": "heroes",  "isEnemy": false, "hp": 14, "size": 50 },
+    { "name": "Sorcière",     "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/sorciere.png",   "cat": "heroes",  "isEnemy": false, "hp": 10, "size": 50 },
+    { "name": "Fantôme",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/fantome.png",   "cat": "enemies", "isEnemy": true,  "hp": 22, "size": 50 },
+    { "name": "Golem",        "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/golem.png",     "cat": "enemies", "isEnemy": true,  "hp": 60, "size": 65 },
+    { "name": "Démon",        "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/demon.png",     "cat": "enemies", "isEnemy": true,  "hp": 40, "size": 55 },
+    { "name": "Nomade",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/nomade.png",    "cat": "enemies", "isEnemy": true,  "hp": 18, "size": 50 },
+    { "name": "Ninja",        "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/ninja.png",     "cat": "enemies", "isEnemy": true,  "hp": 20, "size": 50 },
+    { "name": "Chauve-souris","url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/chauvesouris.png","cat":"enemies", "isEnemy": true,  "hp": 8,  "size": 40 },
+    { "name": "Spectre",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/spectre.png",   "cat": "enemies", "isEnemy": true,  "hp": 22, "size": 50 },
+    { "name": "Araignée",     "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/araignee.png",  "cat": "enemies", "isEnemy": true,  "hp": 16, "size": 50 },
+    { "name": "Troll",        "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/troll.png",     "cat": "enemies", "isEnemy": true,  "hp": 45, "size": 65 },
+    { "name": "Squelette",    "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/squelette.png", "cat": "enemies", "isEnemy": true,  "hp": 13, "size": 50 }
   ],
   "maps": [
-    { "name": "Taverne du Griffon",  "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/taverne.png",  "desc": "Intérieur de taverne médiévale avec cuisine et chambres" },
-    { "name": "Donjon des Ombres",   "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/donjon.png",   "desc": "Donjon avec salle du trône, cellules et trésorerie" },
-    { "name": "Forêt des Murmures",  "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/foret.png",    "desc": "Zone forestière avec clairière et caverne" }
+    { "name": "Donjon des Ombres",  "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/donjon.png",  "desc": "Donjon pixel art avec salles, couloirs et créatures" },
+    { "name": "Taverne du Griffon", "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/taverne.png", "desc": "Taverne avec salle commune, cuisine et chambres" },
+    { "name": "Forêt des Murmures", "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/foret.png",  "desc": "Forêt avec clairière, chemins et caverne" }
   ],
   "tables": [
     {

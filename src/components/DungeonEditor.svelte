@@ -286,16 +286,19 @@
 
   <!-- Pinceau actif affiché en grand -->
   <div class="de-active-brush">
-    <canvas class="de-active-canvas" width="52" height="52"
-      bind:this={canvasRefs['__active__' as TileType]}
-    ></canvas>
+    <img
+      src="/tiles/kenney/{vttStore.dungeonBrush}.png"
+      alt={vttStore.dungeonBrush}
+      class="de-active-img"
+      style="image-rendering:pixelated"
+    />
     <div class="de-active-info">
       <span class="de-active-label">{TILE_DEFS.find(t => t.type === vttStore.dungeonBrush)?.label ?? ''}</span>
       <span class="de-active-hint">Clic gauche : peindre<br>Clic droit : effacer</span>
     </div>
   </div>
 
-  <div class="de-section-label">Palette</div>
+  <div class="de-section-label">Palette — Kenney Tiny Dungeon (CC0)</div>
   <div class="de-palette">
     {#each TILE_DEFS as tile, i}
       {@const shortcut = i < 9 ? String(i + 1) : i === 9 ? '0' : ''}
@@ -308,7 +311,12 @@
         {#if shortcut}
           <span class="de-key-hint">{shortcut}</span>
         {/if}
-        <canvas width="44" height="44" bind:this={canvasRefs[tile.type]}></canvas>
+        <img
+          src="/tiles/kenney/{tile.type}.png"
+          alt={tile.label}
+          width="44" height="44"
+          style="image-rendering:pixelated; display:block;"
+        />
         <span class="de-tile-label">{tile.label}</span>
       </button>
     {/each}
@@ -400,8 +408,9 @@
     border-bottom: 1px solid #1e293b;
     flex-shrink: 0;
   }
-  .de-active-canvas {
+  .de-active-canvas, .de-active-img {
     display: block;
+    width: 52px; height: 52px;
     border-radius: 6px;
     border: 2px solid #ef4444;
     flex-shrink: 0;

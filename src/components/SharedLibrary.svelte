@@ -181,16 +181,6 @@
     diceResult = `🎲 ${roll} → ${entry?.result ?? '?'}`;
   }
 
-  $derived: {
-    const q = search.toLowerCase();
-    filteredTokens = TOKEN_CATALOG.filter(t =>
-      (tokenCategory === 'all' || t.cat === tokenCategory) &&
-      (!q || t.name.toLowerCase().includes(q))
-    );
-    filteredMaps = MAP_CATALOG.filter(m => !q || m.name.toLowerCase().includes(q));
-    filteredTables = TABLES.filter(t => !q || t.name.toLowerCase().includes(q));
-  }
-
   let filteredTokens = $state(TOKEN_CATALOG);
   let filteredMaps = $state(MAP_CATALOG);
   let filteredTables = $state(TABLES);

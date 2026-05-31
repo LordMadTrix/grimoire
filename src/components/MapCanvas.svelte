@@ -698,7 +698,7 @@
     vttStore.dungeonTiles; // track
     gridSize;              // track
     if (!appReady || !dungeonLayer) return;
-    renderDungeonTiles();
+    renderDungeonTiles().catch(() => {});
   });
 
   // Dungeon hover / cursor
@@ -2197,15 +2197,44 @@
     }
   }
 
-  function renderDungeonTiles() {
+  // Cache des textures Kenney pour les tiles de donjon
+  const dungeonTexCache = new Map<string, PIXI.Texture>();
+
+  async function getDungeonTex(type: string): Promise<PIXI.Texture | null> {
+    if (dungeonTexCache.has(type)) return dungeonTexCache.get(type)!;
+    try {
+      const url = `/tiles/kenney/${type}.png`;
+      const tex = await PIXI.Assets.load(url);
+      // Nearest neighbor pour le pixel art
+      tex.source.scaleMode = 'nearest';
+      dungeonTexCache.set(type, tex);
+      return tex;
+    } catch { return null; }
+  }
+
+  async function renderDungeonTiles() {
     if (!dungeonLayer) return;
-    dungeonLayer.removeChildren().forEach(c => (c as PIXI.Graphics).destroy());
+    dungeonLayer.removeChildren().forEach(c => c.destroy());
     if (vttStore.dungeonTiles.length === 0) return;
-    const g = new PIXI.Graphics();
+
+    // Fallback graphics pour les tiles sans texture
+    const gFallback = new PIXI.Graphics();
+
     for (const tile of vttStore.dungeonTiles) {
-      drawTileGraphics(g, tile.type, tile.col * gridSize, tile.row * gridSize, gridSize);
+      if (tile.type === 'void') continue;
+      const x = tile.col * gridSize;
+      const y = tile.row * gridSize;
+      const tex = await getDungeonTex(tile.type);
+      if (tex) {
+        const sprite = new PIXI.Sprite(tex);
+        sprite.x = x; sprite.y = y;
+        sprite.width = gridSize; sprite.height = gridSize;
+        dungeonLayer.addChild(sprite);
+      } else {
+        drawTileGraphics(gFallback, tile.type, x, y, gridSize);
+      }
     }
-    dungeonLayer.addChild(g);
+    if (gFallback.geometry?.graphicsData?.length > 0) dungeonLayer.addChild(gFallback);
   }
 
   function renderTerrain() {
