@@ -1,171 +1,28 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated": "2026-05-31",
   "tokens": [
-    {
-      "name": "Épéiste",
-      "url": "https://game-icons.net/1x1/lorc/broadsword.svg",
-      "cat": "heroes",
-      "isEnemy": false,
-      "hp": 20,
-      "size": 50,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Archer",
-      "url": "https://game-icons.net/1x1/lorc/bow-arrow.svg",
-      "cat": "heroes",
-      "isEnemy": false,
-      "hp": 14,
-      "size": 50,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Mage",
-      "url": "https://game-icons.net/1x1/lorc/wizard-staff.svg",
-      "cat": "heroes",
-      "isEnemy": false,
-      "hp": 10,
-      "size": 50,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Paladin",
-      "url": "https://game-icons.net/1x1/lorc/crusader-helmet.svg",
-      "cat": "heroes",
-      "isEnemy": false,
-      "hp": 22,
-      "size": 50,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Druide",
-      "url": "https://game-icons.net/1x1/lorc/oak-leaf.svg",
-      "cat": "heroes",
-      "isEnemy": false,
-      "hp": 14,
-      "size": 50,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Barbare",
-      "url": "https://game-icons.net/1x1/lorc/battle-axe.svg",
-      "cat": "heroes",
-      "isEnemy": false,
-      "hp": 26,
-      "size": 55,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Vampire",
-      "url": "https://game-icons.net/1x1/lorc/vampire-dracula.svg",
-      "cat": "enemies",
-      "isEnemy": true,
-      "hp": 40,
-      "size": 55,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Golem",
-      "url": "https://game-icons.net/1x1/lorc/stone-golem.svg",
-      "cat": "enemies",
-      "isEnemy": true,
-      "hp": 60,
-      "size": 65,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Araignée géante",
-      "url": "https://game-icons.net/1x1/lorc/spider.svg",
-      "cat": "enemies",
-      "isEnemy": true,
-      "hp": 16,
-      "size": 50,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Troll",
-      "url": "https://game-icons.net/1x1/lorc/troll.svg",
-      "cat": "enemies",
-      "isEnemy": true,
-      "hp": 45,
-      "size": 65,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Spectre",
-      "url": "https://game-icons.net/1x1/lorc/ghost.svg",
-      "cat": "enemies",
-      "isEnemy": true,
-      "hp": 22,
-      "size": 50,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Minotaure",
-      "url": "https://game-icons.net/1x1/lorc/minotaur.svg",
-      "cat": "enemies",
-      "isEnemy": true,
-      "hp": 50,
-      "size": 65,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Prêtre",
-      "url": "https://game-icons.net/1x1/lorc/bishop.svg",
-      "cat": "npcs",
-      "isEnemy": false,
-      "hp": 12,
-      "size": 45,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Forgeron",
-      "url": "https://game-icons.net/1x1/lorc/anvil.svg",
-      "cat": "npcs",
-      "isEnemy": false,
-      "hp": 14,
-      "size": 45,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Espion",
-      "url": "https://game-icons.net/1x1/lorc/spy.svg",
-      "cat": "npcs",
-      "isEnemy": false,
-      "hp": 10,
-      "size": 45,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    },
-    {
-      "name": "Alchimiste",
-      "url": "https://game-icons.net/1x1/lorc/alchemist-flask.svg",
-      "cat": "npcs",
-      "isEnemy": false,
-      "hp": 8,
-      "size": 45,
-      "license": "CC BY 3.0 - game-icons.net/lorc"
-    }
+    { "name": "Épéiste",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/epeeiste.png",   "cat": "heroes",  "isEnemy": false, "hp": 20, "size": 50 },
+    { "name": "Archer",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/archer.png",      "cat": "heroes",  "isEnemy": false, "hp": 14, "size": 50 },
+    { "name": "Mage",         "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/mage.png",        "cat": "heroes",  "isEnemy": false, "hp": 10, "size": 50 },
+    { "name": "Paladin",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/paladin.png",     "cat": "heroes",  "isEnemy": false, "hp": 22, "size": 50 },
+    { "name": "Druide",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/druide.png",      "cat": "heroes",  "isEnemy": false, "hp": 14, "size": 50 },
+    { "name": "Barbare",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/heroes/barbare.png",     "cat": "heroes",  "isEnemy": false, "hp": 26, "size": 55 },
+    { "name": "Vampire",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/vampire.png",    "cat": "enemies", "isEnemy": true,  "hp": 40, "size": 55 },
+    { "name": "Golem",        "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/golem.png",      "cat": "enemies", "isEnemy": true,  "hp": 60, "size": 65 },
+    { "name": "Araignée",     "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/araignee.png",   "cat": "enemies", "isEnemy": true,  "hp": 16, "size": 50 },
+    { "name": "Troll",        "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/troll.png",      "cat": "enemies", "isEnemy": true,  "hp": 45, "size": 65 },
+    { "name": "Spectre",      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/spectre.png",    "cat": "enemies", "isEnemy": true,  "hp": 22, "size": 50 },
+    { "name": "Minotaure",    "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/minotaure.png",  "cat": "enemies", "isEnemy": true,  "hp": 50, "size": 65 },
+    { "name": "Prêtre",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/npcs/pretre.png",        "cat": "npcs",    "isEnemy": false, "hp": 12, "size": 45 },
+    { "name": "Forgeron",     "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/npcs/forgeron.png",      "cat": "npcs",    "isEnemy": false, "hp": 14, "size": 45 },
+    { "name": "Espion",       "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/npcs/espion.png",        "cat": "npcs",    "isEnemy": false, "hp": 10, "size": 45 },
+    { "name": "Alchimiste",   "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/npcs/alchimiste.png",    "cat": "npcs",    "isEnemy": false, "hp": 8,  "size": 45 }
   ],
   "maps": [
-    {
-      "name": "Crypte Ancienne",
-      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/donjon.png",
-      "desc": "Donjon sombre avec salle du trône et cellules",
-      "license": "Grimoire — libre d'utilisation"
-    },
-    {
-      "name": "Taverne",
-      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/taverne.png",
-      "desc": "Intérieur de taverne médiévale",
-      "license": "Grimoire — libre d'utilisation"
-    },
-    {
-      "name": "Forêt",
-      "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/foret.png",
-      "desc": "Zone forestière avec clairière",
-      "license": "Grimoire — libre d'utilisation"
-    }
+    { "name": "Taverne du Griffon",  "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/taverne.png",  "desc": "Intérieur de taverne médiévale avec cuisine et chambres" },
+    { "name": "Donjon des Ombres",   "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/donjon.png",   "desc": "Donjon avec salle du trône, cellules et trésorerie" },
+    { "name": "Forêt des Murmures",  "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/foret.png",    "desc": "Zone forestière avec clairière et caverne" }
   ],
   "tables": [
     {
@@ -187,7 +44,7 @@
         { "range": "1-2",   "result": "Un trésor enfoui dans les ruines au nord" },
         { "range": "3-4",   "result": "Des monstres attaquent les caravanes sur la route royale" },
         { "range": "5-6",   "result": "Le seigneur local est possédé" },
-        { "range": "7-8",   "result": "Une guilde de voleurs recrutent discrètement" },
+        { "range": "7-8",   "result": "Une guilde de voleurs recrute discrètement" },
         { "range": "9-10",  "result": "Un dragon s'est réveillé dans les montagnes" },
         { "range": "11-12", "result": "La fontaine du village guérit toutes les maladies" },
         { "range": "13-14", "result": "Des cultistes se réunissent dans les sous-sols" },
