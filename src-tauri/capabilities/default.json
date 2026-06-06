@@ -4,12 +4,19 @@
   "description": "enables the default permissions",
   "windows": [
     "main",
-    "player-view"
+    "player-view",
+    "map-editor"
   ],
+  "remote": {
+    "urls": [
+      "http://localhost:*/**"
+    ]
+  },
   "permissions": [
     "core:default",
     "dialog:default",
     "fs:default",
-    "notification:default"
+    "notification:default",
+    "allow-custom-commands"
   ]
 }

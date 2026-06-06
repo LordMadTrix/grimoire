@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galerie des Tampons Grimoire</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --accent: #d4a84b;
+      --accent-hover: #b88d32;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 24px;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      color: var(--accent);
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      margin: 0 0 16px 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .search-input {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 300px;
+    }
+
+    .search-input:focus {
+      outline: 2px solid var(--accent);
+    }
+
+    .filter-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: var(--bg-dark);
+      border-color: var(--accent);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+
+    .img-container {
+      width: 100%;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .img-container img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+
+    .badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.6);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: var(--accent);
+    }
+
+    .stamp-id {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      width: 100%;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 8px;
+      background: rgba(0,0,0,0.2);
+      padding: 4px;
+      border-radius: 4px;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      width: 100%;
+      padding: 6px 0;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent);
+      color: var(--bg-dark);
+    }
+
+    .dims {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--accent);
+      color: var(--bg-dark);
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Galerie des Tampons Grimoire (Taverne &amp; Camp)</h1>
+    <p class="subtitle">Visualise et copie les identifiants originaux pour personnaliser la génération de cartes.</p>
+  </header>
+
+  <div class="controls">
+    <input type="text" id="search" class="search-input" placeholder="Rechercher par ID...">
+    <button class="filter-btn active" onclick="filterSubcat('all', this)">Tous</button>
+    <button class="filter-btn" onclick="filterSubcat('Tavern', this)">Taverne</button>
+    <button class="filter-btn" onclick="filterSubcat('Tavern 2.0', this)">Taverne 2.0</button>
+    <button class="filter-btn" onclick="filterSubcat('Camp', this)">Camp</button>
+    <button class="filter-btn" onclick="filterSubcat('Camp 2.0', this)">Camp 2.0</button>
+    <button class="filter-btn" onclick="filterSubcat('Dungeons', this)">Donjons</button>
+    <button class="filter-btn" onclick="filterSubcat('Prison', this)">Prison</button>
+    <button class="filter-btn" onclick="filterSubcat('Cave', this)">Caverne</button>
+    <button class="filter-btn" onclick="filterSubcat('Forest', this)">Forêt</button>
+    <button class="filter-btn" onclick="filterSubcat('Terrain', this)">Terrain</button>
+  </div>
+
+  <div class="grid" id="grid">
+    <!-- Grid elements loaded dynamically -->
+  </div>
+
+  <div class="toast" id="toast">ID Copié !</div>
+
+  <script type="module">
+    import importedStamps from './src/lib/imported_stamps.json';
+
+    const subcats = ['Tavern', 'Tavern 2.0', 'Camp', 'Camp 2.0', 'Dungeons', 'Prison', 'Cave', 'Forest', 'Terrain'];
+    const filteredStamps = importedStamps.filter(s => 
+      s.category === 'Fantasy Battlemaps' && subcats.includes(s.subcategory)
+    );
+
+    const grid = document.getElementById('grid');
+    const searchInput = document.getElementById('search');
+    let currentSubcat = 'all';
+    let searchQuery = '';
+
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
+    window.copyToClipboard = function(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast();
+      });
+    };
+
+    window.filterSubcat = function(sub, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSubcat = sub;
+      render();
+    };
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase();
+      render();
+    });
+
+    function render() {
+      grid.innerHTML = '';
+      
+      const list = filteredStamps.filter(s => {
+        const matchesSubcat = currentSubcat === 'all' || s.subcategory === currentSubcat;
+        const matchesSearch = s.id.toLowerCase().includes(searchQuery);
+        return matchesSubcat && matchesSearch;
+      });
+
+      list.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <span class="badge">${s.subcategory}</span>
+          <div class="img-container">
+            <img src="${s.file}" alt="${s.id}" loading="lazy">
+          </div>
+          <div class="stamp-id" title="${s.id}">${s.id}</div>
+          <button class="copy-btn" onclick="copyToClipboard('${s.id}')">Copier l'ID</button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>

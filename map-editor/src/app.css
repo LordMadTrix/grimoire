@@ -1,0 +1,130 @@
+:root {
+  --left-nav-width: 50px;
+  --editor-top-nav-height: 40px;
+  
+  /* Palette de couleurs sombres et chaudes d'Inkarnate */
+  --bg-dark-primary: #111217;
+  --bg-dark-secondary: #1a1b23;
+  --bg-dark-tertiary: #0c0d10;
+  
+  --border-color: rgba(255, 255, 255, 0.08);
+  --color-text-primary: #e2e8f0;
+  --color-text-muted: #8c9ba5;
+  
+  --accent-orange: #ffcc5a;
+  --accent-orange-hover: #ffaa33;
+}
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-dark-tertiary);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+/* Styles pour les barres de défilement personnalisées */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  border: 1px solid var(--bg-dark-tertiary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-orange);
+}
+
+/* Compatibilité Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) var(--bg-dark-tertiary);
+}
+
+/* Ancien utilitaire conservé si besoin mais n'est plus appliqué par défaut */
+.hide-scrollbars::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbars {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Styles partagés pour les panneaux (boutons, sliders, etc.) */
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f1f5f9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.modes-grid, .shape-buttons-row {
+  display: flex;
+  gap: 4px;
+}
+.mode-btn, .shape-btn {
+  flex: 1;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 6px;
+  color: #f1f5f9;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mode-btn.active, .shape-btn.active {
+  background: rgba(255, 204, 90, 0.1);
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+}
+.action-btn {
+  background: rgba(255, 204, 90, 0.08);
+  border: 1px solid rgba(255, 204, 90, 0.25);
+  color: var(--accent-orange);
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+}
+.action-btn:hover {
+  background: rgba(255, 204, 90, 0.15);
+  border-color: var(--accent-orange);
+}
+.slider-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.slider-header { display: flex; justify-content: space-between; align-items: center; }
+.slider-label { font-size: 11px; color: var(--color-text-primary); }
+.slider-value-container { display: flex; align-items: center; gap: 4px; }
+.slider-value-input { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 3px; padding: 2px 4px; width: 40px; font-size: 10px; text-align: right; }
+.slider-unit { font-size: 10px; color: var(--color-text-muted); }
+.slider-track { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; }
+.slider-track::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-orange); cursor: pointer; }
+.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--color-text-primary); cursor: pointer; }
+.hint-text { font-size: 9.5px; color: #64748b; line-height: 1.3; margin-top: 2px; }

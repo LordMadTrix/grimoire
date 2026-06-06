@@ -4,8 +4,8 @@
   "version": "0.1.2",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"vite map-editor --port 5174 --strictPort\"",
+    "build": "vite build && npm run build --prefix map-editor",
     "preview": "vite preview",
     "tauri": "tauri",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
@@ -16,6 +16,7 @@
     "@tsconfig/svelte": "^5.0.8",
     "@types/d3": "^7.4.3",
     "@types/node": "^24.12.2",
+    "concurrently": "^10.0.3",
     "svelte": "^5.55.4",
     "svelte-check": "^4.4.6",
     "typescript": "~6.0.2",

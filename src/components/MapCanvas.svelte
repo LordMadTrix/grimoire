@@ -138,6 +138,16 @@
   let lastHoverCol = -1;
   let lastHoverRow = -1;
 
+  // Dungeon selection / movement variables
+  let selectionStartCol = -1;
+  let selectionStartRow = -1;
+  let isSelectingDungeon = $state(false);
+  let isDraggingDungeon = $state(false);
+  let dragStartCol = -1;
+  let dragStartRow = -1;
+  let rectStartCol = $state(-1);
+  let rectStartRow = $state(-1);
+
   // Freehand draw layer
   let drawLayer: PIXI.Container;
   let wallLayer: PIXI.Container;
@@ -696,6 +706,7 @@
   // Dungeon tiles
   $effect(() => {
     vttStore.dungeonTiles; // track
+    vttStore.dungeonStyle; // track
     gridSize;              // track
     if (!appReady || !dungeonLayer) return;
     renderDungeonTiles().catch(() => {});
@@ -1384,19 +1395,140 @@
   let isResizing = false;
   let resizingTokenId: string | null = null;
 
+  function paintDungeonBrush(col: number, row: number, type: TileType) {
+    const size = vttStore.dungeonBrushSize || 1;
+    const half = Math.floor(size / 2);
+    for (let dc = -half; dc <= half; dc++) {
+      for (let dr = -half; dr <= half; dr++) {
+        setDungeonTile(col + dc, row + dr, type);
+      }
+    }
+  }
+
+  function paintDungeonRect(c1: number, r1: number, c2: number, r2: number, type: TileType) {
+    const minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+    const minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+    for (let c = minC; c <= maxC; c++) {
+      for (let r = minR; r <= maxR; r++) {
+        setDungeonTile(c, r, type);
+      }
+    }
+  }
+
+  function paintDungeonFill(startCol: number, startRow: number, fillType: TileType) {
+    const tileMap = new Map<string, TileType>();
+    for (const t of vttStore.dungeonTiles) tileMap.set(`${t.col},${t.row}`, t.type);
+    const targetType = tileMap.get(`${startCol},${startRow}`) ?? 'void';
+    if (targetType === fillType) return;
+
+    const visited = new Set<string>();
+    const queue: [number, number][] = [[startCol, startRow]];
+
+    while (queue.length > 0) {
+      const [c, r] = queue.shift()!;
+      const key = `${c},${r}`;
+      if (visited.has(key)) continue;
+      if (Math.abs(c - startCol) > 40 || Math.abs(r - startRow) > 40) continue;
+      
+      const cur = tileMap.get(`${c},${r}`) ?? 'void';
+      if (cur !== targetType) continue;
+
+      visited.add(key);
+      setDungeonTile(c, r, fillType);
+      tileMap.set(key, fillType);
+      
+      queue.push([c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]);
+    }
+  }
+
   function updateDungeonHover(col: number, row: number, isErase: boolean) {
-    if (col === lastHoverCol && row === lastHoverRow) return;
     lastHoverCol = col;
     lastHoverRow = row;
     dungeonHoverG.clear();
+
+    const drawMode = vttStore.dungeonDrawMode || 'brush';
+    const sel = vttStore.dungeonSelection;
+
+    // 1. Draw existing selection outline (gold)
+    if (sel) {
+      const color = 0xd4a84b;
+      const x = sel.minCol * gridSize;
+      const y = sel.minRow * gridSize;
+      const w = (sel.maxCol - sel.minCol + 1) * gridSize;
+      const h = (sel.maxRow - sel.minRow + 1) * gridSize;
+      dungeonHoverG.rect(x, y, w, h).fill({ color, alpha: 0.08 });
+      dungeonHoverG.setStrokeStyle({ width: 2, color, alpha: 0.8 });
+      dungeonHoverG.rect(x, y, w, h).stroke();
+    }
+
+    // 2. Draw current selection box drag preview (blue)
+    if (isSelectingDungeon) {
+      const color = 0x60a5fa;
+      const minC = Math.min(selectionStartCol, col);
+      const maxC = Math.max(selectionStartCol, col);
+      const minR = Math.min(selectionStartRow, row);
+      const maxR = Math.max(selectionStartRow, row);
+      const x = minC * gridSize;
+      const y = minR * gridSize;
+      const w = (maxC - minC + 1) * gridSize;
+      const h = (maxR - minR + 1) * gridSize;
+      dungeonHoverG.rect(x, y, w, h).fill({ color, alpha: 0.15 });
+      dungeonHoverG.setStrokeStyle({ width: 2, color, alpha: 0.8 });
+      dungeonHoverG.rect(x, y, w, h).stroke();
+      return;
+    }
+
+    // 3. Draw current drag offset preview if dragging tiles (green)
+    if (isDraggingDungeon && sel) {
+      const dC = col - dragStartCol;
+      const dR = row - dragStartRow;
+      const color = 0x10b981;
+      const x = (sel.minCol + dC) * gridSize;
+      const y = (sel.minRow + dR) * gridSize;
+      const w = (sel.maxCol - sel.minCol + 1) * gridSize;
+      const h = (sel.maxRow - sel.minRow + 1) * gridSize;
+      dungeonHoverG.rect(x, y, w, h).fill({ color, alpha: 0.18 });
+      dungeonHoverG.setStrokeStyle({ width: 2, color, alpha: 0.9 });
+      dungeonHoverG.rect(x, y, w, h).stroke();
+      return;
+    }
+
+    // 4. Draw mode-specific hover cursor
+    if (drawMode === 'move') {
+      const color = 0x60a5fa;
+      dungeonHoverG.rect(col * gridSize, row * gridSize, gridSize, gridSize).fill({ color, alpha: 0.12 });
+      dungeonHoverG.setStrokeStyle({ width: 1.5, color, alpha: 0.5 });
+      dungeonHoverG.rect(col * gridSize, row * gridSize, gridSize, gridSize).stroke();
+      return;
+    }
+
+    if (drawMode === 'rect' && rectStartCol !== -1) {
+      const color = isErase ? 0xef4444 : 0x3b82f6;
+      const minC = Math.min(rectStartCol, col);
+      const maxC = Math.max(rectStartCol, col);
+      const minR = Math.min(rectStartRow, row);
+      const maxR = Math.max(rectStartRow, row);
+      const x = minC * gridSize;
+      const y = minR * gridSize;
+      const w = (maxC - minC + 1) * gridSize;
+      const h = (maxR - minR + 1) * gridSize;
+      dungeonHoverG.rect(x, y, w, h).fill({ color, alpha: 0.25 });
+      dungeonHoverG.setStrokeStyle({ width: 2, color, alpha: 0.8 });
+      dungeonHoverG.rect(x, y, w, h).stroke();
+      return;
+    }
+
+    // Brush paint hover
+    const size = vttStore.dungeonBrushSize || 1;
+    const half = Math.floor(size / 2);
     const color = isErase ? 0xef4444 : 0x3b82f6;
-    dungeonHoverG
-      .rect(col * gridSize, row * gridSize, gridSize, gridSize)
-      .fill({ color, alpha: 0.25 });
+    const x = (col - half) * gridSize;
+    const y = (row - half) * gridSize;
+    const w = size * gridSize;
+    const h = size * gridSize;
+    dungeonHoverG.rect(x, y, w, h).fill({ color, alpha: 0.25 });
     dungeonHoverG.setStrokeStyle({ width: 2, color, alpha: 1 });
-    dungeonHoverG
-      .rect(col * gridSize, row * gridSize, gridSize, gridSize)
-      .stroke();
+    dungeonHoverG.rect(x, y, w, h).stroke();
   }
 
   function clearDungeonHover() {
@@ -1407,14 +1539,54 @@
 
   function onPointerDown(e: PIXI.FederatedPointerEvent) {
     if (vttMode === 'dungeon-paint') {
-      isDungeonPainting = true;
-      pushDungeonUndo();
       const localPos = worldContainer.toLocal(e.global);
       const col = Math.floor(localPos.x / gridSize);
       const row = Math.floor(localPos.y / gridSize);
       const isErase = e.button === 2;
+      const drawMode = vttStore.dungeonDrawMode || 'brush';
+
+      if (drawMode === 'move') {
+        const sel = vttStore.dungeonSelection;
+        if (sel && col >= sel.minCol && col <= sel.maxCol && row >= sel.minRow && row <= sel.maxRow) {
+          isDraggingDungeon = true;
+          dragStartCol = col;
+          dragStartRow = row;
+        } else {
+          isSelectingDungeon = true;
+          selectionStartCol = col;
+          selectionStartRow = row;
+          vttStore.dungeonSelection = null;
+        }
+        updateDungeonHover(col, row, isErase);
+        return;
+      }
+
+      if (drawMode === 'rect') {
+        if (rectStartCol === -1) {
+          rectStartCol = col;
+          rectStartRow = row;
+        } else {
+          pushDungeonUndo();
+          paintDungeonRect(rectStartCol, rectStartRow, col, row, isErase ? 'void' : vttStore.dungeonBrush);
+          rectStartCol = -1;
+          rectStartRow = -1;
+        }
+        updateDungeonHover(col, row, isErase);
+        return;
+      }
+
+      if (drawMode === 'fill') {
+        pushDungeonUndo();
+        paintDungeonFill(col, row, isErase ? 'void' : vttStore.dungeonBrush);
+        updateDungeonHover(col, row, isErase);
+        return;
+      }
+
+      // Default brush painting
+      isDungeonPainting = true;
+      pushDungeonUndo();
+      paintDungeonBrush(col, row, isErase ? 'void' : vttStore.dungeonBrush);
       updateDungeonHover(col, row, isErase);
-      setDungeonTile(col, row, isErase ? 'void' : vttStore.dungeonBrush);
       return;
     }
 
@@ -1481,10 +1653,12 @@
       const col = Math.floor(localPos.x / gridSize);
       const row = Math.floor(localPos.y / gridSize);
       const isErase = e.buttons === 2;
-      updateDungeonHover(col, row, isErase);
-      if (isDungeonPainting) {
-        setDungeonTile(col, row, isErase ? 'void' : vttStore.dungeonBrush);
+      const drawMode = vttStore.dungeonDrawMode || 'brush';
+
+      if (isDungeonPainting && drawMode === 'brush') {
+        paintDungeonBrush(col, row, isErase ? 'void' : vttStore.dungeonBrush);
       }
+      updateDungeonHover(col, row, isErase);
       return;
     }
 
@@ -1638,9 +1812,56 @@
       return;
     }
 
-    if (isDungeonPainting) {
-      isDungeonPainting = false;
-      return;
+    if (vttMode === 'dungeon-paint') {
+      const localPos = worldContainer.toLocal(e.global);
+      const col = Math.floor(localPos.x / gridSize);
+      const row = Math.floor(localPos.y / gridSize);
+      const drawMode = vttStore.dungeonDrawMode || 'brush';
+
+      if (drawMode === 'move') {
+        if (isSelectingDungeon) {
+          isSelectingDungeon = false;
+          const minCol = Math.min(selectionStartCol, col);
+          const maxCol = Math.max(selectionStartCol, col);
+          const minRow = Math.min(selectionStartRow, row);
+          const maxRow = Math.max(selectionStartRow, row);
+          
+          const hasTiles = vttStore.dungeonTiles.some(t => t.col >= minCol && t.col <= maxCol && t.row >= minRow && t.row <= maxRow);
+          if (hasTiles) {
+            vttStore.dungeonSelection = { minCol, maxCol, minRow, maxRow };
+          } else {
+            vttStore.dungeonSelection = null;
+          }
+        } else if (isDraggingDungeon) {
+          isDraggingDungeon = false;
+          const dC = col - dragStartCol;
+          const dR = row - dragStartRow;
+          const sel = vttStore.dungeonSelection;
+          
+          if ((dC !== 0 || dR !== 0) && sel) {
+            pushDungeonUndo();
+            vttStore.dungeonTiles = vttStore.dungeonTiles.map(t => {
+              if (t.col >= sel.minCol && t.col <= sel.maxCol && t.row >= sel.minRow && t.row <= sel.maxRow) {
+                return { ...t, col: t.col + dC, row: t.row + dR };
+              }
+              return t;
+            });
+            vttStore.dungeonSelection = {
+              minCol: sel.minCol + dC,
+              maxCol: sel.maxCol + dC,
+              minRow: sel.minRow + dR,
+              maxRow: sel.maxRow + dR
+            };
+          }
+        }
+        updateDungeonHover(col, row, e.buttons === 2);
+        return;
+      }
+
+      if (isDungeonPainting) {
+        isDungeonPainting = false;
+        return;
+      }
     }
 
     if (isPanning) {
@@ -2112,6 +2333,164 @@
         g.rect(x + 2, y + size / 2 + 1, size / 2 - 3, size / 2 - 3).fill(0x4b5563).stroke();
         g.rect(x + size / 2 + 1, y + size / 2 + 1, size / 2 - 3, size / 2 - 3).fill(0x4b5563).stroke();
         break;
+      case 'wall_horizontal':
+      case 'wall_horizontal_torch': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const wallH = size * 0.4;
+        const wallY = y + size * 0.3;
+        g.rect(x, wallY, size, wallH).fill(0x374151);
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.moveTo(x, wallY).lineTo(x + size, wallY).stroke();
+        g.moveTo(x, wallY + wallH).lineTo(x + size, wallY + wallH).stroke();
+
+        if (type === 'wall_horizontal_torch') {
+          g.circle(x + size * 0.5, y + size * 0.15, size * 0.35).fill({ color: 0xf59e0b, alpha: 0.3 });
+          g.rect(x + size * 0.44, y + size * 0.22, size * 0.12, size * 0.12).fill(0x1f2937);
+          g.moveTo(x + size * 0.44, y + size * 0.22).lineTo(x + size * 0.5, y + size * 0.08).lineTo(x + size * 0.56, y + size * 0.22).fill({ color: 0xea580c });
+          g.circle(x + size * 0.5, y + size * 0.18, size * 0.04).fill({ color: 0xf59e0b });
+        }
+        break;
+      }
+      case 'wall_vertical':
+      case 'wall_vertical_torch': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const wallW = size * 0.4;
+        const wallX = x + size * 0.3;
+        g.rect(wallX, y, wallW, size).fill(0x374151);
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.moveTo(wallX, y).lineTo(wallX, y + size).stroke();
+        g.moveTo(wallX + wallW, y).lineTo(wallX + wallW, y + size).stroke();
+
+        if (type === 'wall_vertical_torch') {
+          g.circle(x + size * 0.15, y + size * 0.5, size * 0.35).fill({ color: 0xf59e0b, alpha: 0.3 });
+          g.rect(x + size * 0.22, y + size * 0.44, size * 0.12, size * 0.12).fill(0x1f2937);
+          g.moveTo(x + size * 0.22, y + size * 0.44).lineTo(x + size * 0.08, y + size * 0.5).lineTo(x + size * 0.22, y + size * 0.56).fill({ color: 0xea580c });
+          g.circle(x + size * 0.18, y + size * 0.5, size * 0.04).fill({ color: 0xf59e0b });
+        }
+        break;
+      }
+      case 'wall_corner_tl': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const x03 = x + size * 0.3;
+        const x07 = x + size * 0.7;
+        const y03 = y + size * 0.3;
+        const y07 = y + size * 0.7;
+
+        g.moveTo(x03, y + size)
+         .lineTo(x03, y03)
+         .lineTo(x + size, y03)
+         .lineTo(x + size, y07)
+         .lineTo(x07, y07)
+         .lineTo(x07, y + size)
+         .closePath()
+         .fill(0x374151);
+
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.moveTo(x03, y + size).lineTo(x03, y03).lineTo(x + size, y03).stroke();
+        g.moveTo(x07, y + size).lineTo(x07, y07).lineTo(x + size, y07).stroke();
+        break;
+      }
+      case 'wall_corner_tr': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const x03 = x + size * 0.3;
+        const x07 = x + size * 0.7;
+        const y03 = y + size * 0.3;
+        const y07 = y + size * 0.7;
+
+        g.moveTo(x, y03)
+         .lineTo(x07, y03)
+         .lineTo(x07, y + size)
+         .lineTo(x03, y + size)
+         .lineTo(x03, y07)
+         .lineTo(x, y07)
+         .closePath()
+         .fill(0x374151);
+
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.moveTo(x, y03).lineTo(x07, y03).lineTo(x07, y + size).stroke();
+        g.moveTo(x, y07).lineTo(x03, y07).lineTo(x03, y + size).stroke();
+        break;
+      }
+      case 'wall_corner_bl': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const x03 = x + size * 0.3;
+        const x07 = x + size * 0.7;
+        const y03 = y + size * 0.3;
+        const y07 = y + size * 0.7;
+
+        g.moveTo(x03, y)
+         .lineTo(x03, y07)
+         .lineTo(x + size, y07)
+         .lineTo(x + size, y03)
+         .lineTo(x07, y03)
+         .lineTo(x07, y)
+         .closePath()
+         .fill(0x374151);
+
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.moveTo(x03, y).lineTo(x03, y07).lineTo(x + size, y07).stroke();
+        g.moveTo(x07, y).lineTo(x07, y03).lineTo(x + size, y03).stroke();
+        break;
+      }
+      case 'wall_corner_br': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const x03 = x + size * 0.3;
+        const x07 = x + size * 0.7;
+        const y03 = y + size * 0.3;
+        const y07 = y + size * 0.7;
+
+        g.moveTo(x, y07)
+         .lineTo(x07, y07)
+         .lineTo(x07, y)
+         .lineTo(x03, y)
+         .lineTo(x03, y03)
+         .lineTo(x, y03)
+         .closePath()
+         .fill(0x374151);
+
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.moveTo(x, y07).lineTo(x07, y07).lineTo(x07, y).stroke();
+        g.moveTo(x, y03).lineTo(x03, y03).lineTo(x03, y).stroke();
+        break;
+      }
+      case 'door_horizontal': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const wallH = size * 0.4;
+        const wallY = y + size * 0.3;
+        g.rect(x, wallY, size * 0.15, wallH).fill(0x374151);
+        g.rect(x + size * 0.85, wallY, size * 0.15, wallH).fill(0x374151);
+
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.rect(x, wallY, size * 0.15, wallH).stroke();
+        g.rect(x + size * 0.85, wallY, size * 0.15, wallH).stroke();
+
+        const doorY = y + size * 0.35;
+        const doorH = size * 0.3;
+        g.rect(x + size * 0.15, doorY, size * 0.7, doorH).fill(0x8b5a2b);
+        g.rect(x + size * 0.15, doorY, size * 0.7, doorH).stroke();
+
+        g.circle(x + size * 0.5, y + size * 0.5, size * 0.04).fill(0xfbbf24);
+        break;
+      }
+      case 'door_vertical': {
+        g.rect(x, y, size, size).fill(0x9ca3af);
+        const wallW = size * 0.4;
+        const wallX = x + size * 0.3;
+        g.rect(wallX, y, wallW, size * 0.15).fill(0x374151);
+        g.rect(wallX, y + size * 0.85, wallW, size * 0.15).fill(0x374151);
+
+        g.setStrokeStyle({ width: 2, color: 0x1f2937, alpha: 1 });
+        g.rect(wallX, y, wallW, size * 0.15).stroke();
+        g.rect(wallX, y + size * 0.85, wallW, size * 0.15).stroke();
+
+        const doorX = x + size * 0.35;
+        const doorW = size * 0.3;
+        g.rect(doorX, y + size * 0.15, doorW, size * 0.7).fill(0x8b5a2b);
+        g.rect(doorX, y + size * 0.15, doorW, size * 0.7).stroke();
+
+        g.circle(x + size * 0.5, y + size * 0.5, size * 0.04).fill(0xfbbf24);
+        break;
+      }
       case 'floor_wood':
         g.rect(x, y, size, size).fill(0x92400e);
         g.setStrokeStyle({ width: 1, color: 0xb45309, alpha: 0.6 });
@@ -2197,17 +2576,18 @@
     }
   }
 
-  // Cache des textures Kenney pour les tiles de donjon
+  // Cache des textures pour les tiles de donjon
   const dungeonTexCache = new Map<string, PIXI.Texture>();
 
-  async function getDungeonTex(type: string): Promise<PIXI.Texture | null> {
-    if (dungeonTexCache.has(type)) return dungeonTexCache.get(type)!;
+  async function getDungeonTex(type: string, style: string): Promise<PIXI.Texture | null> {
+    if (style === 'solid') return null;
+    const cacheKey = `${style}_${type}`;
+    if (dungeonTexCache.has(cacheKey)) return dungeonTexCache.get(cacheKey)!;
     try {
-      const url = `/tiles/kenney/${type}.png`;
+      const url = `/tiles/${style}/${type}.png`;
       const tex = await PIXI.Assets.load(url);
-      // Nearest neighbor pour le pixel art
-      tex.source.scaleMode = 'nearest';
-      dungeonTexCache.set(type, tex);
+      tex.source.scaleMode = style === 'kenney' ? 'nearest' : 'linear';
+      dungeonTexCache.set(cacheKey, tex);
       return tex;
     } catch { return null; }
   }
@@ -2224,8 +2604,8 @@
       if (tile.type === 'void') continue;
       const x = tile.col * gridSize;
       const y = tile.row * gridSize;
-      const tex = await getDungeonTex(tile.type);
-      if (tex) {
+      const tex = await getDungeonTex(tile.type, vttStore.dungeonStyle);
+      if (tex && tex.width > 16) {
         const sprite = new PIXI.Sprite(tex);
         sprite.x = x; sprite.y = y;
         sprite.width = gridSize; sprite.height = gridSize;
@@ -2234,7 +2614,7 @@
         drawTileGraphics(gFallback, tile.type, x, y, gridSize);
       }
     }
-    if (gFallback.geometry?.graphicsData?.length > 0) dungeonLayer.addChild(gFallback);
+    dungeonLayer.addChild(gFallback);
   }
 
   function renderTerrain() {

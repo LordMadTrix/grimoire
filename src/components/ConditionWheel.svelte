@@ -40,9 +40,9 @@
   function bx(i: number) { return R * Math.cos(angle(i)); }
   function by(i: number) { return R * Math.sin(angle(i)); }
 
-  // Position écran — éviter les bords
-  const wx = Math.min(Math.max(x, 90), window.innerWidth - 90);
-  const wy = Math.min(Math.max(y, 90), window.innerHeight - 90);
+  // Position écran — éviter les bords (réactif si les props changent)
+  const wx = $derived(Math.min(Math.max(x, 90), window.innerWidth - 90));
+  const wy = $derived(Math.min(Math.max(y, 90), window.innerHeight - 90));
 </script>
 
 <div

@@ -133,7 +133,11 @@ export type TerrainZone = {
 export type TileType =
   'floor_stone' | 'floor_wood' | 'floor_dirt' |
   'wall_stone' | 'wall_wood' |
+  'wall_corner_tl' | 'wall_corner_tr' | 'wall_corner_bl' | 'wall_corner_br' |
+  'wall_horizontal' | 'wall_vertical' |
   'door_closed' | 'door_open' |
+  'door_horizontal' | 'door_vertical' |
+  'wall_horizontal_torch' | 'wall_vertical_torch' |
   'stairs_down' | 'stairs_up' |
   'pillar' | 'water' | 'lava' | 'void' | 'chest' | 'trap';
 
@@ -268,6 +272,10 @@ export const vttStore = $state({
   dungeonTiles: [] as DungeonTile[],
   dungeonBrush: 'floor_stone' as TileType,
   showDungeonEditor: false,
+  dungeonStyle: 'realistic' as 'realistic' | 'kenney' | 'solid',
+  dungeonDrawMode: 'brush' as 'brush' | 'rect' | 'fill' | 'move',
+  dungeonBrushSize: 1 as 1 | 2 | 3 | 5,
+  dungeonSelection: null as { minCol: number, minRow: number, maxCol: number, maxRow: number } | null,
 });
 
 // ── Campaign Title ────────────────────────────────────────────────
@@ -666,26 +674,28 @@ export function prevTurn() {
 }
 
 export function updateCombatantHp(id: string, hp: number) {
-  const c = vttStore.combatants.find(c => c.id === id);
-  if (c) {
-    const prev = c.hp;
-    const next = Math.max(0, hp);
-    const delta = next - prev;
-    c.hp = next;
-    if (delta !== 0) {
-      addCombatLogEntry({
-        type: delta < 0 ? (next === 0 ? 'death' : 'damage') : 'heal',
-        actor: c.name,
-        value: Math.abs(delta),
-        detail: delta < 0 ? `-${Math.abs(delta)} PV` : `+${delta} PV`,
-      });
-    }
-  }
   const combatant = vttStore.combatants.find(c => c.id === id);
-  if (combatant?.tokenId) {
+  if (!combatant) return;
+
+  const prev = combatant.hp;
+  const next = Math.max(0, hp);
+  const delta = next - prev;
+  combatant.hp = next;
+
+  if (delta !== 0) {
+    addCombatLogEntry({
+      type: delta < 0 ? (next === 0 ? 'death' : 'damage') : 'heal',
+      actor: combatant.name,
+      value: Math.abs(delta),
+      detail: delta < 0 ? `-${Math.abs(delta)} PV` : `+${delta} PV`,
+    });
+  }
+
+  // Sync HP to the linked token on the map
+  if (combatant.tokenId) {
     const token = vttStore.tokens.find(t => t.id === combatant.tokenId);
     if (token) {
-      token.hp = Math.max(0, hp);
+      token.hp = next;
       emitToPlayerView('update_tokens', vttStore.tokens);
     }
   }

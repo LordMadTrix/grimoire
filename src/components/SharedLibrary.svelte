@@ -229,7 +229,8 @@
       {#if activeTab === 'tokens'}
         <div class="lib-cat-bar">
           {#each [['all','Tous'],['heroes','Héros'],['enemies','Ennemis'],['npcs','PNJs']] as [val, label]}
-            <button class="cat-btn" class:active={tokenCategory === val} onclick={() => tokenCategory = val}>{label}</button>
+            {@const catVal = val as 'all' | 'heroes' | 'enemies' | 'npcs'}
+            <button class="cat-btn" class:active={tokenCategory === catVal} onclick={() => tokenCategory = catVal}>{label}</button>
           {/each}
         </div>
         <div class="section-label">Intégrés</div>

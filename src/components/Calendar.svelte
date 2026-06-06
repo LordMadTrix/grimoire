@@ -281,8 +281,9 @@
     font-size: 12px;
     outline: none;
     -moz-appearance: textfield;
+    appearance: textfield;
   }
-  .form-day::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .form-day::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; }
 
   .form-type {
     background: var(--bg-tertiary);

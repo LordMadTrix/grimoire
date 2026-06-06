@@ -18,9 +18,10 @@
   import MacroBar from './components/MacroBar.svelte';
   import DungeonEditor from './components/DungeonEditor.svelte';
   import UpdateModal from './components/UpdateModal.svelte';
+  import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
-  import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView } from '$lib/api';
+  import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus } from '$lib/api';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
   import {
@@ -101,6 +102,7 @@
   let isLoading = $state(false);
   let statusMessage = $state('');
   let showSettings = $state(false);
+  let showOllamaOnboarding = $state(false);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
   let viewMode = $state<'editor' | 'graph' | 'timeline' | 'calendar'>('editor');
@@ -110,6 +112,7 @@
   let mapRollSeq = 0;
   let playerHubRef = $state<any>(null);
   let playerManagerRef = $state<any>(null);
+  let playerMobileManagerRef = $state<any>(null);
   let updateModalRef = $state<any>(null);
 
   function handleDiceRoll(result: number, label: string) {
@@ -164,6 +167,19 @@
         catch { localStorage.removeItem('last_vault_path'); }
       }
       setTimeout(() => updateModalRef?.runCheck(), 8000);
+      
+      // Vérification initiale du statut d'Ollama pour l'onboarding
+      try {
+        const status = await checkOllamaStatus();
+        const dismissed = localStorage.getItem('grimoire_ollama_onboard_dismissed');
+        if (!status.binary_exists || status.models.length === 0) {
+          if (!dismissed) {
+            showOllamaOnboarding = true;
+          }
+        }
+      } catch (err) {
+        console.error("Échec de la vérification initiale d'Ollama :", err);
+      }
       _unlistenApp.push(await listen('visual_dice_roll', (event: any) => {
         const { name, roll } = event.payload;
         handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
@@ -285,6 +301,16 @@
     }
   }
 
+  async function handleOpenMapEditor() {
+    try {
+      await openMapEditor();
+    } catch (err) {
+      console.error('Failed to open map editor:', err);
+      statusMessage = `Erreur: ${err}`;
+      setTimeout(() => { statusMessage = ''; }, 3000);
+    }
+  }
+
   async function launchPlayerView() {
     try {
       if (monitors.length > 1) {
@@ -400,6 +426,7 @@
 <RollTables bind:this={rollTablesRef} />
 <PlayerHub bind:this={playerHubRef} />
 <PlayerManager bind:this={playerManagerRef} />
+<PlayerMobileManager bind:this={playerMobileManagerRef} />
 
 {#if showMonitorPicker}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -425,7 +452,14 @@
 {/if}
 
 {#if showSettings}
-  <SettingsModal onClose={() => showSettings = false} />
+  <SettingsModal 
+    onClose={() => showSettings = false} 
+    onTriggerOnboarding={() => { showSettings = false; showOllamaOnboarding = true; }}
+  />
+{/if}
+
+{#if showOllamaOnboarding}
+  <OllamaOnboardingModal onClose={() => { showOllamaOnboarding = false; localStorage.setItem('grimoire_ollama_onboard_dismissed', 'true'); }} />
 {/if}
 
 <div class="app-layout">
@@ -453,6 +487,9 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button onclick={handleOpenMapEditor} class="footer-btn vtt-btn" title="Ouvrir l'éditeur de cartes dédié">
+          🗺️ Éditeur de Cartes
+        </button>
         <button onclick={launchPlayerView} class="footer-btn vtt-btn" title="Ouvrir la vue Joueurs sur un autre écran">
           🖥️ Lancer Vue Joueurs
         </button>
@@ -512,6 +549,7 @@
         onRoll={handleDiceRoll} 
         onTogglePlayerHub={() => playerHubRef?.toggle()} 
         onTogglePlayerManager={() => playerManagerRef?.toggle()}
+        onTogglePlayerMobileManager={() => playerMobileManagerRef?.toggle()}
       />
     {/if}
     
@@ -653,6 +691,7 @@
     font-weight: 800;
     background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.5px;
   }

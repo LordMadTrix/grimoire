@@ -86,3 +86,26 @@ pub async fn emit_to_player_view(
     app.emit_to("player-view", &event, payload)
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn open_map_editor(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("map-editor") {
+        window.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    #[cfg(dev)]
+    let url = WebviewUrl::External("http://localhost:5174/".parse().unwrap());
+    #[cfg(not(dev))]
+    let url = WebviewUrl::App("map-editor/index.html".into());
+
+    let _window = WebviewWindowBuilder::new(&app, "map-editor", url)
+        .title("Fantasy Cartographer — Éditeur de Cartes")
+        .inner_size(1400.0, 900.0)
+        .resizable(true)
+        .decorations(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}

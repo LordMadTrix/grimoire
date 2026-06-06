@@ -6,7 +6,7 @@
     getAiSystemPrompt, setAiSystemPrompt
   } from '$lib/stores/settings.svelte';
 
-  let { onClose = () => {} }: { onClose: () => void } = $props();
+  let { onClose = () => {}, onTriggerOnboarding = () => {} }: { onClose: () => void, onTriggerOnboarding: () => void } = $props();
 
   let models: string[] = $state([]);
   let isLoadingModels = $state(true);
@@ -49,13 +49,23 @@
           <div class="loading">Recherche des modèles...</div>
         {:else if errorMsg}
           <div class="error">{errorMsg}</div>
-          <input type="text" id="ai-model" bind:value={currentModel} placeholder="ex: llama3.2" />
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="ai-model" bind:value={currentModel} placeholder="ex: llama3.2" style="flex: 1; margin: 0;" />
+            <button type="button" onclick={onTriggerOnboarding} style="padding: 10px; font-size: 12px; white-space: nowrap; background: rgba(229, 168, 83, 0.1); border: 1px solid var(--accent); color: var(--accent); margin: 0;">
+              🔧 Installer l'IA
+            </button>
+          </div>
         {:else}
-          <select id="ai-model" bind:value={currentModel}>
-            {#each models as model}
-              <option value={model}>{model}</option>
-            {/each}
-          </select>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="ai-model" bind:value={currentModel} style="flex: 1; margin: 0;">
+              {#each models as model}
+                <option value={model}>{model}</option>
+              {/each}
+            </select>
+            <button type="button" onclick={onTriggerOnboarding} style="padding: 10px; font-size: 12px; white-space: nowrap; background: rgba(229, 168, 83, 0.1); border: 1px solid var(--accent); color: var(--accent); margin: 0;">
+              🔧 Assistant IA
+            </button>
+          </div>
         {/if}
         <small>Le modèle qui rédigera vos descriptions (doit être installé via Ollama).</small>
       </div>

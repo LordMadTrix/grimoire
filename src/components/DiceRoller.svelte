@@ -251,9 +251,10 @@
     text-align: center;
     padding: 4px;
     -moz-appearance: textfield;
+    appearance: textfield;
   }
   .custom-input::-webkit-inner-spin-button,
-  .custom-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .custom-input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
   .custom-input:focus { outline: none; border-color: var(--accent); }
 
   .custom-sep { font-size: 12px; color: var(--text-muted); font-weight: 600; }

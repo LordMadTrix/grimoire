@@ -9,14 +9,14 @@
   let imgPreview = $state<string | null>(null);
   let sending = $state(false);
   let sent = $state(false);
-  let fileInput: HTMLInputElement;
+  let fileInput = $state<HTMLInputElement | undefined>(undefined);
 
   async function pickFile() {
-    fileInput.click();
+    fileInput?.click();
   }
 
   async function onFileChange() {
-    const file = fileInput.files?.[0];
+    const file = fileInput?.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {

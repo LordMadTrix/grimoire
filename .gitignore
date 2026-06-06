@@ -37,3 +37,6 @@ example-vault/
 *.pdf
 *.mp4
 *.mkv
+
+# User custom assets (1GB d'images)
+public/assets/custom/

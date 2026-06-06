@@ -95,7 +95,17 @@ export async function emitToPlayerView(eventName: string, payload: any): Promise
   await invoke('emit_to_player_view', { event: eventName, payload });
 }
 
+export async function openMapEditor(): Promise<void> {
+  return invoke('open_map_editor');
+}
+
 // ── AI ──────────────────────────────────────────────────────────
+
+export interface OllamaStatus {
+  binary_exists: boolean;
+  server_running: boolean;
+  models: string[];
+}
 
 export async function askOllama(prompt: string, model: string, systemPrompt: string): Promise<string> {
   return invoke('ask_ollama', { prompt, model, systemPrompt });
@@ -103,6 +113,18 @@ export async function askOllama(prompt: string, model: string, systemPrompt: str
 
 export async function getOllamaModels(): Promise<string[]> {
   return invoke('get_ollama_models');
+}
+
+export async function checkOllamaStatus(): Promise<OllamaStatus> {
+  return invoke('check_ollama_status');
+}
+
+export async function downloadOllamaBinary(): Promise<void> {
+  return invoke('download_ollama_binary');
+}
+
+export async function pullOllamaModel(modelName: string): Promise<void> {
+  return invoke('pull_ollama_model', { modelName });
 }
 
 // ── Player Mobile Server ─────────────────────────────────────────

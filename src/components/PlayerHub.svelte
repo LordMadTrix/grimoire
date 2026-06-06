@@ -158,9 +158,13 @@
                   onclick={() => togglePlayerSelection(p.id)}
                 >
                   <div class="card-header">
-                    <div class="player-avatar" style="background-color: hsl({(p.name.length * 40) % 360}, 60%, 40%)">
-                      {p.name.charAt(0).toUpperCase()}
-                    </div>
+                    {#if p.character?.portrait}
+                      <img class="player-avatar" src={p.character.portrait} alt={p.name} style="object-fit: cover; width: 40px; height: 40px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+                    {:else}
+                      <div class="player-avatar" style="background-color: hsl({(p.name.length * 40) % 360}, 60%, 40%)">
+                        {p.name.charAt(0).toUpperCase()}
+                      </div>
+                    {/if}
                     <div class="player-meta">
                       <span class="player-name">{p.name}</span>
                       <span class="player-class">{p.character?.voc || p.character?.car || 'Voyageur'}</span>

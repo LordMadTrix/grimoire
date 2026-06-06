@@ -275,8 +275,6 @@
   });
 </script>
 
-<button class="pm-toggle" onclick={toggle} title="Gérer les joueurs mobiles">📱</button>
-
 {#if visible}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -332,6 +330,9 @@
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <div class="pm-player-header" onclick={() => toggleCard(p.id)}>
                   <div class="pm-player-dot" class:active-dot={p.active_turn}></div>
+                  {#if p.character?.portrait}
+                    <img src={p.character.portrait} alt={p.name} style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); margin-right: 4px; flex-shrink: 0;" />
+                  {/if}
                   <div class="pm-player-info">
                     <span class="pm-player-name">{p.name}</span>
                     {#if p.character?.class}

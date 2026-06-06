@@ -44,11 +44,13 @@
   let { 
     onRoll,
     onTogglePlayerHub,
-    onTogglePlayerManager
+    onTogglePlayerManager,
+    onTogglePlayerMobileManager
   }: { 
     onRoll?: ((result: number, label: string) => void) | null,
     onTogglePlayerHub?: (() => void) | null,
-    onTogglePlayerManager?: (() => void) | null
+    onTogglePlayerManager?: (() => void) | null,
+    onTogglePlayerMobileManager?: (() => void) | null
   } = $props();
 
   function handleDiceRoll(result: number, label: string) {
@@ -526,6 +528,7 @@
     <div class="separator"></div>
     <button class="btn icon-btn" onclick={() => onTogglePlayerManager?.()} title="Gestionnaire de Groupe (Party Manager)">👥</button>
     <button class="btn icon-btn" onclick={() => onTogglePlayerHub?.()} title="Tableau de bord des joueurs (Hub)">📱</button>
+    <button class="btn icon-btn" onclick={() => onTogglePlayerMobileManager?.()} title="Joueurs Mobiles (Serveur)">📲</button>
     <div class="separator"></div>
     <button class="btn icon-btn overflow-toggle" class:active={showToolsOverflow}
       onclick={(e) => { e.stopPropagation(); showToolsOverflow = !showToolsOverflow; }}
@@ -986,9 +989,10 @@
     font-size: 12px;
     text-align: center;
     -moz-appearance: textfield;
+    appearance: textfield;
   }
   .grid-input::-webkit-inner-spin-button,
-  .grid-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .grid-input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
 
   .ambient-form {
     display: flex;
@@ -1192,9 +1196,10 @@
     text-align: center;
     padding: 2px 4px;
     -moz-appearance: textfield;
+    appearance: textfield;
   }
   .spell-radius-input::-webkit-inner-spin-button,
-  .spell-radius-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .spell-radius-input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
 
   .draw-color-input {
     width: 28px;

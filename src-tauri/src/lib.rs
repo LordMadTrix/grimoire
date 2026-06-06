@@ -43,9 +43,13 @@ pub fn run() {
             commands::player_view::list_monitors,
             commands::player_view::open_player_view,
             commands::player_view::emit_to_player_view,
+            commands::player_view::open_map_editor,
             // AI
             commands::ai::ask_ollama,
             commands::ai::get_ollama_models,
+            commands::ai::check_ollama_status,
+            commands::ai::download_ollama_binary,
+            commands::ai::pull_ollama_model,
             // Player mobile server
             commands::player_server::start_player_server,
             commands::player_server::stop_player_server,
