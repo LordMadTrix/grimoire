@@ -40,12 +40,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .r4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
 .sec{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;padding:6px 0 4px;border-bottom:1px solid var(--border)}
-/* Blessures hero */
-.bless-row{display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px}
-.bless-lbl{font-size:11px;color:var(--muted);flex-shrink:0}
-.bless-cur{font-size:28px;font-weight:800;color:var(--accent);width:56px;text-align:center;background:transparent;border:none;outline:none;font-family:monospace}
-.bless-sep{font-size:20px;color:var(--muted);flex-shrink:0}
-.bless-max{font-size:18px;color:var(--text);font-family:monospace;flex-shrink:0}
+/* Blessures hero (Health Vial Style) */
+.bless-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;background:var(--bg3);border:1px solid #4a0000;border-radius:12px;position:relative;overflow:hidden;box-shadow:inset 0 0 20px rgba(100,0,0,0.5)}
+.bless-row::before{content:'';position:absolute;bottom:0;left:0;width:100%;height:var(--hp-pct, 100%);background:linear-gradient(to top, #900, #f00);opacity:0.3;transition:height 0.5s ease;z-index:0}
+.bless-lbl{font-size:12px;color:#ff9999;flex-shrink:0;z-index:1;text-transform:uppercase;font-weight:700;letter-spacing:2px}
+.bless-cur{font-size:36px;font-weight:900;color:#fff;width:70px;text-align:center;background:rgba(0,0,0,0.5);border:2px solid #900;border-radius:8px;outline:none;font-family:monospace;z-index:1;text-shadow:0 0 10px #f00}
+.bless-sep{font-size:24px;color:var(--muted);flex-shrink:0;z-index:1}
+.bless-max{font-size:24px;color:var(--text);font-family:monospace;flex-shrink:0;z-index:1}
 /* Profile table */
 .prof-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:6px}
 .prof-tbl{border-collapse:collapse;min-width:max-content;width:100%}
@@ -97,10 +98,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .combatant.cur{border-color:var(--accent);background:rgba(229,168,83,.08)}
 .combatant.emy{color:var(--red)}
 .c-name{flex:1;font-size:13px;font-weight:500}
-.hp-bar{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
-.hp-fill{height:100%;border-radius:3px;transition:width .3s}
-.c-hp{font-size:11px;color:var(--muted);font-family:monospace;min-width:48px;text-align:right}
-.no-combat{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+.hp-bar{flex:1;height:12px;background:rgba(0,0,0,0.5);border:1px solid #4a0000;border-radius:6px;overflow:hidden;position:relative}
+.hp-fill{height:100%;background:linear-gradient(to right, #900, #f00);border-radius:0;transition:width .5s cubic-bezier(0.1,0.9,0.2,1);box-shadow:0 0 10px #f00}
+.c-hp{font-size:12px;color:#ff9999;font-family:monospace;min-width:48px;text-align:right;font-weight:700}
+.no-combat{text-align:center;padding:24px;color:var(--muted);font-size:13px;font-style:italic}
 /* ── Conditions ── */
 .cond-list{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
 .cond-tag{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171}
@@ -1134,7 +1135,7 @@ function sc(){
 
 function updateHealthState(){
   const cur=parseInt(document.getElementById('f-bless')?.value)||0;
-  const maxB=parseInt(ch.profil?.act?.b)||0;
+  const maxB=parseInt(ch.profil?.act?.b)||0; const blessRow = document.querySelector('.bless-row'); if(blessRow && maxB > 0) blessRow.style.setProperty('--hp-pct', Math.max(0, Math.min(100, (cur/maxB)*100)) + '%');
   const el=document.getElementById('health-state');
   const combatHp=document.getElementById('combat-my-hp');
   
@@ -1184,7 +1185,7 @@ function renderSheet(){
   const el=document.getElementById('sheet-content');
   if(!el)return;
 
-  const maxB=parseInt(ch.profil?.act?.b)||0;
+  const maxB=parseInt(ch.profil?.act?.b)||0; const blessRow = document.querySelector('.bless-row'); if(blessRow && maxB > 0) blessRow.style.setProperty('--hp-pct', Math.max(0, Math.min(100, (cur/maxB)*100)) + '%');
   const curB=parseInt(ch.bless)||0;
   const pct=maxB>0?Math.min(100,Math.round(curB/maxB*100)):0;
   const hpCol=pct>60?'var(--green)':pct>25?'#eab308':'var(--red)';

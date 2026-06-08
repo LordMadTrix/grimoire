@@ -6,7 +6,8 @@
     getPlayerConnections, broadcastToPlayers,
     applyDamageToPlayer, type PlayerInfo,
     readFile, writeFile, createDirectory, type VaultEntry,
-    assignCharacter, applyConditionToPlayer, removeConditionFromPlayer
+    assignCharacter, applyConditionToPlayer, removeConditionFromPlayer,
+    requestRoll
   } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import { vttStore } from '$lib/stores/vtt.svelte';
@@ -34,6 +35,22 @@
   let aiMjMode = $state(false);
   let aiTtsMode = $state(false);
   let isAiLoading = $state(false);
+
+  // Edit Player
+  let editingPlayerId = $state<string | null>(null);
+  let editForm = $state<any>({});
+
+  // Forced Roll
+  const STATS = [
+    { key: 'm', lbl: 'M' }, { key: 'cc', lbl: 'CC' }, { key: 'ct', lbl: 'CT' },
+    { key: 'f', lbl: 'F' }, { key: 'e', lbl: 'E' }, { key: 'b', lbl: 'B' },
+    { key: 'i', lbl: 'I' }, { key: 'a', lbl: 'A' }, { key: 'dex', lbl: 'Dex' },
+    { key: 'cd', lbl: 'Cd' }, { key: 'int', lbl: 'Int' }, { key: 'cl', lbl: 'Cl' },
+    { key: 'fm', lbl: 'FM' }, { key: 'soc', lbl: 'Soc' }
+  ];
+  let rollStat = $state('cc');
+  let rollMod = $state(0);
+
 
   export function toggle() { 
     visible = !visible; 
@@ -186,13 +203,99 @@
         if (k === 'hp' || k === 'bless') return `${k}: ${data.hp ?? data.bless ?? 10}`;
         if (k === 'maxhp') return `${k}: ${data.maxhp ?? data.profil?.act?.b ?? 10}`;
         if (k === 'xp') return `${k}: ${data.xp || 0}`;
+        if (k === 'race') return `${k}: ${data.race || ''}`;
+        if (k === 'class' || k === 'voc') return `${k}: ${data.voc || ''}`;
+        if (k === 'nom' || k === 'name') return `${k}: ${data.nom || ''}`;
+        if (k === 'avantage' || k === 'advantage') return `${k}: ${data.avantage || 0}`;
+        if (k === 'destin') return `${k}: ${data.destin || 0}`;
+        if (k === 'fortune') return `${k}: ${data.fortune || 0}`;
+        if (k === 'resilience') return `${k}: ${data.resilience || 0}`;
+        if (k === 'resolution') return `${k}: ${data.resolution || 0}`;
+        if (k === 'corruption') return `${k}: ${JSON.stringify(data.corruption || '')}`;
+        if (k === 'blessures_critiques') return `${k}: ${JSON.stringify(data.blessures_critiques || '')}`;
+        if (k === 'etat_veille') return `${k}: ${data.etat_veille || 'eveil'}`;
+        if (k === 'inventaire') return `${k}: ${JSON.stringify(data.inventaire || '')}`;
         return line;
       });
+
+      const existingKeys = newLines.map(l => l.includes(':') ? l.split(':')[0].trim() : '');
+      const appendIfMissing = (key: string, val: any) => { if (!existingKeys.includes(key) && val !== undefined) newLines.push(`${key}: ${val}`); };
+      
+      appendIfMissing('race', data.race);
+      appendIfMissing('voc', data.voc);
+      appendIfMissing('nom', data.nom);
+      appendIfMissing('avantage', data.avantage);
+      appendIfMissing('destin', data.destin);
+      appendIfMissing('fortune', data.fortune);
+      appendIfMissing('resilience', data.resilience);
+      appendIfMissing('resolution', data.resolution);
+      appendIfMissing('corruption', JSON.stringify(data.corruption || ''));
+      appendIfMissing('blessures_critiques', JSON.stringify(data.blessures_critiques || ''));
+      appendIfMissing('etat_veille', data.etat_veille || 'eveil');
+      appendIfMissing('inventaire', JSON.stringify(data.inventaire || ''));
+
       return `---\n${newLines.join('\n')}\n---${oldContent.slice(fmMatch[0].length)}`;
     }
     // If no frontmatter, prepend basic one
-    const basicFm = `---\nnom: ${data.nom}\nhp: ${data.hp}\nmaxhp: ${data.maxhp}\n---`;
+    const basicFm = `---\nnom: ${data.nom || ''}\nhp: ${data.hp || 10}\nmaxhp: ${data.maxhp || 10}\nrace: ${data.race || ''}\nvoc: ${data.voc || ''}\n---`;
     return `${basicFm}\n\n${oldContent}`;
+  }
+
+  function startEdit(p: PlayerInfo) {
+    editingPlayerId = p.id;
+    editForm = {
+      nom: p.character.nom || p.name,
+      race: p.character.race || '',
+      voc: p.character.voc || '',
+      hp: p.character.hp ?? p.character.bless ?? 10,
+      maxhp: p.character.maxhp ?? p.character.profil?.act?.b ?? 10,
+      xp: p.character.xp ?? 0,
+      avantage: p.character.avantage ?? p.character.advantage ?? 0,
+      destin: p.character.destin ?? 0,
+      fortune: p.character.fortune ?? 0,
+      resilience: p.character.resilience ?? 0,
+      resolution: p.character.resolution ?? 0,
+      corruption: p.character.corruption ?? '',
+      blessures_critiques: p.character.blessures_critiques ?? '',
+      etat_veille: p.character.etat_veille ?? 'eveil',
+      inventaire: p.character.inventaire ?? ''
+    };
+  }
+
+  async function savePlayerEdit(p: PlayerInfo) {
+    const updatedChar = {
+      ...p.character,
+      ...editForm,
+      bless: editForm.hp,
+    };
+    
+    if (!updatedChar.profil) updatedChar.profil = { act: {} };
+    updatedChar.profil.act.b = editForm.maxhp;
+
+    if (p.character_path) {
+      await autoSaveCharacter(p.character_path, updatedChar);
+      await assignCharacter(p.id, p.character_path, updatedChar);
+    }
+    
+    editingPlayerId = null;
+    refreshData();
+  }
+
+  async function updateSingleField(p: PlayerInfo, field: string, value: any) {
+    const updatedChar = { ...p.character, [field]: value };
+    if (p.character_path) {
+      await autoSaveCharacter(p.character_path, updatedChar);
+      await assignCharacter(p.id, p.character_path, updatedChar);
+    }
+    refreshData();
+  }
+
+  async function handleForcedRoll(playerId: string) {
+    await requestRoll(playerId, rollStat, rollMod);
+  }
+
+  function cancelEdit() {
+    editingPlayerId = null;
   }
 
   async function handleAssign(playerId: string, char: any) {
@@ -370,32 +473,122 @@
 
                   {#if p.character}
                     <div class="char-box">
-                      <div class="char-header">
-                        <span class="char-name">{p.character.nom || 'Sans nom'}</span>
-                        <span class="char-path">{p.character_path || ''}</span>
-                      </div>
-                      <div class="hp-row">
-                        <div class="hp-bar-bg"><div class="hp-fill" style="width: {getHpPct(p)}%"></div></div>
-                        <span class="hp-txt">{p.character.hp ?? p.character.bless ?? 0}/{p.character.maxhp ?? p.character.profil?.act?.b ?? 10}</span>
-                      </div>
-                      <div class="cond-row">
-                        {#each p.conditions as c}
-                          <span class="cond-tag">{c} <button onclick={() => removeConditionFromPlayer(p.id, c)}>✕</button></span>
-                        {/each}
-                      </div>
+                      {#if editingPlayerId === p.id}
+                        <div class="edit-form">
+                          <input type="text" bind:value={editForm.nom} placeholder="Nom" class="edit-input" />
+                          <div class="edit-row">
+                            <input type="text" bind:value={editForm.race} placeholder="Race" class="edit-input" style="flex:1" />
+                            <input type="text" bind:value={editForm.voc} placeholder="Métier/Classe" class="edit-input" style="flex:1" />
+                          </div>
+                          <div class="edit-row">
+                            <label>PV:</label>
+                            <input type="number" bind:value={editForm.hp} class="edit-num" />
+                            <span>/</span>
+                            <input type="number" bind:value={editForm.maxhp} class="edit-num" />
+                            <label style="margin-left:8px">XP:</label>
+                            <input type="number" bind:value={editForm.xp} class="edit-num" />
+                          </div>
+                          <div class="edit-row">
+                            <label title="Destin/Fortune">Des/For:</label>
+                            <input type="number" bind:value={editForm.destin} class="edit-num" /> /
+                            <input type="number" bind:value={editForm.fortune} class="edit-num" />
+                            <label title="Résilience/Résolution" style="margin-left:8px">Rés/Rés:</label>
+                            <input type="number" bind:value={editForm.resilience} class="edit-num" /> /
+                            <input type="number" bind:value={editForm.resolution} class="edit-num" />
+                          </div>
+                          <div class="edit-row">
+                            <label>Corr:</label>
+                            <input type="text" bind:value={editForm.corruption} class="edit-input" style="flex:1" placeholder="Niveau de corruption" />
+                          </div>
+                          <div class="edit-row">
+                            <label>Bless.Crit:</label>
+                            <input type="text" bind:value={editForm.blessures_critiques} class="edit-input" style="flex:1" placeholder="Hémorragie, Bras cassé..." />
+                          </div>
+                          <div class="edit-row">
+                            <label>Inventaire:</label>
+                          </div>
+                          <textarea bind:value={editForm.inventaire} class="edit-textarea" placeholder="Objets, Couronnes..."></textarea>
+                          
+                          <div class="edit-actions">
+                            <button class="btn-save" onclick={() => savePlayerEdit(p)}>Enregistrer</button>
+                            <button class="btn-cancel" onclick={cancelEdit}>Annuler</button>
+                          </div>
+                        </div>
+                      {:else}
+                        <div class="char-header">
+                          <div class="char-title-row">
+                            <span class="char-name">{p.character.nom || 'Sans nom'}</span>
+                            <div class="char-actions-right">
+                              <!-- Sleep/Guard quick toggles -->
+                              <button class="btn-state" class:active-state={p.character.etat_veille === 'eveil'} onclick={() => updateSingleField(p, 'etat_veille', 'eveil')} title="Éveillé">☀️</button>
+                              <button class="btn-state" class:active-state={p.character.etat_veille === 'endormi'} onclick={() => updateSingleField(p, 'etat_veille', 'endormi')} title="Endormi">🌙</button>
+                              <button class="btn-state" class:active-state={p.character.etat_veille === 'garde'} onclick={() => updateSingleField(p, 'etat_veille', 'garde')} title="Garde">🛡️</button>
+                              <button class="btn-edit" onclick={() => startEdit(p)} title="Modifier le personnage">✏️</button>
+                            </div>
+                          </div>
+                          <span class="char-desc">
+                            {#if p.character.race || p.character.voc}
+                              {p.character.race || ''} {p.character.voc || ''}
+                            {:else}
+                              <span class="char-path">{p.character_path || ''}</span>
+                            {/if}
+                          </span>
+                        </div>
+                        <div class="hp-row">
+                          <div class="hp-bar-bg"><div class="hp-fill" style="width: {getHpPct(p)}%"></div></div>
+                          <span class="hp-txt">{p.character.hp ?? p.character.bless ?? 0}/{p.character.maxhp ?? p.character.profil?.act?.b ?? 10}</span>
+                        </div>
+                        <div class="quick-stats-row">
+                          <!-- Avantage -->
+                          <div class="avantage-badge">
+                            <button onclick={() => updateSingleField(p, 'avantage', Math.max(0, (p.character.avantage || 0) - 1))}>-</button>
+                            <span title="Avantage">⚔️ {p.character.avantage || 0}</span>
+                            <button onclick={() => updateSingleField(p, 'avantage', (p.character.avantage || 0) + 1)}>+</button>
+                          </div>
+                          <!-- Destin/Resilience tags if any -->
+                          {#if p.character.destin || p.character.resilience}
+                            <div class="destiny-badge" title="Destin/Résilience">✨ {p.character.destin || 0} / 🛡️ {p.character.resilience || 0}</div>
+                          {/if}
+                          {#if p.character.xp}
+                            <span class="xp-txt">XP: {p.character.xp}</span>
+                          {/if}
+                        </div>
+                        
+                        {#if p.character.corruption || p.character.blessures_critiques}
+                          <div class="warn-row">
+                            {#if p.character.corruption}<span class="warn-tag corr-tag" title="Corruption">🐙 {p.character.corruption}</span>{/if}
+                            {#if p.character.blessures_critiques}<span class="warn-tag crit-tag" title="Blessures Critiques">☠️ {p.character.blessures_critiques}</span>{/if}
+                          </div>
+                        {/if}
 
-                      <div class="cond-selector">
-                        {#each WFRP_CONDITIONS as cond}
-                          <button 
-                            class="btn-cond-add" 
-                            class:active={p.conditions.includes(cond.name)}
-                            onclick={() => toggleCondition(p.id, p.conditions, cond.name)}
-                            title={cond.desc}
-                          >
-                            {cond.icon}
-                          </button>
-                        {/each}
-                      </div>
+                        <div class="cond-row">
+                          {#each p.conditions as c}
+                            <span class="cond-tag">{c} <button onclick={() => removeConditionFromPlayer(p.id, c)}>✕</button></span>
+                          {/each}
+                        </div>
+
+                        <div class="cond-selector">
+                          {#each WFRP_CONDITIONS as cond}
+                            <button 
+                              class="btn-cond-add" 
+                              class:active={p.conditions.includes(cond.name)}
+                              onclick={() => toggleCondition(p.id, p.conditions, cond.name)}
+                              title={cond.desc}
+                            >
+                              {cond.icon}
+                            </button>
+                          {/each}
+                        </div>
+
+                        <!-- Forced Roll UI -->
+                        <div class="forced-roll-row">
+                          <select bind:value={rollStat} class="fr-select">
+                            {#each STATS as s}<option value={s.key}>{s.lbl}</option>{/each}
+                          </select>
+                          <input type="number" bind:value={rollMod} class="fr-mod" placeholder="+/-" />
+                          <button class="btn-fr" onclick={() => handleForcedRoll(p.id)} title="Lancer un test">🎲</button>
+                        </div>
+                      {/if}
                     </div>
                   {:else}
                     <div class="empty-char">En attente de fiche...</div>
@@ -573,19 +766,52 @@
 
   .char-box { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.05); }
   .char-header { display: flex; flex-direction: column; margin-bottom: 8px; }
+  .char-title-row { display: flex; justify-content: space-between; align-items: center; }
   .char-name { font-weight: 800; color: #e5a853; font-size: 14px; }
+  .char-actions-right { display: flex; gap: 4px; align-items: center; }
+  .btn-state { background: transparent; border: 1px solid transparent; border-radius: 4px; font-size: 10px; cursor: pointer; opacity: 0.4; transition: all 0.2s; padding: 2px; }
+  .btn-state:hover { opacity: 0.8; }
+  .btn-state.active-state { opacity: 1; background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+  .btn-edit { background: transparent; border: none; font-size: 12px; cursor: pointer; opacity: 0.5; transition: opacity 0.2s; margin-left: 4px; }
+  .btn-edit:hover { opacity: 1; }
+  .char-desc { font-size: 11px; color: #8b949e; margin-top: 2px; }
   .char-path { font-size: 9px; color: #484f58; font-family: monospace; }
-  .hp-row { display: flex; align-items: center; gap: 10px; }
+  .hp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
   .hp-bar-bg { flex: 1; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
   .hp-fill { height: 100%; background: #f85149; transition: width 0.3s; }
   .hp-txt { font-size: 11px; font-family: monospace; color: #8b949e; }
-  .cond-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .quick-stats-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 6px; }
+  .avantage-badge { display: flex; align-items: center; gap: 4px; background: rgba(229,168,83,0.15); border: 1px solid rgba(229,168,83,0.3); border-radius: 4px; padding: 2px 4px; font-size: 10px; color: #e5a853; font-weight: bold; }
+  .avantage-badge button { background: transparent; border: none; color: #e5a853; cursor: pointer; padding: 0 4px; font-weight: bold; }
+  .avantage-badge button:hover { background: rgba(229,168,83,0.3); border-radius: 2px; }
+  .destiny-badge { font-size: 9px; color: #d2a8ff; background: rgba(210,168,255,0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(210,168,255,0.2); }
+  .xp-txt { font-size: 10px; color: #58a6ff; font-weight: bold; background: rgba(88, 166, 255, 0.1); padding: 2px 6px; border-radius: 4px; }
+  .warn-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .warn-tag { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+  .corr-tag { background: rgba(163,113,247,0.15); color: #a371f7; border: 1px solid rgba(163,113,247,0.3); }
+  .crit-tag { background: rgba(248,81,73,0.15); color: #f85149; border: 1px solid rgba(248,81,73,0.3); }
+  .cond-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
   .cond-tag { font-size: 9px; padding: 2px 6px; background: #2b2118; color: #e5a853; border-radius: 4px; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
   .cond-tag button { background: transparent; border: none; color: #f85149; cursor: pointer; font-size: 10px; padding: 0 2px; }
-  .cond-selector { display: flex; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+  .cond-selector { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
   .btn-cond-add { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 14px; }
   .btn-cond-add:hover { border-color: #e5a853; transform: scale(1.1); }
   .btn-cond-add.active { background: rgba(229,168,83,0.15); border-color: #e5a853; }
+  
+  .forced-roll-row { display: flex; gap: 4px; margin-top: 8px; align-items: center; }
+  .fr-select { background: #010409; border: 1px solid #30363d; color: white; border-radius: 4px; font-size: 10px; padding: 2px 4px; }
+  .fr-mod { background: #010409; border: 1px solid #30363d; color: white; border-radius: 4px; font-size: 10px; padding: 2px 4px; width: 40px; text-align: center; }
+  .btn-fr { background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #60a5fa; border-radius: 4px; cursor: pointer; font-size: 12px; padding: 2px 6px; transition: background 0.2s; }
+  .btn-fr:hover { background: rgba(59,130,246,0.4); }
+  
+  .edit-form { display: flex; flex-direction: column; gap: 8px; }
+  .edit-input { background: #010409; border: 1px solid #30363d; border-radius: 6px; padding: 6px; color: white; font-size: 12px; }
+  .edit-textarea { background: #010409; border: 1px solid #30363d; border-radius: 6px; padding: 6px; color: white; font-size: 12px; resize: vertical; min-height: 40px; font-family: monospace; }
+  .edit-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #8b949e; }
+  .edit-num { background: #010409; border: 1px solid #30363d; border-radius: 6px; padding: 4px; color: white; font-size: 11px; width: 40px; text-align: center; }
+  .edit-actions { display: flex; gap: 6px; margin-top: 4px; }
+  .btn-save { flex: 1; background: #238636; color: white; border: none; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+  .btn-cancel { flex: 1; background: #30363d; color: white; border: none; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
   /* Library View */
   .library-view { display: grid; grid-template-columns: 280px 1fr; height: 100%; }

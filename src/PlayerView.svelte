@@ -4,6 +4,10 @@
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
   import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef } from '$lib/stores/vtt.svelte';
+  import PlayerEffects from './components/PlayerEffects.svelte';
+  import Dice3DOverlay from './components/Dice3DOverlay.svelte';
+  import PlayerCombatHUD from './components/PlayerCombatHUD.svelte';
+  import CinematicReveal from './components/CinematicReveal.svelte';
 
   let currentMap     = $state<string | null>(null);
   let showGrid       = $state(true);
@@ -240,23 +244,26 @@
 <AudioPlayer src={audioSrc}  volume={audioVolume}  />
 <AudioPlayer src={audio2Src} volume={audio2Volume} />
 
-{#if handout}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="handout-overlay" onclick={() => handout = null}>
-    <div class="handout-card" onclick={e => e.stopPropagation()}>
-      {#if handout.title}
-        <div class="handout-title">{handout.title}</div>
-      {/if}
-      {#if handout.type === 'image'}
-        <img src={handout.content} alt={handout.title ?? 'Handout'} class="handout-img" />
-      {:else}
-        <div class="handout-text">{handout.content}</div>
-      {/if}
-      <button class="handout-close" onclick={() => handout = null}>✕ Fermer</button>
-    </div>
-  </div>
-{/if}
+<PlayerEffects 
+  weather={weather} 
+  partyHealthStatus={partyState.some(p => p.hp > 0 && p.hp <= p.maxHp * 0.33) ? 'critical' : 'normal'}
+  isCorrupted={partyState.some(p => p.corruption > 0)}
+/>
+
+<CinematicReveal 
+  handout={handout} 
+  onClose={() => handout = null} 
+/>
+
+<Dice3DOverlay rollData={externalRoll} />
+
+<PlayerCombatHUD 
+  combatants={combatants} 
+  combatActive={combatActive} 
+  currentTurn={currentTurn} 
+  combatRound={combatRound} 
+/>
+
 
 <main class="player-view">
 

@@ -4,7 +4,8 @@
   "version": "0.2.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"vite map-editor --port 5174 --strictPort\"",
+    "vite-dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"vite map-editor --port 5174 --strictPort\"",
+    "dev": "npm run tauri dev",
     "build": "vite build && npm run build --prefix map-editor",
     "preview": "vite preview",
     "tauri": "tauri",

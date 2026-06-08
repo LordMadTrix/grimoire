@@ -1,0 +1,15 @@
+- [x] **Module 1 : Ambiance Visuelle & Météo Dynamique**
+  - [x] Créer `src/components/PlayerEffects.svelte` (particules CSS, vignettes).
+  - [x] Intégrer dans `PlayerView.svelte`.
+- [x] **Module 2 : Jets de Dés 3D CSS**
+  - [x] Créer `src/components/Dice3DOverlay.svelte` (animation 3D CSS pour les jets de dés).
+  - [x] Écouter les événements de jet de dés.
+- [x] **Module 3 : Combat HUD Épique**
+  - [x] Créer `src/components/PlayerCombatHUD.svelte`.
+  - [x] Afficher l'ordre d'initiative et les tours actifs.
+- [x] **Module 4 : Révélations Cinématiques**
+  - [x] Créer `src/components/CinematicReveal.svelte` pour remplacer le handout basique.
+  - [x] Ajouter les animations de dévoilement.
+- [x] **Module 5 : Fiche Joueur Mobile Avancée**
+  - [x] Mettre à jour `player_app.html` pour intégrer des éléments thématiques (ex: fioles de vie).
+  - [x] Ajuster les couleurs et le style de la fiche.

@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-width=1.0">
+    <title>GRIMOIRE IA - IA Core</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Outfit:wght@300;500;700&display=swap');
+        
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #000;
+            font-family: 'Outfit', sans-serif;
+            color: #fff;
+            user-select: none;
+        }
+        
+        /* Map Library Styles */
+        .map-item {
+            cursor: pointer; border: 1px solid rgba(229, 168, 83, 0.3); transition: all 0.2s;
+            overflow: hidden; position: relative; height: 100px;
+        }
+        .map-item:hover { border-color: #e5a853; box-shadow: 0 0 10px rgba(229, 168, 83, 0.5); transform: scale(1.05); }
+        .map-item img { width: 100%; height: 100%; object-fit: cover; }
+        .map-item .map-title { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); color: #e5a853; font-size: 0.7rem; padding: 2px 5px; box-sizing: border-box; text-align: center; }
+        
+        /* Audio Mixer Styles */
+        .audio-btn { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.5); padding: 8px 15px; cursor: pointer; width: 100%; text-align: left; font-family: 'Outfit', sans-serif; margin-bottom: 5px; transition: all 0.2s; }
+        .audio-btn:hover { background: rgba(139, 92, 246, 0.4); box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+        .vol-slider { width: 100%; cursor: pointer; accent-color: #8b5cf6; }
+
+        #canvas-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1;
+        }
+        /* Scanline effect */
+        .scanlines {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            z-index: 2; pointer-events: none; opacity: 0.6;
+        }
+        /* Vignette */
+        .vignette {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, transparent 30%, #000 100%);
+            z-index: 3; pointer-events: none;
+        }
+        
+        /* Center Title (Moved up) */
+        .content {
+            position: absolute; top: 12%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 10; text-align: center; width: 100%; pointer-events: none;
+        }
+        h1 {
+            font-family: 'Cinzel', sans-serif;
+            font-size: 6vw; font-weight: 900;
+            margin: 0; letter-spacing: 1.5vw; padding-left: 1.5vw;
+            background: linear-gradient(135deg, #fff, #e5a853, #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 30px rgba(229, 168, 83, 0.8));
+            animation: glitch 4s infinite;
+        }
+        h2 {
+            font-size: 1.8vw; font-weight: 500; letter-spacing: 1vw; padding-left: 1vw; margin-top: 5px;
+            color: #e5a853; text-transform: uppercase;
+            text-shadow: 0 0 15px #e5a853;
+            animation: pulseText 2s infinite alternate;
+        }
+        
+        /* HUD Top Elements */
+        .hud {
+            position: absolute; z-index: 5; font-family: 'Cinzel', sans-serif; color: #e5a853;
+            pointer-events: none; text-shadow: 0 0 5px #e5a853; opacity: 0.8;
+        }
+        .hud-top-left { top: 20px; left: 30px; font-size: 1rem; line-height: 1.6; }
+        .hud-top-right { top: 20px; right: 30px; font-size: 1rem; text-align: right; line-height: 1.6; }
+        
+        /* Terminal Panel (Left) */
+        .terminal-panel {
+            position: absolute; top: 55%; left: 30px; transform: translateY(-50%);
+            width: 350px; height: 70vh; /* Taller for maps */
+            background: rgba(0, 5, 10, 0.7); border: 1px solid rgba(229, 168, 83, 0.3);
+            box-shadow: 0 0 20px rgba(229, 168, 83, 0.1); backdrop-filter: blur(10px);
+            z-index: 10; display: flex; flex-direction: column; overflow: hidden;
+            font-family: 'Courier New', Courier, monospace; font-size: 0.85rem;
+            border-radius: 4px; pointer-events: auto;
+        }
+        .terminal-header {
+            background: rgba(229, 168, 83, 0.2); padding: 8px 15px; color: #e5a853;
+            border-bottom: 1px solid rgba(229, 168, 83, 0.3); font-weight: bold;
+            display: flex; justify-content: space-between;
+        }
+        .blink { animation: blinker 1s linear infinite; }
+        .terminal-content {
+            padding: 15px; flex-grow: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start;
+        }
+        /* Custom scrollbar for library */
+        .terminal-content::-webkit-scrollbar { width: 5px; }
+        .terminal-content::-webkit-scrollbar-thumb { background: #e5a853; border-radius: 5px; }
+        .terminal-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        /* Stats Panel (Right) */
+        .stats-panel {
+            position: absolute; top: 55%; right: 30px; transform: translateY(-50%);
+            width: 250px;
+            background: rgba(10, 0, 10, 0.7); border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); backdrop-filter: blur(10px);
+            z-index: 10; padding: 20px; font-family: 'Cinzel', sans-serif;
+            border-radius: 4px; pointer-events: auto;
+        }
+        .stat-item {
+            margin-bottom: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px;
+        }
+        .stat-label { font-size: 0.75rem; color: #88bbff; display: block; margin-bottom: 5px; letter-spacing: 1px;}
+        .stat-val { font-size: 1.3rem; color: #8b5cf6; text-shadow: 0 0 10px #8b5cf6; font-weight: bold; }
+        .stat-val.gold { color: #e5a853; text-shadow: 0 0 10px #e5a853; }
+
+        /* Specs Container (Bottom Center) */
+        .specs-container {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px; z-index: 10; pointer-events: auto; width: max-content;
+        }
+        .spec-box {
+            position: relative;
+            padding: 15px 25px;
+            background: rgba(0, 10, 20, 0.6);
+            border: 1px solid rgba(229, 168, 83, 0.4);
+            box-shadow: 0 0 20px rgba(229, 168, 83, 0.2), inset 0 0 15px rgba(229, 168, 83, 0.1);
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(8px);
+            cursor: crosshair;
+        }
+        .spec-box::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 3px;
+            background: #8b5cf6; animation: scan 3s linear infinite;
+        }
+        .spec-box:hover {
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), inset 0 0 30px rgba(139, 92, 246, 0.3);
+            border-color: #8b5cf6; transform: scale(1.05) translateY(-5px);
+            background: rgba(20, 0, 20, 0.7);
+        }
+        .spec-title { font-size: 0.9rem; color: #88bbff; text-transform: uppercase; letter-spacing: 1px; }
+        .spec-desc { font-size: 0.75rem; color: #aaa; margin-top: 5px; font-family: 'Courier New', Courier, monospace; }
+        .spec-value { font-size: 1.6rem; font-weight: 700; color: #fff; text-shadow: 0 0 15px #fff; margin-top: 5px; }
+
+        @keyframes glitch {
+            0%, 96%, 98%, 100% { transform: translate(0) }
+            97% { transform: translate(-5px, 5px) skewX(10deg); filter: hue-rotate(90deg); }
+            99% { transform: translate(5px, -5px) skewX(-10deg); filter: hue-rotate(-90deg); }
+        }
+        @keyframes scan {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+        @keyframes pulseText {
+            from { opacity: 0.7; text-shadow: 0 0 10px #e5a853; }
+            to { opacity: 1; text-shadow: 0 0 25px #e5a853, 0 0 40px #e5a853; }
+        }
+        @keyframes blinker { 50% { opacity: 0; } }
+        
+        .noise {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 4;
+            opacity: 0.04; pointer-events: none;
+            background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+    
+    <div class="hud hud-top-left">
+        SYSTEM: GRIMOIRE IA<br>
+        STATUS: ONLINE<br>
+        NEURAL LINK: 100% STABLE
+    </div>
+    
+    <div class="hud hud-top-right">
+        GRIMOIRE_WORKSPACE: MOUNTED<br>
+        DATASET: 26,242 ASSETS<br>
+        RTX_TENSOR_CORES: ACTIVATED
+    </div>
+
+    <!-- TERMINAL PANEL (NOW MAP LIBRARY) -->
+    <div class="terminal-panel">
+        <div class="terminal-header">
+            <span>BIBLIOTHÈQUE DE CARTES</span>
+            <span class="blink">_</span>
+        </div>
+        <div class="terminal-content" id="map-library">
+            <!-- Maps will be loaded here from library.js -->
+        </div>
+    </div>
+
+    <!-- STATS PANEL (NOW AUDIO MIXER) -->
+    <div class="stats-panel" style="width: 300px;">
+        <div class="terminal-header" style="margin-bottom: 15px; background: rgba(139, 92, 246, 0.2); border-bottom-color: rgba(139, 92, 246, 0.3); color: #8b5cf6;">
+            <span>MIXEUR AUDIO IA</span>
+        </div>
+        
+        <!-- AUDIO ELEMENTS (Hidden) -->
+        <audio id="audio-ambiance" loop src="./audio/ambiance.wav"></audio>
+        <audio id="audio-combat" loop src="./audio/combat.wav"></audio>
+        <audio id="audio-sfx" loop src="./audio/sfx.wav"></audio>
+
+        <div class="stat-item">
+            <span class="stat-label">PLAYLIST AMBIANCE (30s)</span>
+            <select id="playlist-ambiance" class="audio-btn" style="width: 100%; margin-bottom: 5px; background: rgba(0,0,0,0.5);" onchange="changeAmbianceTrack(this.value)">
+                <option value="./audio/ambiance_1.wav">🌳 Forêt Mystique</option>
+                <option value="./audio/ambiance_2.wav">💀 Donjon Sombre</option>
+                <option value="./audio/ambiance_3.wav">🍺 Village Animé</option>
+                <option value="./audio/ambiance_4.wav">❄️ Caverne Givrante</option>
+            </select>
+            <button class="audio-btn" id="btn-ambiance" onclick="toggleAudio(this, 'audio-ambiance')">▶ Jouer Ambiance</button>
+            <input type="range" class="vol-slider" min="0" max="100" value="50" oninput="changeVolume('audio-ambiance', this.value)">
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">MUSIQUE DE COMBAT</span>
+            <button class="audio-btn" onclick="toggleAudio(this, 'audio-combat')">▶ Rencontre Épique</button>
+            <input type="range" class="vol-slider" min="0" max="100" value="70" oninput="changeVolume('audio-combat', this.value)">
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">PLAYLIST EFFETS (SFX)</span>
+            <select id="playlist-sfx" class="audio-btn" style="width: 100%; margin-bottom: 5px; background: rgba(0,0,0,0.5);" onchange="changeSfxTrack(this.value)">
+                <option value="./audio/sfx.wav">🌩️ Tonnerre & Pluie</option>
+                <option value="./audio/sfx_vent.wav">🌪️ Vent & Tempête</option>
+                <option value="./audio/sfx_foule.wav">👥 Foule au Marché</option>
+                <option value="./audio/sfx_marche.wav">👣 Bruits de Pas (Donjon)</option>
+            </select>
+            <button class="audio-btn" id="btn-sfx" onclick="toggleAudio(this, 'audio-sfx')">▶ Jouer SFX</button>
+            <input type="range" class="vol-slider" min="0" max="100" value="40" oninput="changeVolume('audio-sfx', this.value)">
+        </div>
+        
+        <!-- AUDIOCRAFT BUTTON -->
+        <button class="audio-btn" style="border-color: #00ffcc; color: #00ffcc; background: rgba(0, 255, 204, 0.1); text-align: center; margin-top: 10px; font-weight: bold;" onclick="toggleAudiocraft()">✨ Ouvrir Générateur Audiocraft</button>
+
+        <div class="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-grimoire-accent/20 bg-grimoire-accent/5 text-grimoire-accent text-sm font-medium animate-pulse-slow" style="margin-top: 15px;">
+            <span class="w-2 h-2 rounded-full bg-grimoire-accent"></span>
+            Mode: Virtual Tabletop
+        </div>
+    </div>
+
+    <!-- CENTRAL MAP VIEWER -->
+    <div id="map-viewer" style="display: none; position: absolute; top: 12%; left: 400px; right: 350px; bottom: 12%; background: rgba(0,0,0,0.85); z-index: 20; border: 1px solid rgba(229, 168, 83, 0.5); border-radius: 8px; box-shadow: 0 0 40px rgba(229, 168, 83, 0.3); backdrop-filter: blur(15px); overflow: hidden; pointer-events: auto;">
+        <div style="position: absolute; top: 15px; right: 15px; z-index: 21; display: flex; gap: 10px;">
+            <button onclick="resetZoom()" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 12px; cursor: pointer; border-radius: 4px; font-family: 'Outfit';">100%</button>
+            <button onclick="closeMap()" style="background: rgba(220,50,50,0.3); color: #ffcccc; border: 1px solid rgba(220,50,50,0.5); padding: 8px 12px; cursor: pointer; border-radius: 4px; font-family: 'Outfit'; font-weight: bold;">FERMER</button>
+        </div>
+        <div id="map-container" style="width: 100%; height: 100%; position: relative; overflow: hidden; cursor: grab;">
+            <img id="active-map" src="" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1); transition: transform 0.1s ease-out; transform-origin: center center;">
+        </div>
+    </div>
+    
+    <!-- AUDIOCRAFT IFRAME PANEL -->
+    <div id="audiocraft-panel" style="display: none; position: absolute; top: 10%; left: 20%; right: 20%; bottom: 10%; background: rgba(0,0,0,0.95); z-index: 30; border: 1px solid rgba(0, 255, 204, 0.5); border-radius: 8px; box-shadow: 0 0 40px rgba(0, 255, 204, 0.3); backdrop-filter: blur(15px); overflow: hidden; pointer-events: auto;">
+        <div style="position: absolute; top: 10px; right: 15px; z-index: 31;">
+            <button onclick="toggleAudiocraft()" style="background: rgba(220,50,50,0.3); color: #ffcccc; border: 1px solid rgba(220,50,50,0.5); padding: 8px 12px; cursor: pointer; border-radius: 4px; font-family: 'Outfit'; font-weight: bold;">FERMER LE GÉNÉRATEUR</button>
+        </div>
+        <iframe src="http://127.0.0.1:7860" style="width: 100%; height: 100%; border: none;"></iframe>
+    </div>
+    
+    <div class="content">
+        <h1>GRIMOIRE IA</h1>
+        <h2>Esprit Archimagique Local</h2>
+    </div>
+
+    <div class="specs-container">
+        <div class="spec-box">
+            <div class="spec-title">Cortex Arcanique</div>
+            <div class="spec-value">i9-12900H</div>
+            <div class="spec-desc">14 Cores / 20 Threads</div>
+        </div>
+        <div class="spec-box">
+            <div class="spec-title">Canalisation Magique</div>
+            <div class="spec-value">RTX 3080 Ti</div>
+            <div class="spec-desc">7424 CUDA Cores / 16GB</div>
+        </div>
+        <div class="spec-box">
+            <div class="spec-title">Mémoire Runique</div>
+            <div class="spec-value">32 GO DDR5</div>
+            <div class="spec-desc">Bande Passante 4800 MT/s</div>
+        </div>
+    </div>
+
+    <!-- Load Library Data -->
+    <script src="library.js"></script>
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- MAP LIBRARY LOGIC ---
+        const libraryContainer = document.getElementById('map-library');
+        
+        if (typeof GRIMOIRE_MAPS !== 'undefined') {
+            GRIMOIRE_MAPS.forEach(map => {
+                const el = document.createElement('div');
+                el.className = 'map-item';
+                // Use the map path for the thumbnail directly
+                el.innerHTML = `
+                    <img src="${map.path}" alt="${map.name}" loading="lazy">
+                    <div class="map-title">${map.name}</div>
+                `;
+                el.onclick = () => openMap(map.path);
+                libraryContainer.appendChild(el);
+            });
+            document.querySelector('.hud-top-right').innerHTML = `
+                GRIMOIRE_WORKSPACE: MOUNTED<br>
+                DATASET: ${GRIMOIRE_MAPS.length} MAPS HD<br>
+                AUDIO_MIXER: STANDBY
+            `;
+        }
+
+        // --- MAP VIEWER LOGIC (Pan & Zoom) ---
+        const mapViewer = document.getElementById('map-viewer');
+        const activeMap = document.getElementById('active-map');
+        const mapContainer = document.getElementById('map-container');
+        
+        let scale = 1;
+        let translateX = -50; // percentage
+        let translateY = -50; // percentage
+        let isDragging = false;
+        let startX, startY;
+
+        function openMap(src) {
+            activeMap.src = src;
+            mapViewer.style.display = 'block';
+            resetZoom();
+        }
+
+        function closeMap() {
+            mapViewer.style.display = 'none';
+        }
+
+        function resetZoom() {
+            scale = 1;
+            translateX = -50;
+            translateY = -50;
+            updateTransform();
+        }
+
+        function updateTransform() {
+            activeMap.style.transform = `translate(${translateX}%, ${translateY}%) scale(${scale})`;
+        }
+
+        mapContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomAmount = 0.1;
+            if (e.deltaY < 0) {
+                scale += zoomAmount; // Zoom in
+            } else {
+                scale = Math.max(0.1, scale - zoomAmount); // Zoom out
+            }
+            updateTransform();
+        });
+
+        mapContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            mapContainer.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            mapContainer.style.cursor = 'grab';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            // Calculate movement percentage based on image size to feel natural
+            const rect = activeMap.getBoundingClientRect();
+            const dx = (e.clientX - startX) / rect.width * 100 * scale;
+            const dy = (e.clientY - startY) / rect.height * 100 * scale;
+            
+            translateX += dx;
+            translateY += dy;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            updateTransform();
+        });
+
+        // --- AUDIO MIXER LOGIC ---
+        // Initialize volumes on load
+        document.getElementById('audio-ambiance').volume = 0.5;
+        document.getElementById('audio-combat').volume = 0.7;
+        document.getElementById('audio-sfx').volume = 0.4;
+
+        function toggleAudio(btn, audioId) {
+            const audioEl = document.getElementById(audioId);
+            if (!audioEl) return;
+
+            if (audioEl.paused) {
+                // Play audio
+                audioEl.play().catch(e => console.warn("Fichier audio non trouvé ou lecture bloquée :", e));
+                btn.innerText = btn.innerText.replace('▶', '⏸');
+                btn.style.background = 'rgba(229, 168, 83, 0.3)';
+                btn.style.color = '#e5a853';
+                btn.style.borderColor = '#e5a853';
+            } else {
+                // Pause audio
+                audioEl.pause();
+                btn.innerText = btn.innerText.replace('⏸', '▶');
+                btn.style.background = 'rgba(139, 92, 246, 0.2)';
+                btn.style.color = '#8b5cf6';
+                btn.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+            }
+        }
+
+        function changeVolume(audioId, value) {
+            const audioEl = document.getElementById(audioId);
+            if (audioEl) {
+                audioEl.volume = value / 100;
+            }
+        }
+
+        function changeAmbianceTrack(srcValue) {
+            const audioEl = document.getElementById('audio-ambiance');
+            const wasPlaying = !audioEl.paused;
+            
+            audioEl.src = srcValue;
+            
+            if (wasPlaying) {
+                audioEl.play().catch(e => console.warn("Erreur de lecture lors du changement de piste :", e));
+            } else {
+                // If it was paused, ensure the button still shows Play icon
+                const btn = document.getElementById('btn-ambiance');
+                if (btn.innerText.includes('⏸')) {
+                    btn.innerText = btn.innerText.replace('⏸', '▶');
+                    btn.style.background = 'rgba(139, 92, 246, 0.2)';
+                    btn.style.color = '#8b5cf6';
+                    btn.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+                }
+            }
+        }
+
+        function changeSfxTrack(srcValue) {
+            const audioEl = document.getElementById('audio-sfx');
+            const wasPlaying = !audioEl.paused;
+            
+            audioEl.src = srcValue;
+            
+            if (wasPlaying) {
+                audioEl.play().catch(e => console.warn("Erreur de lecture lors du changement de piste :", e));
+            } else {
+                const btn = document.getElementById('btn-sfx');
+                if (btn.innerText.includes('⏸')) {
+                    btn.innerText = btn.innerText.replace('⏸', '▶');
+                    btn.style.background = 'rgba(139, 92, 246, 0.2)';
+                    btn.style.color = '#8b5cf6';
+                    btn.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+                }
+            }
+        }
+        
+        function toggleAudiocraft() {
+            const panel = document.getElementById('audiocraft-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+
+        // --- THREE JS ULTRA NEURAL NETWORK ---
+        
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000205, 0.0012);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 4000);
+        camera.position.z = 1200;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor(0x000000, 0);
+        container.appendChild(renderer.domElement);
+
+        function createGlowTexture(colorStr, coreWhite = true) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            gradient.addColorStop(0, coreWhite ? 'rgba(255, 255, 255, 1)' : colorStr);
+            gradient.addColorStop(0.2, colorStr);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 64, 64);
+            const texture = new THREE.Texture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        const goldGlow = createGlowTexture('rgba(229, 168, 83, 0.8)', false);
+        const pinkGlow = createGlowTexture('rgba(139, 92, 246, 1)', true);
+
+        const nodeCount = 1800; 
+        const maxDistance = 100;
+        
+        const nodes = [];
+        const positions = new Float32Array(nodeCount * 3);
+        
+        for(let i=0; i<nodeCount; i++) {
+            const u = Math.random();
+            const v = Math.random();
+            const theta = u * 2.0 * Math.PI;
+            const phi = Math.acos(2.0 * v - 1.0);
+            const r = Math.cbrt(Math.random()) * 600; 
+            
+            let x = r * Math.sin(phi) * Math.cos(theta) * 1.3;
+            let y = r * Math.sin(phi) * Math.sin(theta) * 0.7;
+            let z = r * Math.cos(phi) * 1.1;
+
+            positions[i*3] = x;
+            positions[i*3+1] = y;
+            positions[i*3+2] = z;
+
+            nodes.push({ x, y, z, connections: [] });
+        }
+
+        const linePositions = [];
+        const lineColors = [];
+        const color1 = new THREE.Color(0x00f3ff);
+        const color2 = new THREE.Color(0xff00ff);
+
+        for(let i=0; i<nodeCount; i++) {
+            for(let j=i+1; j<nodeCount; j++) {
+                const dx = nodes[i].x - nodes[j].x;
+                const dy = nodes[i].y - nodes[j].y;
+                const dz = nodes[i].z - nodes[j].z;
+                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                
+                if(dist < maxDistance) {
+                    nodes[i].connections.push(j);
+                    nodes[j].connections.push(i);
+                    
+                    linePositions.push(nodes[i].x, nodes[i].y, nodes[i].z);
+                    linePositions.push(nodes[j].x, nodes[j].y, nodes[j].z);
+                    
+                    const mix = (nodes[i].y + 400) / 800;
+                    const c = color1.clone().lerp(color2, mix);
+                    lineColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
+                }
+            }
+        }
+
+        const linesGeo = new THREE.BufferGeometry();
+        linesGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        linesGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+        
+        const linesMat = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.2,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const networkLines = new THREE.LineSegments(linesGeo, linesMat);
+        scene.add(networkLines);
+
+        const nodesGeo = new THREE.BufferGeometry();
+        nodesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const nodesMat = new THREE.PointsMaterial({
+            size: 20,
+            map: goldGlow,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false,
+            opacity: 0.5
+        });
+        const networkNodes = new THREE.Points(nodesGeo, nodesMat);
+        scene.add(networkNodes);
+
+        const packetCount = 1200; 
+        const packets = [];
+        const packetPositions = new Float32Array(packetCount * 3);
+
+        for(let i=0; i<packetCount; i++) {
+            const startIdx = Math.floor(Math.random() * nodeCount);
+            const startNode = nodes[startIdx];
+            
+            let targetIdx = startIdx;
+            if(startNode.connections.length > 0) {
+                targetIdx = startNode.connections[Math.floor(Math.random() * startNode.connections.length)];
+            }
+            
+            packets.push({
+                currentNode: startIdx,
+                targetNode: targetIdx,
+                progress: Math.random(),
+                speed: 0.03 + Math.random() * 0.06 
+            });
+            
+            packetPositions[i*3] = startNode.x;
+            packetPositions[i*3+1] = startNode.y;
+            packetPositions[i*3+2] = startNode.z;
+        }
+
+        const packetsGeo = new THREE.BufferGeometry();
+        packetsGeo.setAttribute('position', new THREE.BufferAttribute(packetPositions, 3));
+        const packetsMat = new THREE.PointsMaterial({
+            size: 45, 
+            map: pinkGlow,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false,
+            opacity: 1.0
+        });
+        const packetSystem = new THREE.Points(packetsGeo, packetsMat);
+        scene.add(packetSystem);
+
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX - window.innerWidth / 2) * 2;
+            mouseY = (e.clientY - window.innerHeight / 2) * 2;
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            scene.rotation.y = time * 0.15;
+            scene.rotation.z = Math.sin(time * 0.1) * 0.05;
+            scene.rotation.x = Math.cos(time * 0.08) * 0.05;
+
+            camera.position.x += (mouseX * 0.8 - camera.position.x) * 0.03;
+            camera.position.y += (-mouseY * 0.8 - camera.position.y) * 0.03;
+            camera.lookAt(scene.position);
+
+            const pPositions = packetSystem.geometry.attributes.position.array;
+            
+            for(let i=0; i<packetCount; i++) {
+                const p = packets[i];
+                p.progress += p.speed;
+                
+                const n1 = nodes[p.currentNode];
+                const n2 = nodes[p.targetNode];
+                
+                if(p.progress >= 1.0) {
+                    p.progress = 0;
+                    p.currentNode = p.targetNode;
+                    const connections = nodes[p.currentNode].connections;
+                    if(connections.length > 0) {
+                        p.targetNode = connections[Math.floor(Math.random() * connections.length)];
+                    } else {
+                        p.targetNode = Math.floor(Math.random() * nodeCount);
+                    }
+                }
+                
+                pPositions[i*3]   = n1.x + (n2.x - n1.x) * p.progress;
+                pPositions[i*3+1] = n1.y + (n2.y - n1.y) * p.progress;
+                pPositions[i*3+2] = n1.z + (n2.z - n1.z) * p.progress;
+            }
+            packetSystem.geometry.attributes.position.needsUpdate = true;
+            
+            nodesMat.opacity = 0.4 + Math.sin(time * 4) * 0.15;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

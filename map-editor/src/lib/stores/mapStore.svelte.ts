@@ -58,7 +58,7 @@ export const mapStore = $state({
 
   // Style de la carte et brosses
   // mapStyle a été supprimé pour ne garder que le mode "Monde" (isometric)
-  brushShape: 'circle' as 'circle' | 'square',
+  brushShape: 'circle' as 'circle' | 'square' | 'rough',
   brushSnap: false,
 
   // Paramètres de la grille

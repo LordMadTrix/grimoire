@@ -24,6 +24,12 @@
   import SoundBoard from './SoundBoard.svelte';
   import MonsterLibrary from './MonsterLibrary.svelte';
   import SessionExport from './SessionExport.svelte';
+  import GMScreen from './GMScreen.svelte';
+  import CriticalWounds from './CriticalWounds.svelte';
+  import ChaosMutations from './ChaosMutations.svelte';
+  import MerchantGenerator from './MerchantGenerator.svelte';
+  import RumorManager from './RumorManager.svelte';
+  import { timeStore, advanceTime, formatImperialDate } from '$lib/stores/timeStore';
   import PlayerMobileManager from './PlayerMobileManager.svelte';
   import AdventureLibrary from './AdventureLibrary.svelte';
   import CharacterCreator from './CharacterCreator.svelte';
@@ -68,6 +74,17 @@
   let mapPickerSearch = $state('');
   let tokenPickerSearch = $state('');
   let ambientTextInput = $state('');
+  let activeMenu: string | null = $state(null);
+  let charCreator: any = $state();
+  let soundBoard: any = $state();
+  let monsterLib: any = $state();
+  let advLib: any = $state();
+  let sessionExport: any = $state();
+  let gmScreen: any = $state();
+  let critWounds: any = $state();
+  let chaosMuts: any = $state();
+  let merchantGen: any = $state();
+  let rumorMan: any = $state();
 
   // Countdown
   let showCountdownPicker = $state(false);
@@ -325,263 +342,289 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onclick={() => activeMenu = null} />
 
-<div class="vtt-toolbar" bind:this={toolbarEl}>
-  <!-- Ligne 1 : outils VTT (uniquement si carte chargée) -->
-  {#if vttStore.currentMap}
-    <div class="toolbar-row">
-    <div class="tools-group">
-      <button class="btn icon-btn" class:active={vttStore.mode === 'select'}    onclick={() => vttStore.mode = 'select'}    title="Sélectionner">👆</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'fog-reveal'} onclick={() => vttStore.mode = 'fog-reveal'} title="Révéler zone (glisser)">👁️</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'fog-hide'}   onclick={() => vttStore.mode = 'fog-hide'}   title="Cacher zone (glisser)">⬛</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'fog-rect'}   onclick={() => vttStore.mode = 'fog-rect'}   title="Zone rectangulaire">▭</button>
-      <button class="btn icon-btn" class:active={!vttStore.fowEnabled} onclick={toggleFow} title={vttStore.fowEnabled ? 'Désactiver le brouillard de guerre' : 'Activer le brouillard de guerre'}>🌫️</button>
-      <button class="btn icon-btn" onclick={revealAllGmFow} title="Tout révéler">🌅</button>
-      <button class="btn icon-btn" onclick={clearGmFow}    title="Tout cacher">🌑</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'measure'}    onclick={() => vttStore.mode = 'measure'}    title="Mesurer une distance">📏</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'ping'}       onclick={() => vttStore.mode = 'ping'}       title="Ping (marqueur temporaire joueurs)">📍</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'pin'}        onclick={() => vttStore.mode = 'pin'}        title="Épingle permanente">📌</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'spell'}      onclick={() => vttStore.mode = 'spell'}      title="Zone de sort">💫</button>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'draw'}       onclick={() => vttStore.mode = 'draw'}       title="Dessin libre">✏️</button>
-      {#if vttStore.mode === 'draw'}
-        <input type="color" class="draw-color-input" title="Couleur du tracé"
-          value={'#' + vttStore.drawColor.toString(16).padStart(6, '0')}
-          oninput={(e) => { vttStore.drawColor = parseInt((e.target as HTMLInputElement).value.slice(1), 16); }} />
-        <input type="range" class="draw-width-input" min="2" max="20" step="1" value={vttStore.drawWidth} title="Épaisseur"
-          oninput={(e) => { vttStore.drawWidth = Number((e.target as HTMLInputElement).value); }} />
-      {/if}
-      {#if vttStore.drawPaths.length > 0}
-        <button class="btn icon-btn" onclick={undoDrawPath} title="Annuler dernier tracé">✏️↩️</button>
-        <button class="btn icon-btn" onclick={clearDrawPaths} title="Effacer tous les tracés">✏️🗑️</button>
-      {/if}
-      <div class="separator"></div>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'blueprint'} onclick={() => vttStore.mode = 'blueprint'} title="Mode Blueprint (Murs / LOS)">🧱</button>
-      {#if vttStore.mode === 'blueprint'}
-        <button class="btn icon-btn" class:active={vttStore.blueprintType === 'opaque'} onclick={() => vttStore.blueprintType = 'opaque'} title="Mur Opaque">🧱</button>
-        <button class="btn icon-btn" class:active={vttStore.blueprintType === 'door'} onclick={() => vttStore.blueprintType = 'door'} title="Porte">🚪</button>
-      {/if}
-      {#if vttStore.mode === 'blueprint' || vttStore.walls.length > 0}
-        <button class="btn icon-btn" onclick={undoGmWall} title="Annuler dernier mur">🧱↩️</button>
-        <button class="btn icon-btn" onclick={clearGmWalls} title="Effacer tous les murs">🧱🗑️</button>
-      {/if}
-      <button class="btn icon-btn" class:active={vttStore.mode === 'audio-zone'} onclick={() => vttStore.mode = 'audio-zone'} title="Zone Sonore (Ambiance locale)">🎶</button>
-      <div class="separator"></div>
-      <!-- Météo -->
-      {#each (['none','rain','snow','fog','embers'] as const) as w}
-        <button class="btn icon-btn" class:active={vttStore.weather === w} onclick={() => setWeather(w)}
-          title={w === 'none' ? 'Pas de météo' : w === 'rain' ? 'Pluie' : w === 'snow' ? 'Neige' : w === 'fog' ? 'Brouillard' : 'Braises'}
-        >{w === 'none' ? '☀️' : w === 'rain' ? '🌧️' : w === 'snow' ? '❄️' : w === 'fog' ? '🌫️' : '🔥'}</button>
-      {/each}
-      <button class="btn icon-btn" onclick={sendWeatherNarrative} title="Narration météo → texte d'ambiance joueur">🌦️</button>
-      {#if vttStore.mode === 'spell'}
-        <div class="separator"></div>
-        {#each (['fire','ice','lightning','poison','silence','divine','darkness'] as const) as st}
-          <button class="btn icon-btn" class:active={vttStore.spellType === st} onclick={() => vttStore.spellType = st} title={st}
-          >{st === 'fire' ? '🔥' : st === 'ice' ? '❄️' : st === 'lightning' ? '⚡' : st === 'poison' ? '🧪' : st === 'silence' ? '🔇' : st === 'divine' ? '✨' : '🌑'}</button>
-        {/each}
-        <div class="separator"></div>
-        <button class="btn icon-btn" class:active={vttStore.spellShape === 'circle'} onclick={() => vttStore.spellShape = 'circle'} title="Cercle">⭕</button>
-        <button class="btn icon-btn" class:active={vttStore.spellShape === 'cone'}   onclick={() => vttStore.spellShape = 'cone'}   title="Cône">🔺</button>
-        <button class="btn icon-btn" class:active={vttStore.spellShape === 'line'}   onclick={() => vttStore.spellShape = 'line'}   title="Ligne">➡️</button>
-        {#if vttStore.spellShape === 'circle'}
-          <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Rayon (px)"
-            onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
-        {:else if vttStore.spellShape === 'cone'}
-          <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Portée (px)"
-            onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
-          <input type="range" class="draw-width-input" min="0" max="360" step="5"
-            value={Math.round((vttStore.spellConeAngle ?? Math.PI/3) * 180 / Math.PI)}
-            oninput={(e) => vttStore.spellConeAngle = Number((e.target as HTMLInputElement).value) * Math.PI / 180}
-            title="Ouverture du cône (°)" />
-          <input type="range" class="draw-width-input" min="0" max="360" step="5"
-            value={vttStore.spellAngleDeg}
-            oninput={(e) => { const v = Number((e.target as HTMLInputElement).value); vttStore.spellAngleDeg = v; vttStore.spellAngle = v * Math.PI / 180; }}
-            title="Direction du cône (°)" />
-        {:else if vttStore.spellShape === 'line'}
-          <input type="number" class="spell-radius-input" value={vttStore.spellLength} min="50" max="800" step="25" title="Longueur (px)"
-            onchange={(e) => vttStore.spellLength = Number((e.target as HTMLInputElement).value)} />
-          <input type="range" class="draw-width-input" min="0" max="360" step="5"
-            value={vttStore.spellAngleDeg}
-            oninput={(e) => { const v = Number((e.target as HTMLInputElement).value); vttStore.spellAngleDeg = v; vttStore.spellAngle = v * Math.PI / 180; }}
-            title="Direction (°)" />
+<div class="vtt-toolbar menubar-style" bind:this={toolbarEl}>
+  <div class="menubar-items">
+    
+    <!-- 1. Carte & Vue -->
+    <div class="menu-dropdown" class:open={activeMenu === 'map'}>
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'map' ? null : 'map'; }}>🗺️ Carte & Vue</button>
+      <div class="dropdown-content" class:hidden={activeMenu !== 'map'} onclick={(e) => e.stopPropagation()}>
+        {#if !vttStore.currentMap}
+          <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Charger une carte</button>
+        {:else}
+          <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Changer de carte</button>
+          <button class="dropdown-item" onclick={() => { closeMap(); activeMenu = null; }}>✖️ Fermer la carte</button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" class:active={vttStore.mode === 'zoom-rect'} onclick={() => { vttStore.mode = 'zoom-rect'; activeMenu = null; }}>🔍 Zoomer sur une zone</button>
+          <button class="dropdown-item" onclick={() => { vttStore.fitRequest++; vttStore.mode = 'select'; activeMenu = null; }}>⌂ Réinitialiser le zoom</button>
+          <button class="dropdown-item" onclick={() => { undoMapAction(); activeMenu = null; }} disabled={!canUndo()}>↩️ Annuler action carte</button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" onclick={() => vttStore.exportRequest++}>🖼️💾 Exporter carte en PNG</button>
         {/if}
-        {#if vttStore.spells.length > 0}
-          <button class="btn icon-btn" onclick={clearSpells} title="Effacer tous les sorts">🗑️</button>
-        {/if}
-      {/if}
-      <div class="separator"></div>
-      <button class="btn icon-btn" onclick={createTestToken}                                      title="Créer un token coloré">👹</button>
-      <button class="btn icon-btn" onclick={() => showSharedLibrary = true}                       title="Bibliothèque commune (tokens, maps, tables)">📚</button>
-      <button class="btn icon-btn" onclick={() => { showTokenPicker = true; tokenPickerSearch = ''; }} title="Token depuis image (assets/tokens/)">🖼️</button>
-      <button class="btn icon-btn" onclick={undoGmFow}                                            title="Annuler dernière zone de brouillard">↩️</button>
-      <button class="btn icon-btn" onclick={clearGmFow}                                           title="Effacer tout le brouillard">🧹</button>
-      {#if vttStore.pins.length > 0}
-        <button class="btn icon-btn" onclick={clearGmPins} title="Supprimer toutes les épingles">📌🗑️</button>
-      {/if}
-      <div class="separator"></div>
-      <button class="btn icon-btn combat-btn" class:active={vttStore.combatActive}
-        onclick={() => vttStore.combatActive ? stopCombat() : startCombat()}
-        title={vttStore.combatActive ? 'Terminer le combat' : 'Démarrer le tracker de combat'}
-      >⚔️</button>
-      <div class="separator"></div>
-      <!-- Terrain -->
-      <button class="btn icon-btn" class:active={vttStore.mode === 'terrain'} onclick={() => vttStore.mode = 'terrain'} title="Zones de terrain (glisser pour dessiner)">🗺️</button>
-      {#if vttStore.mode === 'terrain'}
-        {#each ([['difficult','🏔️','Difficile'],['water','🌊','Eau'],['fire','🔥','Feu'],['poison','🧪','Poison'],['safe','✅','Sûr']] as const) as [t, icon, label]}
-          <button class="btn icon-btn" class:active={vttStore.terrainType === t} onclick={() => vttStore.terrainType = t} title={label}>{icon}</button>
-        {/each}
-        {#if vttStore.terrainZones.length > 0}
-          <button class="btn icon-btn" onclick={clearTerrainZones} title="Effacer toutes les zones terrain">🗺️🗑️</button>
-        {/if}
-      {/if}
-      <!-- Dungeon Editor -->
-      <button class="btn icon-btn" class:active={vttStore.showDungeonEditor}
-        onclick={() => {
-          vttStore.showDungeonEditor = !vttStore.showDungeonEditor;
-          vttStore.mode = vttStore.showDungeonEditor ? 'dungeon-paint' : 'select';
-        }}
-        title="Éditeur de Donjon">🏰</button>
-      <!-- Export PNG -->
-      <button class="btn icon-btn" onclick={() => vttStore.exportRequest++} title="Exporter carte en PNG">🖼️💾</button>
-    </div>
-    </div>
-  {/if}
-
-  <!-- Ligne 2 : actions principales -->
-  <div class="toolbar-row">
-  <div class="toolbar-actions">
-    {#if !vttStore.currentMap}
-      <button class="btn icon-btn" onclick={() => showMapPicker = true} title="Charger une carte">🗺️</button>
-    {:else}
-      <button class="btn icon-btn" onclick={() => showMapPicker = true} title="Changer de carte">🗺️</button>
-      <button class="btn icon-btn" onclick={closeMap} title="Fermer la carte">✖️</button>
-      <div class="separator"></div>
-      <button class="btn icon-btn" class:active={vttStore.mode === 'zoom-rect'} onclick={() => vttStore.mode = 'zoom-rect'} title="Zoomer sur une zone">🔍</button>
-      <button class="btn icon-btn" onclick={() => { vttStore.fitRequest++; vttStore.mode = 'select'; }} title="Réinitialiser le zoom">⌂</button>
-      <button class="btn icon-btn" onclick={undoMapAction} disabled={!canUndo()} title="Annuler (Ctrl+Z)">↩️</button>
-    {/if}
-
-    <div class="separator"></div>
-
-    <button class="btn icon-btn" class:active={!!vttStore.audioSrc} onclick={() => showAudioPicker = true} title={vttStore.audioSrc ? 'Piste 1 en cours' : 'Ambiance — Piste 1'}>
-      {vttStore.audioSrc ? '🔊' : '🎵'}
-    </button>
-    {#if vttStore.audioSrc}
-      <div class="volume-control">
-        <input type="range" min="0" max="1" step="0.05"
-          value={vttStore.audioVolume}
-          oninput={(e) => setGmAudioVolume(Number((e.target as HTMLInputElement).value))}
-        />
-        <button class="btn-stop" onclick={stopAudio} title="Arrêter piste 1">⏹️</button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" class:active={vttStore.showGrid} onclick={toggleGrid}>#️⃣ Afficher/masquer grille</button>
+        <div class="dropdown-submenu-item">
+          <span class="grid-label">Taille grille:</span>
+          <input type="number" class="grid-input" value={vttStore.gridSize} min="10" max="200" step="5" onchange={(e) => setGridSize(Number((e.target as HTMLInputElement).value))} />
+        </div>
+        <button class="dropdown-item blackout-item" class:active={vttStore.isBlackout} onclick={toggleBlackout}>
+          {vttStore.isBlackout ? '👁️ Désactiver Écran Noir' : '🕶️ Activer Écran Noir'}
+        </button>
       </div>
-    {/if}
-    <button class="btn icon-btn" class:active={!!vttStore.audio2Src} onclick={() => showAudio2Picker = true} title={vttStore.audio2Src ? 'Piste 2 en cours' : 'Ambiance — Piste 2'}>
-      {vttStore.audio2Src ? '🔈' : '🎶'}
-    </button>
-    {#if vttStore.audio2Src}
-      <div class="volume-control">
-        <input type="range" min="0" max="1" step="0.05"
-          value={vttStore.audio2Volume}
-          oninput={(e) => setGmAudio2Volume(Number((e.target as HTMLInputElement).value))}
-        />
-        <button class="btn-stop" onclick={stopAudio2} title="Arrêter piste 2">⏹️</button>
+    </div>
+
+    <!-- 2. Outils interactifs -->
+    {#if vttStore.currentMap}
+      <div class="menu-dropdown" class:open={activeMenu === 'tools'}>
+        <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'tools' ? null : 'tools'; }}>🛠️ Outils</button>
+        <div class="dropdown-content" class:hidden={activeMenu !== 'tools'} onclick={(e) => e.stopPropagation()}>
+          <button class="dropdown-item" class:active={vttStore.mode === 'select'} onclick={() => vttStore.mode = 'select'}>👆 Sélectionner</button>
+          <button class="dropdown-item" class:active={vttStore.mode === 'measure'} onclick={() => vttStore.mode = 'measure'}>📏 Mesurer distance</button>
+          <button class="dropdown-item" class:active={vttStore.mode === 'ping'} onclick={() => vttStore.mode = 'ping'}>📍 Ping (Joueurs)</button>
+          <button class="dropdown-item" class:active={vttStore.mode === 'pin'} onclick={() => vttStore.mode = 'pin'}>📌 Épingle Permanente</button>
+          {#if vttStore.pins.length > 0}
+            <button class="dropdown-item text-danger" onclick={clearGmPins}>📌🗑️ Effacer épingles</button>
+          {/if}
+          
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-title">Brouillard de Guerre</div>
+          <button class="dropdown-item" class:active={!vttStore.fowEnabled} onclick={toggleFow}>🌫️ {vttStore.fowEnabled ? 'Désactiver' : 'Activer'} Brouillard</button>
+          {#if vttStore.fowEnabled}
+            <button class="dropdown-item" class:active={vttStore.mode === 'fog-reveal'} onclick={() => vttStore.mode = 'fog-reveal'}>👁️ Révéler (Glisser)</button>
+            <button class="dropdown-item" class:active={vttStore.mode === 'fog-hide'} onclick={() => vttStore.mode = 'fog-hide'}>⬛ Cacher (Glisser)</button>
+            <button class="dropdown-item" class:active={vttStore.mode === 'fog-rect'} onclick={() => vttStore.mode = 'fog-rect'}>▭ Zone rectangulaire</button>
+            <div class="dropdown-submenu-item tools-row">
+              <button class="mini-btn text-only" onclick={revealAllGmFow}>🌅 Tout révéler</button>
+              <button class="mini-btn text-only" onclick={clearGmFow}>🌑 Tout cacher</button>
+            </div>
+            <button class="dropdown-item" onclick={undoGmFow}>↩️ Annuler FOW</button>
+          {/if}
+
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-title">Dessin Libre</div>
+          <button class="dropdown-item" class:active={vttStore.mode === 'draw'} onclick={() => vttStore.mode = 'draw'}>✏️ Dessiner</button>
+          {#if vttStore.mode === 'draw'}
+            <div class="dropdown-submenu-item tools-row">
+              <input type="color" class="draw-color-input" title="Couleur" value={'#' + vttStore.drawColor.toString(16).padStart(6, '0')} oninput={(e) => { vttStore.drawColor = parseInt((e.target as HTMLInputElement).value.slice(1), 16); }} />
+              <input type="range" class="draw-width-input" min="2" max="20" step="1" value={vttStore.drawWidth} oninput={(e) => { vttStore.drawWidth = Number((e.target as HTMLInputElement).value); }} />
+            </div>
+          {/if}
+          {#if vttStore.drawPaths.length > 0}
+            <button class="dropdown-item" onclick={undoDrawPath}>✏️↩️ Annuler dessin</button>
+            <button class="dropdown-item text-danger" onclick={clearDrawPaths}>✏️🗑️ Effacer dessins</button>
+          {/if}
+
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-title">Architecture (Murs/LOS)</div>
+          <button class="dropdown-item" class:active={vttStore.mode === 'blueprint'} onclick={() => vttStore.mode = 'blueprint'}>🧱 Mode Blueprint</button>
+          {#if vttStore.mode === 'blueprint'}
+            <div class="dropdown-submenu-item tools-row">
+              <button class="mini-btn text-only" class:active={vttStore.blueprintType === 'opaque'} onclick={() => vttStore.blueprintType = 'opaque'}>🧱 Mur</button>
+              <button class="mini-btn text-only" class:active={vttStore.blueprintType === 'door'} onclick={() => vttStore.blueprintType = 'door'}>🚪 Porte</button>
+            </div>
+          {/if}
+          {#if vttStore.walls.length > 0}
+            <button class="dropdown-item" onclick={undoGmWall}>🧱↩️ Annuler mur</button>
+            <button class="dropdown-item text-danger" onclick={clearGmWalls}>🧱🗑️ Effacer murs</button>
+          {/if}
+
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-title">Sorts & Magie</div>
+          <button class="dropdown-item" class:active={vttStore.mode === 'spell'} onclick={() => vttStore.mode = 'spell'}>💫 Placer un sort</button>
+          {#if vttStore.mode === 'spell'}
+            <div class="dropdown-submenu-item tools-row">
+              {#each (['fire','ice','lightning','poison','silence','divine','darkness'] as const) as st}
+                <button class="mini-btn" class:active={vttStore.spellType === st} onclick={() => vttStore.spellType = st} title={st}>{st === 'fire' ? '🔥' : st === 'ice' ? '❄️' : st === 'lightning' ? '⚡' : st === 'poison' ? '🧪' : st === 'silence' ? '🔇' : st === 'divine' ? '✨' : '🌑'}</button>
+              {/each}
+            </div>
+            <div class="dropdown-submenu-item tools-row">
+              <button class="mini-btn text-only" class:active={vttStore.spellShape === 'circle'} onclick={() => vttStore.spellShape = 'circle'}>⭕ Cercle</button>
+              <button class="mini-btn text-only" class:active={vttStore.spellShape === 'cone'} onclick={() => vttStore.spellShape = 'cone'}>🔺 Cône</button>
+              <button class="mini-btn text-only" class:active={vttStore.spellShape === 'line'} onclick={() => vttStore.spellShape = 'line'}>➡️ Ligne</button>
+            </div>
+            <div class="dropdown-submenu-item tools-row">
+              {#if vttStore.spellShape === 'circle'}
+                <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Rayon (px)" onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
+              {:else if vttStore.spellShape === 'cone'}
+                <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Portée (px)" onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
+                <input type="range" class="draw-width-input" min="0" max="360" step="5" value={Math.round((vttStore.spellConeAngle ?? Math.PI/3) * 180 / Math.PI)} oninput={(e) => vttStore.spellConeAngle = Number((e.target as HTMLInputElement).value) * Math.PI / 180} title="Ouverture du cône (°)" />
+                <input type="range" class="draw-width-input" min="0" max="360" step="5" value={vttStore.spellAngleDeg} oninput={(e) => { const v = Number((e.target as HTMLInputElement).value); vttStore.spellAngleDeg = v; vttStore.spellAngle = v * Math.PI / 180; }} title="Direction du cône (°)" />
+              {:else if vttStore.spellShape === 'line'}
+                <input type="number" class="spell-radius-input" value={vttStore.spellLength} min="50" max="800" step="25" title="Longueur (px)" onchange={(e) => vttStore.spellLength = Number((e.target as HTMLInputElement).value)} />
+                <input type="range" class="draw-width-input" min="0" max="360" step="5" value={vttStore.spellAngleDeg} oninput={(e) => { const v = Number((e.target as HTMLInputElement).value); vttStore.spellAngleDeg = v; vttStore.spellAngle = v * Math.PI / 180; }} title="Direction (°)" />
+              {/if}
+            </div>
+          {/if}
+          {#if vttStore.spells.length > 0}
+            <button class="dropdown-item text-danger" onclick={clearSpells}>🗑️ Effacer sorts</button>
+          {/if}
+
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-title">Terrain</div>
+          <button class="dropdown-item" class:active={vttStore.mode === 'terrain'} onclick={() => vttStore.mode = 'terrain'}>🗺️ Dessiner terrain</button>
+          {#if vttStore.mode === 'terrain'}
+            <div class="dropdown-submenu-item tools-row">
+              {#each ([['difficult','🏔️','Difficile'],['water','🌊','Eau'],['fire','🔥','Feu'],['poison','🧪','Poison'],['safe','✅','Sûr']] as const) as [t, icon, label]}
+                <button class="mini-btn" class:active={vttStore.terrainType === t} onclick={() => vttStore.terrainType = t} title={label}>{icon}</button>
+              {/each}
+            </div>
+          {/if}
+          {#if vttStore.terrainZones.length > 0}
+            <button class="dropdown-item text-danger" onclick={clearTerrainZones}>🗺️🗑️ Effacer terrains</button>
+          {/if}
+
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" onclick={() => { showTokenPicker = true; tokenPickerSearch = ''; activeMenu = null; }}>🖼️ Token image</button>
+          <button class="dropdown-item" onclick={createTestToken}>👹 Token basique (test)</button>
+        </div>
       </div>
     {/if}
 
-    <div class="separator"></div>
+    <!-- 3. Ambiance & Audio -->
+    <div class="menu-dropdown" class:open={activeMenu === 'audio'}>
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'audio' ? null : 'audio'; }}>🎭 Ambiance</button>
+      <div class="dropdown-content" class:hidden={activeMenu !== 'audio'} onclick={(e) => e.stopPropagation()}>
+        <button class="dropdown-item" onclick={() => { showAudioPicker = true; activeMenu = null; }}>{vttStore.audioSrc ? '🔊 Piste 1 en cours...' : '🎵 Choisir Piste 1'}</button>
+        {#if vttStore.audioSrc}
+          <div class="dropdown-submenu-item">
+            <input type="range" min="0" max="1" step="0.05" value={vttStore.audioVolume} oninput={(e) => setGmAudioVolume(Number((e.target as HTMLInputElement).value))} />
+            <button class="btn-stop" onclick={stopAudio}>⏹️ Arrêter</button>
+          </div>
+        {/if}
 
-    <button class="btn icon-btn" class:active={vttStore.showGrid} onclick={toggleGrid} title="Afficher/masquer la grille">#️⃣</button>
-    <button class="btn icon-btn blackout-btn" class:active={vttStore.isBlackout} onclick={toggleBlackout} title="Écran noir vue joueur">
-      {vttStore.isBlackout ? '👁️' : '🕶️'}
-    </button>
+        <button class="dropdown-item" onclick={() => { showAudio2Picker = true; activeMenu = null; }}>{vttStore.audio2Src ? '🔈 Piste 2 en cours...' : '🎶 Choisir Piste 2'}</button>
+        {#if vttStore.audio2Src}
+          <div class="dropdown-submenu-item">
+            <input type="range" min="0" max="1" step="0.05" value={vttStore.audio2Volume} oninput={(e) => setGmAudio2Volume(Number((e.target as HTMLInputElement).value))} />
+            <button class="btn-stop" onclick={stopAudio2}>⏹️ Arrêter</button>
+          </div>
+        {/if}
 
-    <div class="grid-control" title="Taille de la grille (px)">
-      <span class="grid-label">#</span>
-      <input type="number" class="grid-input" value={vttStore.gridSize} min="10" max="200" step="5"
-        onchange={(e) => setGridSize(Number((e.target as HTMLInputElement).value))} />
+        {#if vttStore.currentMap}
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" class:active={vttStore.mode === 'audio-zone'} onclick={() => { vttStore.mode = 'audio-zone'; activeMenu = null; }}>🎶 Dessiner zone sonore locale</button>
+        {/if}
+
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Météo</div>
+        <div class="dropdown-submenu-item tools-row">
+          {#each (['none','rain','snow','fog','embers'] as const) as w}
+            <button class="mini-btn" class:active={vttStore.weather === w} onclick={() => setWeather(w)} title={w}>{w === 'none' ? '☀️' : w === 'rain' ? '🌧️' : w === 'snow' ? '❄️' : w === 'fog' ? '🌫️' : '🔥'}</button>
+          {/each}
+        </div>
+        <button class="dropdown-item" onclick={sendWeatherNarrative}>🌦️ Envoyer narration météo</button>
+
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-submenu-item">
+          <input type="text" class="ambient-input" style="width: 100%" placeholder="Texte d'ambiance personnalisé..." bind:value={ambientTextInput} onkeydown={(e) => { if (e.key === 'Enter') { const v = ambientTextInput.trim(); if (v) { sendAmbientText(v); ambientTextInput = ''; activeMenu = null; } } }} />
+        </div>
+      </div>
     </div>
 
-    <div class="separator"></div>
+    <!-- 4. Joueurs & Groupe -->
+    <div class="menu-dropdown" class:open={activeMenu === 'players'}>
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'players' ? null : 'players'; }}>👥 Joueurs</button>
+      <div class="dropdown-content" class:hidden={activeMenu !== 'players'} onclick={(e) => e.stopPropagation()}>
+        <button class="dropdown-item" onclick={() => { onTogglePlayerManager?.(); activeMenu = null; }}>📝 Gestionnaire de Groupe</button>
+        <button class="dropdown-item" onclick={() => { onTogglePlayerHub?.(); activeMenu = null; }}>📱 Hub des Joueurs</button>
+        <button class="dropdown-item" onclick={() => { onTogglePlayerMobileManager?.(); activeMenu = null; }}>📲 Serveur Mobile (QR)</button>
+        
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" onclick={() => { showHandoutPicker = true; activeMenu = null; }}>📤 Envoyer un Handout</button>
+        <button class="dropdown-item" onclick={() => { showSharedNotes = true; activeMenu = null; }}>📋 Notes Partagées</button>
 
-    <button class="btn icon-btn timer-btn" class:active={vttStore.sessionTimerStart !== null} onclick={toggleTimer} title="Timer de session">
-      ⏱️ {sessionDisplay}
-    </button>
-
-    <!-- Countdown joueur -->
-    <button class="btn icon-btn" class:active={vttStore.countdownEnd !== null}
-      onclick={() => { if (vttStore.countdownEnd !== null) stopCountdown(); else showCountdownPicker = !showCountdownPicker; }}
-      title="Compte à rebours visible joueurs">⏳</button>
-    {#if showCountdownPicker && vttStore.countdownEnd === null}
-      <div class="cd-picker">
-        {#each [15, 30, 60, 120] as s}
-          <button class="btn cd-preset" onclick={() => { countdownSecs = s; startCountdown(s); showCountdownPicker = false; }}>{s}s</button>
-        {/each}
-        <input type="number" class="grid-input" bind:value={countdownSecs} min="5" max="600" step="5" style="width:46px" title="Secondes"/>
-        <button class="btn icon-btn" onclick={() => { startCountdown(countdownSecs); showCountdownPicker = false; }}>▶️</button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" class:active={vttStore.sessionTimerStart !== null} onclick={toggleTimer}>⏱️ Session: {sessionDisplay}</button>
+        
+        <div class="dropdown-title">Compte à rebours</div>
+        {#if vttStore.countdownEnd !== null}
+          <button class="dropdown-item text-danger" onclick={stopCountdown}>⏹️ Arrêter le compte à rebours</button>
+        {:else}
+          <div class="dropdown-submenu-item tools-row">
+            {#each [15, 30, 60] as s}
+              <button class="mini-btn text-only" onclick={() => { countdownSecs = s; startCountdown(s); activeMenu = null; }}>{s}s</button>
+            {/each}
+            <input type="number" class="grid-input" bind:value={countdownSecs} min="5" max="600" step="5" style="width:46px"/>
+            <button class="mini-btn text-only" onclick={() => { startCountdown(countdownSecs); activeMenu = null; }}>▶️</button>
+          </div>
+        {/if}
       </div>
-    {/if}
+    </div>
 
-    <div class="separator"></div>
+    <!-- 5. Outils du MJ -->
+    <div class="menu-dropdown" class:open={activeMenu === 'gm'}>
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'gm' ? null : 'gm'; }}>🧙‍♂️ Outils MJ</button>
+      <div class="dropdown-content" class:hidden={activeMenu !== 'gm'} onclick={(e) => e.stopPropagation()}>
+                <button class="dropdown-item" onclick={() => { gmScreen?.toggle(); activeMenu = null; }}>🛡️ Écran Tactique (Dashboard)</button>
+        <button class="dropdown-item" onclick={() => { critWounds?.toggle(); activeMenu = null; }}>🩸 Blessures Critiques</button>
+        <button class="dropdown-item" onclick={() => { chaosMuts?.toggle(); activeMenu = null; }}>🌑 Mutations du Chaos</button>
+        <button class="dropdown-item" onclick={() => { merchantGen?.toggle(); activeMenu = null; }}>🛍️ Marchand Générateur</button>
+        <button class="dropdown-item" onclick={() => { rumorMan?.toggle(); activeMenu = null; }}>🎭 Système de Murmures</button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" onclick={() => { showNpcModal = true; activeMenu = null; }}>🧟 PNJ Rapide</button>
+        <button class="dropdown-item" onclick={() => { showLootModal = true; activeMenu = null; }}>💰 Butin Rapide</button>
+        
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Générateurs</div>
+        <button class="dropdown-item" onclick={() => { showEncounterGen = true; activeMenu = null; }}>⚡ Rencontres</button>
+        <button class="dropdown-item" onclick={() => { showRoomGen = true; activeMenu = null; }}>🏚️ Salles</button>
+        <button class="dropdown-item" onclick={() => { showWeatherPlanner = true; activeMenu = null; }}>🌦️ Météo</button>
+        
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Bibliothèques & Éditeurs</div>
+        <button class="dropdown-item" onclick={() => { showSharedLibrary = true; activeMenu = null; }}>📚 Bibliothèque partagée</button>
+        
+        <button class="dropdown-item" onclick={() => { charCreator?.toggle(); activeMenu = null; }}>⚔️ Créateur de personnage</button>
+        <button class="dropdown-item" onclick={() => { soundBoard?.toggle(); activeMenu = null; }}>🎹 SoundBoard</button>
+        <button class="dropdown-item" onclick={() => { monsterLib?.toggle(); activeMenu = null; }}>🐉 Monstres</button>
+        <button class="dropdown-item" onclick={() => { advLib?.toggle(); activeMenu = null; }}>🗺️ Aventures</button>
+        <button class="dropdown-item" onclick={() => { sessionExport?.toggle(); activeMenu = null; }}>💾 Export Session</button>
 
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" class:active={showRelationMap} onclick={() => { showRelationMap = !showRelationMap; activeMenu = null; }}>🕸️ Carte des Relations</button>
+        <button class="dropdown-item" class:active={showCombatLogPanel} onclick={() => { showCombatLogPanel = !showCombatLogPanel; activeMenu = null; }}>📜 Log de Combat</button>
+        <button class="dropdown-item" onclick={() => { showDamageCalc = true; activeMenu = null; }}>💥 Calculateur de Dégâts</button>
+        <button class="dropdown-item" class:active={showDurationTracker} onclick={() => { showDurationTracker = !showDurationTracker; activeMenu = null; }}>⏱️ Suivi des durées</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Élément permanent à droite -->
+  <div class="toolbar-permanent">
     <DiceRoller onRoll={handleDiceRoll} />
+    <button class="btn icon-btn combat-btn ml-1" class:active={vttStore.combatActive}
+      onclick={() => vttStore.combatActive ? stopCombat() : startCombat()}
+      title={vttStore.combatActive ? 'Terminer le combat' : 'Démarrer le tracker de combat'}>
+      ⚔️
+    </button>
     <div class="separator"></div>
-    <button class="btn icon-btn" onclick={() => onTogglePlayerManager?.()} title="Gestionnaire de Groupe (Party Manager)">👥</button>
-    <button class="btn icon-btn" onclick={() => onTogglePlayerHub?.()} title="Tableau de bord des joueurs (Hub)">📱</button>
-    <button class="btn icon-btn" onclick={() => onTogglePlayerMobileManager?.()} title="Joueurs Mobiles (Serveur)">📲</button>
+    <div class="time-widget" style="display:flex; align-items:center; gap:4px; font-size:11px; background:var(--bg-secondary); padding:2px 8px; border-radius:4px; border:1px solid var(--border);">
+      <span style="color:var(--text-secondary)">🕒 {$timeStore ? formatImperialDate($timeStore) : ''}</span>
+      <button class="mini-btn text-only" onclick={() => advanceTime(1)} title="+1 Heure">+1h</button>
+      <button class="mini-btn text-only" onclick={() => advanceTime(24)} title="+1 Jour">+1j</button>
+    </div>
     <div class="separator"></div>
-    <button class="btn icon-btn overflow-toggle" class:active={showToolsOverflow}
-      onclick={(e) => { e.stopPropagation(); showToolsOverflow = !showToolsOverflow; }}
-      title="Plus d'outils">🔧</button>
-  </div>
-  </div>
-</div>
-
-<!-- Backdrop overflow -->
-{#if showToolsOverflow}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="overflow-backdrop" onclick={() => showToolsOverflow = false}></div>
-{/if}
-
-<!-- Panneau d'outils avancés (toujours monté) -->
-<div class="tools-overflow-panel" class:overflow-visible={showToolsOverflow} style="top:{toolbarH}px">
-  <div class="overflow-grid">
-    <CharacterCreator />
-    <SoundBoard />
-    <MonsterLibrary />
-    <AdventureLibrary />
-    <SessionExport />
-    <button class="btn overflow-tool-btn" onclick={() => showNpcModal = true} title="Générateur de PNJ rapide">🧟<br><small>NPC</small></button>
-    <button class="btn overflow-tool-btn" onclick={() => showLootModal = true} title="Générateur de butin">💰<br><small>Butin</small></button>
-    <button class="btn overflow-tool-btn" onclick={() => showHandoutModal = true} title="Envoyer handout joueur">📤<br><small>Handout</small></button>
-    <button class="btn overflow-tool-btn" class:active={showRelationMap} onclick={() => showRelationMap = !showRelationMap} title="Carte des relations PNJ">🕸️<br><small>Relations</small></button>
-    <button class="btn overflow-tool-btn" class:active={showCombatLogPanel} onclick={() => showCombatLogPanel = !showCombatLogPanel} title="Log de combat">📜<br><small>Combat</small></button>
-    <button class="btn overflow-tool-btn" onclick={() => showDamageCalc = true} title="Calculateur de dégâts">💥<br><small>Dégâts</small></button>
-    <button class="btn overflow-tool-btn" onclick={() => showEncounterGen = true} title="Générateur de rencontre">⚡<br><small>Rencontre</small></button>
-    <button class="btn overflow-tool-btn" onclick={() => showRoomGen = true} title="Générateur de salle">🏚️<br><small>Salle</small></button>
-    <button class="btn overflow-tool-btn" onclick={() => showWeatherPlanner = true} title="Planificateur météo">🌦️<br><small>Météo</small></button>
-    <button class="btn overflow-tool-btn" class:active={showDurationTracker} onclick={() => showDurationTracker = !showDurationTracker} title="Suivi des durées">⏱️<br><small>Durées</small></button>
-    <button class="btn overflow-tool-btn" onclick={() => showSharedNotes = true} title="Notes partagées avec les joueurs">📋<br><small>Notes</small></button>
-    <button class="btn overflow-tool-btn" class:active={vttStore.spotlightTokenId !== null}
-      onclick={() => vttStore.spotlightTokenId !== null ? setSpotlightToken(null) : null}
-      title={vttStore.spotlightTokenId ? 'Retirer le spotlight' : 'Spotlight (clic droit token)'}>🔦<br><small>Spotlight</small></button>
-    <button class="btn overflow-tool-btn handout-btn" onclick={() => showHandoutPicker = true} title="Envoyer un handout">📤<br><small>Envoyer</small></button>
-  </div>
-  <div class="overflow-inputs">
     <input type="text" class="campaign-title-input" placeholder="Titre de campagne…"
       value={vttStore.campaignTitle}
       oninput={(e) => setCampaignTitle((e.target as HTMLInputElement).value)}
-      title="Titre affiché sur l'écran joueur"
-    />
-    <form class="ambient-form" onsubmit={(e) => { e.preventDefault(); const v = ambientTextInput.trim(); if (v) { sendAmbientText(v); ambientTextInput = ''; } }}>
-      <input type="text" class="ambient-input" placeholder="Texte d'ambiance…"
-        bind:value={ambientTextInput}
-        title="Envoyer un texte d'ambiance sur l'écran joueur"
-      />
-      <button type="submit" class="btn icon-btn" title="Envoyer le texte">🎭</button>
-    </form>
+      title="Titre affiché sur l'écran joueur" />
   </div>
+</div>
+
+<div class="hidden-toggles">
+  <CharacterCreator bind:this={charCreator} />
+  <SoundBoard bind:this={soundBoard} />
+  <MonsterLibrary bind:this={monsterLib} />
+  <AdventureLibrary bind:this={advLib} />
+  <SessionExport bind:this={sessionExport} />
+  <GMScreen bind:this={gmScreen} />
+  <CriticalWounds bind:this={critWounds} />
+  <ChaosMutations bind:this={chaosMuts} />
+  <MerchantGenerator bind:this={merchantGen} />
+  <RumorManager bind:this={rumorMan} />
 </div>
 
 <!-- Modals -->
@@ -823,194 +866,144 @@
 {/if}
 
 <style>
-  .vtt-toolbar {
+  
+  /* Menubar UI */
+  .menubar-style {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border);
+    padding: 0 8px;
+    height: 40px;
     flex-shrink: 0;
   }
 
-  .toolbar-row {
+  .menubar-items {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 8px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .toolbar-row::-webkit-scrollbar { height: 3px; }
-  .toolbar-row::-webkit-scrollbar-track { background: transparent; }
-  .toolbar-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .toolbar-row:not(:last-child) {
-    border-bottom: 1px solid var(--border);
+    height: 100%;
   }
 
-  .tools-group {
+  .menu-dropdown {
+    position: relative;
+    height: 100%;
     display: flex;
     align-items: center;
-    gap: 3px;
-    flex-shrink: 0;
   }
 
-  .toolbar-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-
-  .separator {
-    width: 1px;
-    height: 14px;
-    background: var(--border);
-    margin: 0 1px;
-    flex-shrink: 0;
-  }
-
-  .btn {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
+  .menu-btn {
+    background: transparent;
+    border: none;
     color: var(--text-secondary);
-    padding: 2px 7px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 10px;
     border-radius: 4px;
-    font-size: 11px;
     cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-    flex-shrink: 0;
+    transition: background 0.15s;
   }
-  .btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .btn.active {
-    background: rgba(229, 168, 83, 0.15);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  .menu-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+  .menu-dropdown.open .menu-btn { background: rgba(255,255,255,0.12); color: var(--accent); }
 
-  .icon-btn {
-    padding: 2px 5px;
-    font-size: 14px;
-    min-width: 26px;
-    text-align: center;
-  }
-
-  .combat-btn.active {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: #ef4444;
-    color: #ef4444;
-  }
-
-  .blackout-btn.active {
-    background: rgba(200, 50, 50, 0.15);
-    border-color: #c83232;
-    color: #ff6b6b;
-  }
-
-  .timer-btn {
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.05em;
-    min-width: 70px;
-  }
-  .timer-btn.active {
-    background: rgba(34, 197, 94, 0.12);
-    border-color: #22c55e;
-    color: #22c55e;
-  }
-
-  .cd-picker {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  .dropdown-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 240px;
+    max-height: 85vh;
+    overflow-y: auto;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 6px;
-    padding: 3px 6px;
-  }
-  .cd-preset {
-    padding: 3px 7px;
-    font-size: 11px;
-    background: var(--bg-tertiary, #1c2233);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .cd-preset:hover { border-color: var(--accent); color: var(--accent); }
-
-  .volume-control {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    padding: 6px;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--bg-secondary);
-    padding: 2px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-  }
-
-  .volume-control input[type="range"] {
-    width: 60px;
-    height: 4px;
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
-
-  .btn-stop {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 10px;
-    padding: 0;
-  }
-
-  /* Contrôle taille de grille */
-  .grid-control {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 2px 6px;
-  }
-
-  .grid-label {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .grid-input {
-    width: 44px;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text-primary);
-    font-size: 12px;
-    text-align: center;
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-  .grid-input::-webkit-inner-spin-button,
-  .grid-input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
-
-  .ambient-form {
-    display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 2px;
+    z-index: 1000;
+    animation: slideDown 0.1s ease-out;
   }
-  .ambient-input {
+  .dropdown-content.hidden { display: none !important; }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .dropdown-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .dropdown-item.active { background: rgba(229,168,83,0.15); color: var(--accent); }
+  .dropdown-item.sub-item { padding-left: 20px; }
+  .dropdown-item.text-danger:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+  .dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  .dropdown-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .dropdown-submenu-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+  }
+
+  .tools-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .mini-btn {
     background: var(--bg-primary);
     border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 2px 6px;
     border-radius: 4px;
-    color: var(--text-primary);
-    font-size: 11px;
-    padding: 3px 6px;
-    width: 130px;
+    font-size: 12px;
+    cursor: pointer;
   }
-  .ambient-input:focus { outline: none; border-color: #a855f7; }
+  .mini-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .mini-btn.active { background: rgba(229,168,83,0.15); border-color: var(--accent); color: var(--accent); }
+  .mini-btn.text-only { font-size: 11px; padding: 3px 8px; }
 
-  .campaign-title-input {
+  .toolbar-permanent {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ml-1 { margin-left: 4px; }
+  .ml-2 { margin-left: 8px; }
+
+  .hidden-toggles > :global(button) {
+    display: none !important;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+.campaign-title-input {
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
     border-radius: 4px;
@@ -1244,74 +1237,4 @@
   }
   .float-panel-header button:hover { color: var(--text-primary); }
 
-  /* ── Overflow panel ──────────────────────────────────────────── */
-
-  .overflow-toggle {
-    border-color: #7c6af5;
-    color: #7c6af5;
-  }
-  .overflow-toggle:hover { background: rgba(124,106,245,0.1); }
-  .overflow-toggle.active {
-    background: rgba(124,106,245,0.15);
-    border-color: #7c6af5;
-    color: #c4b5fd;
-  }
-
-  .overflow-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 299;
-  }
-
-  .tools-overflow-panel {
-    display: none;
-    position: fixed;
-    right: 8px;
-    z-index: 300;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.6);
-    padding: 10px;
-    width: min(560px, 96vw);
-    flex-direction: column;
-    gap: 8px;
-    animation: slideDown 0.15s ease-out;
-  }
-  .tools-overflow-panel.overflow-visible { display: flex; }
-
-  .overflow-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: flex-start;
-  }
-
-  .overflow-tool-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    padding: 6px 8px;
-    font-size: 18px;
-    min-width: 52px;
-    text-align: center;
-    line-height: 1.2;
-  }
-  .overflow-tool-btn small {
-    font-size: 9px;
-    color: var(--text-muted);
-    font-family: sans-serif;
-  }
-  .overflow-tool-btn.active small { color: var(--accent); }
-
-  .overflow-inputs {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    flex-wrap: wrap;
-    border-top: 1px solid var(--border);
-    padding-top: 8px;
-  }
-</style>
+  </style>

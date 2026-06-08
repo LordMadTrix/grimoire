@@ -38,11 +38,18 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Log de Combat** : Historique typé (dégâts/soins/morts/tours) avec export presse-papiers.
 - **Export PNG** : Exportez la carte actuelle en image haute résolution d'un clic (🖼️💾).
 - **Chemin de Déplacement** : Ligne pointillée jaune + compteur de cases pendant le déplacement d'un token.
-- **🏰 Éditeur de Donjon** : Dessinez des donjons tile-by-tile avec 15 types de tuiles vectorielles (murs, sols, portes, escaliers, pièges…), salles rapides en un clic, undo Ctrl+Z.
+- **Map Editor Avancé** : Éditeur de carte complet intégré, remplaçant l'ancien éditeur de donjon, pour dessiner et concevoir vos cartes de rencontre avec une interface fluide.
 - **Redimensionnement de tokens** : Survolez n'importe quel token → poignée ⬤ apparaît dans le coin ; glissez-la pour redimensionner. `Alt+molette` pour un ajustement rapide. Les tokens déposés s'adaptent automatiquement à la taille de la grille courante.
+
+### 🎭 Vue Joueur Épique (Player View)
+- **Ambiance & Météo** : Effets de particules (pluie, neige, brouillard) et vignettage d'état (écran rougi si PV critiques, violet si corrompu).
+- **Jets de Dés 3D** : Animations 3D CSS immersives pour tous les jets de dés, avec effets "Screen Shake" sur les échecs critiques.
+- **HUD de Combat** : Barre d'initiative avec portraits stylisés, et bannières pleines d'écran "AU TOUR DE..." pour fluidifier l'action.
+- **Révélations Cinématiques** : Partagez des notes aux joueurs sous forme de parchemin qui se déroule, avec sceau de cire animé.
 
 ### 📱 HUB Mobile Joueur (Wave 9)
 - **Compagnon Mobile** : Vos joueurs se connectent via un QR Code à un serveur local ultra-fluide.
+- **Fiche Joueur Dark Fantasy** : Suivi des PV avec des "fioles de sang" liquides dynamiques.
 - **Combat HUD** : Suivi des PV et boutons d'actions rapides (WFRP2) directement sur smartphone.
 - **Sketchpad Collaboratif** : Les joueurs peuvent dessiner sur leur écran pour pointer un lieu ou expliquer un plan ; le dessin apparaît sur l'écran du MJ.
 - **Soundboard Joueur** : Permettez à vos joueurs de déclencher des sons d'ambiance pour ponctuer leurs actions.
@@ -52,7 +59,8 @@ Tous accessibles via le bouton **🔧** de la barre d'outils VTT (panneau dérou
 - **ConditionWheel** : Clic droit sur un token → roue radiale SVG pour toggler 8 conditions + bouton 🗑️ suppression directe.
 - **Calculateur de Dégâts** : Parseur de formules de dés (`2d6+4`), multi-cibles, demi-dégâts.
 - **Notes Partagées** : Envoyez des notes GM aux joueurs en temps réel ; elles s'affichent comme un overlay dismissable sur l'écran joueur.
-- **Générateurs** : Rencontre, Salle, Météo (planificateur 7 jours), Carte des Relations PNJ.
+- **Générateurs** : Rencontre, Salle, Météo (planificateur 7 jours), Marchands & Boutiques avec inventaires générés dynamiquement, Rumeurs & Potins, Carte des Relations PNJ.
+- **Règles Spécifiques WFRP** : Gestion intégrée des Blessures Critiques, Mutations du Chaos, et du Calendrier Impérial pour suivre le temps qui passe.
 - **Suivi des Durées** : Présets d'effets (torche, concentration, poison), countdown par round avec alerte visuelle.
 - **Butin Rapide** : Générez du butin aléatoire par niveau de richesse avec rareté pondérée.
 - **Pack Mimic** : Une collection de jetons (tokens) illustrés pour Mimics (Coffre, Porte, Baril, Table) intégrée à la bibliothèque.
@@ -93,7 +101,7 @@ npm run tauri dev
 - **Frontend** : Svelte 5 (Runes) + PixiJS v8 pour le rendu haute performance.
 - **Backend Desktop** : Rust (Tauri) pour les accès fichiers, SQLite FTS5 et WebSocket Mobile.
 - **Mobile** : Serveur embarqué en Rust servant une web-app optimisée pour smartphones.
-- **Mises à jour** : Vérification automatique au démarrage via un manifest JSON hébergé sur GitHub.
+- **Mises à jour automatiques** : Détection et téléchargement en arrière-plan des nouvelles versions via `tauri-plugin-updater`, relié aux releases GitHub.
 
 ---
 *Créé avec passion pour les rôlistes par LordMadTrix.*

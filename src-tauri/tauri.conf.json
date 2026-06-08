@@ -6,7 +6,7 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run vite-dev",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
@@ -50,6 +50,12 @@
     }
   },
   "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/updater.json"
+      ],
+      "pubkey": ""
+    },
     "fs": {
       "requireLiteralLeadingDot": false
     }

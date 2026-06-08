@@ -16,7 +16,6 @@
   import PlayerManager from './components/PlayerManager.svelte';
   import PlayerMobileManager from './components/PlayerMobileManager.svelte';
   import MacroBar from './components/MacroBar.svelte';
-  import DungeonEditor from './components/DungeonEditor.svelte';
   import UpdateModal from './components/UpdateModal.svelte';
   import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
@@ -615,9 +614,6 @@
           <div class="macro-bar-container">
             <MacroBar onRollRequest={handleMapRoll} />
           </div>
-          {#if vttStore.showDungeonEditor}
-            <DungeonEditor />
-          {/if}
         </div>
         {#if vttStore.combatActive}
           <InitiativeTracker />

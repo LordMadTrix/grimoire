@@ -52,12 +52,11 @@ pub async fn open_player_view(app: AppHandle, monitor_index: usize) -> Result<()
     let pos = target.position();
     let size = target.size();
 
-    // L'URL de la vue joueur est différente, on utilisera un paramètre d'URL (?view=player)
-    // puisque nous n'avons pas de backend de routing classique
+    // L'URL de la vue joueur est l'index de base. Le frontend vérifiera le label de la fenêtre
     let window = WebviewWindowBuilder::new(
         &app,
         "player-view",
-        WebviewUrl::App("index.html?view=player".into()),
+        WebviewUrl::App("index.html".into()),
     )
     .title("Grimoire — Vue Joueurs")
     .position(pos.x as f64, pos.y as f64)
