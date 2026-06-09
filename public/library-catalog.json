@@ -23,11 +23,7 @@
     { "name": "Troll",        "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/troll.png",     "cat": "enemies", "isEnemy": true,  "hp": 45, "size": 65 },
     { "name": "Squelette",    "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/tokens/online/enemies/squelette.png", "cat": "enemies", "isEnemy": true,  "hp": 13, "size": 50 }
   ],
-  "maps": [
-    { "name": "Donjon des Ombres",  "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/donjon.png",  "desc": "Donjon pixel art avec salles, couloirs et créatures" },
-    { "name": "Taverne du Griffon", "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/taverne.png", "desc": "Taverne avec salle commune, cuisine et chambres" },
-    { "name": "Forêt des Murmures", "url": "https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/maps/library/foret.png",  "desc": "Forêt avec clairière, chemins et caverne" }
-  ],
+  "maps": [],
   "tables": [
     {
       "name": "Météo aléatoire",

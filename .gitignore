@@ -40,3 +40,12 @@ example-vault/
 
 # User custom assets (1GB d'images)
 public/assets/custom/
+
+# Fichiers générés localement (cartes Inkarnate personnelles, non versionnées)
+public/library.js
+public/maj_bibliotheque.ps1
+public/assets/
+
+# Fichiers de test temporaires
+test*.jpg
+test*.png

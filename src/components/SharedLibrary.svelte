@@ -60,12 +60,9 @@
   ];
 
   // ── Catalogue maps ────────────────────────────────────────────────
-  const MAP_CATALOG = [
-    { name: 'Taverne du Griffon',  path: '/maps/library/taverne.png',   desc: 'Intérieur de taverne avec cuisine et chambres' },
-    { name: 'Donjon des Ombres',   path: '/maps/library/donjon.png',    desc: 'Donjon avec salle du trône, cellules et trésorerie' },
-    { name: 'Forêt des Murmures',  path: '/maps/library/foret.png',     desc: 'Zone forestière avec clairière et caverne' },
-    { name: 'Château Drachenfels', path: '/maps/library/drachenfels.png', desc: 'Plan du donjon du Château Drachenfels' },
-  ];
+  // Les maps locales ont été retirées pour alléger le build (commit 1f1299b1).
+  // Utiliser le catalogue en ligne (bouton 🌐) pour accéder aux maps.
+  const MAP_CATALOG: { name: string; path: string; desc: string }[] = [];
 
   // ── Tables génériques ─────────────────────────────────────────────
   const TABLES = [

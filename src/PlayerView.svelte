@@ -812,84 +812,9 @@
   .party-hp    { font-size: 11px; color: #94a3b8; min-width: 36px; }
   .party-conds, .party-conc { font-size: 12px; }
 
-  /* ── Handout overlay ──────────────────────────────────────────── */
-  .handout-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    animation: fadeIn 0.3s ease;
-  }
-
   @keyframes fadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
-  }
-
-  .handout-card {
-    background: #1a1c24;
-    border: 1px solid rgba(201,168,76,0.25);
-    border-radius: 12px;
-    padding: 28px;
-    max-width: 700px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.05);
-    animation: slideUp 0.25s ease;
-  }
-
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .handout-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #e5a853;
-    text-align: center;
-    font-family: 'Georgia', serif;
-    letter-spacing: 1px;
-  }
-
-  .handout-img {
-    max-width: 100%;
-    max-height: 55vh;
-    border-radius: 8px;
-    object-fit: contain;
-  }
-
-  .handout-text {
-    font-family: 'Georgia', serif;
-    font-size: 15px;
-    line-height: 1.8;
-    color: #d4c9b0;
-    white-space: pre-wrap;
-    max-height: 50vh;
-    overflow-y: auto;
-    padding: 0 8px;
-  }
-
-  .handout-close {
-    align-self: center;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 20px;
-    color: rgba(255,255,255,0.5);
-    padding: 6px 20px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.15s;
-  }
-  .handout-close:hover {
-    background: rgba(255,255,255,0.08);
-    color: #fff;
   }
 
   /* ── Note partagée MJ ── */
