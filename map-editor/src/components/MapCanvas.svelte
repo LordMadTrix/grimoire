@@ -1,9 +1,21 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { mapStore, pushHistory, type MapStamp, type MapPath, type MapText, type MapShape } from '../lib/stores/mapStore.svelte';
+  import { mapStore, pushHistory, undo, redo, type MapStamp, type MapPath, type MapText, type MapShape, type SelectableType } from '../lib/stores/mapStore.svelte';
   import importedStamps from '../lib/imported_stamps.json';
   import importedTextures from '../lib/imported_textures.json';
   import { generateContinent } from '../lib/terrainGenerator';
+  import {
+    setElementMeasurer,
+    setSelection,
+    toggleInSelection,
+    isInSelection,
+    selectAll,
+    clearSelection,
+    moveSelectionBy,
+    duplicateSelection,
+    deleteSelection,
+    type ElementBBox,
+  } from '../lib/pao.svelte';
 
   let canvasEl = $state<HTMLCanvasElement | null>(null);
   let canvasContainer = $state<HTMLDivElement | null>(null);
@@ -50,6 +62,21 @@
   // Pour le pinceau de dispersion (Stamp Scattering)
   let lastScatterX = 0;
   let lastScatterY = 0;
+
+  // ── PAO : marquee, règles/guides, mesure ──
+  const RULER_SIZE = 22; // épaisseur des règles en px écran
+  // Décalage des règles pour ne pas passer sous les barres flottantes (TopPanel / LeftToolbar)
+  let rulerOffsetX = 50;
+  let rulerOffsetY = 40;
+  let marqueeStart: { x: number; y: number } | null = null; // coords carte
+  let marqueeEnd: { x: number; y: number } | null = null;
+  let marqueeAdditive = false; // Shift enfoncé au départ du cadre
+  // Glissement de guide : axis 'v' = guide vertical (x), 'h' = horizontal (y)
+  let draggingGuide: { axis: 'v' | 'h'; index: number } | null = null;
+  // Mesure (coords carte)
+  let measureStart: { x: number; y: number } | null = null;
+  let measureEnd: { x: number; y: number } | null = null;
+  let isMeasuring = false;
 
   // Charger et traiter les images (suppression du fond blanc)
   function loadAndProcessAsset(name: string, url: string, isStamp: boolean) {
@@ -816,6 +843,11 @@
 
   // Initialisation des ressources et canevas
   onMount(async () => {
+    // 0. Lire la géométrie des barres flottantes pour positionner les règles PAO
+    const rootStyles = getComputedStyle(document.documentElement);
+    rulerOffsetX = parseInt(rootStyles.getPropertyValue('--left-nav-width')) || 50;
+    rulerOffsetY = parseInt(rootStyles.getPropertyValue('--editor-top-nav-height')) || 40;
+
     // 1. Charger les textures
     loadAndProcessAsset('tex_parchment', '/assets/textures/parchment.png', false);
     loadAndProcessAsset('tex_water', '/assets/textures/water.png', false);
@@ -1017,6 +1049,81 @@
         y: Math.round(y / gSize) * gSize,
       };
     }
+  }
+
+  // Coordonnées carte -> Coordonnées écran (pour les surcouches PAO)
+  function mapToScreen(mx: number, my: number) {
+    return {
+      x: mx * mapStore.zoom + mapStore.panX,
+      y: my * mapStore.zoom + mapStore.panY,
+    };
+  }
+
+  // Aimanter une position aux guides proches (seuil en px écran)
+  function snapToGuides(x: number, y: number) {
+    if (!mapStore.snapToGuides) return { x, y };
+    const threshold = 8 / mapStore.zoom;
+    let nx = x, ny = y;
+    for (const gx of mapStore.guides.v) {
+      if (Math.abs(gx - x) <= threshold) { nx = gx; break; }
+    }
+    for (const gy of mapStore.guides.h) {
+      if (Math.abs(gy - y) <= threshold) { ny = gy; break; }
+    }
+    return { x: nx, y: ny };
+  }
+
+  // Boîte englobante d'un élément en coordonnées carte (pour l'alignement PAO)
+  function measureElement(type: SelectableType, id: string): ElementBBox | null {
+    if (type === 'stamp') {
+      const s = mapStore.stamps.find((s) => s.id === id);
+      if (!s) return null;
+      let w = 80 * s.scale;
+      let h = 80 * s.scale;
+      if (!s.type.startsWith('td_')) {
+        const img = assetCache.get(`stamp_${s.type}`);
+        if (img) {
+          w = img.width * s.scale;
+          h = img.height * s.scale;
+        }
+      }
+      return { minX: s.x - w / 2, minY: s.y - h / 2, maxX: s.x + w / 2, maxY: s.y + h / 2, cx: s.x, cy: s.y };
+    }
+    if (type === 'text') {
+      const t = mapStore.texts.find((t) => t.id === id);
+      if (!t) return null;
+      let w = t.text.length * t.size * 0.55;
+      if (bufferCtx) {
+        bufferCtx.save();
+        bufferCtx.font = `${t.size}px "${t.font}", serif`;
+        w = bufferCtx.measureText(t.text).width;
+        bufferCtx.restore();
+      }
+      const h = t.size;
+      return { minX: t.x - w / 2, minY: t.y - h / 2, maxX: t.x + w / 2, maxY: t.y + h / 2, cx: t.x, cy: t.y };
+    }
+    const sh = mapStore.shapes.find((s) => s.id === id);
+    if (!sh || sh.points.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    if (sh.type === 'circle' && sh.points.length > 1) {
+      const r = Math.hypot(sh.points[1].x - sh.points[0].x, sh.points[1].y - sh.points[0].y);
+      minX = sh.points[0].x - r; maxX = sh.points[0].x + r;
+      minY = sh.points[0].y - r; maxY = sh.points[0].y + r;
+    } else {
+      for (const p of sh.points) {
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+      }
+    }
+    return { minX, minY, maxX, maxY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+  }
+
+  setElementMeasurer(measureElement);
+
+  // Un élément est-il sélectionné (sélection principale ou multi-sélection) ?
+  function isElementSelected(type: SelectableType, id: string): boolean {
+    if (mapStore.selectedElement && mapStore.selectedElement.type === type && mapStore.selectedElement.id === id) return true;
+    return isInSelection(type, id);
   }
 
   // RENDERING LOOP
@@ -1258,7 +1365,7 @@
     // B2. Dessiner les FORMES GÉOMÉTRIQUES (Shapes)
     mapStore.shapes.forEach((shape) => {
       drawGeometricShape(bufferCtx, shape);
-      const isSelected = mapStore.selectedElement !== null && mapStore.selectedElement.type === 'shape' && mapStore.selectedElement.id === shape.id;
+      const isSelected = isElementSelected('shape', shape.id);
       if (isSelected) {
         drawShapeSelectionBorder(bufferCtx, shape);
       }
@@ -1296,7 +1403,7 @@
 
     sortedStamps.forEach((stamp) => {
       const isProcedural = stamp.type.startsWith('td_');
-      const isSelected = mapStore.selectedElement !== null && mapStore.selectedElement.type === 'stamp' && mapStore.selectedElement.id === stamp.id;
+      const isSelected = isElementSelected('stamp', stamp.id);
       if (isProcedural) {
         bufferCtx.save();
         bufferCtx.translate(stamp.x, stamp.y);
@@ -1466,7 +1573,7 @@
       bufferCtx.fillText(text.text, 0, 0);
 
       // Si sélectionné, dessiner un cadre de texte doré
-      if (mapStore.selectedElement && mapStore.selectedElement.type === 'text' && mapStore.selectedElement.id === text.id) {
+      if (isElementSelected('text', text.id)) {
         const textMetrics = bufferCtx.measureText(text.text);
         const w = textMetrics.width;
         const h = text.size;
@@ -1572,6 +1679,207 @@
 
     // 4. Dessiner l'aperçu du pinceau / de l'outil actif sous le pointeur
     drawToolPreview(ctx);
+
+    ctx.restore();
+
+    // 5. Surcouches PAO en espace écran : guides, marquee, mesure, règles
+    drawPaoOverlays(ctx);
+  }
+
+  // ── SURCOUCHES PAO (espace écran) ──
+  function drawPaoOverlays(ctx: CanvasRenderingContext2D) {
+    if (!canvasEl) return;
+    const cw = canvasEl.width;
+    const ch = canvasEl.height;
+
+    // A. Guides (cyan, sur toute la hauteur/largeur du viewport)
+    ctx.save();
+    ctx.strokeStyle = 'rgba(64, 200, 255, 0.75)';
+    ctx.lineWidth = 1;
+    for (const gx of mapStore.guides.v) {
+      const sx = Math.round(mapToScreen(gx, 0).x) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(sx, 0);
+      ctx.lineTo(sx, ch);
+      ctx.stroke();
+    }
+    for (const gy of mapStore.guides.h) {
+      const sy = Math.round(mapToScreen(0, gy).y) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, sy);
+      ctx.lineTo(cw, sy);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // B. Cadre de sélection (marquee)
+    if (marqueeStart && marqueeEnd) {
+      const a = mapToScreen(marqueeStart.x, marqueeStart.y);
+      const b = mapToScreen(marqueeEnd.x, marqueeEnd.y);
+      ctx.save();
+      ctx.strokeStyle = '#d4a84b';
+      ctx.fillStyle = 'rgba(212, 168, 75, 0.08)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 4]);
+      const x = Math.min(a.x, b.x);
+      const y = Math.min(a.y, b.y);
+      const w = Math.abs(b.x - a.x);
+      const h = Math.abs(b.y - a.y);
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
+      ctx.restore();
+    }
+
+    // C. Mesure (ligne cotée : distance en px carte et en cases)
+    if (measureStart && measureEnd) {
+      const a = mapToScreen(measureStart.x, measureStart.y);
+      const b = mapToScreen(measureEnd.x, measureEnd.y);
+      const distMap = Math.hypot(measureEnd.x - measureStart.x, measureEnd.y - measureStart.y);
+      const cells = distMap / mapStore.gridSize;
+
+      ctx.save();
+      ctx.strokeStyle = '#7fe07f';
+      ctx.fillStyle = '#7fe07f';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      // Extrémités (petits traits perpendiculaires, façon cote technique)
+      const ang = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI / 2;
+      const tick = 6;
+      for (const p of [a, b]) {
+        ctx.beginPath();
+        ctx.moveTo(p.x - Math.cos(ang) * tick, p.y - Math.sin(ang) * tick);
+        ctx.lineTo(p.x + Math.cos(ang) * tick, p.y + Math.sin(ang) * tick);
+        ctx.stroke();
+      }
+      // Étiquette au milieu
+      const midX = (a.x + b.x) / 2;
+      const midY = (a.y + b.y) / 2;
+      const label = `${Math.round(distMap)} px · ${cells.toFixed(1)} case${cells >= 2 ? 's' : ''}`;
+      ctx.font = '12px system-ui, sans-serif';
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(11, 14, 23, 0.9)';
+      ctx.fillRect(midX - tw / 2 - 6, midY - 22, tw + 12, 18);
+      ctx.strokeStyle = 'rgba(127, 224, 127, 0.5)';
+      ctx.strokeRect(midX - tw / 2 - 6, midY - 22, tw + 12, 18);
+      ctx.fillStyle = '#7fe07f';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, midX, midY - 13);
+      ctx.restore();
+    }
+
+    // D. Règles graduées (par-dessus tout)
+    if (mapStore.showRulers) {
+      drawRulers(ctx, cw, ch);
+    }
+  }
+
+  function drawRulers(ctx: CanvasRenderingContext2D, cw: number, ch: number) {
+    // Bords intérieurs des règles (décalées sous les barres flottantes)
+    const top = rulerOffsetY;
+    const left = rulerOffsetX;
+    const topEdge = top + RULER_SIZE;
+    const leftEdge = left + RULER_SIZE;
+
+    ctx.save();
+
+    // Fonds des règles
+    ctx.fillStyle = 'rgba(13, 16, 24, 0.92)';
+    ctx.fillRect(left, top, cw - left, RULER_SIZE); // haut
+    ctx.fillRect(left, top, RULER_SIZE, ch - top); // gauche
+    ctx.strokeStyle = 'rgba(212, 168, 75, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(left, topEdge + 0.5);
+    ctx.lineTo(cw, topEdge + 0.5);
+    ctx.moveTo(leftEdge + 0.5, top);
+    ctx.lineTo(leftEdge + 0.5, ch);
+    ctx.stroke();
+
+    // Pas de graduation adapté au zoom (étiquettes espacées d'au moins ~55 px écran)
+    const steps = [10, 25, 50, 100, 250, 500, 1000, 2500];
+    let step = steps[steps.length - 1];
+    for (const s of steps) {
+      if (s * mapStore.zoom >= 55) { step = s; break; }
+    }
+
+    ctx.font = '9px system-ui, sans-serif';
+    ctx.fillStyle = '#9aa3b2';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+
+    // Règle horizontale (haut)
+    const startMapX = Math.floor((leftEdge - mapStore.panX) / mapStore.zoom / step) * step;
+    const endMapX = (cw - mapStore.panX) / mapStore.zoom;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    for (let mx = startMapX; mx <= endMapX; mx += step) {
+      const sx = Math.round(mapToScreen(mx, 0).x) + 0.5;
+      if (sx < leftEdge) continue;
+      ctx.beginPath();
+      ctx.moveTo(sx, topEdge - 7);
+      ctx.lineTo(sx, topEdge);
+      ctx.stroke();
+      ctx.fillText(String(mx), sx + 3, top + 3);
+      // Sous-graduations
+      for (let k = 1; k < 5; k++) {
+        const sub = Math.round(mapToScreen(mx + (step / 5) * k, 0).x) + 0.5;
+        if (sub < leftEdge) continue;
+        ctx.beginPath();
+        ctx.moveTo(sub, topEdge - 3);
+        ctx.lineTo(sub, topEdge);
+        ctx.stroke();
+      }
+    }
+
+    // Règle verticale (gauche)
+    const startMapY = Math.floor((topEdge - mapStore.panY) / mapStore.zoom / step) * step;
+    const endMapY = (ch - mapStore.panY) / mapStore.zoom;
+    for (let my = startMapY; my <= endMapY; my += step) {
+      const sy = Math.round(mapToScreen(0, my).y) + 0.5;
+      if (sy < topEdge) continue;
+      ctx.beginPath();
+      ctx.moveTo(leftEdge - 7, sy);
+      ctx.lineTo(leftEdge, sy);
+      ctx.stroke();
+      ctx.save();
+      ctx.translate(left + 3, sy + 3);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillText(String(my), 0, -10);
+      ctx.restore();
+      for (let k = 1; k < 5; k++) {
+        const sub = Math.round(mapToScreen(0, my + (step / 5) * k).y) + 0.5;
+        if (sub < topEdge) continue;
+        ctx.beginPath();
+        ctx.moveTo(leftEdge - 3, sub);
+        ctx.lineTo(leftEdge, sub);
+        ctx.stroke();
+      }
+    }
+
+    // Marqueurs de position du curseur
+    const cur = mapToScreen(cursorMapX, cursorMapY);
+    ctx.strokeStyle = '#d4a84b';
+    ctx.beginPath();
+    if (cur.x >= leftEdge) {
+      ctx.moveTo(cur.x + 0.5, top);
+      ctx.lineTo(cur.x + 0.5, topEdge);
+    }
+    if (cur.y >= topEdge) {
+      ctx.moveTo(left, cur.y + 0.5);
+      ctx.lineTo(leftEdge, cur.y + 0.5);
+    }
+    ctx.stroke();
+
+    // Coin (origine des règles)
+    ctx.fillStyle = 'rgba(13, 16, 24, 1)';
+    ctx.fillRect(left, top, RULER_SIZE, RULER_SIZE);
+    ctx.fillStyle = '#6b7280';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('px', left + RULER_SIZE / 2, top + RULER_SIZE / 2);
 
     ctx.restore();
   }
@@ -1870,6 +2178,49 @@
       return;
     }
 
+    // ── PAO : créer un guide en tirant depuis une règle ──
+    if (mapStore.showRulers && (screenX <= rulerOffsetX + RULER_SIZE || screenY <= rulerOffsetY + RULER_SIZE)) {
+      if (screenX <= rulerOffsetX + RULER_SIZE && screenY <= rulerOffsetY + RULER_SIZE) {
+        isPointerDown = false;
+        return; // coin : aucune action
+      }
+      if (screenY <= rulerOffsetY + RULER_SIZE) {
+        // Tirer depuis la règle du haut -> guide horizontal
+        mapStore.guides = { ...mapStore.guides, h: [...mapStore.guides.h, mapPos.y] };
+        draggingGuide = { axis: 'h', index: mapStore.guides.h.length - 1 };
+      } else {
+        // Tirer depuis la règle de gauche -> guide vertical
+        mapStore.guides = { ...mapStore.guides, v: [...mapStore.guides.v, mapPos.x] };
+        draggingGuide = { axis: 'v', index: mapStore.guides.v.length - 1 };
+      }
+      return;
+    }
+
+    // ── PAO : attraper un guide existant (outil Sélection) ──
+    if (mapStore.activeTool === 'grid') {
+      const grabThreshold = 5; // px écran
+      for (let i = 0; i < mapStore.guides.v.length; i++) {
+        if (Math.abs(mapToScreen(mapStore.guides.v[i], 0).x - screenX) <= grabThreshold) {
+          draggingGuide = { axis: 'v', index: i };
+          return;
+        }
+      }
+      for (let i = 0; i < mapStore.guides.h.length; i++) {
+        if (Math.abs(mapToScreen(0, mapStore.guides.h[i]).y - screenY) <= grabThreshold) {
+          draggingGuide = { axis: 'h', index: i };
+          return;
+        }
+      }
+    }
+
+    // ── PAO : outil Mesure ──
+    if (mapStore.activeTool === 'measure') {
+      measureStart = { x: mapPos.x, y: mapPos.y };
+      measureEnd = { x: mapPos.x, y: mapPos.y };
+      isMeasuring = true;
+      return;
+    }
+
     const tool = mapStore.activeTool;
     let px = mapPos.x;
     let py = mapPos.y;
@@ -1937,7 +2288,7 @@
         shadowBlur: mapStore.textShadowBlur,
       };
       mapStore.texts = [...mapStore.texts, newText];
-      mapStore.selectedElement = { type: 'text', id: newText.id };
+      setSelection([{ type: 'text', id: newText.id }]);
     } else if (tool === 'shape') {
       if (mapStore.shapeType === 'polygon') {
         if (drawingShapePoints.length >= 3 && Math.hypot(px - drawingShapePoints[0].x, py - drawingShapePoints[0].y) < 15) {
@@ -2008,11 +2359,22 @@
         }
       }
 
-      // 2. Sélection normale de stamp/texte/shape
+      // 2. Sélection normale de stamp/texte/shape (multi-sélection PAO)
       const hit = findElementAt(mapPos.x, mapPos.y);
       if (hit) {
+        if (e.shiftKey) {
+          // Shift + clic : ajouter / retirer de la multi-sélection sans déplacer
+          toggleInSelection({ type: hit.type, id: hit.id });
+          activeHandle = 'none';
+          return;
+        }
         pushHistory();
-        mapStore.selectedElement = { type: hit.type, id: hit.id };
+        if (isInSelection(hit.type, hit.id) && mapStore.selectedIds.length > 1) {
+          // Clic sur un élément déjà dans la multi-sélection : déplacer le groupe
+          mapStore.selectedElement = { type: hit.type, id: hit.id };
+        } else {
+          setSelection([{ type: hit.type, id: hit.id }]);
+        }
         activeHandle = 'move';
         dragOffset = { x: mapPos.x - hit.x, y: mapPos.y - hit.y };
         isDraggingElement = true;
@@ -2046,7 +2408,11 @@
           }
         }
       } else {
-        mapStore.selectedElement = null;
+        // Clic dans le vide : démarrer un cadre de sélection (marquee)
+        if (!e.shiftKey) clearSelection();
+        marqueeAdditive = e.shiftKey;
+        marqueeStart = { x: mapPos.x, y: mapPos.y };
+        marqueeEnd = { x: mapPos.x, y: mapPos.y };
         activeHandle = 'none';
       }
     }
@@ -2068,7 +2434,33 @@
       return;
     }
 
+    // ── PAO : glissement d'un guide ──
+    if (draggingGuide) {
+      if (draggingGuide.axis === 'v') {
+        const v = [...mapStore.guides.v];
+        v[draggingGuide.index] = mapPos.x;
+        mapStore.guides = { ...mapStore.guides, v };
+      } else {
+        const h = [...mapStore.guides.h];
+        h[draggingGuide.index] = mapPos.y;
+        mapStore.guides = { ...mapStore.guides, h };
+      }
+      return;
+    }
+
+    // ── PAO : mesure en cours ──
+    if (isMeasuring && measureStart) {
+      measureEnd = { x: mapPos.x, y: mapPos.y };
+      return;
+    }
+
     if (!isPointerDown) return;
+
+    // ── PAO : cadre de sélection en cours ──
+    if (marqueeStart && mapStore.activeTool === 'grid' && !isDraggingElement) {
+      marqueeEnd = { x: mapPos.x, y: mapPos.y };
+      return;
+    }
 
     const tool = mapStore.activeTool;
     let px = mapPos.x;
@@ -2121,10 +2513,13 @@
         drawingShapePoints[1] = { x: px, y: py };
       }
     } else if (tool === 'grid' && isDraggingElement && mapStore.selectedElement) {
-      if (activeHandle === 'move') {
+      if (activeHandle === 'move' && mapStore.selectedIds.length > 1) {
+        // Déplacement de groupe : delta brut depuis la dernière position
+        moveSelectionBy(mapPos.x - lastX, mapPos.y - lastY);
+      } else if (activeHandle === 'move') {
         let targetX = mapPos.x - dragOffset.x;
         let targetY = mapPos.y - dragOffset.y;
-        
+
         if (mapStore.stampSnapEnabled) {
           const snapped = snapCoordinate(targetX, targetY);
           targetX = snapped.x;
@@ -2133,7 +2528,12 @@
           targetX = Math.round(targetX / mapStore.gridSize) * mapStore.gridSize;
           targetY = Math.round(targetY / mapStore.gridSize) * mapStore.gridSize;
         }
-        
+
+        // Magnétisme aux guides PAO
+        const guideSnapped = snapToGuides(targetX, targetY);
+        targetX = guideSnapped.x;
+        targetY = guideSnapped.y;
+
         if (mapStore.selectedElement.type === 'stamp') {
           mapStore.stamps = mapStore.stamps.map((s) =>
             s.id === mapStore.selectedElement!.id ? { ...s, x: targetX, y: targetY } : s
@@ -2196,6 +2596,65 @@
   }
 
   function onPointerUp(e: PointerEvent) {
+    // ── PAO : lâcher un guide (le supprimer s'il est relâché sur une règle) ──
+    if (draggingGuide) {
+      if (canvasEl) {
+        const rect = canvasEl.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        if ((draggingGuide.axis === 'v' && sx <= rulerOffsetX + RULER_SIZE) || (draggingGuide.axis === 'h' && sy <= rulerOffsetY + RULER_SIZE)) {
+          if (draggingGuide.axis === 'v') {
+            mapStore.guides = { ...mapStore.guides, v: mapStore.guides.v.filter((_, i) => i !== draggingGuide!.index) };
+          } else {
+            mapStore.guides = { ...mapStore.guides, h: mapStore.guides.h.filter((_, i) => i !== draggingGuide!.index) };
+          }
+        }
+      }
+      draggingGuide = null;
+      isPointerDown = false;
+      return;
+    }
+
+    // ── PAO : fin de mesure (le résultat reste affiché) ──
+    if (isMeasuring) {
+      isMeasuring = false;
+      isPointerDown = false;
+      return;
+    }
+
+    // ── PAO : fin du cadre de sélection ──
+    if (marqueeStart && marqueeEnd && mapStore.activeTool === 'grid' && !isDraggingElement) {
+      const minX = Math.min(marqueeStart.x, marqueeEnd.x);
+      const maxX = Math.max(marqueeStart.x, marqueeEnd.x);
+      const minY = Math.min(marqueeStart.y, marqueeEnd.y);
+      const maxY = Math.max(marqueeStart.y, marqueeEnd.y);
+      const isRealDrag = (maxX - minX) * mapStore.zoom > 4 || (maxY - minY) * mapStore.zoom > 4;
+
+      if (isRealDrag) {
+        const inRect = (type: SelectableType, id: string) => {
+          const box = measureElement(type, id);
+          if (!box) return false;
+          return box.cx >= minX && box.cx <= maxX && box.cy >= minY && box.cy <= maxY;
+        };
+        const picked = [
+          ...mapStore.stamps.filter((s) => inRect('stamp', s.id)).map((s) => ({ type: 'stamp' as const, id: s.id })),
+          ...mapStore.texts.filter((t) => inRect('text', t.id)).map((t) => ({ type: 'text' as const, id: t.id })),
+          ...mapStore.shapes.filter((s) => inRect('shape', s.id)).map((s) => ({ type: 'shape' as const, id: s.id })),
+        ];
+        if (marqueeAdditive) {
+          const merged = [...mapStore.selectedIds];
+          for (const p of picked) {
+            if (!merged.some((m) => m.type === p.type && m.id === p.id)) merged.push(p);
+          }
+          setSelection(merged);
+        } else {
+          setSelection(picked);
+        }
+      }
+      marqueeStart = null;
+      marqueeEnd = null;
+    }
+
     isPointerDown = false;
     isPanning = false;
     isDraggingElement = false;
@@ -2292,8 +2751,12 @@
     drawingShapePoints = [];
   }
 
-  // Supprimer l'élément actuellement sélectionné
+  // Supprimer la sélection (multi-sélection PAO ou élément simple)
   export function deleteSelected() {
+    if (mapStore.selectedIds.length > 0) {
+      deleteSelection();
+      return;
+    }
     if (!mapStore.selectedElement) return;
     pushHistory();
     if (mapStore.selectedElement.type === 'stamp') {
@@ -2306,22 +2769,62 @@
     mapStore.selectedElement = null;
   }
 
-  // Gérer la touche clavier clavier (Esc pour finir les tracés, Del pour effacer)
+  // Raccourcis clavier PAO (Esc, Entrée, Suppr, Ctrl+A/D/Z/Y, flèches)
   function handleKeyDown(e: KeyboardEvent) {
+    const inInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+
     if (e.key === 'Escape') {
       finishPath();
       drawingShapePoints = [];
-    } else if (e.key === 'Enter') {
+      measureStart = null;
+      measureEnd = null;
+      if (!inInput) clearSelection();
+      return;
+    }
+    if (e.key === 'Enter') {
       if (mapStore.activeTool === 'path') {
         finishPath();
       } else if (mapStore.activeTool === 'shape') {
         finishShape();
       }
-    } else if (e.key === 'Delete' || e.key === 'Backspace') {
-      // S'assurer de ne pas intercepter si l'utilisateur saisit du texte dans un input
-      if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-        deleteSelected();
+      return;
+    }
+    if (inInput) return;
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      deleteSelected();
+      return;
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'a') {
+        e.preventDefault();
+        mapStore.activeTool = 'grid';
+        selectAll();
+      } else if (k === 'd') {
+        e.preventDefault();
+        duplicateSelection();
+      } else if (k === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redo();
+      } else if (k === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (k === 'y') {
+        e.preventDefault();
+        redo();
       }
+      return;
+    }
+
+    // Flèches : déplacement précis de la sélection (1 px, Maj = une case de grille)
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && mapStore.selectedIds.length > 0) {
+      e.preventDefault();
+      const step = e.shiftKey ? mapStore.gridSize : 1;
+      const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+      const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+      moveSelectionBy(dx, dy, true);
     }
   }
 </script>
@@ -2344,7 +2847,9 @@
     {#if mapStore.activeTool === 'path'}
       <span>Clic : poser un point · **Entrée / Échap** : finir le tracé</span>
     {:else if mapStore.activeTool === 'grid'}
-      <span>Clic : sélectionner un élément · **Suppr / Backspace** : le supprimer · Glisser : le déplacer</span>
+      <span>Clic / cadre : sélectionner · **Maj+Clic** : multi-sélection · **Ctrl+D** : dupliquer · Tirer depuis une règle : guide</span>
+    {:else if mapStore.activeTool === 'measure'}
+      <span>Glisser : mesurer une distance (px et cases) · **Échap** : effacer la mesure</span>
     {:else}
       <span>**Molette** : Zoomer · **Clic Droit / Milieu + Glisser** : Se déplacer</span>
     {/if}

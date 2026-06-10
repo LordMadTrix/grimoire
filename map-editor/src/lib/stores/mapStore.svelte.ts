@@ -1,4 +1,10 @@
-export type ToolType = 'sculpt' | 'paint' | 'stamp' | 'path' | 'text' | 'grid' | 'background' | 'shape' | 'dungeon';
+export type ToolType = 'sculpt' | 'paint' | 'stamp' | 'path' | 'text' | 'grid' | 'background' | 'shape' | 'dungeon' | 'measure';
+
+export type SelectableType = 'stamp' | 'text' | 'shape';
+export interface SelectedRef {
+  type: SelectableType;
+  id: string;
+}
 
 export interface MapShape {
   id: string;
@@ -155,8 +161,14 @@ export const mapStore = $state({
   showPanel: true,
   showCatalog: false,
   showTextureCatalog: false,
-  // Sélection active
+  // Sélection active (selectedElement = élément principal, selectedIds = multi-sélection PAO)
   selectedElement: null as { type: 'stamp' | 'text' | 'shape'; id: string } | null,
+  selectedIds: [] as SelectedRef[],
+
+  // Règles, guides et magnétisme PAO
+  showRulers: true,
+  snapToGuides: true,
+  guides: { v: [] as number[], h: [] as number[] },
   // Favoris
   favoriteStamps: (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('map_editor_fav_stamps') || '[]') : []) as string[],
   favoriteTextures: (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('map_editor_fav_textures') || '[]') : []) as string[],

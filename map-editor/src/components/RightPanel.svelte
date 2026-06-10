@@ -1,6 +1,14 @@
 <script lang="ts">
   import { mapStore } from '../lib/stores/mapStore.svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import {
+    alignSelection,
+    distributeSelection,
+    zOrderSelection,
+    duplicateSelection,
+    moveSelectionBy,
+    getBBox,
+  } from '../lib/pao.svelte';
 
   // Recevoir des callbacks du canevas pour certaines actions (ex: supprimer ou finir un tracé)
   let {
@@ -334,10 +342,27 @@
       case 'shape': return 'Shape Tool';
       case 'text': return 'Text Tool';
       case 'grid': return 'Select Tool';
+      case 'measure': return 'Outil Mesure';
       case 'background': return 'Arrière-plan';
       case 'dungeon': return 'Générateur de Donjon';
       default: return 'Tool Properties';
     }
+  }
+
+  // ── PAO : sélection et position numérique ──
+  let selCount = $derived(mapStore.selectedIds.length);
+  let selCenter = $derived.by(() => {
+    if (mapStore.selectedIds.length === 0) return null;
+    const box = getBBox(mapStore.selectedIds[0]);
+    return box ? { x: Math.round(box.cx), y: Math.round(box.cy) } : null;
+  });
+
+  function nudgeSelectionTo(axis: 'x' | 'y', e: Event) {
+    const value = Number((e.target as HTMLInputElement).value);
+    if (!Number.isFinite(value) || !selCenter) return;
+    const dx = axis === 'x' ? value - selCenter.x : 0;
+    const dy = axis === 'y' ? value - selCenter.y : 0;
+    if (dx !== 0 || dy !== 0) moveSelectionBy(dx, dy, true);
   }
 
   // Couleurs rapides prédéfinies
@@ -1543,10 +1568,122 @@
               {/if}
             </div>
 
+            <!-- ── PAO : Sélection ── -->
+            <div class="panel-section" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; margin-top: 6px;">
+              <span class="section-title">Sélection {selCount > 0 ? `(${selCount} élément${selCount > 1 ? 's' : ''})` : ''}</span>
+              {#if selCount === 0}
+                <p style="font-size: 11px; color: #8a93a5; margin: 4px 0;">
+                  Clic : sélectionner · Maj+Clic : ajouter · Glisser dans le vide : cadre de sélection · Ctrl+A : tout
+                </p>
+              {/if}
+
+              {#if selCenter}
+                <div class="shape-buttons-row" style="align-items: center; gap: 6px;">
+                  <label style="font-size: 11px; color: #8a93a5;">X
+                    <input type="number" value={selCenter.x} onchange={(e) => nudgeSelectionTo('x', e)} class="slider-value-input" style="width: 64px; margin-left: 4px;" />
+                  </label>
+                  <label style="font-size: 11px; color: #8a93a5;">Y
+                    <input type="number" value={selCenter.y} onchange={(e) => nudgeSelectionTo('y', e)} class="slider-value-input" style="width: 64px; margin-left: 4px;" />
+                  </label>
+                </div>
+              {/if}
+            </div>
+
+            {#if selCount >= 2}
+              <div class="panel-section">
+                <span class="section-title">Alignement</span>
+                <div class="shape-buttons-row">
+                  <button class="shape-btn" onclick={() => alignSelection('left')} title="Aligner à gauche">⇤</button>
+                  <button class="shape-btn" onclick={() => alignSelection('centerH')} title="Centrer horizontalement">⇹</button>
+                  <button class="shape-btn" onclick={() => alignSelection('right')} title="Aligner à droite">⇥</button>
+                </div>
+                <div class="shape-buttons-row" style="margin-top: 4px;">
+                  <button class="shape-btn" onclick={() => alignSelection('top')} title="Aligner en haut">⤒</button>
+                  <button class="shape-btn" onclick={() => alignSelection('middle')} title="Centrer verticalement">⇳</button>
+                  <button class="shape-btn" onclick={() => alignSelection('bottom')} title="Aligner en bas">⤓</button>
+                </div>
+              </div>
+            {/if}
+
+            {#if selCount >= 3}
+              <div class="panel-section">
+                <span class="section-title">Distribution</span>
+                <div class="shape-buttons-row">
+                  <button class="shape-btn" onclick={() => distributeSelection('h')} title="Répartir horizontalement">⇆ Horizontale</button>
+                  <button class="shape-btn" onclick={() => distributeSelection('v')} title="Répartir verticalement">⇅ Verticale</button>
+                </div>
+              </div>
+            {/if}
+
+            {#if selCount >= 1}
+              <div class="panel-section">
+                <span class="section-title">Ordre d'empilement</span>
+                <div class="shape-buttons-row">
+                  <button class="shape-btn" onclick={() => zOrderSelection('front')} title="Mettre au premier plan">⏫</button>
+                  <button class="shape-btn" onclick={() => zOrderSelection('forward')} title="Avancer d'un cran">🔼</button>
+                  <button class="shape-btn" onclick={() => zOrderSelection('backward')} title="Reculer d'un cran">🔽</button>
+                  <button class="shape-btn" onclick={() => zOrderSelection('back')} title="Mettre à l'arrière-plan">⏬</button>
+                </div>
+              </div>
+
+              <button class="action-btn" onclick={duplicateSelection} title="Dupliquer la sélection (Ctrl+D)" style="margin-top: 8px;">
+                ⧉ Dupliquer (Ctrl+D)
+              </button>
+            {/if}
+
+            <!-- ── PAO : Règles & Guides ── -->
+            <div class="panel-section" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; margin-top: 6px;">
+              <span class="section-title">Règles & Guides</span>
+              <label class="checkbox-label">
+                <input type="checkbox" bind:checked={mapStore.showRulers} />
+                <span>Afficher les règles</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" bind:checked={mapStore.snapToGuides} />
+                <span>Magnétiser aux guides</span>
+              </label>
+              {#if mapStore.guides.v.length + mapStore.guides.h.length > 0}
+                <button
+                  class="shape-btn"
+                  style="margin-top: 4px;"
+                  onclick={() => { mapStore.guides = { v: [], h: [] }; }}
+                >
+                  ✕ Effacer les guides ({mapStore.guides.v.length + mapStore.guides.h.length})
+                </button>
+              {/if}
+              <p style="font-size: 10px; color: #8a93a5; margin: 4px 0 0;">
+                Tirez depuis une règle pour créer un guide. Re-déposez-le sur la règle pour le supprimer.
+              </p>
+            </div>
+
             <div class="panel-divider"></div>
-            <button class="delete-btn" onclick={onDeleteSelected} title="Supprimer l'élément sélectionné sur la carte">
-              🗑️ Supprimer Sélectionné
+            <button class="delete-btn" onclick={onDeleteSelected} title="Supprimer la sélection (Suppr)">
+              🗑️ Supprimer la Sélection
             </button>
+          {/if}
+
+          <!-- ── OUTIL MESURE ── -->
+          {#if mapStore.activeTool === 'measure'}
+            <div class="panel-section">
+              <span class="section-title">Mesure de distance</span>
+              <p style="font-size: 11px; color: #8a93a5; margin: 4px 0;">
+                Glissez sur la carte pour mesurer une distance. Le résultat s'affiche en pixels carte et en cases de grille. Échap pour effacer.
+              </p>
+            </div>
+            <div class="slider-field">
+              <div class="slider-header">
+                <span class="slider-label">Taille d'une case</span>
+                <div class="slider-value-container">
+                  <input type="number" min="20" max="120" bind:value={mapStore.gridSize} class="slider-value-input" />
+                  <span class="slider-unit">px</span>
+                </div>
+              </div>
+              <input type="range" min="20" max="120" bind:value={mapStore.gridSize} class="slider-track" />
+            </div>
+            <label class="checkbox-label">
+              <input type="checkbox" bind:checked={mapStore.showGrid} />
+              <span>Afficher la grille</span>
+            </label>
           {/if}
 
           <!-- ── OUTIL DUNGEON GENERATOR ── -->
