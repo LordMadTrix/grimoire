@@ -4,9 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grimoire - L'outil Ultime pour Maîtres du Jeu</title>
-    <meta name="description" content="Grimoire combine un éditeur Markdown intelligent, un Virtual TableTop performant, une IA locale et un HUB mobile pour vos campagnes TTRPG.">
+    <meta name="description" content="Grimoire combine un éditeur Markdown intelligent, un Virtual TableTop performant, un éditeur de cartes, une IA locale et un HUB mobile pour vos campagnes TTRPG.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Open Graph / partage -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Grimoire — Tout votre univers dans un seul Grimoire">
+    <meta property="og:description" content="Wiki, Table Virtuelle, éditeur de cartes et IA locale fusionnés dans une application haute performance pour Maîtres du Jeu.">
+    <meta property="og:image" content="https://lordmadtrix.github.io/grimoire/grimoire_hero.png">
+    <meta property="og:url" content="https://lordmadtrix.github.io/grimoire/">
+    <meta name="twitter:card" content="summary_large_image">
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -56,14 +66,42 @@
             background: radial-gradient(circle at top, rgba(229, 168, 83, 0.12), transparent 60%);
         }
         .hero-mesh {
-            background-image: 
+            background-image:
                 radial-gradient(at 0% 0%, rgba(229, 168, 83, 0.05) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+        }
+        .hero-img-frame {
+            position: relative;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            border: 1px solid rgba(229, 168, 83, 0.25);
+            box-shadow: 0 0 80px rgba(229, 168, 83, 0.18), 0 30px 60px rgba(0, 0, 0, 0.7);
+        }
+        .hero-img-frame::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(10, 12, 16, 0.55), transparent 45%);
+            pointer-events: none;
+        }
+        /* Apparition au scroll */
+        .reveal {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: none;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .reveal { opacity: 1; transform: none; transition: none; }
+            html { scroll-behavior: auto; }
         }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col relative overflow-x-hidden hero-mesh">
-    
+
     <!-- Background Glow -->
     <div class="absolute inset-0 bg-gradient-radial pointer-events-none -z-10"></div>
 
@@ -76,15 +114,16 @@
             </div>
             <nav class="hidden lg:flex items-center gap-8 text-sm font-medium text-gray-400">
                 <a href="#vtt" class="hover:text-grimoire-accent transition-colors">VTT Tactique</a>
+                <a href="#mapeditor" class="hover:text-grimoire-accent transition-colors">Map Editor</a>
                 <a href="#notes" class="hover:text-grimoire-accent transition-colors">Notes & Lore</a>
                 <a href="#mobile" class="hover:text-grimoire-accent transition-colors">HUB Mobile</a>
                 <a href="#ai" class="hover:text-grimoire-accent transition-colors">IA Locale</a>
             </nav>
             <div class="flex items-center gap-4">
-                <a href="https://github.com/LordMadTrix/grimoire/releases" class="hidden sm:block px-4 py-2 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-sm font-semibold hover:bg-grimoire-accent hover:text-black transition-all">
+                <a href="#download" class="hidden sm:block px-4 py-2 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-sm font-semibold hover:bg-grimoire-accent hover:text-black transition-all">
                     Télécharger
                 </a>
-                <a href="https://github.com/LordMadTrix/grimoire" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                <a href="https://github.com/LordMadTrix/grimoire" target="_blank" rel="noopener" aria-label="GitHub" class="text-gray-400 hover:text-white transition-colors">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path></svg>
                 </a>
             </div>
@@ -95,35 +134,41 @@
     <main class="flex-grow pt-32 container mx-auto px-6 pb-20 text-center flex flex-col items-center">
         <div class="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-grimoire-accent/20 bg-grimoire-accent/5 text-grimoire-accent text-sm font-medium animate-pulse-slow">
             <span class="w-2 h-2 rounded-full bg-grimoire-accent"></span>
-            Version 0.3.1 — Map Editor & World Builder
+            <span id="version-badge">Version 0.3.1 — Map Editor & World Builder</span>
         </div>
         <h1 class="text-5xl md:text-8xl font-bold text-white mb-8 leading-tight tracking-tight">
             Tout votre univers <br>
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-grimoire-accent via-yellow-200 to-grimoire-accent">dans un seul Grimoire.</span>
         </h1>
         <p class="text-gray-400 text-lg md:text-2xl max-w-3xl mb-12 leading-relaxed">
-            Le premier outil TTRPG qui fusionne Wiki, Table Virtuelle et IA locale dans une application haute performance.
+            Le premier outil TTRPG qui fusionne Wiki, Table Virtuelle, éditeur de cartes et IA locale dans une application haute performance.
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-6 mb-24">
-            <a href="https://github.com/LordMadTrix/grimoire/releases" class="px-10 py-4 rounded-xl bg-grimoire-accent text-[#000] font-bold text-lg hover:scale-105 hover:bg-yellow-400 transition-all shadow-[0_0_30px_rgba(229,168,83,0.3)]">
-                Télécharger pour Windows
+        <div id="download" class="flex flex-col sm:flex-row gap-6 mb-8 scroll-mt-32">
+            <a id="dl-windows" href="https://github.com/LordMadTrix/grimoire/releases/latest" class="px-10 py-4 rounded-xl bg-grimoire-accent text-[#000] font-bold text-lg hover:scale-105 hover:bg-yellow-400 transition-all shadow-[0_0_30px_rgba(229,168,83,0.3)]">
+                ⊞ Télécharger pour Windows
             </a>
-            <a href="https://github.com/LordMadTrix/grimoire" class="px-10 py-4 rounded-xl glass text-white font-semibold text-lg hover:border-grimoire-accent transition-all">
-                Voir le code sur GitHub
+            <a id="dl-linux" href="https://github.com/LordMadTrix/grimoire/releases/latest" class="px-10 py-4 rounded-xl glass text-white font-semibold text-lg hover:border-grimoire-accent transition-all">
+                🐧 Télécharger pour Linux
             </a>
+        </div>
+        <p class="text-gray-500 text-sm mb-16">Gratuit, open source et fièrement local. <a href="https://github.com/LordMadTrix/grimoire/releases" class="text-grimoire-accent/80 hover:text-grimoire-accent underline underline-offset-4">Toutes les versions →</a></p>
+
+        <!-- Hero Image -->
+        <div class="hero-img-frame max-w-3xl w-full mb-24 reveal">
+            <img src="grimoire_hero.png" alt="Un Maître du Jeu utilise Grimoire : carte holographique tactique, grimoire enchanté et HUB mobile" class="w-full h-auto block" width="1024" height="1024">
         </div>
 
         <!-- Master Feature Sections -->
-        
+
         <!-- Section 1: VTT -->
-        <section id="vtt" class="w-full max-w-6xl mb-32 text-left">
+        <section id="vtt" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
-                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">Virtual TableTop Tactique</h2>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">Virtual TableTop Tactique</h2>
                 <div class="h-px flex-grow bg-gray-800"></div>
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="glass p-6 rounded-2xl card-hover">
                     <h4 class="text-grimoire-accent font-bold mb-2">Dynamic LOS</h4>
@@ -160,14 +205,50 @@
             </div>
         </section>
 
-        <!-- Section 2: Notes -->
-        <section id="notes" class="w-full max-w-6xl mb-32 text-left">
+        <!-- Section 2: Map Editor -->
+        <section id="mapeditor" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
-                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">Wiki & Gestion de Lore</h2>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">Map Editor & World Builder</h2>
                 <div class="h-px flex-grow bg-gray-800"></div>
             </div>
-            
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Pinceau à Tampons</h4>
+                    <p class="text-gray-400 text-sm">Dessinez des dizaines d'arbres, de rochers ou de montagnes aléatoires d'un seul coup de pinceau (Scatter Tool).</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Générateur de Continents</h4>
+                    <p class="text-gray-400 text-sm">Créez une carte continentale complète en un clic grâce à un algorithme de bruit cellulaire.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Sculptage de Côtes</h4>
+                    <p class="text-gray-400 text-sm">Pinceau rugueux avec fractal noise pour des littoraux réalistes, remplissage instantané des océans.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Chemins Adoucis</h4>
+                    <p class="text-gray-400 text-sm">Tracé vectoriel lissé avec courbes de Bézier pour des rivières et des routes élégantes.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Générateur de Donjons</h4>
+                    <p class="text-gray-400 text-sm">Salles, couloirs et murs générés procéduralement, prêts à l'emploi dans le VTT.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">Catalogue de Textures</h4>
+                    <p class="text-gray-400 text-sm">Terrains, tampons et textures organisés par thème avec import de vos propres assets.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Notes -->
+        <section id="notes" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px flex-grow bg-gray-800"></div>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">Wiki & Gestion de Lore</h2>
+                <div class="h-px flex-grow bg-gray-800"></div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="bg-white/5 p-8 rounded-3xl border border-white/5">
                     <h4 class="text-xl font-bold text-white mb-4">Éditeur Markdown</h4>
@@ -197,15 +278,15 @@
             </div>
         </section>
 
-        <!-- Section 3: Mobile -->
-        <section id="mobile" class="w-full max-w-6xl mb-32 text-left">
+        <!-- Section 4: Mobile -->
+        <section id="mobile" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
-                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">HUB Mobile Compagnon</h2>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">HUB Mobile Compagnon</h2>
                 <div class="h-px flex-grow bg-gray-800"></div>
             </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center glass p-12 rounded-3xl">
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center glass p-8 md:p-12 rounded-3xl">
                 <div>
                     <h3 class="text-3xl font-bold text-white mb-6">Le jeu, au creux de la main.</h3>
                     <p class="text-gray-400 mb-8 leading-relaxed">Vos joueurs se connectent simplement via un QR Code. Pas d'application à installer, tout passe par le navigateur mobile via un serveur local sécurisé.</p>
@@ -254,14 +335,14 @@
             </div>
         </section>
 
-        <!-- Section 4: AI -->
-        <section id="ai" class="w-full max-w-6xl mb-32 text-left">
+        <!-- Section 5: AI -->
+        <section id="ai" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
-                <h2 class="text-2xl font-bold text-white uppercase tracking-widest">IA Locale & Confidentialité</h2>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">IA Locale & Confidentialité</h2>
                 <div class="h-px flex-grow bg-gray-800"></div>
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div class="glass p-10 rounded-3xl border-grimoire-accent/10">
                     <h3 class="text-2xl font-bold text-white mb-4">L'Écrivain Fantôme</h3>
@@ -280,11 +361,33 @@
             </div>
         </section>
 
+        <!-- Tech specs -->
+        <section class="w-full max-w-4xl mb-24 reveal">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div class="glass p-6 rounded-2xl">
+                    <div class="text-3xl font-black text-grimoire-accent mb-1">~15 Mo</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Installeur ultra-léger</div>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <div class="text-3xl font-black text-grimoire-accent mb-1">100%</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Local & hors-ligne</div>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <div class="text-3xl font-black text-grimoire-accent mb-1">Rust</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Moteur Tauri natif</div>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <div class="text-3xl font-black text-grimoire-accent mb-1">MIT</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Open source</div>
+                </div>
+            </div>
+        </section>
+
         <!-- Final Call to Action -->
-        <section class="py-20">
+        <section class="py-20 reveal">
             <h2 class="text-4xl font-bold text-white mb-8">Prêt à transformer vos sessions ?</h2>
-            <a href="https://github.com/LordMadTrix/grimoire/releases" class="px-12 py-5 rounded-2xl bg-grimoire-accent text-black font-black text-xl hover:scale-110 transition-all shadow-2xl">
-                TÉLÉCHARGER GRIMOIRE v0.3.1
+            <a href="#download" class="inline-block px-12 py-5 rounded-2xl bg-grimoire-accent text-black font-black text-xl hover:scale-110 transition-all shadow-2xl">
+                TÉLÉCHARGER GRIMOIRE <span id="cta-version">v0.3.1</span>
             </a>
             <p class="mt-6 text-gray-500 text-sm">Gratuit, Open Source et fièrement local.</p>
         </section>
@@ -297,9 +400,38 @@
         <div class="flex justify-center gap-6">
             <a href="https://github.com/LordMadTrix/grimoire" class="hover:text-white transition-colors">GitHub</a>
             <a href="https://github.com/LordMadTrix/grimoire/releases" class="hover:text-white transition-colors">Releases</a>
-            <a href="mailto:contact@grimoire-vtt.io" class="hover:text-white transition-colors">Contact</a>
+            <a href="https://github.com/LordMadTrix/grimoire/issues" class="hover:text-white transition-colors">Signaler un bug</a>
         </div>
     </footer>
+
+    <script>
+        // Apparition douce des sections au scroll
+        const observer = new IntersectionObserver((entries) => {
+            for (const e of entries) {
+                if (e.isIntersecting) {
+                    e.target.classList.add('visible');
+                    observer.unobserve(e.target);
+                }
+            }
+        }, { threshold: 0.12 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // Version et liens de téléchargement toujours à jour via l'API GitHub
+        fetch('https://api.github.com/repos/LordMadTrix/grimoire/releases/latest')
+            .then(r => r.ok ? r.json() : null)
+            .then(rel => {
+                if (!rel || !rel.tag_name) return;
+                const v = rel.tag_name.replace(/^v/, '');
+                document.getElementById('version-badge').textContent = `Version ${v} — Map Editor & World Builder`;
+                document.getElementById('cta-version').textContent = `v${v}`;
+                const assets = rel.assets || [];
+                const win = assets.find(a => /\.msi$/i.test(a.name)) || assets.find(a => /setup.*\.exe$/i.test(a.name));
+                const linux = assets.find(a => /\.AppImage$/i.test(a.name)) || assets.find(a => /\.deb$/i.test(a.name));
+                if (win) document.getElementById('dl-windows').href = win.browser_download_url;
+                if (linux) document.getElementById('dl-linux').href = linux.browser_download_url;
+            })
+            .catch(() => { /* hors-ligne ou quota API : liens statiques conservés */ });
+    </script>
 
 </body>
 </html>
