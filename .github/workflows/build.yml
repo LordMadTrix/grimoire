@@ -48,6 +48,6 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "Grimoire v__VERSION__"
-          releaseBody: "### 🗺️ Grimoire v0.2.0 — Éditeur de Carte et Outils d'Environnement\n\nCette mise à jour majeure transforme l'éditeur de carte de Grimoire avec des fonctionnalités de création de mondes ultra performantes.\n\n#### ✨ Nouveautés :\n- **Pinceau à Tampons (Scatter Tool)** : Dessinez des dizaines d'arbres, de rochers ou de montagnes aléatoires d'un seul coup de pinceau.\n- **Combat HUD** : Barre d'initiative avec portraits et indicateurs de tours de r�le en plein �cran.
+          releaseBody: "### Grimoire v__VERSION__\n\nBuild ultra-léger : les cartes et musiques volumineuses ont été retirées du paquet pour une installation rapide.\n\nVoir le détail des changements dans l'historique des commits."
           releaseDraft: false
           prerelease: false

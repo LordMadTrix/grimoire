@@ -49,3 +49,16 @@ public/assets/
 # Fichiers de test temporaires
 test*.jpg
 test*.png
+
+# Outils de dev locaux et fichiers de travail (non versionnés)
+.claude/
+.grimoire/
+CLAUDE_HANDOVER.md
+cartes.txt
+find_music.txt
+gradio_schema.json
+inject_vtt.cjs
+refactor.cjs
+refactor.py
+scratch_ollama.js
+mapper-rpg-extracted/
