@@ -12,6 +12,14 @@
     scaleSelection,
     flipSelection,
     resetTransformSelection,
+    copySelection,
+    pasteClipboard,
+    hasClipboard,
+    lockSelection,
+    unlockAll,
+    countLocked,
+    setSelectionOpacity,
+    getSelectionOpacity,
   } from '../lib/pao.svelte';
 
   // Recevoir des callbacks du canevas pour certaines actions (ex: supprimer ou finir un tracé)
@@ -1616,9 +1624,48 @@
                 <button class="shape-btn" style="margin-top: 4px; width: 100%;" onclick={resetTransformSelection} title="Rotation 0°, échelle 1, miroirs désactivés">
                   ↺ Réinitialiser les transformations
                 </button>
+
+                <!-- Opacité de la sélection -->
+                <div class="slider-field" style="margin-top: 8px;">
+                  <div class="slider-header">
+                    <span class="slider-label">Opacité</span>
+                    <div class="slider-value-container">
+                      <span class="slider-unit">{Math.round(getSelectionOpacity() * 100)} %</span>
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    value={Math.round(getSelectionOpacity() * 100)}
+                    oninput={(e) => setSelectionOpacity(Number((e.target as HTMLInputElement).value) / 100)}
+                    class="slider-track"
+                  />
+                </div>
+
                 <p style="font-size: 10px; color: #8a93a5; margin: 6px 0 0;">
                   Poignées sur la carte : angles = redimensionner, rond du haut = pivoter (Maj = pas de 15°).
                 </p>
+              </div>
+
+              <!-- ── PAO : Presse-papiers & Verrouillage ── -->
+              <div class="panel-section">
+                <span class="section-title">Presse-papiers & Verrouillage</span>
+                <div class="shape-buttons-row">
+                  <button class="shape-btn" onclick={copySelection} title="Copier la sélection (Ctrl+C)">⧉ Copier</button>
+                  <button class="shape-btn" onclick={() => pasteClipboard()} disabled={!hasClipboard()} title="Coller (Ctrl+V — au curseur sur la carte)">📥 Coller</button>
+                </div>
+                <button class="shape-btn" style="margin-top: 4px; width: 100%;" onclick={lockSelection} title="Verrouiller : l'élément ne peut plus être sélectionné ni déplacé (Ctrl+L)">
+                  🔒 Verrouiller la sélection
+                </button>
+              </div>
+            {/if}
+
+            {#if countLocked() > 0}
+              <div class="panel-section">
+                <button class="shape-btn" style="width: 100%;" onclick={unlockAll} title="Rendre tous les éléments verrouillés à nouveau modifiables">
+                  🔓 Tout déverrouiller ({countLocked()})
+                </button>
               </div>
             {/if}
 

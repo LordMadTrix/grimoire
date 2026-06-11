@@ -16,6 +16,10 @@
     deleteSelection,
     rotatePointsAround,
     rectangleToPolygonPoints,
+    copySelection,
+    cutSelection,
+    pasteClipboard,
+    lockSelection,
     type ElementBBox,
   } from '../lib/pao.svelte';
 
@@ -1580,6 +1584,7 @@
       bufferCtx.save();
       bufferCtx.translate(text.x, text.y);
       bufferCtx.rotate((text.rotation * Math.PI) / 180);
+      bufferCtx.globalAlpha = text.opacity ?? 1;
       bufferCtx.font = `${text.size}px "${text.font}", serif`;
       bufferCtx.textAlign = 'center';
       bufferCtx.textBaseline = 'middle';
@@ -2119,6 +2124,7 @@
     // 1. Textes d'abord (car ils ont tendance à être au-dessus)
     for (let i = mapStore.texts.length - 1; i >= 0; i--) {
       const text = mapStore.texts[i];
+      if (text.locked) continue;
       const dist = Math.sqrt((text.x - x) ** 2 + (text.y - y) ** 2);
       // Rayon d'impact approximatif du texte
       if (dist < 40) return { type: 'text' as const, id: text.id, x: text.x, y: text.y };
@@ -2127,7 +2133,7 @@
     // 1.5. Formes Géométriques (Shapes)
     for (let i = mapStore.shapes.length - 1; i >= 0; i--) {
       const shape = mapStore.shapes[i];
-      if (shape.points.length === 0) continue;
+      if (shape.locked || shape.points.length === 0) continue;
       
       let hit = false;
       if (shape.type === 'rectangle' && shape.points.length > 1) {
@@ -2180,6 +2186,7 @@
     // 2. Tampons (Stamps), par ordre inverse d'affichage (les plus hauts d'abord)
     const sortedStamps = [...mapStore.stamps].sort((a, b) => b.y - a.y);
     for (const stamp of sortedStamps) {
+      if (stamp.locked) continue;
       let w = 80;
       let h = 80;
       if (stamp.type.startsWith('td_')) {
@@ -2818,9 +2825,9 @@
           return box.cx >= minX && box.cx <= maxX && box.cy >= minY && box.cy <= maxY;
         };
         const picked = [
-          ...mapStore.stamps.filter((s) => inRect('stamp', s.id)).map((s) => ({ type: 'stamp' as const, id: s.id })),
-          ...mapStore.texts.filter((t) => inRect('text', t.id)).map((t) => ({ type: 'text' as const, id: t.id })),
-          ...mapStore.shapes.filter((s) => inRect('shape', s.id)).map((s) => ({ type: 'shape' as const, id: s.id })),
+          ...mapStore.stamps.filter((s) => !s.locked && inRect('stamp', s.id)).map((s) => ({ type: 'stamp' as const, id: s.id })),
+          ...mapStore.texts.filter((t) => !t.locked && inRect('text', t.id)).map((t) => ({ type: 'text' as const, id: t.id })),
+          ...mapStore.shapes.filter((s) => !s.locked && inRect('shape', s.id)).map((s) => ({ type: 'shape' as const, id: s.id })),
         ];
         if (marqueeAdditive) {
           const merged = [...mapStore.selectedIds];
@@ -2986,6 +2993,19 @@
       } else if (k === 'd') {
         e.preventDefault();
         duplicateSelection();
+      } else if (k === 'c') {
+        e.preventDefault();
+        copySelection();
+      } else if (k === 'x') {
+        e.preventDefault();
+        cutSelection();
+      } else if (k === 'v') {
+        e.preventDefault();
+        mapStore.activeTool = 'grid';
+        pasteClipboard({ x: cursorMapX, y: cursorMapY });
+      } else if (k === 'l') {
+        e.preventDefault();
+        lockSelection();
       } else if (k === 'z' && e.shiftKey) {
         e.preventDefault();
         redo();

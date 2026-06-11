@@ -70,9 +70,9 @@ export function isInSelection(type: SelectableType, id: string): boolean {
 
 export function selectAll() {
   setSelection([
-    ...mapStore.stamps.map((s) => ({ type: 'stamp' as const, id: s.id })),
-    ...mapStore.texts.map((t) => ({ type: 'text' as const, id: t.id })),
-    ...mapStore.shapes.map((s) => ({ type: 'shape' as const, id: s.id })),
+    ...mapStore.stamps.filter((s) => !s.locked).map((s) => ({ type: 'stamp' as const, id: s.id })),
+    ...mapStore.texts.filter((t) => !t.locked).map((t) => ({ type: 'text' as const, id: t.id })),
+    ...mapStore.shapes.filter((s) => !s.locked).map((s) => ({ type: 'shape' as const, id: s.id })),
   ]);
 }
 
@@ -278,37 +278,194 @@ function shapeCenter(points: { x: number; y: number }[]) {
   return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
 }
 
-// Pivoter toute la sélection de `deltaDeg` degrés (chaque élément sur lui-même)
+// Pivoter toute la sélection de `deltaDeg` degrés.
+// Un seul élément : il pivote sur lui-même. Plusieurs : le groupe pivote
+// autour de son centre commun (les positions tournent aussi), façon PAO.
 export function rotateSelection(deltaDeg: number) {
-  if (mapStore.selectedIds.length === 0) return;
+  const refs = mapStore.selectedIds;
+  if (refs.length === 0) return;
   pushHistory();
   const rad = (deltaDeg * Math.PI) / 180;
-  for (const ref of mapStore.selectedIds) {
+
+  let groupCenter: { x: number; y: number } | null = null;
+  if (refs.length > 1) {
+    const boxes = refs.map((r) => getBBox(r)).filter(Boolean) as ElementBBox[];
+    if (boxes.length > 0) {
+      groupCenter = {
+        x: (Math.min(...boxes.map((b) => b.minX)) + Math.max(...boxes.map((b) => b.maxX))) / 2,
+        y: (Math.min(...boxes.map((b) => b.minY)) + Math.max(...boxes.map((b) => b.maxY))) / 2,
+      };
+    }
+  }
+  const rotatePos = (x: number, y: number) => {
+    if (!groupCenter) return { x, y };
+    const [p] = rotatePointsAround([{ x, y }], groupCenter, rad);
+    return p;
+  };
+
+  for (const ref of refs) {
     if (ref.type === 'stamp') {
       mapStore.stamps = mapStore.stamps.map((s) => {
         if (s.id !== ref.id) return s;
         let rot = Math.round(s.rotation + deltaDeg);
         rot = ((rot + 180) % 360 + 360) % 360 - 180;
-        return { ...s, rotation: rot };
+        const pos = rotatePos(s.x, s.y);
+        return { ...s, rotation: rot, x: pos.x, y: pos.y };
       });
     } else if (ref.type === 'text') {
       mapStore.texts = mapStore.texts.map((t) => {
         if (t.id !== ref.id) return t;
         let rot = Math.round(t.rotation + deltaDeg);
         rot = ((rot + 180) % 360 + 360) % 360 - 180;
-        return { ...t, rotation: rot };
+        const pos = rotatePos(t.x, t.y);
+        return { ...t, rotation: rot, x: pos.x, y: pos.y };
       });
     } else {
       mapStore.shapes = mapStore.shapes.map((s) => {
         if (s.id !== ref.id) return s;
-        if (s.type === 'circle') return s; // un cercle pivoté reste identique
+        if (s.type === 'circle') {
+          // Un cercle est invariant par rotation sur lui-même, mais son centre tourne dans un groupe
+          if (!groupCenter) return s;
+          return { ...s, points: rotatePointsAround(s.points, groupCenter, rad) };
+        }
         const pts = s.type === 'rectangle' && s.points.length > 1
           ? rectangleToPolygonPoints(s.points[0], s.points[1])
           : s.points;
-        return { ...s, type: 'polygon' as const, points: rotatePointsAround(pts, shapeCenter(pts), rad) };
+        const center = groupCenter ?? shapeCenter(pts);
+        return { ...s, type: 'polygon' as const, points: rotatePointsAround(pts, center, rad) };
       });
     }
   }
+}
+
+// ── Presse-papiers interne (copier / couper / coller) ──
+interface ClipboardData {
+  stamps: typeof mapStore.stamps;
+  texts: typeof mapStore.texts;
+  shapes: typeof mapStore.shapes;
+}
+let clipboard: ClipboardData | null = null;
+
+// Clonage JSON : les éléments de carte sont de purs objets sérialisables,
+// et structuredClone échoue sur les proxies réactifs de Svelte 5.
+const deepClone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+export function copySelection(): number {
+  const refs = mapStore.selectedIds;
+  if (refs.length === 0) return 0;
+  const ids = (type: SelectableType) => new Set(refs.filter((r) => r.type === type).map((r) => r.id));
+  clipboard = {
+    stamps: deepClone(mapStore.stamps.filter((s) => ids('stamp').has(s.id))),
+    texts: deepClone(mapStore.texts.filter((t) => ids('text').has(t.id))),
+    shapes: deepClone(mapStore.shapes.filter((s) => ids('shape').has(s.id))),
+  };
+  return refs.length;
+}
+
+export function cutSelection(): number {
+  const n = copySelection();
+  if (n > 0) deleteSelection();
+  return n;
+}
+
+export function hasClipboard(): boolean {
+  return clipboard !== null;
+}
+
+// Coller : centré sur `at` (position du curseur) si fournie, sinon décalé de 24 px
+export function pasteClipboard(at?: { x: number; y: number }) {
+  if (!clipboard) return;
+  pushHistory();
+  const newId = () => Math.random().toString(36).slice(2);
+
+  // Centre du contenu du presse-papiers pour le recentrer sur la cible
+  const xs: number[] = [];
+  const ys: number[] = [];
+  clipboard.stamps.forEach((s) => { xs.push(s.x); ys.push(s.y); });
+  clipboard.texts.forEach((t) => { xs.push(t.x); ys.push(t.y); });
+  clipboard.shapes.forEach((s) => s.points.forEach((p) => { xs.push(p.x); ys.push(p.y); }));
+  if (xs.length === 0) return;
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const dx = at ? at.x - cx : 24;
+  const dy = at ? at.y - cy : 24;
+
+  const newRefs: SelectedRef[] = [];
+  for (const src of clipboard.stamps) {
+    const clone = { ...deepClone(src), id: newId(), x: src.x + dx, y: src.y + dy, locked: false };
+    mapStore.stamps = [...mapStore.stamps, clone];
+    newRefs.push({ type: 'stamp', id: clone.id });
+  }
+  for (const src of clipboard.texts) {
+    const clone = { ...deepClone(src), id: newId(), x: src.x + dx, y: src.y + dy, locked: false };
+    mapStore.texts = [...mapStore.texts, clone];
+    newRefs.push({ type: 'text', id: clone.id });
+  }
+  for (const src of clipboard.shapes) {
+    const clone = {
+      ...deepClone(src),
+      id: newId(),
+      locked: false,
+      points: src.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+    };
+    mapStore.shapes = [...mapStore.shapes, clone];
+    newRefs.push({ type: 'shape', id: clone.id });
+  }
+  setSelection(newRefs);
+}
+
+// ── Verrouillage ──
+export function lockSelection() {
+  const refs = mapStore.selectedIds;
+  if (refs.length === 0) return;
+  pushHistory();
+  const ids = (type: SelectableType) => new Set(refs.filter((r) => r.type === type).map((r) => r.id));
+  const stampIds = ids('stamp');
+  const textIds = ids('text');
+  const shapeIds = ids('shape');
+  if (stampIds.size) mapStore.stamps = mapStore.stamps.map((s) => (stampIds.has(s.id) ? { ...s, locked: true } : s));
+  if (textIds.size) mapStore.texts = mapStore.texts.map((t) => (textIds.has(t.id) ? { ...t, locked: true } : t));
+  if (shapeIds.size) mapStore.shapes = mapStore.shapes.map((s) => (shapeIds.has(s.id) ? { ...s, locked: true } : s));
+  clearSelection(); // un élément verrouillé n'est plus sélectionnable
+}
+
+export function unlockAll() {
+  pushHistory();
+  mapStore.stamps = mapStore.stamps.map((s) => (s.locked ? { ...s, locked: false } : s));
+  mapStore.texts = mapStore.texts.map((t) => (t.locked ? { ...t, locked: false } : t));
+  mapStore.shapes = mapStore.shapes.map((s) => (s.locked ? { ...s, locked: false } : s));
+}
+
+export function countLocked(): number {
+  return (
+    mapStore.stamps.filter((s) => s.locked).length +
+    mapStore.texts.filter((t) => t.locked).length +
+    mapStore.shapes.filter((s) => s.locked).length
+  );
+}
+
+// ── Opacité de la sélection ──
+export function setSelectionOpacity(value: number) {
+  const refs = mapStore.selectedIds;
+  if (refs.length === 0) return;
+  const v = Math.max(0.05, Math.min(1, value));
+  for (const ref of refs) {
+    if (ref.type === 'stamp') {
+      mapStore.stamps = mapStore.stamps.map((s) => (s.id === ref.id ? { ...s, opacity: v } : s));
+    } else if (ref.type === 'text') {
+      mapStore.texts = mapStore.texts.map((t) => (t.id === ref.id ? { ...t, opacity: v } : t));
+    } else {
+      mapStore.shapes = mapStore.shapes.map((s) => (s.id === ref.id ? { ...s, fillOpacity: v } : s));
+    }
+  }
+}
+
+export function getSelectionOpacity(): number {
+  const ref = mapStore.selectedIds[0];
+  if (!ref) return 1;
+  if (ref.type === 'stamp') return mapStore.stamps.find((s) => s.id === ref.id)?.opacity ?? 1;
+  if (ref.type === 'text') return mapStore.texts.find((t) => t.id === ref.id)?.opacity ?? 1;
+  return mapStore.shapes.find((s) => s.id === ref.id)?.fillOpacity ?? 1;
 }
 
 // Agrandir / réduire toute la sélection d'un facteur (1.1 = +10 %)

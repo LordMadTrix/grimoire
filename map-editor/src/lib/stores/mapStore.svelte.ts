@@ -17,6 +17,7 @@ export interface MapShape {
   strokeColor: string;
   strokeWidth: number;
   strokeDash: 'solid' | 'dashed';
+  locked?: boolean;
 }
 
 export interface MapStamp {
@@ -31,6 +32,8 @@ export interface MapStamp {
   // Miroir horizontal / vertical
   flipH?: boolean;
   flipV?: boolean;
+  // Verrouillage PAO (non sélectionnable / non déplaçable)
+  locked?: boolean;
   // Ombres portées optionnelles
   shadowEnabled?: boolean;
   shadowBlur?: number;
@@ -59,6 +62,8 @@ export interface MapText {
   rotation: number;
   shadowColor: string;
   shadowBlur: number;
+  opacity?: number;
+  locked?: boolean;
 }
 
 // Store global utilisant la réactivité de Svelte 5 ($state)
