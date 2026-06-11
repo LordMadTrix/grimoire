@@ -269,7 +269,14 @@
     if (!vp) return;
     try {
       await renameEntry(vp, entry.path, newPath);
-      if (getActiveFile() === entry.path) setActiveFile(newPath);
+      const active = getActiveFile();
+      if (active === entry.path) {
+        setActiveFile(newPath);
+      } else if (active && active.startsWith(entry.path + '/')) {
+        // La note active est dans le dossier renommé : re-pointer son chemin,
+        // sinon la prochaine sauvegarde recréerait l'ancien dossier
+        setActiveFile(newPath + active.slice(entry.path.length));
+      }
       await refreshTree();
     } catch (err) { console.error('Failed to rename:', err); }
   }
@@ -290,7 +297,10 @@
     if (!vp) return;
     try {
       await deleteFile(vp, entry.path);
-      if (getActiveFile() === entry.path) {
+      const active = getActiveFile();
+      // Couvre aussi la suppression d'un dossier contenant la note active,
+      // sinon la prochaine sauvegarde ressusciterait le fichier supprimé
+      if (active === entry.path || (active && active.startsWith(entry.path + '/'))) {
         setActiveFile(null);
         setActiveContent('');
         setIsDirty(false);

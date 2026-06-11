@@ -233,6 +233,46 @@
     }
   }
 
+  // Auto-sauvegarde différée : fichier et contenu sont capturés au moment de la
+  // frappe, pas au tir du timer — sinon changer de note pendant le délai de
+  // 1,5 s sauvegarde le mauvais fichier et perd les modifications.
+  function scheduleAutoSave(content: string) {
+    const vaultPath = getVaultPath();
+    const file = getActiveFile();
+    if (!vaultPath || !file) return;
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      try {
+        await writeFile(vaultPath, file, content);
+        // Ne retirer l'indicateur ● que si rien n'a changé entre-temps
+        if (getActiveFile() === file && getActiveContent() === content) setIsDirty(false);
+      } catch (err) {
+        console.error('Failed to save:', err);
+      }
+    }, 1500);
+  }
+
+  // Ouvrir un wikilink depuis l'aperçu : charge réellement le contenu de la
+  // cible (racine du vault d'abord, comme le Ctrl+Clic de l'éditeur, puis
+  // relatif au dossier courant). Sans cela, l'ancien contenu resterait affiché
+  // sous le nouveau nom et la prochaine sauvegarde écraserait la cible.
+  async function openWikiFromPreview(href: string) {
+    const vaultPath = getVaultPath();
+    if (!vaultPath) return;
+    const currentFile = getActiveFile();
+    const dir = currentFile?.includes('/') ? currentFile.slice(0, currentFile.lastIndexOf('/') + 1) : '';
+    const candidates = dir ? [href, dir + href] : [href];
+    for (const candidate of candidates) {
+      try {
+        const content = await readFile(vaultPath, candidate);
+        setActiveFile(candidate);
+        setActiveContent(content);
+        setIsDirty(false);
+        return;
+      } catch {}
+    }
+  }
+
   $effect(() => {
     const file = getActiveFile();
     if (!file) { backlinks = []; return; }
@@ -343,8 +383,7 @@
         onInput={(val) => {
           setActiveContent(val);
           setIsDirty(true);
-          clearTimeout(saveTimeout);
-          saveTimeout = setTimeout(saveFile, 1500);
+          scheduleAutoSave(val);
           if (showPreview) markdownToHtml(val, false).then(h => { previewHtml = h; });
         }}
         onSave={() => {
@@ -361,14 +400,7 @@
           if (!link) return;
           const href = link.dataset.href;
           if (!href) return;
-          // Trouver le chemin complet dans le vault
-          const currentFile = getActiveFile();
-          if (currentFile) {
-            const dir = currentFile.includes('/') ? currentFile.slice(0, currentFile.lastIndexOf('/') + 1) : '';
-            setActiveFile(dir + href);
-          } else {
-            setActiveFile(href);
-          }
+          openWikiFromPreview(href);
         }}>
           {@html previewHtml}
         </div>

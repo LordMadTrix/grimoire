@@ -670,6 +670,8 @@ export function nextTurn() {
 
 export function prevTurn() {
   if (vttStore.combatants.length === 0) return;
+  // Revenir avant le premier combattant = revenir au round précédent
+  if (vttStore.currentTurn === 0 && vttStore.combatRound > 1) vttStore.combatRound--;
   vttStore.currentTurn = (vttStore.currentTurn - 1 + vttStore.combatants.length) % vttStore.combatants.length;
 }
 
@@ -702,6 +704,8 @@ export function updateCombatantHp(id: string, hp: number) {
 }
 
 export function addCombatant(name: string, initiative: number, hp: number, isEnemy: boolean) {
+  // Mémoriser le combattant actif : le re-tri par initiative change les index
+  const activeId = vttStore.combatants[vttStore.currentTurn]?.id;
   vttStore.combatants = [...vttStore.combatants, {
     id: Math.random().toString(36).slice(2),
     name,
@@ -710,13 +714,22 @@ export function addCombatant(name: string, initiative: number, hp: number, isEne
     maxHp: hp,
     isEnemy,
   }].sort((a, b) => b.initiative - a.initiative);
-  // Réajuster le currentTurn si nécessaire
-  vttStore.currentTurn = Math.min(vttStore.currentTurn, vttStore.combatants.length - 1);
+  const idx = vttStore.combatants.findIndex(c => c.id === activeId);
+  vttStore.currentTurn = idx >= 0 ? idx : Math.min(vttStore.currentTurn, vttStore.combatants.length - 1);
 }
 
 export function removeCombatant(id: string) {
+  const idx = vttStore.combatants.findIndex(c => c.id === id);
+  if (idx === -1) return;
   vttStore.combatants = vttStore.combatants.filter(c => c.id !== id);
-  if (vttStore.currentTurn >= vttStore.combatants.length && vttStore.combatants.length > 0) {
+  if (vttStore.combatants.length === 0) {
+    vttStore.currentTurn = 0;
+    return;
+  }
+  // Retirer un combattant placé avant le tour actif décale les index
+  if (idx < vttStore.currentTurn) {
+    vttStore.currentTurn--;
+  } else if (vttStore.currentTurn >= vttStore.combatants.length) {
     vttStore.currentTurn = 0;
   }
 }
@@ -877,7 +890,8 @@ export async function loadGmSession(vaultPath: string): Promise<boolean> {
     vttStore.audio2Volume = data.audio2Volume ?? 0.4;
     vttStore.combatants = data.combatants ?? [];
     vttStore.combatActive = data.combatActive ?? false;
-    vttStore.currentTurn = data.currentTurn ?? 0;
+    // Clamp : un fichier de session modifié/corrompu ne doit pas pointer hors liste
+    vttStore.currentTurn = Math.min(Math.max(0, data.currentTurn ?? 0), Math.max(0, vttStore.combatants.length - 1));
     vttStore.campaignTitle = data.campaignTitle ?? '';
     vttStore.maps = data.maps ?? [];
     vttStore.activeMapId = data.activeMapId ?? null;

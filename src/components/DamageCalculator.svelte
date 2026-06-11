@@ -17,7 +17,8 @@
     for (const p of parts) {
       if (p.includes('d')) {
         const [nStr, dStr] = p.split('d');
-        const n = parseInt(nStr || '1') || 1;
+        // "d6" et "+d6" = 1d6, "-d6" = -1d6 (parseInt('-') vaut NaN)
+        const n = nStr === '-' ? -1 : (parseInt(nStr || '1') || 1);
         const d = parseInt(dStr) || 6;
         for (let i = 0; i < Math.abs(n); i++) total += (n < 0 ? -1 : 1) * rnd(1, d);
       } else {
@@ -48,7 +49,8 @@
     const heal = halfDamage ? Math.ceil(lastRoll / 2) : lastRoll;
     for (const id of targetIds) {
       const c = vttStore.combatants.find(c => c.id === id);
-      if (c) updateCombatantHp(id, c.hp + heal);
+      // Les soins sont plafonnés aux PV max (le MJ peut toujours dépasser via édition manuelle)
+      if (c) updateCombatantHp(id, Math.min(c.hp + heal, c.maxHp));
     }
     applied = true;
     setTimeout(() => { applied = false; }, 1500);
