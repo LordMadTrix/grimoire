@@ -243,6 +243,174 @@ export function duplicateSelection() {
   setSelection(newRefs);
 }
 
+// ── Transformations libres (rotation, échelle, miroir) ──
+
+// Un rectangle défini par 2 coins ne peut pas pivoter : on le convertit en polygone à 4 points.
+export function rectangleToPolygonPoints(p0: { x: number; y: number }, p1: { x: number; y: number }) {
+  const minX = Math.min(p0.x, p1.x);
+  const maxX = Math.max(p0.x, p1.x);
+  const minY = Math.min(p0.y, p1.y);
+  const maxY = Math.max(p0.y, p1.y);
+  return [
+    { x: minX, y: minY },
+    { x: maxX, y: minY },
+    { x: maxX, y: maxY },
+    { x: minX, y: maxY },
+  ];
+}
+
+export function rotatePointsAround(points: { x: number; y: number }[], center: { x: number; y: number }, rad: number) {
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return points.map((p) => {
+    const dx = p.x - center.x;
+    const dy = p.y - center.y;
+    return { x: center.x + dx * cos - dy * sin, y: center.y + dx * sin + dy * cos };
+  });
+}
+
+function shapeCenter(points: { x: number; y: number }[]) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of points) {
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  }
+  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+}
+
+// Pivoter toute la sélection de `deltaDeg` degrés (chaque élément sur lui-même)
+export function rotateSelection(deltaDeg: number) {
+  if (mapStore.selectedIds.length === 0) return;
+  pushHistory();
+  const rad = (deltaDeg * Math.PI) / 180;
+  for (const ref of mapStore.selectedIds) {
+    if (ref.type === 'stamp') {
+      mapStore.stamps = mapStore.stamps.map((s) => {
+        if (s.id !== ref.id) return s;
+        let rot = Math.round(s.rotation + deltaDeg);
+        rot = ((rot + 180) % 360 + 360) % 360 - 180;
+        return { ...s, rotation: rot };
+      });
+    } else if (ref.type === 'text') {
+      mapStore.texts = mapStore.texts.map((t) => {
+        if (t.id !== ref.id) return t;
+        let rot = Math.round(t.rotation + deltaDeg);
+        rot = ((rot + 180) % 360 + 360) % 360 - 180;
+        return { ...t, rotation: rot };
+      });
+    } else {
+      mapStore.shapes = mapStore.shapes.map((s) => {
+        if (s.id !== ref.id) return s;
+        if (s.type === 'circle') return s; // un cercle pivoté reste identique
+        const pts = s.type === 'rectangle' && s.points.length > 1
+          ? rectangleToPolygonPoints(s.points[0], s.points[1])
+          : s.points;
+        return { ...s, type: 'polygon' as const, points: rotatePointsAround(pts, shapeCenter(pts), rad) };
+      });
+    }
+  }
+}
+
+// Agrandir / réduire toute la sélection d'un facteur (1.1 = +10 %)
+export function scaleSelection(factor: number) {
+  if (mapStore.selectedIds.length === 0) return;
+  pushHistory();
+  for (const ref of mapStore.selectedIds) {
+    if (ref.type === 'stamp') {
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        s.id === ref.id ? { ...s, scale: Math.max(0.05, Math.min(10, Number((s.scale * factor).toFixed(3)))) } : s
+      );
+    } else if (ref.type === 'text') {
+      mapStore.texts = mapStore.texts.map((t) =>
+        t.id === ref.id ? { ...t, size: Math.max(8, Math.min(300, Math.round(t.size * factor))) } : t
+      );
+    } else {
+      mapStore.shapes = mapStore.shapes.map((s) => {
+        if (s.id !== ref.id) return s;
+        const c = shapeCenter(s.points);
+        return { ...s, points: s.points.map((p) => ({ x: c.x + (p.x - c.x) * factor, y: c.y + (p.y - c.y) * factor })) };
+      });
+    }
+  }
+}
+
+// Miroir horizontal ou vertical. À plusieurs : les positions sont aussi
+// réfléchies autour du centre du groupe (comportement PAO standard).
+export function flipSelection(axis: 'h' | 'v') {
+  const refs = mapStore.selectedIds;
+  if (refs.length === 0) return;
+  pushHistory();
+
+  let groupCenter: { x: number; y: number } | null = null;
+  if (refs.length > 1) {
+    const boxes = refs.map((r) => getBBox(r)).filter(Boolean) as ElementBBox[];
+    if (boxes.length > 0) {
+      groupCenter = {
+        x: (Math.min(...boxes.map((b) => b.minX)) + Math.max(...boxes.map((b) => b.maxX))) / 2,
+        y: (Math.min(...boxes.map((b) => b.minY)) + Math.max(...boxes.map((b) => b.maxY))) / 2,
+      };
+    }
+  }
+  const mirror = (v: number, c: number) => 2 * c - v;
+
+  for (const ref of refs) {
+    if (ref.type === 'stamp') {
+      mapStore.stamps = mapStore.stamps.map((s) => {
+        if (s.id !== ref.id) return s;
+        const next = { ...s };
+        if (axis === 'h') {
+          next.flipH = !s.flipH;
+          next.rotation = -s.rotation;
+          if (groupCenter) next.x = mirror(s.x, groupCenter.x);
+        } else {
+          next.flipV = !s.flipV;
+          next.rotation = -s.rotation;
+          if (groupCenter) next.y = mirror(s.y, groupCenter.y);
+        }
+        return next;
+      });
+    } else if (ref.type === 'text') {
+      // Le texte n'est pas mis en miroir glyphe par glyphe (illisible) : seule sa position l'est.
+      mapStore.texts = mapStore.texts.map((t) => {
+        if (t.id !== ref.id) return t;
+        const next = { ...t, rotation: -t.rotation };
+        if (groupCenter) {
+          if (axis === 'h') next.x = mirror(t.x, groupCenter.x);
+          else next.y = mirror(t.y, groupCenter.y);
+        }
+        return next;
+      });
+    } else {
+      mapStore.shapes = mapStore.shapes.map((s) => {
+        if (s.id !== ref.id) return s;
+        const c = groupCenter ?? shapeCenter(s.points);
+        return {
+          ...s,
+          points: s.points.map((p) =>
+            axis === 'h' ? { x: mirror(p.x, c.x), y: p.y } : { x: p.x, y: mirror(p.y, c.y) }
+          ),
+        };
+      });
+    }
+  }
+}
+
+// Réinitialiser les transformations (rotation 0, échelle 1, miroirs désactivés)
+export function resetTransformSelection() {
+  if (mapStore.selectedIds.length === 0) return;
+  pushHistory();
+  for (const ref of mapStore.selectedIds) {
+    if (ref.type === 'stamp') {
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        s.id === ref.id ? { ...s, rotation: 0, scale: 1, flipH: false, flipV: false } : s
+      );
+    } else if (ref.type === 'text') {
+      mapStore.texts = mapStore.texts.map((t) => (t.id === ref.id ? { ...t, rotation: 0 } : t));
+    }
+    // Formes : pas de transformation mémorisée à réinitialiser (les points sont absolus)
+  }
+}
+
 export function deleteSelection() {
   if (mapStore.selectedIds.length === 0) return;
   pushHistory();

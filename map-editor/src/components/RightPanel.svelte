@@ -8,6 +8,10 @@
     duplicateSelection,
     moveSelectionBy,
     getBBox,
+    rotateSelection,
+    scaleSelection,
+    flipSelection,
+    resetTransformSelection,
   } from '../lib/pao.svelte';
 
   // Recevoir des callbacks du canevas pour certaines actions (ex: supprimer ou finir un tracé)
@@ -1588,6 +1592,35 @@
                 </div>
               {/if}
             </div>
+
+            {#if selCount >= 1}
+              <!-- ── PAO : Transformation ── -->
+              <div class="panel-section">
+                <span class="section-title">Transformation</span>
+                <div class="shape-buttons-row">
+                  <button class="shape-btn" onclick={() => rotateSelection(-90)} title="Pivoter de 90° vers la gauche">⟲ 90°</button>
+                  <button class="shape-btn" onclick={() => rotateSelection(90)} title="Pivoter de 90° vers la droite">⟳ 90°</button>
+                </div>
+                <div class="shape-buttons-row" style="margin-top: 4px;">
+                  <button class="shape-btn" onclick={() => rotateSelection(-15)} title="Pivoter de 15° vers la gauche">⟲ 15°</button>
+                  <button class="shape-btn" onclick={() => rotateSelection(15)} title="Pivoter de 15° vers la droite">⟳ 15°</button>
+                </div>
+                <div class="shape-buttons-row" style="margin-top: 4px;">
+                  <button class="shape-btn" onclick={() => flipSelection('h')} title="Miroir horizontal (retourner gauche-droite)">↔ Miroir H</button>
+                  <button class="shape-btn" onclick={() => flipSelection('v')} title="Miroir vertical (retourner haut-bas)">↕ Miroir V</button>
+                </div>
+                <div class="shape-buttons-row" style="margin-top: 4px;">
+                  <button class="shape-btn" onclick={() => scaleSelection(1.1)} title="Agrandir de 10 %">⊕ Agrandir</button>
+                  <button class="shape-btn" onclick={() => scaleSelection(1 / 1.1)} title="Réduire de 10 %">⊖ Réduire</button>
+                </div>
+                <button class="shape-btn" style="margin-top: 4px; width: 100%;" onclick={resetTransformSelection} title="Rotation 0°, échelle 1, miroirs désactivés">
+                  ↺ Réinitialiser les transformations
+                </button>
+                <p style="font-size: 10px; color: #8a93a5; margin: 6px 0 0;">
+                  Poignées sur la carte : angles = redimensionner, rond du haut = pivoter (Maj = pas de 15°).
+                </p>
+              </div>
+            {/if}
 
             {#if selCount >= 2}
               <div class="panel-section">

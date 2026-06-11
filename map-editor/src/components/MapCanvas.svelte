@@ -14,6 +14,8 @@
     moveSelectionBy,
     duplicateSelection,
     deleteSelection,
+    rotatePointsAround,
+    rectangleToPolygonPoints,
     type ElementBBox,
   } from '../lib/pao.svelte';
 
@@ -51,6 +53,10 @@
   let initialDragAngle = 0;
   let isDraggingElement = false;
   let dragOffset = { x: 0, y: 0 };
+  // Transformation interactive des textes et formes
+  let initialTextSize = 22;
+  let initialShapePoints: { x: number; y: number }[] = [];
+  let shapeDragCenter = { x: 0, y: 0 };
 
   // Suivi de la souris pour l'aperçu (preview)
   let cursorMapX = $state(0);
@@ -1245,6 +1251,26 @@
       shape.points.forEach(p => {
         ctx.fillRect(p.x - handleSize/2, p.y - handleSize/2, handleSize, handleSize);
       });
+
+      // Poignées de transformation aux angles de la bbox
+      ctx.setLineDash([]);
+      const cornerSize = 8 / mapStore.zoom;
+      for (const [cx, cy] of [[minX - 4, minY - 4], [maxX + 4, minY - 4], [minX - 4, maxY + 4], [maxX + 4, maxY + 4]]) {
+        ctx.fillRect(cx - cornerSize / 2, cy - cornerSize / 2, cornerSize, cornerSize);
+      }
+
+      // Poignée de rotation (pas pour les cercles)
+      if (shape.type !== 'circle') {
+        const cx = (minX + maxX) / 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, minY - 4);
+        ctx.lineTo(cx, minY - 4 - 30 / mapStore.zoom);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, minY - 4 - 30 / mapStore.zoom, 6 / mapStore.zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -1408,6 +1434,7 @@
         bufferCtx.save();
         bufferCtx.translate(stamp.x, stamp.y);
         bufferCtx.rotate((stamp.rotation * Math.PI) / 180);
+        if (stamp.flipH || stamp.flipV) bufferCtx.scale(stamp.flipH ? -1 : 1, stamp.flipV ? -1 : 1);
         bufferCtx.globalAlpha = stamp.opacity;
         
         if (stamp.shadowEnabled) {
@@ -1431,6 +1458,7 @@
           bufferCtx.save();
           bufferCtx.translate(stamp.x, stamp.y);
           bufferCtx.rotate((stamp.rotation * Math.PI) / 180);
+          if (stamp.flipH || stamp.flipV) bufferCtx.scale(stamp.flipH ? -1 : 1, stamp.flipV ? -1 : 1);
           bufferCtx.globalAlpha = stamp.opacity;
           
           // Dessiner l'image centrée
@@ -1577,9 +1605,29 @@
         const textMetrics = bufferCtx.measureText(text.text);
         const w = textMetrics.width;
         const h = text.size;
+        const bw = w / 2 + 8;
+        const bh = h / 2 + 4;
         bufferCtx.strokeStyle = '#d4a84b';
         bufferCtx.lineWidth = 1.5;
-        bufferCtx.strokeRect(-w / 2 - 8, -h / 2 - 4, w + 16, h + 8);
+        bufferCtx.strokeRect(-bw, -bh, bw * 2, bh * 2);
+
+        // Poignées de transformation (outil Sélection)
+        if (mapStore.activeTool === 'grid') {
+          const handleSize = 8 / mapStore.zoom;
+          bufferCtx.fillStyle = '#d4a84b';
+          for (const [cx, cy] of [[-bw, -bh], [bw, -bh], [-bw, bh], [bw, bh]]) {
+            bufferCtx.fillRect(cx - handleSize / 2, cy - handleSize / 2, handleSize, handleSize);
+          }
+          // Poignée de rotation
+          bufferCtx.beginPath();
+          bufferCtx.moveTo(0, -bh);
+          bufferCtx.lineTo(0, -bh - 30 / mapStore.zoom);
+          bufferCtx.stroke();
+          bufferCtx.beginPath();
+          bufferCtx.arc(0, -bh - 30 / mapStore.zoom, 6 / mapStore.zoom, 0, Math.PI * 2);
+          bufferCtx.fill();
+          bufferCtx.stroke();
+        }
       }
 
       bufferCtx.restore();
@@ -2359,6 +2407,97 @@
         }
       }
 
+      // 1b. Poignées du texte sélectionné (rotation + taille)
+      if (mapStore.selectedElement && mapStore.selectedElement.type === 'text') {
+        const t = mapStore.texts.find((tx) => tx.id === mapStore.selectedElement!.id);
+        if (t) {
+          let w = t.text.length * t.size * 0.55;
+          if (bufferCtx) {
+            bufferCtx.save();
+            bufferCtx.font = `${t.size}px "${t.font}", serif`;
+            w = bufferCtx.measureText(t.text).width;
+            bufferCtx.restore();
+          }
+          const lx = mapPos.x - t.x;
+          const ly = mapPos.y - t.y;
+          const rad = (-t.rotation * Math.PI) / 180;
+          const rx = lx * Math.cos(rad) - ly * Math.sin(rad);
+          const ry = lx * Math.sin(rad) + ly * Math.cos(rad);
+          const clickRadius = 12 / mapStore.zoom;
+          const bw = w / 2 + 8;
+          const bh = t.size / 2 + 4;
+
+          if (Math.hypot(rx, ry - (-bh - 30 / mapStore.zoom)) <= clickRadius) {
+            pushHistory();
+            activeHandle = 'rotate-text';
+            initialDragRotation = t.rotation;
+            initialDragAngle = Math.atan2(ly, lx);
+            isDraggingElement = true;
+            return;
+          }
+          for (const [cx, cy] of [[-bw, -bh], [bw, -bh], [-bw, bh], [bw, bh]]) {
+            if (Math.hypot(rx - cx, ry - cy) <= clickRadius) {
+              pushHistory();
+              activeHandle = 'resize-text';
+              initialTextSize = t.size;
+              initialDragDist = Math.hypot(lx, ly);
+              isDraggingElement = true;
+              return;
+            }
+          }
+        }
+      }
+
+      // 1c. Poignées de la forme sélectionnée (rotation + redimensionnement)
+      if (mapStore.selectedElement && mapStore.selectedElement.type === 'shape') {
+        const sh = mapStore.shapes.find((s) => s.id === mapStore.selectedElement!.id);
+        if (sh && sh.points.length > 0) {
+          const box = measureElement('shape', sh.id);
+          if (box) {
+            const clickRadius = 12 / mapStore.zoom;
+
+            // Rotation (pas pour les cercles : invariants par rotation)
+            if (sh.type !== 'circle' && Math.hypot(mapPos.x - box.cx, mapPos.y - (box.minY - 4 - 30 / mapStore.zoom)) <= clickRadius) {
+              pushHistory();
+              // Un rectangle défini par 2 coins doit devenir un polygone pour pivoter
+              if (sh.type === 'rectangle' && sh.points.length > 1) {
+                const poly = rectangleToPolygonPoints(sh.points[0], sh.points[1]);
+                mapStore.shapes = mapStore.shapes.map((s) =>
+                  s.id === sh.id ? { ...s, type: 'polygon' as const, points: poly } : s
+                );
+                initialShapePoints = poly.map((p) => ({ ...p }));
+              } else {
+                initialShapePoints = sh.points.map((p) => ({ ...p }));
+              }
+              shapeDragCenter = { x: box.cx, y: box.cy };
+              activeHandle = 'rotate-shape';
+              initialDragAngle = Math.atan2(mapPos.y - box.cy, mapPos.x - box.cx);
+              isDraggingElement = true;
+              return;
+            }
+
+            // Redimensionnement par les angles de la bbox
+            const bboxCorners = [
+              [box.minX - 4, box.minY - 4],
+              [box.maxX + 4, box.minY - 4],
+              [box.minX - 4, box.maxY + 4],
+              [box.maxX + 4, box.maxY + 4],
+            ];
+            for (const [cx, cy] of bboxCorners) {
+              if (Math.hypot(mapPos.x - cx, mapPos.y - cy) <= clickRadius) {
+                pushHistory();
+                initialShapePoints = sh.points.map((p) => ({ ...p }));
+                shapeDragCenter = { x: box.cx, y: box.cy };
+                activeHandle = 'resize-shape';
+                initialDragDist = Math.hypot(mapPos.x - box.cx, mapPos.y - box.cy);
+                isDraggingElement = true;
+                return;
+              }
+            }
+          }
+        }
+      }
+
       // 2. Sélection normale de stamp/texte/shape (multi-sélection PAO)
       const hit = findElementAt(mapPos.x, mapPos.y);
       if (hit) {
@@ -2565,8 +2704,9 @@
           const currentAngle = Math.atan2(ly, lx);
           const angleDiff = ((currentAngle - initialDragAngle) * 180) / Math.PI;
           let newRot = Math.round(initialDragRotation + angleDiff);
+          if (e.shiftKey) newRot = Math.round(newRot / 15) * 15; // Maj : pas de 15°
           newRot = ((newRot + 180) % 360) - 180;
-          
+
           mapStore.stamps = mapStore.stamps.map(s =>
             s.id === selectedStamp.id ? { ...s, rotation: newRot } : s
           );
@@ -2587,6 +2727,47 @@
             );
             mapStore.stampScale = newScale;
           }
+        }
+      } else if (activeHandle === 'rotate-text' && mapStore.selectedElement.type === 'text') {
+        const t = mapStore.texts.find((tx) => tx.id === mapStore.selectedElement!.id);
+        if (t) {
+          const currentAngle = Math.atan2(mapPos.y - t.y, mapPos.x - t.x);
+          let newRot = Math.round(initialDragRotation + ((currentAngle - initialDragAngle) * 180) / Math.PI);
+          if (e.shiftKey) newRot = Math.round(newRot / 15) * 15;
+          newRot = ((newRot + 180) % 360 + 360) % 360 - 180;
+          mapStore.texts = mapStore.texts.map((tx) => (tx.id === t.id ? { ...tx, rotation: newRot } : tx));
+          mapStore.textRotation = newRot;
+        }
+      } else if (activeHandle === 'resize-text' && mapStore.selectedElement.type === 'text') {
+        const t = mapStore.texts.find((tx) => tx.id === mapStore.selectedElement!.id);
+        if (t && initialDragDist > 5) {
+          const currentDist = Math.hypot(mapPos.x - t.x, mapPos.y - t.y);
+          const newSize = Math.max(8, Math.min(300, Math.round(initialTextSize * (currentDist / initialDragDist))));
+          mapStore.texts = mapStore.texts.map((tx) => (tx.id === t.id ? { ...tx, size: newSize } : tx));
+          mapStore.textSize = newSize;
+        }
+      } else if (activeHandle === 'rotate-shape' && mapStore.selectedElement.type === 'shape') {
+        const currentAngle = Math.atan2(mapPos.y - shapeDragCenter.y, mapPos.x - shapeDragCenter.x);
+        let delta = currentAngle - initialDragAngle;
+        if (e.shiftKey) {
+          const deg = Math.round(((delta * 180) / Math.PI) / 15) * 15;
+          delta = (deg * Math.PI) / 180;
+        }
+        const pts = rotatePointsAround(initialShapePoints, shapeDragCenter, delta);
+        mapStore.shapes = mapStore.shapes.map((s) =>
+          s.id === mapStore.selectedElement!.id ? { ...s, points: pts } : s
+        );
+      } else if (activeHandle === 'resize-shape' && mapStore.selectedElement.type === 'shape') {
+        if (initialDragDist > 5) {
+          const currentDist = Math.hypot(mapPos.x - shapeDragCenter.x, mapPos.y - shapeDragCenter.y);
+          const ratio = Math.max(0.05, currentDist / initialDragDist);
+          const pts = initialShapePoints.map((p) => ({
+            x: shapeDragCenter.x + (p.x - shapeDragCenter.x) * ratio,
+            y: shapeDragCenter.y + (p.y - shapeDragCenter.y) * ratio,
+          }));
+          mapStore.shapes = mapStore.shapes.map((s) =>
+            s.id === mapStore.selectedElement!.id ? { ...s, points: pts } : s
+          );
         }
       }
     }

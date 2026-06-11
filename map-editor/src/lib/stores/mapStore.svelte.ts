@@ -28,6 +28,9 @@ export interface MapStamp {
   rotation: number;
   opacity: number;
   zIndex: number;
+  // Miroir horizontal / vertical
+  flipH?: boolean;
+  flipV?: boolean;
   // Ombres portées optionnelles
   shadowEnabled?: boolean;
   shadowBlur?: number;
