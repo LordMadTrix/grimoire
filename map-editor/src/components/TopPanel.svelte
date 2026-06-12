@@ -7,13 +7,29 @@
     onLoad = (e: Event) => {},
     onClear = () => {},
     onMenuClick = () => {}
-  }: { 
+  }: {
     onExport?: () => void;
     onSave?: () => void;
     onLoad?: (e: Event) => void;
     onClear?: () => void;
     onMenuClick?: () => void;
   } = $props();
+
+  // Zoom centré sur le milieu du viewport
+  function zoomBy(factor: number) {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const next = Math.min(4.0, Math.max(0.15, mapStore.zoom * factor));
+    mapStore.panX = cx - ((cx - mapStore.panX) / mapStore.zoom) * next;
+    mapStore.panY = cy - ((cy - mapStore.panY) / mapStore.zoom) * next;
+    mapStore.zoom = next;
+  }
+
+  function resetZoom() {
+    mapStore.zoom = 0.6;
+    mapStore.panX = 50;
+    mapStore.panY = 50;
+  }
 </script>
 
 <div class="top-panel">
@@ -170,6 +186,17 @@
 
   <div class="tp-divider"></div>
 
+  <!-- Contrôle de zoom -->
+  <div class="tp-zoom-group">
+    <button type="button" class="tp-btn" onclick={() => zoomBy(1 / 1.2)} title="Zoom arrière">−</button>
+    <button type="button" class="tp-btn tp-zoom-value" onclick={resetZoom} title="Réinitialiser le zoom (100 % de la vue par défaut)">
+      {Math.round(mapStore.zoom * 100)} %
+    </button>
+    <button type="button" class="tp-btn" onclick={() => zoomBy(1.2)} title="Zoom avant">+</button>
+  </div>
+
+  <div class="tp-divider"></div>
+
   <!-- Titre de la carte (lié au store, sauvegardé avec le projet) -->
   <div class="tp-campaign">
     <input type="text" class="tp-campaign-title" placeholder="Sans titre" bind:value={mapStore.mapTitle} />
@@ -200,6 +227,19 @@
 </div>
 
 <style>
+  .tp-zoom-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .tp-zoom-value {
+    min-width: 48px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
   .top-panel {
     height: var(--editor-top-nav-height);
     width: 100%;

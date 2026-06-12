@@ -2964,6 +2964,42 @@
     resetCanvasData();
   }
 
+  // Sérialiser le terrain (masque de terre + textures peintes) en PNG base64,
+  // pour la sauvegarde projet et l'auto-sauvegarde
+  export function getTerrainData(): { mask: string; land: string } {
+    return {
+      mask: maskCanvas.toDataURL('image/png'),
+      land: landCanvas.toDataURL('image/png'),
+    };
+  }
+
+  // Restaurer le terrain depuis des PNG base64
+  export async function setTerrainData(data: { mask?: string; land?: string }) {
+    const loadImage = (url: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+    const targets: [string | undefined, CanvasRenderingContext2D][] = [
+      [data.mask, maskCtx],
+      [data.land, landCtx],
+    ];
+    for (const [url, ctx] of targets) {
+      if (!url) continue;
+      try {
+        const img = await loadImage(url);
+        ctx.save();
+        ctx.globalCompositeOperation = 'copy';
+        ctx.drawImage(img, 0, 0);
+        ctx.restore();
+      } catch {
+        // Image corrompue : on garde le terrain actuel
+      }
+    }
+  }
+
   // Finaliser le tracé (Esc ou Entrée ou Clic droit)
   export function finishPath() {
     if (currentPathPoints.length < 2) {
@@ -3091,6 +3127,34 @@
       const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
       const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
       moveSelectionBy(dx, dy, true);
+      return;
+    }
+
+    // Raccourcis d'outils (une lettre, sans modificateur)
+    if (!e.altKey && !e.shiftKey) {
+      const toolKeys: Record<string, typeof mapStore.activeTool> = {
+        v: 'grid',     // sélection
+        b: 'sculpt',   // pinceau terrain
+        p: 'paint',    // peinture de textures
+        s: 'stamp',    // tampons
+        l: 'path',     // tracés (lignes)
+        f: 'shape',    // formes
+        t: 'text',     // texte
+        m: 'measure',  // mesure
+      };
+      const k = e.key.toLowerCase();
+      if (k in toolKeys) {
+        mapStore.activeTool = toolKeys[k];
+        mapStore.showPanel = true;
+        return;
+      }
+      if (k === 'g') {
+        mapStore.showGrid = !mapStore.showGrid;
+        return;
+      }
+      if (k === 'r') {
+        mapStore.showRulers = !mapStore.showRulers;
+      }
     }
   }
 </script>

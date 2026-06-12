@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import LeftToolbar from './components/LeftToolbar.svelte';
   import TopPanel from './components/TopPanel.svelte';
   import MapCanvas from './components/MapCanvas.svelte';
@@ -59,12 +60,15 @@
     }
   }
 
-  // Exporter en fichier JSON de sauvegarde
-  function saveProjectJson() {
-    const data = {
-      version: 1,
+  // Construire l'objet projet complet (terrain raster inclus si demandé)
+  function buildProjectData(includeTerrain = true) {
+    return {
+      version: 2,
       mapTitle: mapStore.mapTitle,
       guides: mapStore.guides,
+      // Terrain sculpté/peint en PNG base64 — sans lui, recharger un projet
+      // perdait tout le travail au pinceau
+      terrain: includeTerrain && canvasComponent?.getTerrainData ? canvasComponent.getTerrainData() : null,
       stamps: mapStore.stamps,
       paths: mapStore.paths,
       texts: mapStore.texts,
@@ -93,6 +97,11 @@
       stampSnapEnabled: mapStore.stampSnapEnabled,
       stampSnapMode: mapStore.stampSnapMode,
     };
+  }
+
+  // Exporter en fichier JSON de sauvegarde
+  function saveProjectJson() {
+    const data = buildProjectData(true);
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -103,16 +112,9 @@
     URL.revokeObjectURL(url);
   }
 
-  // Charger depuis un fichier JSON de sauvegarde
-  function loadProjectJson(e: Event) {
-    const input = e.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target?.result as string);
-        if (data.stamps) mapStore.stamps = data.stamps;
+  // Appliquer un objet projet au store (chargement fichier ou auto-sauvegarde)
+  function applyProjectData(data: any) {
+    if (data.stamps) mapStore.stamps = data.stamps;
         if (data.paths) mapStore.paths = data.paths;
         if (data.texts) mapStore.texts = data.texts;
         if (data.shapes) mapStore.shapes = data.shapes;
@@ -145,13 +147,77 @@
         if (data.stampSnapEnabled !== undefined) mapStore.stampSnapEnabled = data.stampSnapEnabled;
         if (data.stampSnapMode) mapStore.stampSnapMode = data.stampSnapMode;
 
-        mapStore.selectedElement = null;
+    // Restaurer le terrain raster (projets v2)
+    if (data.terrain && canvasComponent?.setTerrainData) {
+      canvasComponent.setTerrainData(data.terrain);
+    }
+
+    mapStore.selectedElement = null;
+    mapStore.selectedIds = [];
+  }
+
+  // Charger depuis un fichier JSON de sauvegarde
+  function loadProjectJson(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        applyProjectData(JSON.parse(event.target?.result as string));
       } catch (err) {
         alert('Fichier de sauvegarde invalide.');
       }
     };
     reader.readAsText(file);
   }
+
+  // ── Auto-sauvegarde locale (protection contre crash / fermeture) ──
+  const AUTOSAVE_KEY = 'map_editor_autosave_v1';
+
+  function saveAutosave() {
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(buildProjectData(true)));
+    } catch {
+      // Quota localStorage dépassé (terrain volumineux) : sauver sans terrain
+      try {
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(buildProjectData(false)));
+      } catch {}
+    }
+  }
+
+  // Bannière non bloquante de restauration (un confirm() natif gèlerait le démarrage)
+  let pendingAutosave = $state<any>(null);
+
+  function restoreAutosave() {
+    if (pendingAutosave) applyProjectData(pendingAutosave);
+    pendingAutosave = null;
+  }
+
+  function dismissAutosave() {
+    pendingAutosave = null;
+  }
+
+  onMount(() => {
+    // Proposer la restauration d'une session précédente
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        const hasContent =
+          data.stamps?.length || data.texts?.length || data.shapes?.length ||
+          data.paths?.length || data.terrain;
+        if (hasContent) pendingAutosave = data;
+      }
+    } catch {}
+
+    const autosaveTimer = setInterval(saveAutosave, 60_000);
+    window.addEventListener('beforeunload', saveAutosave);
+    return () => {
+      clearInterval(autosaveTimer);
+      window.removeEventListener('beforeunload', saveAutosave);
+    };
+  });
 </script>
 
 <main class="app-layout">
@@ -182,6 +248,15 @@
   <!-- Catalogue d'assets (Modal) -->
   <CatalogModal />
   <TextureCatalogModal />
+
+  <!-- Bannière de restauration d'auto-sauvegarde -->
+  {#if pendingAutosave}
+    <div class="autosave-banner">
+      <span>💾 Une auto-sauvegarde de votre dernière session a été trouvée.</span>
+      <button class="autosave-btn restore" onclick={restoreAutosave}>Restaurer</button>
+      <button class="autosave-btn" onclick={dismissAutosave}>Ignorer</button>
+    </div>
+  {/if}
 </main>
 
 <style>
@@ -212,6 +287,42 @@
     height: 100vh;
     z-index: 10;
   }
+
+  .autosave-banner {
+    position: fixed;
+    bottom: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(11, 14, 23, 0.95);
+    border: 1px solid rgba(212, 168, 75, 0.4);
+    color: #e5c383;
+    font-size: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    z-index: 300;
+  }
+
+  .autosave-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 12px;
+    padding: 4px 12px;
+    cursor: pointer;
+  }
+  .autosave-btn:hover { background: rgba(255, 255, 255, 0.06); }
+  .autosave-btn.restore {
+    background: rgba(212, 168, 75, 0.15);
+    border-color: rgba(212, 168, 75, 0.5);
+    color: #e5a853;
+    font-weight: 600;
+  }
+  .autosave-btn.restore:hover { background: rgba(212, 168, 75, 0.3); }
 
   /* Style global pour positionner absolument LeftToolbar sous le TopPanel */
   :global(.left-nav) {
