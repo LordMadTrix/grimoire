@@ -70,6 +70,9 @@ export interface MapText {
 export const mapStore = $state({
   activeTool: 'sculpt' as ToolType,
 
+  // Titre de la carte (affiché dans la barre, utilisé pour les noms de fichiers)
+  mapTitle: 'Royaume de Fantaisie',
+
   // Style de la carte et brosses
   // mapStyle a été supprimé pour ne garder que le mode "Monde" (isometric)
   brushShape: 'circle' as 'circle' | 'square' | 'rough',
@@ -248,54 +251,93 @@ export function toggleFavoriteTexture(textureId: string) {
   localStorage.setItem('map_editor_fav_textures', JSON.stringify(mapStore.favoriteTextures));
 }
 
-// Gestion de l'historique Undo / Redo
-const undoStack: string[] = [];
-const redoStack: string[] = [];
+// Gestion de l'historique Undo / Redo (vectoriel + raster optionnel)
+//
+// Les coups de pinceau sculpt/paint et les actions globales (continent,
+// remplissage…) modifient des canvases raster que le snapshot JSON ne couvre
+// pas. Le canevas enregistre ici des hooks de capture/restauration ; les
+// entrées d'historique transportent alors aussi un snapshot raster.
+export interface RasterHooks {
+  capture(): unknown;
+  restore(snapshot: unknown): void;
+}
+let rasterHooks: RasterHooks | null = null;
+export function setRasterHooks(hooks: RasterHooks | null) {
+  rasterHooks = hooks;
+}
 
-export function pushHistory() {
-  const snapshot = JSON.stringify({
+interface HistoryEntry {
+  vector: string;
+  raster: unknown | null;
+}
+const undoStack: HistoryEntry[] = [];
+const redoStack: HistoryEntry[] = [];
+// Un snapshot raster pèse ~12 Mo (2000×1500 ×2 canvases) : on en garde peu
+const MAX_RASTER_SNAPSHOTS = 6;
+
+function vectorSnapshot(): string {
+  return JSON.stringify({
     stamps: mapStore.stamps,
     paths: mapStore.paths,
     texts: mapStore.texts,
     shapes: mapStore.shapes,
   });
-  undoStack.push(snapshot);
+}
+
+function applyVectorSnapshot(snapshot: string) {
+  const data = JSON.parse(snapshot);
+  mapStore.stamps = data.stamps;
+  mapStore.paths = data.paths;
+  mapStore.texts = data.texts;
+  mapStore.shapes = data.shapes || [];
+}
+
+function trimRasterSnapshots(stack: HistoryEntry[]) {
+  let count = stack.filter((e) => e.raster !== null).length;
+  for (const e of stack) {
+    if (count <= MAX_RASTER_SNAPSHOTS) break;
+    if (e.raster !== null) {
+      e.raster = null;
+      count--;
+    }
+  }
+}
+
+export function pushHistory(includeRaster = false) {
+  undoStack.push({
+    vector: vectorSnapshot(),
+    raster: includeRaster && rasterHooks ? rasterHooks.capture() : null,
+  });
   if (undoStack.length > 50) {
     undoStack.shift();
   }
+  trimRasterSnapshots(undoStack);
   redoStack.length = 0; // Vider le redo lors d'une nouvelle action
 }
 
 export function undo() {
   if (undoStack.length === 0) return;
-  const current = JSON.stringify({
-    stamps: mapStore.stamps,
-    paths: mapStore.paths,
-    texts: mapStore.texts,
-    shapes: mapStore.shapes,
+  const entry = undoStack.pop()!;
+  redoStack.push({
+    vector: vectorSnapshot(),
+    // Capturer l'état raster courant seulement si l'entrée annulée en transporte un
+    raster: entry.raster !== null && rasterHooks ? rasterHooks.capture() : null,
   });
-  redoStack.push(current);
-  const prev = JSON.parse(undoStack.pop()!);
-  mapStore.stamps = prev.stamps;
-  mapStore.paths = prev.paths;
-  mapStore.texts = prev.texts;
-  mapStore.shapes = prev.shapes || [];
+  trimRasterSnapshots(redoStack);
+  applyVectorSnapshot(entry.vector);
+  if (entry.raster !== null && rasterHooks) rasterHooks.restore(entry.raster);
 }
 
 export function redo() {
   if (redoStack.length === 0) return;
-  const current = JSON.stringify({
-    stamps: mapStore.stamps,
-    paths: mapStore.paths,
-    texts: mapStore.texts,
-    shapes: mapStore.shapes,
+  const entry = redoStack.pop()!;
+  undoStack.push({
+    vector: vectorSnapshot(),
+    raster: entry.raster !== null && rasterHooks ? rasterHooks.capture() : null,
   });
-  undoStack.push(current);
-  const next = JSON.parse(redoStack.pop()!);
-  mapStore.stamps = next.stamps;
-  mapStore.paths = next.paths;
-  mapStore.texts = next.texts;
-  mapStore.shapes = next.shapes || [];
+  trimRasterSnapshots(undoStack);
+  applyVectorSnapshot(entry.vector);
+  if (entry.raster !== null && rasterHooks) rasterHooks.restore(entry.raster);
 }
 
 export function canUndo() {

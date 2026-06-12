@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { mapStore, pushHistory, undo, redo, type MapStamp, type MapPath, type MapText, type MapShape, type SelectableType } from '../lib/stores/mapStore.svelte';
+  import { mapStore, pushHistory, undo, redo, setRasterHooks, type MapStamp, type MapPath, type MapText, type MapShape, type SelectableType } from '../lib/stores/mapStore.svelte';
   import importedStamps from '../lib/imported_stamps.json';
   import importedTextures from '../lib/imported_textures.json';
   import { generateContinent } from '../lib/terrainGenerator';
@@ -913,19 +913,58 @@
     // Initialiser la brosse de peinture et de sculpe par défaut
     resetCanvasData();
 
+    // Undo/redo des canvases raster (terre + textures peintes)
+    setRasterHooks({
+      capture() {
+        const copy = (src: HTMLCanvasElement) => {
+          const c = document.createElement('canvas');
+          c.width = src.width;
+          c.height = src.height;
+          c.getContext('2d')!.drawImage(src, 0, 0);
+          return c;
+        };
+        return {
+          mask: copy(maskCanvas),
+          land: copy(landCanvas),
+          // L'arrière-plan fait partie de l'état "terrain" (le générateur de donjon le change)
+          bg: {
+            type: mapStore.backgroundType,
+            texture: mapStore.backgroundTexture,
+            scale: mapStore.backgroundTextureScale,
+          },
+        };
+      },
+      restore(snapshot: unknown) {
+        const s = snapshot as {
+          mask: HTMLCanvasElement;
+          land: HTMLCanvasElement;
+          bg: { type: typeof mapStore.backgroundType; texture: string; scale: number };
+        };
+        for (const [src, ctx] of [[s.mask, maskCtx], [s.land, landCtx]] as const) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'copy';
+          ctx.drawImage(src, 0, 0);
+          ctx.restore();
+        }
+        mapStore.backgroundType = s.bg.type;
+        mapStore.backgroundTexture = s.bg.texture;
+        mapStore.backgroundTextureScale = s.bg.scale;
+      },
+    });
+
     (window as any).clearLandMask = () => {
-      pushHistory();
+      pushHistory(true);
       maskCtx.clearRect(0, 0, mapStore.canvasWidth, mapStore.canvasHeight);
     };
 
     (window as any).fillLandMask = () => {
-      pushHistory();
+      pushHistory(true);
       maskCtx.fillStyle = '#ffffff';
       maskCtx.fillRect(0, 0, mapStore.canvasWidth, mapStore.canvasHeight);
     };
 
     (window as any).sculptDungeonFloor = (grid: any[][], cols: number, rows: number, themeName: string) => {
-      pushHistory();
+      pushHistory(true);
       
       // Make everything background (black/transparent mask)
       maskCtx.clearRect(0, 0, mapStore.canvasWidth, mapStore.canvasHeight);
@@ -965,7 +1004,7 @@
     };
 
     (window as any).fillLandTexture = (texKey: string) => {
-      pushHistory();
+      pushHistory(true);
       const tex = assetCache.get(`tex_${texKey}`) || assetCache.get(texKey) || getOrLoadTexture(texKey);
       if (tex) {
         const pattern = landCtx.createPattern(tex, 'repeat')!;
@@ -975,7 +1014,7 @@
     };
 
     (window as any).generateRandomContinent = () => {
-      pushHistory();
+      pushHistory(true);
       
       maskCtx.clearRect(0, 0, mapStore.canvasWidth, mapStore.canvasHeight);
       
@@ -1004,6 +1043,7 @@
 
   onDestroy(() => {
     window.removeEventListener('resize', handleResize);
+    setRasterHooks(null);
     delete (window as any).clearLandMask;
     delete (window as any).fillLandMask;
     delete (window as any).fillLandTexture;
@@ -2292,10 +2332,10 @@
     }
 
     if (tool === 'sculpt') {
-      pushHistory();
+      pushHistory(true);
       applySculptStroke(px, py);
     } else if (tool === 'paint') {
-      pushHistory();
+      pushHistory(true);
       applyPaintStroke(px, py);
     } else if (tool === 'stamp') {
       pushHistory();
@@ -2897,6 +2937,31 @@
     mapStore.zoom = nextZoom;
     mapStore.panX = sx - mapPos.x * nextZoom;
     mapStore.panY = sy - mapPos.y * nextZoom;
+  }
+
+  // Exporter la carte complète en PNG pleine résolution (sans interface,
+  // règles, guides ni cadres de sélection — contrairement au canvas écran)
+  export function exportMapPng() {
+    // Re-rendre le buffer sans la sélection pour ne pas incruster ses cadres dorés
+    const savedSelection = [...mapStore.selectedIds];
+    const savedElement = mapStore.selectedElement;
+    mapStore.selectedIds = [];
+    mapStore.selectedElement = null;
+    drawMap();
+    const url = bufferCanvas.toDataURL('image/png');
+    mapStore.selectedIds = savedSelection;
+    mapStore.selectedElement = savedElement;
+
+    const safeName = (mapStore.mapTitle || '').replace(/[\\/:*?"<>|]+/g, '').trim() || 'fantasy-map';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName}.png`;
+    a.click();
+  }
+
+  // Réinitialiser le terrain (masque plein + texture par défaut)
+  export function resetTerrain() {
+    resetCanvasData();
   }
 
   // Finaliser le tracé (Esc ou Entrée ou Clic droit)

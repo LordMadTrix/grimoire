@@ -29,24 +29,18 @@
 
   // Vider complètement la carte de ses éléments
   function handleClear() {
-    if (confirm('Voulez-vous vraiment vider toute la carte ? Cette action effacera tous les tampons, tracés et textes.')) {
-      pushHistory();
+    if (confirm('Voulez-vous vraiment vider toute la carte ? Cette action effacera tampons, tracés, textes, formes et terrain (annulable avec Ctrl+Z).')) {
+      pushHistory(true);
       mapStore.stamps = [];
       mapStore.paths = [];
       mapStore.texts = [];
-      
-      // Réinitialiser également le masque de terre et les textures
-      const canvasEl = document.querySelector('canvas');
-      if (canvasEl) {
-        // Force refresh via clear methods if exists
-        const w = mapStore.canvasWidth;
-        const h = mapStore.canvasHeight;
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = w;
-        maskCanvas.height = h;
-        const maskCtx = maskCanvas.getContext('2d')!;
-        maskCtx.fillStyle = '#ffffff';
-        maskCtx.fillRect(0, 0, w, h);
+      mapStore.shapes = [];
+      mapStore.selectedIds = [];
+      mapStore.selectedElement = null;
+      mapStore.guides = { v: [], h: [] };
+      // Réinitialiser le terrain raster (masque de terre + textures peintes)
+      if (canvasComponent && canvasComponent.resetTerrain) {
+        canvasComponent.resetTerrain();
       }
     }
   }
@@ -69,6 +63,8 @@
   function saveProjectJson() {
     const data = {
       version: 1,
+      mapTitle: mapStore.mapTitle,
+      guides: mapStore.guides,
       stamps: mapStore.stamps,
       paths: mapStore.paths,
       texts: mapStore.texts,
@@ -101,7 +97,8 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'cartography-project.json';
+    const safeName = (mapStore.mapTitle || '').replace(/[\\/:*?"<>|]+/g, '').trim() || 'cartography-project';
+    a.download = `${safeName}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -119,6 +116,8 @@
         if (data.paths) mapStore.paths = data.paths;
         if (data.texts) mapStore.texts = data.texts;
         if (data.shapes) mapStore.shapes = data.shapes;
+        if (data.mapTitle !== undefined) mapStore.mapTitle = data.mapTitle;
+        if (data.guides) mapStore.guides = data.guides;
         
         // Restaurer les réglages supplémentaires de carte
         if (data.backgroundType) mapStore.backgroundType = data.backgroundType;

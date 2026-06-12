@@ -484,6 +484,28 @@
           
 
 
+          <!-- Commutateur Sculpter / Peindre (les deux modes du pinceau) -->
+          {#if mapStore.activeTool === 'sculpt' || mapStore.activeTool === 'paint'}
+            <div class="shape-buttons-row" style="margin-bottom: 12px;">
+              <button
+                class="shape-btn"
+                class:active={mapStore.activeTool === 'sculpt'}
+                onclick={() => mapStore.activeTool = 'sculpt'}
+                title="Sculpter le terrain (terre / mer)"
+              >
+                ⛰️ Sculpter
+              </button>
+              <button
+                class="shape-btn"
+                class:active={mapStore.activeTool === 'paint'}
+                onclick={() => mapStore.activeTool = 'paint'}
+                title="Peindre des textures sur la terre"
+              >
+                🖌️ Peindre
+              </button>
+            </div>
+          {/if}
+
           <!-- ── OUTIL SCULPT ── -->
           {#if mapStore.activeTool === 'sculpt'}
             <SculptPanel />
