@@ -2,6 +2,23 @@ import { mapStore, pushHistory } from './stores/mapStore.svelte';
 import importedStamps from './imported_stamps.json';
 import { invoke } from '@tauri-apps/api/core';
 
+// Taille native maximale (px) de chaque stamp thématique — sert à calibrer l'échelle
+const STAMP_NATIVE_MAX: Record<string, number> = {
+  'imported_gjojg6sr808ix89hnqknbttvi8ik': 244, 'imported_81qupz0jv6vinphr54s4ltsrlrlm': 160,
+  'imported_zy8s7mir0m6lffopt9ige9tqi4ee': 232, 'imported_pytnqfou56nay4uaiiclhngkv81y': 234,
+  'imported_v2ql1mj9ds55f3ez7d1u523wvfjw': 193, 'imported_nbw4j74q8ub9zj88tg3e5gr4ig0l': 191,
+  'imported_quvw6fqdrojm83pd20svtniwcbos': 188, 'imported_juzy62ujdon0wmo5qiv1ygwkhue2': 160,
+  'imported_ua0xxx0yco9uhet0n34xien2nw70': 160, 'imported_mxum8ja0e97vjiz6avc644unbnjb': 160,
+  'imported_zj9ucorcmdic7wk0wwdpqiyrrrn8': 160, 'imported_wv2bfinnybnnlyf1v5ebatubdrlm': 160,
+  'imported_q6o3hj6afiv45th7xxqzoxp0u8gq': 160, 'imported_a8jdfemk3xgyg56bkiuzrdpwvm23': 160,
+  'imported_0syvaindutyoa0rpzzi3e4gs4yiu': 160, 'imported_n9lmribboj4o897zfsaf75lc17ok': 160,
+  'imported_yoaljoray1fx6ocragjxz7ylj4cg': 160, 'imported_drno28tawfeedwm42jep9t6w5p58': 244,
+  'imported_codly79togkk62b7t2a0de7inw18': 244, 'imported_c7va2xt9lw2pqy6mf2lk19v8zgm9': 160,
+  'imported_ebdhe9whsys0k38dbwxxw0qsxxxa': 160, 'imported_sm3birrpdc71rui7yah5ychfnq5j': 160,
+  'imported_33istv8ff1hvps78ut39ifhj6x9i': 244,
+};
+const sNative = (id: string) => STAMP_NATIVE_MAX[id] ?? 160;
+
 
 // Types de tuiles pour la génération
 export type CellType = 'void' | 'floor_stone' | 'floor_dirt' | 'wall' | 'door' | 'chest' | 'pillar' | 'stairs_up' | 'stairs_down' | 'water' | 'table' | 'chair' | 'bar' | 'campfire' | 'tree' | 'rock' | 'bed';
@@ -357,17 +374,34 @@ export function generateForestCamp(themeName: DungeonThemeName = 'classic', size
   instantiateGridStamps(grid, size, size, theme);
 }
 
+function wallTheme(theme: any): { fillColor: string; fillTexture: string; strokeColor: string } {
+  const isDirt = theme.floorTexture === 'dirt';
+  const isPrison = theme.wall?.includes('drno') || theme.wall?.includes('codly');
+  if (isDirt) return { fillColor: '#1e1a0e', fillTexture: 'dirt',  strokeColor: '#0e0c06' };
+  if (isPrison) return { fillColor: '#1c1a22', fillTexture: 'stone', strokeColor: '#0c0a12' };
+  return { fillColor: '#2a2018', fillTexture: 'stone', strokeColor: '#140e08' };
+}
+
 function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, theme: any) {
   if (typeof window !== 'undefined' && (window as any).sculptDungeonFloor) {
     (window as any).sculptDungeonFloor(grid, cols, rows, theme.floorTexture === 'dirt' ? 'cave' : 'classic');
+    // Peindre la texture de sol sur toute la surface (sinon le masque est sculpt§ mais le sol reste vide)
+    if ((window as any).fillLandTexture) {
+      (window as any).fillLandTexture(theme.floorTexture || 'paving');
+    }
   } else {
     if (typeof window !== 'undefined' && (window as any).fillLandMask) {
       (window as any).fillLandMask();
+      if ((window as any).fillLandTexture) {
+        (window as any).fillLandTexture(theme.floorTexture || 'paving');
+      }
     }
   }
 
   const gSize = mapStore.gridSize;
   const stampsList = [];
+  const shapesList: any[] = [];
+  const wTheme = wallTheme(theme);
 
   const startX = (mapStore.canvasWidth - cols * gSize) / 2;
   const startY = (mapStore.canvasHeight - rows * gSize) / 2;
@@ -409,7 +443,7 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
           const decoration = decorativeStamps[Math.floor(Math.random() * decorativeStamps.length)];
           const dx = startX + (c + 0.5) * gSize + (Math.random() - 0.5) * (gSize * 0.4);
           const dy = startY + (r + 0.5) * gSize + (Math.random() - 0.5) * (gSize * 0.4);
-          const dScale = ((gSize * 0.75) / 80) * (0.6 + Math.random() * 0.45);
+          const dScale = ((gSize * 0.4) / 160) * (0.6 + Math.random() * 0.45);
           const dRotation = Math.floor(Math.random() * 360);
           
           stampsList.push({
@@ -439,39 +473,25 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
       let shadowOffsetY = cell === 'wall' ? 5 : 3;
 
       if (cell === 'wall') {
-        const hasLeftFloor = c > 0 && isFloor(grid[c - 1][r]);
-        const hasRightFloor = c < cols - 1 && isFloor(grid[c + 1][r]);
-        const hasTopFloor = r > 0 && isFloor(grid[c][r - 1]);
-        const hasBottomFloor = r < rows - 1 && isFloor(grid[c][r + 1]);
-
-        const isEdge = hasLeftFloor || hasRightFloor || hasTopFloor || hasBottomFloor;
-        if (!isEdge) continue; // Ne pas dessiner les murs intérieurs pleins
-
-        // On augmente légèrement l'échelle pour que les images se recouvrent joliment
-        scale = (gSize * 1.25) / 80;
-        rotation = 0;
-        zIndex = 1;
-        shadowBlur = 8;
-        shadowOffsetX = 3;
-        shadowOffsetY = 5;
-
-        if (hasBottomFloor && hasRightFloor) {
-          type = theme.wall_tl || theme.wall;
-        } else if (hasBottomFloor && hasLeftFloor) {
-          type = theme.wall_tr || theme.wall;
-        } else if (hasTopFloor && hasLeftFloor) {
-          type = theme.wall_br || theme.wall;
-        } else if (hasTopFloor && hasRightFloor) {
-          type = theme.wall_bl || theme.wall;
-        } else if (hasTopFloor || hasBottomFloor) {
-          type = theme.wall; // Mur horizontal
-        } else {
-          type = theme.wall_v || theme.wall; // Mur vertical
-        }
+        const x0 = startX + c * gSize;
+        const y0 = startY + r * gSize;
+        shapesList.push({
+          id: Math.random().toString(36).slice(2),
+          type: 'rectangle',
+          points: [{ x: x0, y: y0 }, { x: x0 + gSize, y: y0 + gSize }],
+          fillColor: wTheme.fillColor,
+          fillOpacity: 1.0,
+          fillTexture: 'wall',
+          fillTextureScale: 1.0,
+          strokeColor: 'transparent',
+          strokeWidth: 0,
+          strokeDash: 'solid'
+        });
+        continue;
       } else if (cell === 'door') {
         type = theme.door;
-        scale = (gSize * 1.1) / 80;
-        
+        scale = (gSize * 0.9) / sNative(theme.door);
+
         // Orienter la porte vers le mur adjacent
         const hasLeftWall = c > 0 && grid[c - 1][r] === 'wall';
         const hasRightWall = c < cols - 1 && grid[c + 1][r] === 'wall';
@@ -482,25 +502,25 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
         }
       } else if (cell === 'chest') {
         type = theme.chest;
-        scale = (gSize * 0.9) / 80;
+        scale = (gSize * 0.75) / sNative(theme.chest);
       } else if (cell === 'pillar') {
         type = theme.pillar;
-        scale = (gSize * 1.0) / 80;
+        scale = (gSize * 0.85) / sNative(theme.pillar);
       } else if (cell === 'stairs_up') {
         if (hasBarOrTable) {
           type = 'imported_ey1zn6h365n34btb9ivdyh221wmo'; // Cheminée
-          scale = (gSize * 1.1) / 80;
+          scale = (gSize * 1.1) / 160;
           rotation = 180; // Fait face vers le bas
         } else {
           type = theme.stairs_up;
-          scale = (gSize * 1.1) / 80;
+          scale = (gSize * 0.9) / sNative(theme.stairs_up);
         }
       } else if (cell === 'stairs_down') {
         type = theme.stairs_down;
-        scale = (gSize * 1.1) / 80;
+        scale = (gSize * 0.9) / sNative(theme.stairs_down);
       } else if (cell === 'table') {
         type = Math.random() < 0.5 ? 'imported_K1xpMf9WmpSBVM7zckV3h1' : 'imported_RFdpd7CV3ZGpVcmn8bpcdV';
-        scale = (gSize * 0.8) / 80;
+        scale = (gSize * 0.8) / 160;
         shadowBlur = 5;
       } else if (cell === 'chair') {
         type = Math.random() < 0.5 ? 'imported_A9qxwJhu4D8q15Lg1c9e3Y' : 'imported_lg4l4o5t6igjrzsgkuw2ybn1r7i1';
@@ -517,14 +537,14 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
         else if (c > 0 && grid[c - 1][r] === 'bar') rotation = 180;
       } else if (cell === 'bar') {
         type = 'imported_C6AjRDX3seHHG2zBbVe3YW'; // Bar Counter rectangular table
-        scale = (gSize * 0.8) / 80;
+        scale = (gSize * 0.8) / 160;
         rotation = 0;
         shadowBlur = 6;
         shadowOffsetX = 2;
         shadowOffsetY = 4;
       } else if (cell === 'campfire') {
         type = 'imported_MqWqQziNJ3cHAnsf9qo93J';
-        scale = (gSize * 0.75) / 80;
+        scale = (gSize * 0.75) / 160;
         rotation = Math.random() * 360;
         shadowBlur = 12;
         shadowColor = 'rgba(230, 126, 34, 0.25)';
@@ -537,7 +557,7 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
         } else {
           type = Math.random() < 0.5 ? 'td_tree_pine' : 'td_tree_oak';
         }
-        scale = (gSize * (1.1 + Math.random() * 0.4)) / 80;
+        scale = (gSize * (1.1 + Math.random() * 0.4)) / 160;
         rotation = Math.random() * 360;
         zIndex = 3;
         shadowBlur = 10;
@@ -550,7 +570,7 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
         } else {
           type = 'td_rock';
         }
-        scale = (gSize * (0.8 + Math.random() * 0.4)) / 80;
+        scale = (gSize * (0.8 + Math.random() * 0.4)) / 160;
         rotation = Math.random() * 360;
         shadowBlur = 6;
         shadowOffsetX = 2;
@@ -565,7 +585,7 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
             'imported_WHKfq5SVq8T24iNd3qGH75'  // blue
           ];
           type = tents[Math.floor(Math.random() * tents.length)];
-          scale = (gSize * 1.15) / 80;
+          scale = (gSize * 1.15) / 160;
           zIndex = 2;
           shadowBlur = 10;
           shadowOffsetX = 3;
@@ -576,7 +596,7 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
           rotation = Math.atan2(midR - r, midC - c) * (180 / Math.PI) - 90;
         } else {
           type = 'imported_v2b9xzh1pl2gw1rujvmydgq2lt3v'; // single wooden bed
-          scale = (gSize * 0.9) / 80;
+          scale = (gSize * 0.9) / 160;
           zIndex = 2;
           shadowBlur = 5;
           shadowOffsetX = 3;
@@ -594,15 +614,6 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
 
       let px = startX + (c + 0.5) * gSize;
       let py = startY + (r + 0.5) * gSize;
-
-      if (cell === 'wall' && theme.floorTexture === 'dirt') {
-        // Grottes organiques : ajouter du jitter physique, de la rotation et échelle aléatoires
-        const jitter = gSize * 0.16;
-        px += (Math.random() - 0.5) * jitter;
-        py += (Math.random() - 0.5) * jitter;
-        scale = scale * (0.9 + Math.random() * 0.3);
-        rotation = rotation + (Math.random() - 0.5) * 35;
-      }
 
       stampsList.push({
         id: Math.random().toString(36).slice(2),
@@ -623,7 +634,8 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
   }
 
   mapStore.stamps = stampsList;
-  
+  mapStore.shapes = shapesList;
+
   mapStore.zoom = 0.8;
   mapStore.panX = (mapStore.canvasWidth / 2) * -0.8 + 400;
   mapStore.panY = (mapStore.canvasHeight / 2) * -0.8 + 300;

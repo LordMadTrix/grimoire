@@ -1,0 +1,99 @@
+{
+  "version": 2,
+  "mapTitle": "Grotte Souterraine",
+  "canvasWidth": 2000,
+  "canvasHeight": 1500,
+  "showGrid": true,
+  "gridType": "square",
+  "gridSize": 50,
+  "gridColor": "rgba(100,80,50,0.15)",
+  "backgroundType": "texture",
+  "backgroundTexture": "dirt",
+  "backgroundTextureScale": 1.0,
+  "mapFilter": "cold",
+  "mapFilterIntensity": 0.25,
+  "vignetteEnabled": true,
+  "vignetteOpacity": 0.65,
+  "paperOverlayEnabled": false,
+  "paperOverlayOpacity": 0.1,
+  "stampSnapEnabled": false,
+  "stampSnapMode": "center",
+  "terrain": null,
+  "guides": { "v": [], "h": [] },
+  "stamps": [
+    { "id": "c1",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 150,  "y": 200,  "scale": 1.2, "rotation": 0,   "opacity": 1,   "zIndex": 2 },
+    { "id": "c2",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 350,  "y": 150,  "scale": 1.4, "rotation": 15,  "opacity": 1,   "zIndex": 2 },
+    { "id": "c3",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 600,  "y": 180,  "scale": 1.1, "rotation": -10, "opacity": 1,   "zIndex": 2 },
+    { "id": "c4",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 850,  "y": 200,  "scale": 1.3, "rotation": 5,   "opacity": 1,   "zIndex": 2 },
+    { "id": "c5",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 1100, "y": 150,  "scale": 1.2, "rotation": -20, "opacity": 1,   "zIndex": 2 },
+    { "id": "c6",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 1350, "y": 200,  "scale": 1.5, "rotation": 8,   "opacity": 1,   "zIndex": 2 },
+    { "id": "c7",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 100,  "y": 500,  "scale": 1.1, "rotation": -5,  "opacity": 1,   "zIndex": 2 },
+    { "id": "c8",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 100,  "y": 800,  "scale": 1.3, "rotation": 10,  "opacity": 1,   "zIndex": 2 },
+    { "id": "c9",  "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 1400, "y": 500,  "scale": 1.2, "rotation": -8,  "opacity": 1,   "zIndex": 2 },
+    { "id": "c10", "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 1400, "y": 800,  "scale": 1.4, "rotation": 12,  "opacity": 1,   "zIndex": 2 },
+    { "id": "c11", "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 300,  "y": 1100, "scale": 1.1, "rotation": -15, "opacity": 1,   "zIndex": 2 },
+    { "id": "c12", "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 700,  "y": 1150, "scale": 1.3, "rotation": 5,   "opacity": 1,   "zIndex": 2 },
+    { "id": "c13", "type": "imported_wv2bfinnybnnlyf1v5ebatubdrlm", "x": 1100, "y": 1100, "scale": 1.2, "rotation": -10, "opacity": 1,   "zIndex": 2 },
+    { "id": "c14", "type": "imported_0syvaindutyoa0rpzzi3e4gs4yiu", "x": 450,  "y": 450,  "scale": 1.0, "rotation": 0,   "opacity": 0.9, "zIndex": 3 },
+    { "id": "c15", "type": "imported_0syvaindutyoa0rpzzi3e4gs4yiu", "x": 900,  "y": 600,  "scale": 1.1, "rotation": 25,  "opacity": 0.9, "zIndex": 3 },
+    { "id": "c16", "type": "imported_0syvaindutyoa0rpzzi3e4gs4yiu", "x": 650,  "y": 850,  "scale": 0.9, "rotation": -15, "opacity": 0.9, "zIndex": 3 },
+    { "id": "c17", "type": "imported_0syvaindutyoa0rpzzi3e4gs4yiu", "x": 1200, "y": 750,  "scale": 1.2, "rotation": 10,  "opacity": 0.9, "zIndex": 3 },
+    { "id": "c18", "type": "imported_q6o3hj6afiv45th7xxqzoxp0u8gq", "x": 550,  "y": 300,  "scale": 1.0, "rotation": 0,   "opacity": 1,   "zIndex": 4 },
+    { "id": "c19", "type": "imported_q6o3hj6afiv45th7xxqzoxp0u8gq", "x": 400,  "y": 750,  "scale": 1.0, "rotation": 90,  "opacity": 1,   "zIndex": 4 },
+    { "id": "c20", "type": "imported_a8jdfemk3xgyg56bkiuzrdpwvm23", "x": 750,  "y": 700,  "scale": 1.0, "rotation": 0,   "opacity": 1,   "zIndex": 4 },
+    { "id": "c21", "type": "imported_a8jdfemk3xgyg56bkiuzrdpwvm23", "x": 1050, "y": 900,  "scale": 0.85,"rotation": 20,  "opacity": 1,   "zIndex": 4 },
+    { "id": "c22", "type": "imported_n9lmribboj4o897zfsaf75lc17ok", "x": 250,  "y": 300,  "scale": 1.0, "rotation": 0,   "opacity": 1,   "zIndex": 4 },
+    { "id": "c23", "type": "imported_yoaljoray1fx6ocragjxz7ylj4cg", "x": 1150, "y": 950,  "scale": 1.0, "rotation": 0,   "opacity": 1,   "zIndex": 4 }
+  ],
+  "paths": [
+    {
+      "id": "pth1",
+      "points": [
+        {"x":250,"y":300},{"x":400,"y":350},{"x":550,"y":300},
+        {"x":700,"y":400},{"x":900,"y":380},{"x":1100,"y":350},{"x":1250,"y":300}
+      ],
+      "color": "#5a4a2a", "width": 6, "dashStyle": "solid", "smooth": true
+    },
+    {
+      "id": "pth2",
+      "points": [
+        {"x":400,"y":350},{"x":380,"y":550},{"x":400,"y":750},{"x":450,"y":900},{"x":500,"y":1050}
+      ],
+      "color": "#5a4a2a", "width": 6, "dashStyle": "solid", "smooth": true
+    },
+    {
+      "id": "pth3",
+      "points": [
+        {"x":700,"y":400},{"x":720,"y":550},{"x":750,"y":700},{"x":700,"y":900},{"x":650,"y":1050}
+      ],
+      "color": "#5a4a2a", "width": 5, "dashStyle": "solid", "smooth": true
+    },
+    {
+      "id": "pth4",
+      "points": [
+        {"x":900,"y":380},{"x":950,"y":550},{"x":1000,"y":700},{"x":1050,"y":900},{"x":1100,"y":1000}
+      ],
+      "color": "#5a4a2a", "width": 5, "dashStyle": "solid", "smooth": true
+    }
+  ],
+  "texts": [
+    { "id": "t1", "text": "Entrée de la Grotte", "x": 300,  "y": 255,  "size": 19, "color": "#c8a96e", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 8 },
+    { "id": "t2", "text": "Lac Souterrain",      "x": 680,  "y": 620,  "size": 17, "color": "#6ab4e8", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 6 },
+    { "id": "t3", "text": "Repaire du Dragon",   "x": 980,  "y": 840,  "size": 20, "color": "#e85050", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 10 },
+    { "id": "t4", "text": "Sortie",              "x": 1130, "y": 905,  "size": 15, "color": "#aaaaaa", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 4 }
+  ],
+  "shapes": [
+    {
+      "id": "sh1",
+      "type": "circle",
+      "points": [{"x":730,"y":650},{"x":830,"y":650}],
+      "fillColor": "#1a3d5c",
+      "fillOpacity": 0.7,
+      "fillTexture": null,
+      "fillTextureScale": 1,
+      "strokeColor": "#2a6090",
+      "strokeWidth": 2,
+      "strokeDash": "solid"
+    }
+  ]
+}

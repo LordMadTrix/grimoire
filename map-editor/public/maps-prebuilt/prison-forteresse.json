@@ -1,0 +1,109 @@
+{
+  "version": 2,
+  "mapTitle": "Prison de la Forteresse",
+  "canvasWidth": 2000,
+  "canvasHeight": 1500,
+  "showGrid": true,
+  "gridType": "square",
+  "gridSize": 50,
+  "gridColor": "rgba(255,255,255,0.08)",
+  "backgroundType": "texture",
+  "backgroundTexture": "stone",
+  "backgroundTextureScale": 1.0,
+  "mapFilter": "sepia",
+  "mapFilterIntensity": 0.4,
+  "vignetteEnabled": true,
+  "vignetteOpacity": 0.6,
+  "paperOverlayEnabled": true,
+  "paperOverlayOpacity": 0.12,
+  "stampSnapEnabled": true,
+  "stampSnapMode": "intersection",
+  "terrain": null,
+  "guides": { "v": [], "h": [] },
+  "stamps": [
+    { "id": "pr1",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 150,  "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr2",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 350,  "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr3",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 550,  "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr4",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 750,  "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr5",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 950,  "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr6",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1150, "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr7",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1350, "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr8",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 150,  "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr9",  "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 150,  "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr10", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 150,  "y": 750,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr11", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1350, "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr12", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1350, "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr13", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1350, "y": 750,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr14", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 150,  "y": 950,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr15", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 350,  "y": 950,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr16", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 550,  "y": 950,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr17", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 750,  "y": 950,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr18", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 950,  "y": 950,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr19", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1150, "y": 950,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr20", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1350, "y": 950,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr21", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 400,  "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr22", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 600,  "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr23", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 400,  "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr24", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 600,  "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr25", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 900,  "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr26", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1100, "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr27", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 900,  "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr28", "type": "imported_drno28tawfeedwm42jep9t6w5p58", "x": 1100, "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 2 },
+    { "id": "pr29", "type": "imported_codly79togkk62b7t2a0de7inw18", "x": 250,  "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr30", "type": "imported_codly79togkk62b7t2a0de7inw18", "x": 250,  "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr31", "type": "imported_codly79togkk62b7t2a0de7inw18", "x": 250,  "y": 750,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr32", "type": "imported_codly79togkk62b7t2a0de7inw18", "x": 750,  "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr33", "type": "imported_codly79togkk62b7t2a0de7inw18", "x": 1250, "y": 350,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr34", "type": "imported_codly79togkk62b7t2a0de7inw18", "x": 1250, "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr35", "type": "imported_codly79togkk62b7t2a0de7inw18", "x": 1250, "y": 750,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr36", "type": "imported_ebdhe9whsys0k38dbwxxw0qsxxxa", "x": 750,  "y": 550,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr37", "type": "imported_c7va2xt9lw2pqy6mf2lk19v8zgm9", "x": 350,  "y": 450,  "scale": 0.8, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr38", "type": "imported_c7va2xt9lw2pqy6mf2lk19v8zgm9", "x": 500,  "y": 450,  "scale": 0.8, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr39", "type": "imported_c7va2xt9lw2pqy6mf2lk19v8zgm9", "x": 950,  "y": 450,  "scale": 0.8, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr40", "type": "imported_c7va2xt9lw2pqy6mf2lk19v8zgm9", "x": 1100, "y": 450,  "scale": 0.8, "rotation": 0,  "opacity": 1, "zIndex": 3 },
+    { "id": "pr41", "type": "imported_sm3birrpdc71rui7yah5ychfnq5j", "x": 730,  "y": 150,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 4 },
+    { "id": "pr42", "type": "imported_33istv8ff1hvps78ut39ifhj6x9i", "x": 730,  "y": 780,  "scale": 1.0, "rotation": 0,  "opacity": 1, "zIndex": 4 }
+  ],
+  "paths": [
+    {
+      "id": "cp1",
+      "points": [{"x":150,"y":550},{"x":400,"y":550}],
+      "color": "#6b4c2a", "width": 6, "dashStyle": "solid", "smooth": false
+    },
+    {
+      "id": "cp2",
+      "points": [{"x":600,"y":550},{"x":750,"y":550}],
+      "color": "#6b4c2a", "width": 6, "dashStyle": "solid", "smooth": false
+    },
+    {
+      "id": "cp3",
+      "points": [{"x":750,"y":350},{"x":750,"y":150}],
+      "color": "#6b4c2a", "width": 6, "dashStyle": "solid", "smooth": false
+    },
+    {
+      "id": "cp4",
+      "points": [{"x":750,"y":950},{"x":750,"y":780}],
+      "color": "#6b4c2a", "width": 6, "dashStyle": "solid", "smooth": false
+    },
+    {
+      "id": "cp5",
+      "points": [{"x":900,"y":550},{"x":1100,"y":550}],
+      "color": "#6b4c2a", "width": 6, "dashStyle": "solid", "smooth": false
+    },
+    {
+      "id": "cp6",
+      "points": [{"x":1250,"y":550},{"x":1350,"y":550}],
+      "color": "#6b4c2a", "width": 6, "dashStyle": "solid", "smooth": false
+    }
+  ],
+  "texts": [
+    { "id": "t1", "text": "Entrée Principale", "x": 650, "y": 110,  "size": 18, "color": "#f5deb3", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 6 },
+    { "id": "t2", "text": "Cellule A",         "x": 320, "y": 440,  "size": 14, "color": "#aaaaaa", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 4 },
+    { "id": "t3", "text": "Cellule B",         "x": 470, "y": 440,  "size": 14, "color": "#aaaaaa", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 4 },
+    { "id": "t4", "text": "Cellule C",         "x": 920, "y": 440,  "size": 14, "color": "#aaaaaa", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 4 },
+    { "id": "t5", "text": "Cellule D",         "x": 1070,"y": 440,  "size": 14, "color": "#aaaaaa", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 4 },
+    { "id": "t6", "text": "Salle de Torture",  "x": 620, "y": 480,  "size": 16, "color": "#cc4444", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 8 },
+    { "id": "t7", "text": "Sortie Secrète",    "x": 640, "y": 740,  "size": 14, "color": "#888888", "font": "Cinzel", "rotation": 0, "shadowColor": "#000", "shadowBlur": 4 }
+  ],
+  "shapes": []
+}

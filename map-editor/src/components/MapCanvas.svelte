@@ -352,6 +352,58 @@
       twCtx.stroke();
     }
     assetCache.set('tex_topdown_water', twCanvas);
+
+    // 6. Mur de pierre de donjon (tex_wall) — tuile seamless 128×64
+    const wallTileCanvas = document.createElement('canvas');
+    wallTileCanvas.width = 128;
+    wallTileCanvas.height = 64;
+    const wtCtx = wallTileCanvas.getContext('2d')!;
+
+    // Mortier sombre (fond)
+    wtCtx.fillStyle = '#0e0b07';
+    wtCtx.fillRect(0, 0, 128, 64);
+
+    // Dessine un bloc de pierre avec grain et biseaux intégrés
+    const drawWallBlock = (bx: number, by: number, bw: number, bh: number) => {
+      if (bw <= 0 || bh <= 0) return;
+      // Couleur de base avec légère variation aléatoire
+      const v = Math.floor(Math.random() * 14);
+      wtCtx.fillStyle = `rgb(${36+v},${28+v},${18+v})`;
+      wtCtx.fillRect(bx, by, bw, bh);
+      // Grain (imperfections procédurales)
+      const grainCount = Math.floor(bw * bh / 28);
+      for (let g = 0; g < grainCount; g++) {
+        const gx = bx + Math.random() * bw;
+        const gy = by + Math.random() * bh;
+        wtCtx.fillStyle = Math.random() > 0.55
+          ? 'rgba(255,200,120,0.06)'
+          : 'rgba(0,0,0,0.12)';
+        wtCtx.fillRect(gx, gy, 1 + Math.random(), 1 + Math.random());
+      }
+      // Reflet supérieur (lumière de torche venant du haut)
+      wtCtx.fillStyle = 'rgba(255,210,140,0.20)';
+      wtCtx.fillRect(bx, by, bw, 2);
+      // Ombre inférieure
+      wtCtx.fillStyle = 'rgba(0,0,0,0.32)';
+      wtCtx.fillRect(bx, by + bh - 2, bw, 2);
+      // Ombre secondaire sur le tiers bas (dégradé de profondeur)
+      wtCtx.fillStyle = 'rgba(0,0,0,0.12)';
+      wtCtx.fillRect(bx, by + Math.floor(bh * 0.65), bw, Math.ceil(bh * 0.35) - 2);
+      // Reflet gauche (ébauche de biseau)
+      wtCtx.fillStyle = 'rgba(255,210,140,0.09)';
+      wtCtx.fillRect(bx, by, 2, bh);
+    };
+
+    // Rangée 1 (y=3..31, h=28px) — deux blocs, joint à x=70
+    drawWallBlock(3,  3,  65, 28);  // bloc large gauche
+    drawWallBlock(70, 3,  55, 28);  // bloc court droit (continue sur tuile suivante)
+
+    // Rangée 2 (y=35..63, h=28px) — décalage de ~35px, trois blocs visibles
+    drawWallBlock(3,  35, 30, 28);  // début de bloc (suite depuis tuile précédente)
+    drawWallBlock(35, 35, 58, 28);  // bloc large central
+    drawWallBlock(95, 35, 30, 28);  // début du prochain (wrap horizontal)
+
+    assetCache.set('tex_wall', wallTileCanvas);
   }
 
   // Helper drawing functions for procedural stamps
