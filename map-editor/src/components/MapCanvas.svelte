@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { mapStore, pushHistory, undo, redo, setRasterHooks, type MapStamp, type MapPath, type MapText, type MapShape, type SelectableType } from '../lib/stores/mapStore.svelte';
+  import { DungeonRenderer3D } from '../lib/renderer3d';
   import importedStamps from '../lib/imported_stamps.json';
   import importedTextures from '../lib/imported_textures.json';
   import { generateContinent } from '../lib/terrainGenerator';
@@ -25,6 +26,14 @@
 
   let canvasEl = $state<HTMLCanvasElement | null>(null);
   let canvasContainer = $state<HTMLDivElement | null>(null);
+  let threeCanvasEl = $state<HTMLCanvasElement | null>(null);
+  let dungeonRenderer: DungeonRenderer3D | null = null;
+
+  $effect(() => {
+    if (dungeonRenderer) {
+      dungeonRenderer.setMode(mapStore.isPerspective);
+    }
+  });
 
   // Buffers hors-écran
   let maskCanvas: HTMLCanvasElement;
@@ -1088,6 +1097,11 @@
       }
     };
 
+    // Initialiser le renderer Three.js pour les donjons
+    if (threeCanvasEl) {
+      dungeonRenderer = new DungeonRenderer3D(threeCanvasEl);
+    }
+
     window.addEventListener('resize', handleResize);
     handleResize();
     requestAnimationFrame(renderLoop);
@@ -1100,6 +1114,8 @@
     delete (window as any).fillLandMask;
     delete (window as any).fillLandTexture;
     delete (window as any).generateRandomContinent;
+    dungeonRenderer?.dispose();
+    dungeonRenderer = null;
   });
 
   // Vider/remplir les données de départ
@@ -1373,6 +1389,17 @@
   function renderLoop() {
     if (!canvasEl) return;
     drawMap();
+
+    // Rendu Three.js (donjon 3D)
+    if (dungeonRenderer && canvasContainer) {
+      const cw = canvasContainer.clientWidth;
+      const ch = canvasContainer.clientHeight;
+      dungeonRenderer.syncCamera(mapStore.panX, mapStore.panY, mapStore.zoom, cw, ch);
+      dungeonRenderer.updateShapes(mapStore.shapes);
+      dungeonRenderer.updateStamps(mapStore.stamps);
+      dungeonRenderer.render();
+    }
+
     requestAnimationFrame(renderLoop);
   }
 
@@ -1485,7 +1512,9 @@
     bufferCtx.restore();
 
     // B2. Dessiner les FORMES GÉOMÉTRIQUES (Shapes)
+    // Les shapes "wall" sont rendu par Three.js — Canvas 2D gère les autres
     mapStore.shapes.forEach((shape) => {
+      if (shape.fillTexture === 'wall' && dungeonRenderer) return;
       drawGeometricShape(bufferCtx, shape);
       const isSelected = isElementSelected('shape', shape.id);
       if (isSelected) {
@@ -3224,6 +3253,9 @@
     oncontextmenu={(e) => e.preventDefault()}
   ></canvas>
 
+  <!-- Canvas Three.js — superposé, transparent, pointer-events:none (ou auto en perspective) -->
+  <canvas bind:this={threeCanvasEl} class="three-overlay" class:perspective={mapStore.isPerspective} oncontextmenu={(e) => e.preventDefault()}></canvas>
+
   <!-- Instructions contextuelles rapides en bas -->
   <div class="canvas-tips">
     {#if mapStore.activeTool === 'path'}
@@ -3254,6 +3286,18 @@
     width: 100%;
     height: 100%;
     cursor: default;
+  }
+
+  .three-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .three-overlay.perspective {
+    pointer-events: auto;
   }
 
   .canvas-tips {

@@ -68,6 +68,17 @@
 
   <div class="tp-divider"></div>
 
+  <!-- Bascule 3D -->
+  <button type="button" class="tp-btn" class:active={mapStore.isPerspective} onclick={() => mapStore.isPerspective = !mapStore.isPerspective} title="Vue 3D (Caméra Libre)">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="icon" stroke="currentColor" stroke-width="2">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+    </svg>
+  </button>
+
+  <div class="tp-divider"></div>
+
   <!-- OPTIONS DYNAMIQUES DE L'OUTIL -->
   <div class="tp-options-container">
     <!-- Sculpt ou Paint : Taille de brosse -->
@@ -272,6 +283,12 @@
   .tp-btn:hover:not(:disabled) {
     background-color: rgba(255, 255, 255, 0.05);
     color: var(--color-text-primary);
+  }
+
+  .tp-btn.active {
+    background-color: rgba(255, 204, 90, 0.15);
+    color: var(--accent-orange);
+    border: 1px solid rgba(255, 204, 90, 0.3);
   }
 
   .tp-btn:disabled {

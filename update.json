@@ -1,6 +1,6 @@
 {
-  "version": "0.3.1",
-  "changelog": "Map Editor & World Builder : pinceaux à tampons, remplissage, générateur de continents, build ultra-léger sans assets lourds.",
+  "version": "0.3.2",
+  "changelog": "Éditeur de cartes : vue 3D perspective (donjon), correctif éditeur absent de l'exe, performances renderer.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-06-10"
+  "release_date": "2026-06-23"
 }
