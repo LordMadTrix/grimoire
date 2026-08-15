@@ -187,6 +187,9 @@
     }
   }
 
+  let showNotFoundFallbackModal = $state(false);
+  let failedAddon = $state<AddonManifest | null>(null);
+
   async function install(addon: AddonManifest) {
     installing = new Set([...installing, addon.id]);
     progress = { ...progress, [addon.id]: 0 };
@@ -194,7 +197,9 @@
       const result = await invoke<InstalledAddon>('addon_install', { addon });
       installed = [...installed.filter(i => i.id !== result.id), result];
     } catch (e) {
-      alert(`⚠️ Erreur d'installation :\n\n${e}\n\n💡 Astuce : Téléchargez le pack directement depuis le Google Drive et importez-le avec le bouton "Importer un pack ZIP local".`);
+      // Si 404 ou échec distant, afficher la modal d'aide simplifiée avec Drive / Import local
+      failedAddon = addon;
+      showNotFoundFallbackModal = true;
     } finally {
       installing = new Set([...installing].filter(id => id !== addon.id));
       const { [addon.id]: _, ...rest } = progress;
@@ -697,6 +702,48 @@
   </div>
 {/if}
 
+<!-- Modal Fallback Téléchargement Pack -->
+{#if showNotFoundFallbackModal && failedAddon}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="sub-overlay" onclick={(e) => e.target === e.currentTarget && (showNotFoundFallbackModal = false)} role="presentation">
+    <div class="sub-modal" style="max-width: 520px">
+      <div class="sub-modal-header">
+        <h3>☁️ Récupérer le Pack : {failedAddon.name}</h3>
+        <button class="close-btn" onclick={() => showNotFoundFallbackModal = false}>✕</button>
+      </div>
+
+      <div class="sub-modal-body" style="gap: 1rem">
+        <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; margin: 0">
+          Les fichiers de ce pack sont hébergés sur le <strong>Google Drive Communautaire</strong>. Vous pouvez le récupérer et l'installer en toute simplicité :
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 0.6rem">
+          <button class="btn-fallback-action btn-drive-primary" onclick={() => { openExternal(COMMUNITY_DRIVE_URL); showNotFoundFallbackModal = false; }}>
+            <span style="font-weight: 700; font-size: 0.95rem">☁️ 1. Ouvrir le Google Drive Grimoire ↗</span>
+            <small style="opacity: 0.85; font-size: 0.75rem">Téléchargez l'archive ZIP du pack</small>
+          </button>
+
+          <button class="btn-fallback-action btn-import-secondary" onclick={() => { showNotFoundFallbackModal = false; pickAndImportLocalZip(); }}>
+            <span style="font-weight: 700; font-size: 0.95rem">📥 2. Importer l'archive ZIP téléchargée</span>
+            <small style="opacity: 0.85; font-size: 0.75rem">Sélectionnez le fichier sur votre PC pour le déployer en 1 clic</small>
+          </button>
+
+          <button class="btn-fallback-action btn-folder-secondary" onclick={() => { if (failedAddon) openFolder(failedAddon.destination); showNotFoundFallbackModal = false; }}>
+            <span style="font-weight: 700; font-size: 0.95rem">📁 3. Ouvrir le dossier public/{failedAddon.destination}/</span>
+            <small style="opacity: 0.85; font-size: 0.75rem">Glissez manuellement vos images ou fichiers dans Windows</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="sub-modal-footer">
+        <button class="btn-cancel" onclick={() => showNotFoundFallbackModal = false}>
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .overlay {
     position: fixed; inset: 0;
@@ -1028,4 +1075,20 @@
     border-radius: 6px; cursor: pointer; font-size: 0.85rem;
   }
   .btn-confirm-import:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-fallback-action {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    padding: 0.7rem 1rem; border-radius: 8px; border: none; cursor: pointer;
+    text-align: left; transition: all .15s; width: 100%;
+  }
+  .btn-fallback-action:hover { transform: translateY(-1px); filter: brightness(1.15); }
+  .btn-drive-primary {
+    background: #e5a853; color: #000;
+  }
+  .btn-import-secondary {
+    background: #2563eb; color: #fff;
+  }
+  .btn-folder-secondary {
+    background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+  }
 </style>
