@@ -44,5 +44,9 @@ commands.allow = [
   "start_poll",
   "end_poll",
   "check_for_updates",
-  "get_current_version"
+  "get_current_version",
+  "addon_fetch_catalog",
+  "addon_list_installed",
+  "addon_install",
+  "addon_uninstall"
 ]
