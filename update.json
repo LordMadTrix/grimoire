@@ -1,6 +1,6 @@
 {
-  "version": "0.4.2",
-  "changelog": "Boutique d'Addons & Catalogue communautaire avec Google Drive en 1 clic, fix permissions ACL, Compagnon PWA Mobile avec WakeLock & D-Pad, Journal de Quêtes et packs d'aventures .grimoirepack.",
+  "version": "0.4.3",
+  "changelog": "Correction du débordement de la Boutique d'addons, ajout de l'importation locale de packs ZIP/.grimoirepack en 1 clic, boutons toujours visibles et intégration Google Drive.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
   "release_date": "2026-08-15"
 }
