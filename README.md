@@ -29,17 +29,14 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Auto-Sauvegarde & FTS5** : Sauvegarde automatique et recherche Full-Text ultra-rapide.
 
 ### 🗺️ Virtual TableTop (VTT) "Immersive Suite"
-- **Dynamic LOS (Line of Sight)** : Les murs et portes projettent des ombres portées en temps réel, bloquant la lumière des tokens.
+- **💡 Éclairage Dynamique & Scintillement de Torches (PixiJS v8)** : Ambiance Jour / Crépuscule / Nuit / Ténèbres avec projection d'ombres vectorielles, torches oscillantes et éclairs d'orage synchronisés.
+- **Dynamic LOS (Line of Sight)** : Les murs et portes projettent des ombres portées en temps réel, bloquant la vision des tokens.
+- **🏰 Donjons & Murs Procéduraux** : Générateur de cryptes, donjons et grottes cellulaires avec tracé vectoriel automatique des murs VTT.
+- **🎧 Audio Spatial 2.5D** : Musiques et ambiances spatialisées avec atténuation volumique dynamique basée sur la distance.
 - **Mode Blueprint** : Tracez vos murs et configurez des portes interactives que vous pouvez ouvrir/fermer d'un clic.
-- **Zones Sonores Spatialisées** : Créez des régions où la musique d'ambiance s'adapte à la position des joueurs.
 - **Animations & Particules** : Tokens animés (idle, attack, hit) et particules de sang pour un feedback viscéral.
 - **Brouillard de Guerre Dynamique** : Cachez les zones inexplorées — les tokens sont automatiquement masqués côté joueur selon les zones révélées/cachées en temps réel.
-- **Zones de Terrain** : Superposez des zones colorées sur la carte (terrain difficile, eau, feu, poison…) avec le mode 🗺️ glisser-déposer.
-- **Log de Combat** : Historique typé (dégâts/soins/morts/tours) avec export presse-papiers.
-- **Export PNG** : Exportez la carte actuelle en image haute résolution d'un clic (🖼️💾).
-- **Chemin de Déplacement** : Ligne pointillée jaune + compteur de cases pendant le déplacement d'un token.
-- **Map Editor Avancé** : Éditeur de carte complet intégré, remplaçant l'ancien éditeur de donjon, pour dessiner et concevoir vos cartes de rencontre avec une interface fluide.
-- **Redimensionnement de tokens** : Survolez n'importe quel token → poignée ⬤ apparaît dans le coin ; glissez-la pour redimensionner. `Alt+molette` pour un ajustement rapide. Les tokens déposés s'adaptent automatiquement à la taille de la grille courante.
+- **📦 Packs d'Aventures Partageables (`.grimoirepack`)** : Exportez et importez des modules complets (cartes, murs, monstres, audio, fiches) en un clic.
 
 ### 🎭 Vue Joueur Épique (Player View)
 - **Ambiance & Météo** : Effets de particules (pluie, neige, brouillard) et vignettage d'état (écran rougi si PV critiques, violet si corrompu).
@@ -47,24 +44,26 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **HUD de Combat** : Barre d'initiative avec portraits stylisés, et bannières pleines d'écran "AU TOUR DE..." pour fluidifier l'action.
 - **Révélations Cinématiques** : Partagez des notes aux joueurs sous forme de parchemin qui se déroule, avec sceau de cire animé.
 
-### 📱 HUB Mobile Joueur (Wave 9)
-- **Compagnon Mobile** : Vos joueurs se connectent via un QR Code à un serveur local ultra-fluide.
+### 📱 HUB Mobile Joueur PWA (v0.4.1)
+- **Mode PWA & Screen Wake Lock** : Vos joueurs gardent leur écran de smartphone toujours allumé pendant toute la session sans mise en veille.
+- **🕹️ D-Pad Déplacement VTT** : Déplacez votre propre pion sur la grille de la table virtuelle directement depuis votre téléphone avec retour haptique.
 - **Fiche Joueur Dark Fantasy** : Suivi des PV avec des "fioles de sang" liquides dynamiques.
-- **Combat HUD** : Suivi des PV et boutons d'actions rapides (WFRP2) directement sur smartphone.
+- **Combat HUD** : Suivi des PV et boutons d'actions rapides (WFRP) directement sur smartphone.
 - **Sketchpad Collaboratif** : Les joueurs peuvent dessiner sur leur écran pour pointer un lieu ou expliquer un plan ; le dessin apparaît sur l'écran du MJ.
 - **Soundboard Joueur** : Permettez à vos joueurs de déclencher des sons d'ambiance pour ponctuer leurs actions.
 
-### 🎲 Outils MJ — Wave 10 + 13
-Tous accessibles via le bouton **🔧** de la barre d'outils VTT (panneau déroulant).
+### 📜 Journal de Campagne & Arbre de Quêtes
+- **Gestionnaire de Quêtes** : Suivi des quêtes (Principales, Secondaires, Rumeurs, Secrets) avec étapes cochables en direct et calcul des récompenses (XP, Or).
+- **📢 Diffusion du Résumé de Session** : Génère automatiquement un compte-rendu Markdown des accomplissements de la session et le diffuse en un clic sur les smartphones des joueurs.
+- **🎯 Calculateur de Combat Opposé (SL Net)** : Calcul des Degrés de Succès Nets, inversion des dés pour la localisation des coups et réduction d'armure.
+
+### 🎲 Outils MJ Avancés
+Tous accessibles via le menu **🧙‍♂️ Outils MJ** de la barre d'outils VTT.
+- **🤖 Assistant IA Narratif** : Générateur de descriptions immersives, d'accroches de scénarios et de dialogues de PNJ.
 - **ConditionWheel** : Clic droit sur un token → roue radiale SVG pour toggler 8 conditions + bouton 🗑️ suppression directe.
-- **Calculateur de Dégâts** : Parseur de formules de dés (`2d6+4`), multi-cibles, demi-dégâts.
-- **Notes Partagées** : Envoyez des notes GM aux joueurs en temps réel ; elles s'affichent comme un overlay dismissable sur l'écran joueur.
-- **Générateurs** : Rencontre, Salle, Météo (planificateur 7 jours), Marchands & Boutiques avec inventaires générés dynamiquement, Rumeurs & Potins, Carte des Relations PNJ.
-- **Règles Spécifiques WFRP** : Gestion intégrée des Blessures Critiques, Mutations du Chaos, et du Calendrier Impérial pour suivre le temps qui passe.
-- **Suivi des Durées** : Présets d'effets (torche, concentration, poison), countdown par round avec alerte visuelle.
-- **Butin Rapide** : Générez du butin aléatoire par niveau de richesse avec rareté pondérée.
-- **Pack Mimic** : Une collection de jetons (tokens) illustrés pour Mimics (Coffre, Porte, Baril, Table) intégrée à la bibliothèque.
-- **Bibliothèque d'Aventures** : Importez et gérez vos modules d'aventures PDF/Markdown avec indexation automatique.
+- **Notes Partagées & Handouts** : Envoyez des notes et illustrations aux joueurs en temps réel.
+- **Générateurs** : Rencontres, Salles, Météo (planificateur 7 jours), Marchands & Boutiques avec inventaires générés dynamiquement, Rumeurs & Potins, Carte des Relations PNJ.
+- **Règles Spécifiques WFRP** : Gestion intégrée des Blessures Critiques, Mutations du Chaos, et du Calendrier Impérial.
 
 ### 🕸️ Visualisation & IA
 - **Graphe de Liens** : Visualisez les connexions entre vos notes sous forme de graphe interactif.
