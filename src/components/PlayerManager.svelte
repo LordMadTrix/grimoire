@@ -481,31 +481,31 @@
                             <input type="text" bind:value={editForm.voc} placeholder="Métier/Classe" class="edit-input" style="flex:1" />
                           </div>
                           <div class="edit-row">
-                            <label>PV:</label>
+                            <span class="edit-label">PV:</span>
                             <input type="number" bind:value={editForm.hp} class="edit-num" />
                             <span>/</span>
                             <input type="number" bind:value={editForm.maxhp} class="edit-num" />
-                            <label style="margin-left:8px">XP:</label>
+                            <span class="edit-label" style="margin-left:8px">XP:</span>
                             <input type="number" bind:value={editForm.xp} class="edit-num" />
                           </div>
                           <div class="edit-row">
-                            <label title="Destin/Fortune">Des/For:</label>
+                            <span class="edit-label" title="Destin/Fortune">Des/For:</span>
                             <input type="number" bind:value={editForm.destin} class="edit-num" /> /
                             <input type="number" bind:value={editForm.fortune} class="edit-num" />
-                            <label title="Résilience/Résolution" style="margin-left:8px">Rés/Rés:</label>
+                            <span class="edit-label" title="Résilience/Résolution" style="margin-left:8px">Rés/Rés:</span>
                             <input type="number" bind:value={editForm.resilience} class="edit-num" /> /
                             <input type="number" bind:value={editForm.resolution} class="edit-num" />
                           </div>
                           <div class="edit-row">
-                            <label>Corr:</label>
+                            <span class="edit-label">Corr:</span>
                             <input type="text" bind:value={editForm.corruption} class="edit-input" style="flex:1" placeholder="Niveau de corruption" />
                           </div>
                           <div class="edit-row">
-                            <label>Bless.Crit:</label>
+                            <span class="edit-label">Bless.Crit:</span>
                             <input type="text" bind:value={editForm.blessures_critiques} class="edit-input" style="flex:1" placeholder="Hémorragie, Bras cassé..." />
                           </div>
                           <div class="edit-row">
-                            <label>Inventaire:</label>
+                            <span class="edit-label">Inventaire:</span>
                           </div>
                           <textarea bind:value={editForm.inventaire} class="edit-textarea" placeholder="Objets, Couronnes..."></textarea>
                           
@@ -616,9 +616,9 @@
                 <div class="details-card">
                   <h2>{selectedChar.data.nom || selectedChar.name}</h2>
                   <div class="details-stats">
-                    <div class="detail-stat"><label>PV</label><span>{selectedChar.data.hp} / {selectedChar.data.maxhp}</span></div>
-                    <div class="detail-stat"><label>Race</label><span>{selectedChar.data.race}</span></div>
-                    <div class="detail-stat"><label>Classe</label><span>{selectedChar.data.voc}</span></div>
+                    <div class="detail-stat"><span class="detail-label">PV</span><span>{selectedChar.data.hp} / {selectedChar.data.maxhp}</span></div>
+                    <div class="detail-stat"><span class="detail-label">Race</span><span>{selectedChar.data.race}</span></div>
+                    <div class="detail-stat"><span class="detail-label">Classe</span><span>{selectedChar.data.voc}</span></div>
                   </div>
                   <h3>Assigner à :</h3>
                   <div class="assign-list">
@@ -681,7 +681,7 @@
             
             {#if lastPushedNote}
               <div class="last-note" transition:fly={{ y: 20 }}>
-                <label>Dernière note envoyée :</label>
+                <span class="last-note-label">Dernière note envoyée :</span>
                 <div class="note-content">{lastPushedNote}</div>
               </div>
             {/if}
@@ -825,7 +825,7 @@
   .details-card h2 { font-size: 24px; margin-bottom: 24px; color: white; }
   .details-stats { display: flex; gap: 24px; margin-bottom: 32px; }
   .detail-stat { display: flex; flex-direction: column; }
-  .detail-stat label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+  .detail-stat .detail-label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
   .detail-stat span { font-size: 16px; font-weight: 700; color: white; }
   .btn-assign { width: 100%; text-align: left; padding: 12px; background: #161b22; border: 1px solid #30363d; border-radius: 10px; color: white; cursor: pointer; margin-bottom: 8px; }
   .btn-assign:hover { border-color: #e5a853; }
@@ -850,7 +850,7 @@
   .btn-push { background: #e5a853; color: black; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 15px; }
   .btn-push:disabled { opacity: 0.5; cursor: not-allowed; }
   .last-note { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
-  .last-note label { font-size: 11px; color: #8b949e; text-transform: uppercase; display: block; margin-bottom: 8px; }
+  .last-note .last-note-label { font-size: 11px; color: #8b949e; text-transform: uppercase; display: block; margin-bottom: 8px; }
   .note-content { color: white; white-space: pre-wrap; line-height: 1.5; font-size: 14px; }
 
   /* Modals */

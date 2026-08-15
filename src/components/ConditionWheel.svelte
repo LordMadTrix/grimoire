@@ -45,17 +45,20 @@
   const wy = $derived(Math.min(Math.max(y, 90), window.innerHeight - 90));
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   class="cw-backdrop"
   onclick={onclose}
-  role="none"
+  role="presentation"
   style="position:fixed;inset:0;z-index:2000"
 >
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     class="cw-root"
     style="position:fixed;left:{wx}px;top:{wy}px;transform:translate(-50%,-50%)"
     onclick={e => e.stopPropagation()}
     role="menu"
+    tabindex="-1"
   >
     <svg width="{(R+BTN+8)*2}" height="{(R+BTN+8)*2}" viewBox="{-(R+BTN+8)} {-(R+BTN+8)} {(R+BTN+8)*2} {(R+BTN+8)*2}">
       <!-- Centre : nom du token -->
@@ -68,9 +71,11 @@
         <g
           transform="translate(0,14)"
           onclick={() => { onDelete!(tokenId); onclose(); }}
+          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDelete!(tokenId); onclose(); } }}
           style="cursor:pointer"
           role="button"
           tabindex="0"
+          aria-label="Supprimer le pion"
         >
           <circle r="10" fill="#ef4444" fill-opacity="0.85" stroke="#b91c1c" stroke-width="1.5"/>
           <text y="4" text-anchor="middle" font-size="11">🗑️</text>
@@ -83,9 +88,11 @@
         <g
           transform="translate({bx(i)},{by(i)})"
           onclick={() => toggle(cond.id)}
+          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(cond.id); } }}
           style="cursor:pointer"
           role="menuitem"
           tabindex="0"
+          aria-label={cond.label}
         >
           <circle
             r={BTN}

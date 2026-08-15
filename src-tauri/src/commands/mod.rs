@@ -5,3 +5,4 @@ pub mod ai;
 pub mod player_server;
 pub mod config;
 pub mod update;
+pub mod addons;

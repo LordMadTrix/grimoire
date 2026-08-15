@@ -11,7 +11,7 @@
           <div class="notif-title">{n.title}</div>
           <div class="notif-msg">{n.msg}</div>
         </div>
-        <button class="notif-close" onclick={() => notifStore.remove(n.id)}>×</button>
+        <button class="notif-close" onclick={() => notifStore.remove(n.id)} aria-label="Fermer la notification">×</button>
       </div>
     {/each}
   </div>

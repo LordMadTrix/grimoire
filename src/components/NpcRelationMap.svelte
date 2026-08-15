@@ -114,7 +114,7 @@
 </script>
 
 <div class="nrm-wrap">
-  <!-- SVG graphe -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <svg
     bind:this={svgEl}
     viewBox="0 0 600 400"
@@ -150,8 +150,18 @@
         {#if edge.label}
           <text x={mid.x} y={mid.y - 5} text-anchor="middle" font-size="10" fill={EDGE_COLORS[edge.type]} opacity="0.9">{edge.label}</text>
         {/if}
-        <circle cx={mid.x} cy={mid.y} r="5" fill="rgba(0,0,0,0.4)" class="edge-del" onclick={() => removeEdge(edge.id)} style="cursor:pointer" />
-        <text x={mid.x} y={mid.y + 4} text-anchor="middle" font-size="8" fill="#ef4444" style="cursor:pointer;pointer-events:none">✕</text>
+        <g
+          class="edge-del"
+          onclick={() => removeEdge(edge.id)}
+          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); removeEdge(edge.id); } }}
+          role="button"
+          tabindex="0"
+          aria-label="Supprimer le lien"
+          style="cursor:pointer"
+        >
+          <circle cx={mid.x} cy={mid.y} r="5" fill="rgba(0,0,0,0.4)" />
+          <text x={mid.x} y={mid.y + 4} text-anchor="middle" font-size="8" fill="#ef4444" style="pointer-events:none">✕</text>
+        </g>
       {/if}
     {/each}
 
@@ -171,8 +181,17 @@
           <text y="17" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.6)">{node.role.slice(0, 14)}</text>
         {/if}
         <!-- Bouton supprimer -->
-        <circle cx="22" cy="-22" r="7" fill="#ef4444" fill-opacity="0.85" onclick={(e) => { e.stopPropagation(); removeNode(node.id); }} style="cursor:pointer" />
-        <text x="22" y="-18" text-anchor="middle" font-size="9" fill="white" style="pointer-events:none">✕</text>
+        <g
+          onclick={(e) => { e.stopPropagation(); removeNode(node.id); }}
+          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); removeNode(node.id); } }}
+          role="button"
+          tabindex="0"
+          aria-label="Supprimer le PNJ"
+          style="cursor:pointer"
+        >
+          <circle cx="22" cy="-22" r="7" fill="#ef4444" fill-opacity="0.85" />
+          <text x="22" y="-18" text-anchor="middle" font-size="9" fill="white" style="pointer-events:none">✕</text>
+        </g>
       </g>
     {/each}
 
@@ -191,10 +210,13 @@
       <div class="nrm-color-row">
         {#each NODE_COLORS as c}
           <button
+            type="button"
             class="nrm-color-btn"
             class:selected={newColor === c}
             style="background:{c}"
             onclick={() => newColor = c}
+            aria-label="Couleur {c}"
+            title="Couleur {c}"
           ></button>
         {/each}
       </div>

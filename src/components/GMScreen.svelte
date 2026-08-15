@@ -33,8 +33,9 @@
 {#if visible}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="gm-screen-backdrop" onclick={() => visible = false}>
-    <div class="gm-screen-modal" onclick={e => e.stopPropagation()}>
+  <div class="gm-screen-backdrop" onclick={() => visible = false} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="gm-screen-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <div class="gm-screen-header">
         <span class="gm-title">🛡️ Écran du Maître du Jeu (Tactique)</span>
         <button class="gm-close" onclick={() => visible = false}>✕</button>

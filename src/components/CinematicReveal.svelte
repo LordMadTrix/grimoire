@@ -22,16 +22,25 @@
 {#if handout && showModal}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="reveal-backdrop" onclick={close}>
-    <div class="reveal-container" class:note={handout.type === 'note'} class:image={handout.type === 'image'}>
+  <div class="reveal-backdrop" onclick={close} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div
+      class="reveal-container"
+      class:note={handout.type === 'note'}
+      class:image={handout.type === 'image'}
+      onclick={e => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
       {#if handout.type === 'image'}
-        <img src={handout.content} alt={handout.title ?? 'Image Partagée'} class="handout-image" onclick={e => e.stopPropagation()} />
+        <img src={handout.content} alt={handout.title ?? 'Image Partagée'} class="handout-image" />
         {#if handout.title}
           <div class="handout-title">{handout.title}</div>
         {/if}
       {:else}
         <!-- Paper/Parchment style -->
-        <div class="parchment" onclick={e => e.stopPropagation()}>
+        <div class="parchment">
           {#if handout.title}
             <h2 class="parchment-title">{handout.title}</h2>
           {/if}

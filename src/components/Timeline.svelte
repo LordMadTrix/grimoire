@@ -144,13 +144,13 @@
 {#if showForm}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="tl-modal-bg" onclick={() => showForm = false}>
+  <div class="tl-modal-bg" onclick={() => showForm = false} role="presentation">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div class="tl-modal" onclick={e => e.stopPropagation()}>
+    <div class="tl-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <h3>{editingId ? '✏️ Modifier' : '➕ Nouvel événement'}</h3>
 
       <div class="tl-form-group">
-        <label>Type</label>
+        <span class="tl-label">Type</span>
         <div class="tl-type-grid">
           {#each EVENT_TYPES as t}
             <button
@@ -165,19 +165,19 @@
 
       <div class="tl-form-row">
         <div class="tl-form-group">
-          <label>Date in-game</label>
-          <input type="text" bind:value={formDate} placeholder="ex: Jour 12, An 1432…" />
+          <label for="tl-date">Date in-game</label>
+          <input id="tl-date" type="text" bind:value={formDate} placeholder="ex: Jour 12, An 1432…" />
         </div>
       </div>
 
       <div class="tl-form-group">
-        <label>Titre *</label>
-        <input type="text" bind:value={formTitle} placeholder="Titre de l'événement" />
+        <label for="tl-title">Titre *</label>
+        <input id="tl-title" type="text" bind:value={formTitle} placeholder="Titre de l'événement" />
       </div>
 
       <div class="tl-form-group">
-        <label>Description</label>
-        <textarea bind:value={formDesc} rows="3" placeholder="Résumé de l'événement…"></textarea>
+        <label for="tl-desc">Description</label>
+        <textarea id="tl-desc" bind:value={formDesc} rows="3" placeholder="Résumé de l'événement…"></textarea>
       </div>
 
       <div class="tl-modal-actions">
@@ -387,7 +387,7 @@
   .tl-form-row { display: flex; gap: 12px; }
   .tl-form-row .tl-form-group { flex: 1; }
 
-  label { font-size: 12px; color: var(--text-secondary); }
+  .tl-label, label { font-size: 12px; color: var(--text-secondary); }
 
   input[type="text"], textarea {
     background: var(--bg-tertiary);

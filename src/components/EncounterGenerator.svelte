@@ -63,8 +63,10 @@
   generate();
 </script>
 
-<div class="eg-backdrop" onclick={onclose} role="none">
-  <div class="eg-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="eg-backdrop" onclick={onclose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="eg-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="eg-header">
       <span>⚔️ Rencontre Aléatoire</span>
       <button class="eg-close" onclick={onclose}>×</button>

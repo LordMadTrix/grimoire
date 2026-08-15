@@ -36,8 +36,10 @@
   }
 </script>
 
-<div class="ho-backdrop" onclick={onclose} role="none">
-  <div class="ho-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="ho-backdrop" onclick={onclose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="ho-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="ho-header">
       <span>📤 Handout Joueur</span>
       <button class="ho-close" onclick={onclose}>×</button>
@@ -52,13 +54,13 @@
 
     {#if mode === 'image'}
       <input bind:this={fileInput} type="file" accept="image/*" style="display:none" onchange={onFileChange} />
-      <div class="ho-img-zone" onclick={pickFile} role="button" tabindex="0">
+      <button type="button" class="ho-img-zone" onclick={pickFile}>
         {#if imgPreview}
           <img src={imgPreview} alt="preview" class="ho-preview" />
         {:else}
           <span class="ho-img-hint">Cliquer pour choisir une image</span>
         {/if}
-      </div>
+      </button>
     {:else}
       <textarea class="ho-textarea" placeholder="Texte à afficher…" bind:value={noteText} rows="5"></textarea>
     {/if}
@@ -106,6 +108,7 @@
   .ho-img-zone {
     border: 2px dashed var(--border); border-radius: 8px;
     min-height: 120px; display: flex; align-items: center; justify-content: center;
+    background: transparent; width: 100%;
     cursor: pointer; overflow: hidden;
   }
   .ho-img-zone:hover { border-color: var(--accent); }

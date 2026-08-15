@@ -68,27 +68,16 @@
 
   <div class="tp-divider"></div>
 
-  <!-- Bascule 3D -->
-  <button type="button" class="tp-btn" class:active={mapStore.isPerspective} onclick={() => mapStore.isPerspective = !mapStore.isPerspective} title="Vue 3D (Caméra Libre)">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="icon" stroke="currentColor" stroke-width="2">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-      <line x1="12" y1="22.08" x2="12" y2="12"></line>
-    </svg>
-  </button>
-
-  <div class="tp-divider"></div>
-
   <!-- OPTIONS DYNAMIQUES DE L'OUTIL -->
   <div class="tp-options-container">
     <!-- Sculpt ou Paint : Taille de brosse -->
     {#if mapStore.activeTool === 'sculpt'}
       <div class="tp-option-item">
-        <label title="Taille du pinceau (Sculpt)">
+        <span class="option-icon-wrap" title="Taille du pinceau (Sculpt)">
           <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" class="option-icon rotate-45" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
             <path d="M182.6 9.4c-12.5-12.5-32.8-12.5-45.3 0l-96 96c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L128 109.3l0 293.5L86.6 361.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l96 96c12.5 12.5 32.8 12.5 45.3 0l96-96c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 402.7l0-293.5 41.4 41.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-96-96z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="10" max="200" bind:value={mapStore.sculptBrushSize} class="tp-slider-input" />
         <input type="number" min="10" max="200" bind:value={mapStore.sculptBrushSize} class="tp-number-input" />
         <span class="unit">px</span>
@@ -97,22 +86,22 @@
 
     {#if mapStore.activeTool === 'paint'}
       <div class="tp-option-item">
-        <label title="Taille du pinceau (Paint)">
+        <span class="option-icon-wrap" title="Taille du pinceau (Paint)">
           <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" class="option-icon rotate-45" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
             <path d="M182.6 9.4c-12.5-12.5-32.8-12.5-45.3 0l-96 96c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L128 109.3l0 293.5L86.6 361.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l96 96c12.5 12.5 32.8 12.5 45.3 0l96-96c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 402.7l0-293.5 41.4 41.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-96-96z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="15" max="300" bind:value={mapStore.paintBrushSize} class="tp-slider-input" />
         <input type="number" min="15" max="300" bind:value={mapStore.paintBrushSize} class="tp-number-input" />
         <span class="unit">px</span>
       </div>
 
       <div class="tp-option-item">
-        <label title="Opacité du pinceau (Paint)">
+        <span class="option-icon-wrap" title="Opacité du pinceau (Paint)">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="option-icon">
             <path fill="currentColor" d="M17.66 8L12 2.35L6.34 8A8.02 8.02 0 0 0 4 13.64c0 2 .78 4.11 2.34 5.67a7.99 7.99 0 0 0 11.32 0c1.56-1.56 2.34-3.67 2.34-5.67S19.22 9.56 17.66 8zM6 14c.01-2 .62-3.27 1.76-4.4L12 5.27l4.24 4.38C17.38 10.77 17.99 12 18 14H6z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="0.1" max="1.0" step="0.05" bind:value={mapStore.paintBrushOpacity} class="tp-slider-input" />
         <input type="number" min="10" max="100" value={Math.round(mapStore.paintBrushOpacity * 100)} oninput={(e) => mapStore.paintBrushOpacity = Number(e.currentTarget.value) / 100} class="tp-number-input" />
         <span class="unit">%</span>
@@ -122,33 +111,33 @@
     <!-- Stamp : Échelle, Opacité, Rotation -->
     {#if mapStore.activeTool === 'stamp'}
       <div class="tp-option-item">
-        <label title="Taille du Tampon (Échelle)">
+        <span class="option-icon-wrap" title="Taille du Tampon (Échelle)">
           <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" class="option-icon rotate-45" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
             <path d="M182.6 9.4c-12.5-12.5-32.8-12.5-45.3 0l-96 96c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L128 109.3l0 293.5L86.6 361.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l96 96c12.5 12.5 32.8 12.5 45.3 0l96-96c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 402.7l0-293.5 41.4 41.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-96-96z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="0.1" max="3.0" step="0.05" bind:value={mapStore.stampScale} class="tp-slider-input" />
         <input type="number" min="10" max="300" value={Math.round(mapStore.stampScale * 100)} oninput={(e) => mapStore.stampScale = Number(e.currentTarget.value) / 100} class="tp-number-input" />
         <span class="unit">%</span>
       </div>
 
       <div class="tp-option-item">
-        <label title="Opacité du Tampon">
+        <span class="option-icon-wrap" title="Opacité du Tampon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="option-icon">
             <path fill="currentColor" d="M17.66 8L12 2.35L6.34 8A8.02 8.02 0 0 0 4 13.64c0 2 .78 4.11 2.34 5.67a7.99 7.99 0 0 0 11.32 0c1.56-1.56 2.34-3.67 2.34-5.67S19.22 9.56 17.66 8zM6 14c.01-2 .62-3.27 1.76-4.4L12 5.27l4.24 4.38C17.38 10.77 17.99 12 18 14H6z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="0.1" max="1.0" step="0.05" bind:value={mapStore.stampOpacity} class="tp-slider-input" />
         <input type="number" min="10" max="100" value={Math.round(mapStore.stampOpacity * 100)} oninput={(e) => mapStore.stampOpacity = Number(e.currentTarget.value) / 100} class="tp-number-input" />
         <span class="unit">%</span>
       </div>
 
       <div class="tp-option-item">
-        <label title="Rotation du Tampon">
+        <span class="option-icon-wrap" title="Rotation du Tampon">
           <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" class="option-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
             <path d="M370.72 133.28C339.458 104.008 298.888 87.962 255.848 88c-77.458.068-144.328 53.178-162.791 126.85-1.344 5.363-6.122 9.15-11.651 9.15H24.103c-7.498 0-13.194-6.807-11.807-14.176C33.933 94.924 134.813 8 256 8c66.448 0 126.791 26.136 171.315 68.685L463.03 40.97C478.149 25.851 504 36.559 504 57.941V192c0 13.255-10.745 24-24 24H345.941c-21.382 0-32.09-25.851-16.971-40.971l41.75-41.749zM32 296h134.059c21.382 0 32.09 25.851 16.971 40.971l-41.75 41.75c31.262 29.273 71.835 45.319 114.876 45.28 77.418-.07 144.315-53.144 162.787-126.849 1.344-5.363 6.122-9.15 11.651-9.15h57.304c7.498 0 13.194 6.807 11.807 14.176C478.067 417.076 377.187 504 256 504c-66.448 0-126.791-26.136-171.315-68.685L48.97 471.03C33.851 486.149 8 475.441 8 454.059V320c0-13.255 10.745-24 24-24z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="-180" max="180" step="5" bind:value={mapStore.stampRotation} class="tp-slider-input" />
         <input type="number" min="-180" max="180" bind:value={mapStore.stampRotation} class="tp-number-input" style="width: 50px;" />
         <span class="unit">°</span>
@@ -158,11 +147,11 @@
     <!-- Path : Épaisseur -->
     {#if mapStore.activeTool === 'path'}
       <div class="tp-option-item">
-        <label title="Épaisseur du tracé">
+        <span class="option-icon-wrap" title="Épaisseur du tracé">
           <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" class="option-icon rotate-45" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
             <path d="M182.6 9.4c-12.5-12.5-32.8-12.5-45.3 0l-96 96c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L128 109.3l0 293.5L86.6 361.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l96 96c12.5 12.5 32.8 12.5 45.3 0l96-96c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 402.7l0-293.5 41.4 41.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-96-96z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="1" max="20" bind:value={mapStore.pathWidth} class="tp-slider-input" />
         <input type="number" min="1" max="20" bind:value={mapStore.pathWidth} class="tp-number-input" />
         <span class="unit">px</span>
@@ -172,22 +161,22 @@
     <!-- Text : Taille, Rotation -->
     {#if mapStore.activeTool === 'text'}
       <div class="tp-option-item">
-        <label title="Taille du texte">
+        <span class="option-icon-wrap" title="Taille du texte">
           <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" class="option-icon rotate-45" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
             <path d="M182.6 9.4c-12.5-12.5-32.8-12.5-45.3 0l-96 96c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L128 109.3l0 293.5L86.6 361.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l96 96c12.5 12.5 32.8 12.5 45.3 0l96-96c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 402.7l0-293.5 41.4 41.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-96-96z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="10" max="80" bind:value={mapStore.textSize} class="tp-slider-input" />
         <input type="number" min="10" max="80" bind:value={mapStore.textSize} class="tp-number-input" />
         <span class="unit">pt</span>
       </div>
 
       <div class="tp-option-item">
-        <label title="Rotation du texte">
+        <span class="option-icon-wrap" title="Rotation du texte">
           <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" class="option-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
             <path d="M370.72 133.28C339.458 104.008 298.888 87.962 255.848 88c-77.458.068-144.328 53.178-162.791 126.85-1.344 5.363-6.122 9.15-11.651 9.15H24.103c-7.498 0-13.194-6.807-11.807-14.176C33.933 94.924 134.813 8 256 8c66.448 0 126.791 26.136 171.315 68.685L463.03 40.97C478.149 25.851 504 36.559 504 57.941V192c0 13.255-10.745 24-24 24H345.941c-21.382 0-32.09-25.851-16.971-40.971l41.75-41.749zM32 296h134.059c21.382 0 32.09 25.851 16.971 40.971l-41.75 41.75c31.262 29.273 71.835 45.319 114.876 45.28 77.418-.07 144.315-53.144 162.787-126.849 1.344-5.363 6.122-9.15 11.651-9.15h57.304c7.498 0 13.194 6.807 11.807 14.176C478.067 417.076 377.187 504 256 504c-66.448 0-126.791-26.136-171.315-68.685L48.97 471.03C33.851 486.149 8 475.441 8 454.059V320c0-13.255 10.745-24 24-24z"></path>
           </svg>
-        </label>
+        </span>
         <input type="range" min="-90" max="90" bind:value={mapStore.textRotation} class="tp-slider-input" />
         <input type="number" min="-90" max="90" bind:value={mapStore.textRotation} class="tp-number-input" />
         <span class="unit">°</span>
@@ -285,12 +274,6 @@
     color: var(--color-text-primary);
   }
 
-  .tp-btn.active {
-    background-color: rgba(255, 204, 90, 0.15);
-    color: var(--accent-orange);
-    border: 1px solid rgba(255, 204, 90, 0.3);
-  }
-
   .tp-btn:disabled {
     opacity: 0.2;
     cursor: not-allowed;
@@ -322,14 +305,14 @@
     gap: 8px;
   }
 
-  .tp-option-item label {
+  .tp-option-item .option-icon-wrap {
     color: var(--color-text-muted);
     display: flex;
     align-items: center;
     cursor: pointer;
   }
 
-  .tp-option-item label:hover {
+  .tp-option-item .option-icon-wrap:hover {
     color: var(--color-text-primary);
   }
 

@@ -72,6 +72,11 @@ pub fn run() {
             // Updater
             commands::update::check_for_updates,
             commands::update::get_current_version,
+            // Addon store
+            commands::addons::addon_fetch_catalog,
+            commands::addons::addon_list_installed,
+            commands::addons::addon_install,
+            commands::addons::addon_uninstall,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");

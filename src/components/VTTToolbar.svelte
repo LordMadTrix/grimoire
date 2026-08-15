@@ -350,7 +350,8 @@
     <!-- 1. Carte & Vue -->
     <div class="menu-dropdown" class:open={activeMenu === 'map'}>
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'map' ? null : 'map'; }}>🗺️ Carte & Vue</button>
-      <div class="dropdown-content" class:hidden={activeMenu !== 'map'} onclick={(e) => e.stopPropagation()}>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div class="dropdown-content" class:hidden={activeMenu !== 'map'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
         {#if !vttStore.currentMap}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Charger une carte</button>
         {:else}
@@ -379,7 +380,8 @@
     {#if vttStore.currentMap}
       <div class="menu-dropdown" class:open={activeMenu === 'tools'}>
         <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'tools' ? null : 'tools'; }}>🛠️ Outils</button>
-        <div class="dropdown-content" class:hidden={activeMenu !== 'tools'} onclick={(e) => e.stopPropagation()}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <div class="dropdown-content" class:hidden={activeMenu !== 'tools'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
           <button class="dropdown-item" class:active={vttStore.mode === 'select'} onclick={() => vttStore.mode = 'select'}>👆 Sélectionner</button>
           <button class="dropdown-item" class:active={vttStore.mode === 'measure'} onclick={() => vttStore.mode = 'measure'}>📏 Mesurer distance</button>
           <button class="dropdown-item" class:active={vttStore.mode === 'ping'} onclick={() => vttStore.mode = 'ping'}>📍 Ping (Joueurs)</button>
@@ -485,7 +487,8 @@
     <!-- 3. Ambiance & Audio -->
     <div class="menu-dropdown" class:open={activeMenu === 'audio'}>
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'audio' ? null : 'audio'; }}>🎭 Ambiance</button>
-      <div class="dropdown-content" class:hidden={activeMenu !== 'audio'} onclick={(e) => e.stopPropagation()}>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div class="dropdown-content" class:hidden={activeMenu !== 'audio'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
         <button class="dropdown-item" onclick={() => { showAudioPicker = true; activeMenu = null; }}>{vttStore.audioSrc ? '🔊 Piste 1 en cours...' : '🎵 Choisir Piste 1'}</button>
         {#if vttStore.audioSrc}
           <div class="dropdown-submenu-item">
@@ -526,7 +529,8 @@
     <!-- 4. Joueurs & Groupe -->
     <div class="menu-dropdown" class:open={activeMenu === 'players'}>
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'players' ? null : 'players'; }}>👥 Joueurs</button>
-      <div class="dropdown-content" class:hidden={activeMenu !== 'players'} onclick={(e) => e.stopPropagation()}>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div class="dropdown-content" class:hidden={activeMenu !== 'players'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
         <button class="dropdown-item" onclick={() => { onTogglePlayerManager?.(); activeMenu = null; }}>📝 Gestionnaire de Groupe</button>
         <button class="dropdown-item" onclick={() => { onTogglePlayerHub?.(); activeMenu = null; }}>📱 Hub des Joueurs</button>
         <button class="dropdown-item" onclick={() => { onTogglePlayerMobileManager?.(); activeMenu = null; }}>📲 Serveur Mobile (QR)</button>
@@ -556,8 +560,9 @@
     <!-- 5. Outils du MJ -->
     <div class="menu-dropdown" class:open={activeMenu === 'gm'}>
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'gm' ? null : 'gm'; }}>🧙‍♂️ Outils MJ</button>
-      <div class="dropdown-content" class:hidden={activeMenu !== 'gm'} onclick={(e) => e.stopPropagation()}>
-                <button class="dropdown-item" onclick={() => { gmScreen?.toggle(); activeMenu = null; }}>🛡️ Écran Tactique (Dashboard)</button>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div class="dropdown-content" class:hidden={activeMenu !== 'gm'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+        <button class="dropdown-item" onclick={() => { gmScreen?.toggle(); activeMenu = null; }}>🛡️ Écran Tactique (Dashboard)</button>
         <button class="dropdown-item" onclick={() => { critWounds?.toggle(); activeMenu = null; }}>🩸 Blessures Critiques</button>
         <button class="dropdown-item" onclick={() => { chaosMuts?.toggle(); activeMenu = null; }}>🌑 Mutations du Chaos</button>
         <button class="dropdown-item" onclick={() => { merchantGen?.toggle(); activeMenu = null; }}>🛍️ Marchand Générateur</button>
@@ -677,13 +682,15 @@
   {@const images = q ? allMaps.filter(m => m.name.toLowerCase().includes(q)) : allMaps}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="picker-backdrop" onclick={() => { showMapPicker = false; mapPickerSearch = ''; }}>
-    <div class="picker-modal" onclick={e => e.stopPropagation()}>
+  <div class="picker-backdrop" onclick={() => { showMapPicker = false; mapPickerSearch = ''; }} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="picker-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <div class="picker-header">
         <span>🗺️ Choisir une carte</span>
         <button class="picker-close" onclick={() => { showMapPicker = false; mapPickerSearch = ''; }}>✕</button>
       </div>
       <div class="picker-search-bar">
+        <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           class="picker-search"
@@ -726,13 +733,15 @@
   {@const tokens = qt ? allTokens.filter(t => t.name.toLowerCase().includes(qt)) : allTokens}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="picker-backdrop" onclick={() => { showTokenPicker = false; tokenPickerSearch = ''; }}>
-    <div class="picker-modal" onclick={e => e.stopPropagation()}>
+  <div class="picker-backdrop" onclick={() => { showTokenPicker = false; tokenPickerSearch = ''; }} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="picker-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <div class="picker-header">
         <span>🖼️ Choisir un token</span>
         <button class="picker-close" onclick={() => { showTokenPicker = false; tokenPickerSearch = ''; }}>✕</button>
       </div>
       <div class="picker-search-bar">
+        <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           class="picker-search"
@@ -765,8 +774,9 @@
   {@const audios = getAllAudio(getVaultTree())}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="picker-backdrop" onclick={() => showAudioPicker = false}>
-    <div class="picker-modal" onclick={e => e.stopPropagation()}>
+  <div class="picker-backdrop" onclick={() => showAudioPicker = false} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="picker-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <div class="picker-header">
         <span>🎵 Ambiance Sonore</span>
         <button class="picker-close" onclick={() => showAudioPicker = false}>✕</button>
@@ -943,7 +953,6 @@
   }
   .dropdown-item:hover { background: var(--bg-hover); color: var(--text-primary); }
   .dropdown-item.active { background: rgba(229,168,83,0.15); color: var(--accent); }
-  .dropdown-item.sub-item { padding-left: 20px; }
   .dropdown-item.text-danger:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
 
   .dropdown-divider {
@@ -992,7 +1001,6 @@
     gap: 6px;
   }
   .ml-1 { margin-left: 4px; }
-  .ml-2 { margin-left: 8px; }
 
   .hidden-toggles > :global(button) {
     display: none !important;
@@ -1001,211 +1009,6 @@
   @keyframes slideDown {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
-  }
-
-.campaign-title-input {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text-primary);
-    font-size: 12px;
-    padding: 3px 8px;
-    width: 140px;
-    outline: none;
-  }
-  .campaign-title-input:focus { border-color: var(--accent); }
-  .campaign-title-input::placeholder { color: var(--text-muted); font-style: italic; }
-
-  /* Sélecteur de carte */
-  .picker-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(3px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  }
-
-  .picker-modal {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    width: 480px;
-    max-height: 60vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-    animation: slideDown 0.15s ease-out;
-  }
-
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .picker-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .picker-close {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 16px;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-  .picker-close:hover { background: var(--bg-hover); }
-
-  .picker-search-bar {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
-  }
-
-  .picker-search {
-    width: 100%;
-    padding: 7px 10px;
-    background: var(--bg-primary, #0d0f14);
-    border: 1px solid var(--border-color, rgba(255,255,255,0.12));
-    border-radius: 6px;
-    color: var(--text-primary, #e2e8f0);
-    font-size: 13px;
-    outline: none;
-    box-sizing: border-box;
-  }
-  .picker-search:focus { border-color: var(--accent, #e5a853); }
-
-  .picker-list { overflow-y: auto; padding: 6px; }
-
-  .picker-item-row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .picker-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    padding: 10px 12px;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.1s;
-  }
-  .picker-item:hover { background: var(--bg-hover); }
-
-  .picker-item-new {
-    flex-shrink: 0;
-    padding: 6px 10px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--accent);
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.1s;
-    line-height: 1;
-  }
-  .picker-item-new:hover { background: rgba(229,168,83,0.12); }
-
-  .picker-icon { font-size: 18px; flex-shrink: 0; }
-  .picker-name { font-size: 14px; color: var(--text-primary); font-weight: 500; }
-  .picker-path {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-left: auto;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-  }
-
-  .picker-empty {
-    padding: 32px;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 13px;
-  }
-
-  .handout-btn {
-    border-color: var(--accent-secondary, #7c6af5);
-    color: var(--accent-secondary, #7c6af5);
-  }
-  .handout-btn:hover { background: rgba(124, 106, 245, 0.1); }
-
-  .handout-modal { width: 680px; max-height: 70vh; }
-
-  .handout-tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    overflow: hidden;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .handout-section {
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    min-height: 0;
-  }
-  .handout-section:last-child { border-right: none; }
-
-  .handout-section-title {
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  .handout-list { max-height: 300px; }
-
-  .spell-radius-input {
-    width: 42px;
-    background: transparent;
-    border: none;
-    border-left: 1px solid var(--border);
-    outline: none;
-    color: var(--text-primary);
-    font-size: 11px;
-    text-align: center;
-    padding: 2px 4px;
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-  .spell-radius-input::-webkit-inner-spin-button,
-  .spell-radius-input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
-
-  .draw-color-input {
-    width: 28px;
-    height: 24px;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-    background: none;
-  }
-  .draw-width-input {
-    width: 60px;
-    accent-color: var(--accent);
   }
 
   .float-panel {

@@ -65,8 +65,10 @@
   const PRESETS = ['1d6', '2d6', '1d10', '2d10', '1d6+3', '2d6+5', '3d6', '1d20'];
 </script>
 
-<div class="dc-backdrop" onclick={onclose} role="none">
-  <div class="dc-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="dc-backdrop" onclick={onclose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="dc-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="dc-header">
       <span>⚔️ Calculateur de Dégâts</span>
       <button class="dc-close" onclick={onclose}>×</button>
@@ -107,11 +109,17 @@
       {:else}
         {#each vttStore.combatants as c (c.id)}
           {@const pct = c.maxHp > 0 ? c.hp / c.maxHp : 0}
-          <div class="dc-target" class:selected={targetIds.has(c.id)} class:enemy={c.isEnemy} onclick={() => toggleTarget(c.id)}>
+          <button
+            type="button"
+            class="dc-target"
+            class:selected={targetIds.has(c.id)}
+            class:enemy={c.isEnemy}
+            onclick={() => toggleTarget(c.id)}
+          >
             <span class="dc-t-name">{c.name}</span>
             <div class="dc-t-bar"><div class="dc-t-fill" style="width:{pct*100}%;background:{pct>0.5?'#22c55e':pct>0.2?'#eab308':'#ef4444'}"></div></div>
             <span class="dc-t-hp">{c.hp}/{c.maxHp}</span>
-          </div>
+          </button>
         {/each}
       {/if}
     </div>
@@ -142,7 +150,7 @@
   .dc-check { display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);cursor:pointer; }
   .dc-targets-title { font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em; }
   .dc-targets { display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto; }
-  .dc-target { display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:12px;transition:all .15s; }
+  .dc-target { display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:inherit;width:100%;text-align:left;font-family:inherit;cursor:pointer;font-size:12px;transition:all .15s; }
   .dc-target:hover { border-color:#ef4444; }
   .dc-target.selected { background:rgba(239,68,68,0.12);border-color:#ef4444; }
   .dc-target.enemy .dc-t-name { color:#f87171; }

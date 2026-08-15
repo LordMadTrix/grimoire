@@ -176,9 +176,6 @@ export const mapStore = $state({
   selectedElement: null as { type: 'stamp' | 'text' | 'shape'; id: string } | null,
   selectedIds: [] as SelectedRef[],
 
-  // Vue 3D Perspective libre
-  isPerspective: false,
-
   // Règles, guides et magnétisme PAO
   showRulers: true,
   snapToGuides: true,

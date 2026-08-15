@@ -56,8 +56,10 @@
   generate();
 </script>
 
-<div class="rg-backdrop" onclick={onclose} role="none">
-  <div class="rg-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="rg-backdrop" onclick={onclose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="rg-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="rg-header">
       <span>🏚️ Générateur de Salle</span>
       <button class="rg-close" onclick={onclose}>×</button>

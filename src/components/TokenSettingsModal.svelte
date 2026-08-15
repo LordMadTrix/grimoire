@@ -184,7 +184,7 @@
       </div>
 
       <div class="form-group">
-        <label>Conditions</label>
+        <span class="field-label">Conditions</span>
         <div class="conditions-grid">
           {#each CONDITIONS as cond}
             {@const active = (editToken.conditions ?? []).includes(cond.id)}
@@ -293,8 +293,7 @@
   .form-row { display: flex; gap: 16px; }
   .form-row.align-end .form-group { flex: 1; }
   .form-row .form-group { flex: 1; }
-  label { font-size: 12px; color: var(--text-secondary); }
-  label { font-size: 12px; color: var(--text-secondary); }
+  .field-label, label { font-size: 12px; color: var(--text-secondary); }
   input[type="text"], input[type="number"], select {
     background: var(--bg-tertiary);
     border: 1px solid var(--border);

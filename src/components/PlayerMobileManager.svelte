@@ -533,17 +533,6 @@
 {/if}
 
 <style>
-  .pm-toggle {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 3px 8px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background .15s;
-  }
-  .pm-toggle:hover { background: var(--bg-hover); }
-
   /* ── Backdrop & Panel ── */
   .pm-backdrop {
     position: fixed;

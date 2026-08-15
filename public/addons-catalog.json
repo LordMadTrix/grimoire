@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "addons": [
+    {
+      "id": "example-maps-v1",
+      "name": "Cartes d'Exemple",
+      "version": "1.0.0",
+      "category": "maps",
+      "description": "Un exemple d'addon — remplacez cette entrée par vos propres packs de cartes de combat.",
+      "author": "LordMadTrix",
+      "thumbnail": null,
+      "download_url": "https://example.com/maps-pack-v1.zip",
+      "size_bytes": 0,
+      "file_count": 0,
+      "destination": "maps",
+      "tags": ["exemple", "fantasy"]
+    }
+  ]
+}

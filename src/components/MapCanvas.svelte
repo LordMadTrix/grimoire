@@ -792,14 +792,17 @@
       const texture = PIXI.Texture.from(img);
       if (backgroundSprite) {
         worldContainer.removeChild(backgroundSprite);
-        backgroundSprite.destroy();
+        backgroundSprite.destroy({ texture: true });
       }
 
       backgroundSprite = new PIXI.Sprite(texture);
       worldContainer.addChildAt(backgroundSprite, 0);
 
       if (fowTexture) fowTexture.destroy(true);
-      if (fowSprite) fogLayer.removeChild(fowSprite);
+      if (fowSprite) {
+        fogLayer.removeChild(fowSprite);
+        fowSprite.destroy();
+      }
 
       fowTexture = PIXI.RenderTexture.create({ width: texture.width, height: texture.height });
       fowSprite = new PIXI.Sprite(fowTexture);
@@ -2830,14 +2833,22 @@
   bind:this={canvasContainer}
   ondragover={onCanvasDragOver}
   ondrop={onCanvasDrop}
+  role="region"
+  aria-label="Table de jeu VTT"
 >
   {#if errorMessage}
     <div class="error-overlay">{errorMessage}</div>
   {/if}
   {#if isGM && appReady && mapUrl}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="minimap-wrapper" onclick={() => showMinimap = !showMinimap} title="Minimap (clic pour masquer/afficher)">
+    <div
+      class="minimap-wrapper"
+      onclick={() => showMinimap = !showMinimap}
+      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showMinimap = !showMinimap; } }}
+      title="Minimap (clic pour masquer/afficher)"
+      role="button"
+      tabindex="0"
+      aria-label="Afficher ou masquer la minimap"
+    >
       {#if showMinimap}
         <canvas bind:this={minimapCanvas} class="minimap-canvas" width="180" height="120"></canvas>
       {:else}

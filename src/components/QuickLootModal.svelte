@@ -76,8 +76,10 @@
   generate();
 </script>
 
-<div class="loot-backdrop" onclick={onclose} role="none">
-  <div class="loot-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="loot-backdrop" onclick={onclose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="loot-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="loot-header">
       <span>💰 Butin Rapide</span>
       <button class="loot-close" onclick={onclose}>×</button>

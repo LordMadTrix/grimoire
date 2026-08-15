@@ -193,8 +193,10 @@
   });
 </script>
 
-<div class="lib-backdrop" onclick={onClose}>
-  <div class="lib-modal" onclick={e => e.stopPropagation()}>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="lib-backdrop" onclick={onClose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="lib-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="lib-header">
       <span class="lib-title">📚 Bibliothèque Commune</span>
       <button class="lib-close" onclick={onClose}>✕</button>

@@ -18,6 +18,7 @@
   import MacroBar from './components/MacroBar.svelte';
   import UpdateModal from './components/UpdateModal.svelte';
   import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
+  import AddonStore from './components/AddonStore.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus } from '$lib/api';
@@ -102,6 +103,7 @@
   let statusMessage = $state('');
   let showSettings = $state(false);
   let showOllamaOnboarding = $state(false);
+  let showAddonStore = $state(false);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
   let viewMode = $state<'editor' | 'graph' | 'timeline' | 'calendar'>('editor');
@@ -461,6 +463,10 @@
   <OllamaOnboardingModal onClose={() => { showOllamaOnboarding = false; localStorage.setItem('grimoire_ollama_onboard_dismissed', 'true'); }} />
 {/if}
 
+{#if showAddonStore}
+  <AddonStore onclose={() => showAddonStore = false} />
+{/if}
+
 <div class="app-layout">
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -500,6 +506,9 @@
             🔄 Réindexer
           </button>
         </div>
+        <button onclick={() => showAddonStore = true} class="footer-btn" title="Boutique d'addons d'images">
+          📦 Boutique Addons
+        </button>
         <button onclick={handleOpenVault} class="footer-btn" title="Changer de vault">
           📂 Changer de Vault
         </button>

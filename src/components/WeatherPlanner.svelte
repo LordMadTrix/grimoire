@@ -46,8 +46,10 @@
   }
 </script>
 
-<div class="wp-backdrop" onclick={onclose} role="none">
-  <div class="wp-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="wp-backdrop" onclick={onclose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="wp-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="wp-header">
       <span>🌦️ Planificateur Météo</span>
       <button class="wp-close" onclick={onclose}>×</button>

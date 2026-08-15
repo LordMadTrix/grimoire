@@ -62,8 +62,10 @@
   }
 </script>
 
-<div class="npc-backdrop" onclick={onclose} role="none">
-  <div class="npc-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="npc-backdrop" onclick={onclose} role="presentation">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="npc-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="npc-header">
       <span>🧟 PNJ Rapide</span>
       <button class="npc-close" onclick={onclose}>×</button>

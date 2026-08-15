@@ -22,8 +22,9 @@
 {#if visible}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="cw-backdrop" onclick={() => visible = false}>
-    <div class="cw-modal" onclick={e => e.stopPropagation()}>
+  <div class="cw-backdrop" onclick={() => visible = false} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="cw-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <h3>🎭 Système de Murmures (Rumeurs)</h3>
       <select bind:value={targetPlayer}>
         <option value="">-- Choisir un joueur --</option>
