@@ -48,5 +48,6 @@ commands.allow = [
   "addon_fetch_catalog",
   "addon_list_installed",
   "addon_install",
+  "addon_install_local_file",
   "addon_uninstall"
 ]

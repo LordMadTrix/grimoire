@@ -130,38 +130,14 @@ pub fn addon_list_installed(app: AppHandle) -> Result<Vec<InstalledAddon>, Strin
     load_registry(&app)
 }
 
-/// Télécharge et extrait un addon ZIP.
-/// Émet des événements Tauri `addon://progress` avec { done, total, file }.
-#[command]
-pub async fn addon_install(
-    app: AppHandle,
-    addon: AddonManifest,
+fn extract_and_register_zip(
+    app: &AppHandle,
+    bytes: &[u8],
+    addon: &AddonManifest,
 ) -> Result<InstalledAddon, String> {
-    // Vérifier si déjà installé
-    let mut registry = load_registry(&app)?;
-    if registry.iter().any(|a| a.id == addon.id && a.version == addon.version) {
-        return Err(format!("Addon '{}' déjà installé.", addon.name));
-    }
-
-    // Télécharger le ZIP
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(300))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let resp = client.get(&addon.download_url)
-        .send().await.map_err(|e| e.to_string())?;
-
-    if !resp.status().is_success() {
-        return Err(format!("Téléchargement échoué : HTTP {}", resp.status()));
-    }
-
-    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-
-    // Extraire le ZIP
-    let dest_dir = resolve_public_dir(&app, &addon.destination)?;
-    let cursor = std::io::Cursor::new(&bytes[..]);
-    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
+    let dest_dir = resolve_public_dir(app, &addon.destination)?;
+    let cursor = std::io::Cursor::new(bytes);
+    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| format!("Format d'archive ZIP invalide : {e}"))?;
 
     let total = archive.len();
     let mut extracted_files: Vec<String> = Vec::new();
@@ -179,8 +155,7 @@ pub async fn addon_install(
             continue;
         }
 
-        // Sécurité : rejeter path traversal et chemins absolus, en préservant
-        // l'arborescence du ZIP (l'aplatir ferait s'écraser les fichiers homonymes)
+        // Sécurité : rejeter path traversal et chemins absolus
         if components.iter().any(|c| *c == ".." || c.contains(':')) {
             continue;
         }
@@ -218,10 +193,88 @@ pub async fn addon_install(
         files: extracted_files,
     };
 
-    registry.push(installed.clone());
-    save_registry(&app, &registry)?;
+    let mut registry = load_registry(app)?;
+    if let Some(pos) = registry.iter().position(|a| a.id == addon.id) {
+        registry[pos] = installed.clone();
+    } else {
+        registry.push(installed.clone());
+    }
+    save_registry(app, &registry)?;
 
     Ok(installed)
+}
+
+/// Télécharge et extrait un addon ZIP depuis une URL distante.
+/// Émet des événements Tauri `addon://progress` avec { done, total, file }.
+#[command]
+pub async fn addon_install(
+    app: AppHandle,
+    addon: AddonManifest,
+) -> Result<InstalledAddon, String> {
+    // Vérifier si déjà installé
+    let registry = load_registry(&app)?;
+    if registry.iter().any(|a| a.id == addon.id && a.version == addon.version) {
+        return Err(format!("Addon '{}' déjà installé.", addon.name));
+    }
+
+    // Télécharger le ZIP
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client.get(&addon.download_url)
+        .send().await.map_err(|e| e.to_string())?;
+
+    if !resp.status().is_success() {
+        return Err(format!(
+            "Téléchargement échoué (HTTP {}). Le pack n'est pas encore disponible sur ce miroir. Téléchargez-le depuis le Google Drive Communautaire ou importez le fichier ZIP manuellement.",
+            resp.status()
+        ));
+    }
+
+    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+    extract_and_register_zip(&app, &bytes, &addon)
+}
+
+/// Importe et extrait un pack ZIP ou .grimoirepack localement depuis le disque.
+#[command]
+pub async fn addon_install_local_file(
+    app: AppHandle,
+    file_path: String,
+    destination: String,
+    name: Option<String>,
+) -> Result<InstalledAddon, String> {
+    let path = PathBuf::from(&file_path);
+    if !path.exists() {
+        return Err(format!("Fichier introuvable : {file_path}"));
+    }
+
+    let bytes = std::fs::read(&path).map_err(|e| format!("Erreur de lecture du fichier : {e}"))?;
+
+    let file_stem = path.file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("addon-local");
+
+    let addon_name = name.unwrap_or_else(|| file_stem.replace(['-', '_'], " "));
+    let addon_id = format!("local-{}", file_stem.to_lowercase().replace(' ', "-"));
+
+    let manifest = AddonManifest {
+        id: addon_id,
+        name: addon_name,
+        version: "1.0.0".to_string(),
+        category: destination.clone(),
+        description: format!("Pack importé localement depuis {}", path.file_name().unwrap_or_default().to_string_lossy()),
+        author: "Local".to_string(),
+        thumbnail: None,
+        download_url: file_path,
+        size_bytes: Some(bytes.len() as u64),
+        file_count: None,
+        destination,
+        tags: Some(vec!["local".to_string(), "import".to_string()]),
+    };
+
+    extract_and_register_zip(&app, &bytes, &manifest)
 }
 
 /// Désinstalle un addon : supprime ses fichiers et retire du registre.
@@ -237,7 +290,7 @@ pub fn addon_uninstall(app: AppHandle, addon_id: String) -> Result<(), String> {
     for file in &addon.files {
         let path = dest_dir.join(file);
         if path.exists() {
-            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+            let _ = std::fs::remove_file(&path);
         }
     }
 

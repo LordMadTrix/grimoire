@@ -263,6 +263,7 @@ export const vttStore = $state({
 
   // Blueprint / Murs (Ligne de vue)
   walls: [] as WallDef[],
+  wallsEnabled: true as boolean,
   currentWallPath: null as {x:number, y:number}[] | null,
   blueprintType: 'opaque' as 'opaque' | 'door',
   audioZones: [] as AudioZoneDef[],

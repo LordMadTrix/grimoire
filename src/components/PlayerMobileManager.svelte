@@ -7,6 +7,7 @@
     applyDamageToPlayer, applyConditionToPlayer, removeConditionFromPlayer,
     setActiveTurn, approveXpRequest,
     sendPrivateMessage, startPoll, endPoll,
+    emitToPlayerView,
     type ServerInfo, type PlayerInfo,
   } from '$lib/api';
   import { vttStore } from '$lib/stores/vtt.svelte';

@@ -76,6 +76,7 @@ pub fn run() {
             commands::addons::addon_fetch_catalog,
             commands::addons::addon_list_installed,
             commands::addons::addon_install,
+            commands::addons::addon_install_local_file,
             commands::addons::addon_uninstall,
         ])
         .run(tauri::generate_context!())
