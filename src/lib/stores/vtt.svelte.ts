@@ -59,6 +59,9 @@ export type Token = {
   maxHp?: number;
   visionRange?: number;
   lightRadius?: number;
+  lightColor?: string;
+  lightFlicker?: boolean;
+  darkvision?: boolean;
   isEnemy?: boolean;
   imageUrl?: string;
   visible?: boolean;
@@ -71,6 +74,30 @@ export type Token = {
   linkedNote?: string;
   playerId?: string;
   animation?: 'none' | 'attack' | 'hit';
+};
+
+export type LightSource = {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  color?: string;
+  intensity?: number;
+  flicker?: boolean;
+  type?: 'torch' | 'lantern' | 'magical' | 'candle' | 'campfire';
+  label?: string;
+};
+
+export type SoundEmitter = {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  audioSrc: string;
+  volume: number;
+  loop?: boolean;
+  label?: string;
+  isPlaying?: boolean;
 };
 
 export type MapPin = {
@@ -198,8 +225,11 @@ export const vttStore = $state({
   showGrid: true,
   gridSize: 50,
 
-  // Effets visuels
+  // Effets visuels & Éclairage
   weather: 'none' as 'none' | 'rain' | 'snow' | 'fog' | 'embers' | 'storm',
+  lightningFlash: false as boolean,
+  ambientLight: 'day' as 'day' | 'dusk' | 'night' | 'pitch_black',
+  lights: [] as LightSource[],
   spells: [] as SpellMarker[],
   spellType: 'fire' as SpellMarker['type'],
   spellRadius: 80,
@@ -209,11 +239,12 @@ export const vttStore = $state({
   spellAngle: 0,
   spellAngleDeg: 0,
 
-  // Audio Ambiance
+  // Audio Ambiance & Spatialisé
   audioSrc: null as string | null,
   audioVolume: 0.5,
   audio2Src: null as string | null,
   audio2Volume: 0.4,
+  soundEmitters: [] as SoundEmitter[],
 
   // Combat / Initiative
   combatants: [] as Combatant[],
@@ -816,6 +847,9 @@ interface SessionData {
   gridSize: number;
   isBlackout: boolean;
   weather: string;
+  ambientLight?: 'day' | 'dusk' | 'night' | 'pitch_black';
+  lights?: LightSource[];
+  soundEmitters?: SoundEmitter[];
   audioSrc: string | null;
   audioVolume: number;
   audio2Src?: string | null;
@@ -846,6 +880,9 @@ export async function saveGmSession(vaultPath: string) {
     gridSize: vttStore.gridSize,
     isBlackout: vttStore.isBlackout,
     weather: vttStore.weather,
+    ambientLight: vttStore.ambientLight,
+    lights: vttStore.lights,
+    soundEmitters: vttStore.soundEmitters,
     audioSrc: vttStore.audioSrc,
     audioVolume: vttStore.audioVolume,
     audio2Src: vttStore.audio2Src,
@@ -884,6 +921,9 @@ export async function loadGmSession(vaultPath: string): Promise<boolean> {
     vttStore.gridSize = data.gridSize ?? 50;
     vttStore.isBlackout = data.isBlackout ?? false;
     vttStore.weather = (data.weather ?? 'none') as typeof vttStore.weather;
+    vttStore.ambientLight = data.ambientLight ?? 'day';
+    vttStore.lights = data.lights ?? [];
+    vttStore.soundEmitters = data.soundEmitters ?? [];
     vttStore.audioSrc = data.audioSrc ?? null;
     vttStore.audioVolume = data.audioVolume ?? 0.5;
     vttStore.audio2Src = data.audio2Src ?? null;
@@ -930,4 +970,32 @@ export async function loadGmSession(vaultPath: string): Promise<boolean> {
   } catch {
     return false; // Pas de session sauvegardée
   }
+}
+
+export function setAmbientLight(level: 'day' | 'dusk' | 'night' | 'pitch_black') {
+  vttStore.ambientLight = level;
+  emitToPlayerView('update_ambient_light', level);
+}
+
+export function addLightSource(light: Omit<LightSource, 'id'>) {
+  const newLight: LightSource = {
+    ...light,
+    id: `light_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+  };
+  vttStore.lights.push(newLight);
+  emitToPlayerView('update_lights', vttStore.lights);
+  return newLight;
+}
+
+export function removeLightSource(id: string) {
+  vttStore.lights = vttStore.lights.filter(l => l.id !== id);
+  emitToPlayerView('update_lights', vttStore.lights);
+}
+
+export function triggerLightningFlash() {
+  vttStore.lightningFlash = true;
+  emitToPlayerView('trigger_lightning_flash', {});
+  setTimeout(() => {
+    vttStore.lightningFlash = false;
+  }, 180);
 }

@@ -254,6 +254,25 @@
         </div>
       </div>
 
+      <div class="form-row">
+        <div class="form-group">
+          <label for="t-light-col">Couleur lumière</label>
+          <input type="color" id="t-light-col" bind:value={editToken.lightColor} />
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;padding-top:20px;gap:8px">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" bind:checked={editToken.lightFlicker} />
+            🔥 Torche (Scintillement)
+          </label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;padding-top:20px;gap:8px">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" bind:checked={editToken.darkvision} />
+            👁️ Vision Nocturne
+          </label>
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="t-notes">Notes</label>
         <textarea id="t-notes" bind:value={editToken.notes} rows="2" placeholder="Notes rapides sur ce token…"></textarea>

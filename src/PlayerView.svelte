@@ -3,7 +3,7 @@
   import AudioPlayer from './components/AudioPlayer.svelte';
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
-  import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef } from '$lib/stores/vtt.svelte';
+  import { vttStore, type FowShape, type Token, type MapPin, type SpellMarker, type DrawPath, type WallDef, type AudioZoneDef } from '$lib/stores/vtt.svelte';
   import PlayerEffects from './components/PlayerEffects.svelte';
   import Dice3DOverlay from './components/Dice3DOverlay.svelte';
   import PlayerCombatHUD from './components/PlayerCombatHUD.svelte';
@@ -93,6 +93,12 @@
     listen('sync_party_state',       (e: any) => { partyState    = e.payload.players ?? [];   }).then(fn => unlistens.push(fn));
     listen('update_walls',           (e: any) => { walls            = e.payload ?? [];                         }).then(fn => unlistens.push(fn));
     listen('update_audio_zones',     (e: any) => { audioZones       = e.payload ?? [];                         }).then(fn => unlistens.push(fn));
+    listen('update_ambient_light',   (e: any) => { vttStore.ambientLight = e.payload;                          }).then(fn => unlistens.push(fn));
+    listen('update_lights',          (e: any) => { vttStore.lights = e.payload ?? [];                          }).then(fn => unlistens.push(fn));
+    listen('trigger_lightning_flash',() => {
+      vttStore.lightningFlash = true;
+      setTimeout(() => { vttStore.lightningFlash = false; }, 180);
+    }).then(fn => unlistens.push(fn));
     listen('update_combatants',      (e: any) => { combatants = e.payload.combatants ?? []; combatActive = e.payload.active ?? false; currentTurn = e.payload.currentTurn ?? 0; combatRound = e.payload.combatRound ?? 1; }).then(fn => unlistens.push(fn));
     listen('spotlight_token',        (e: any) => { spotlightTokenId = e.payload.tokenId ?? null;               }).then(fn => unlistens.push(fn));
     listen('ambient_text',           (e: any) => {

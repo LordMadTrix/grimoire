@@ -467,6 +467,13 @@
           : 0.88 + Math.sin(now / 3200) * 0.05;
       }
 
+      // ── Dynamic Lighting & Torch Flicker ───────────────────
+      if (lightSprite && lightSprite.visible && (tokens.some(t => t.lightFlicker) || (vttStore.lights && vttStore.lights.some(l => l.flicker)) || vttStore.lightningFlash)) {
+        if (Math.floor(now / 60) % 2 === 0) {
+          renderLighting();
+        }
+      }
+
       // ── Screen shake ─────────────────────────────────────────
       if (shakeIntensity > 0) {
         const elapsed = now - shakeStart;
@@ -928,38 +935,45 @@
   function renderLighting() {
     if (!lightTexture || !lightSprite || !backgroundSprite || !app) return;
 
-    const hasLights = tokens.some(t => t.lightRadius && t.lightRadius > 0);
+    const ambient = vttStore.ambientLight || 'day';
+    let baseAlpha = ambient === 'day' ? 0 : ambient === 'dusk' ? 0.45 : ambient === 'night' ? 0.8 : 0.95;
+    if (vttStore.lightningFlash) baseAlpha = 0.05;
+
+    const hasLights = baseAlpha > 0 || (vttStore.lights && vttStore.lights.length > 0) || tokens.some(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision);
     lightSprite.visible = hasLights;
     if (!hasLights) return;
 
     const container = new PIXI.Container();
-    // Full darkness base
+    // Ambient darkness base
     const darkness = new PIXI.Graphics()
       .rect(0, 0, backgroundSprite.texture.width, backgroundSprite.texture.height)
-      .fill({ color: 0x000000, alpha: 1 });
+      .fill({ color: 0x02050f, alpha: baseAlpha });
     container.addChild(darkness);
 
-    // Render lights with shadow polygons
+    const now = Date.now();
+
+    // 1. Render lights from tokens
     tokens.forEach(token => {
-      if (!token.lightRadius || token.lightRadius <= 0) return;
-      const r = token.lightRadius * gridSize;
+      const isLight = token.lightRadius && token.lightRadius > 0;
+      const isDarkvision = token.darkvision;
+      if (!isLight && !isDarkvision) return;
+
+      let r = (token.lightRadius || (isDarkvision ? 3 : 0)) * gridSize;
+      if (token.lightFlicker) {
+        const fMod = 1 + Math.sin(now / 140 + token.x * 0.1) * 0.06 + (Math.random() - 0.5) * 0.04;
+        r *= fMod;
+      }
       const lx = token.x;
       const ly = token.y;
 
-      // Un sous-container par lumière pour gérer les ombres locales
       const lightCont = new PIXI.Container();
       lightCont.blendMode = 'erase';
       
       const g = new PIXI.Graphics();
-      // On commence par dessiner la lumière
       g.circle(lx, ly, r).fill({ color: 0xffffff, alpha: 1 });
-      g.circle(lx, ly, r * 1.4).fill({ color: 0xffffff, alpha: 0.35 });
+      g.circle(lx, ly, r * 1.35).fill({ color: 0xffffff, alpha: 0.35 });
 
-      // On dessine les ombres (en mode "reverse erase" ou simplement en dessinant du noir)
-      // Mais ici on est dans un container qui va être "erased", donc on doit "re-remplir"
-      // avec du noir ce qui doit rester sombre.
-      // PIXI v8 blend modes : on va utiliser un container intermédiaire.
-      
+      // Shadow projection against walls
       walls.forEach(wall => {
         if (wall.type === 'door' && wall.isOpen) return;
         for (let i = 0; i < wall.points.length - 1; i++) {
@@ -981,6 +995,44 @@
         }
       });
       
+      lightCont.addChild(g);
+      container.addChild(lightCont);
+    });
+
+    // 2. Render standalone light sources
+    (vttStore.lights || []).forEach(light => {
+      let r = light.radius || 120;
+      if (light.flicker) {
+        const fMod = 1 + Math.sin(now / 130 + light.x * 0.1) * 0.08;
+        r *= fMod;
+      }
+      const lx = light.x;
+      const ly = light.y;
+
+      const lightCont = new PIXI.Container();
+      lightCont.blendMode = 'erase';
+      
+      const g = new PIXI.Graphics();
+      g.circle(lx, ly, r).fill({ color: 0xffffff, alpha: light.intensity ?? 1 });
+      g.circle(lx, ly, r * 1.3).fill({ color: 0xffffff, alpha: (light.intensity ?? 1) * 0.4 });
+
+      walls.forEach(wall => {
+        if (wall.type === 'door' && wall.isOpen) return;
+        for (let i = 0; i < wall.points.length - 1; i++) {
+          const p1 = wall.points[i];
+          const p2 = wall.points[i+1];
+          const dx1 = p1.x - lx; const dy1 = p1.y - ly;
+          const dx2 = p2.x - lx; const dy2 = p2.y - ly;
+          const ext = 5000;
+          g.moveTo(p1.x, p1.y);
+          g.lineTo(p2.x, p2.y);
+          g.lineTo(p2.x + dx2 * ext, p2.y + dy2 * ext);
+          g.lineTo(p1.x + dx1 * ext, p1.y + dy1 * ext);
+          g.closePath();
+          g.fill({ color: 0x000000, alpha: 1 });
+        }
+      });
+
       lightCont.addChild(g);
       container.addChild(lightCont);
     });

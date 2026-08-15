@@ -19,6 +19,7 @@
     setSpotlightToken, sendAmbientText,
     revealAllGmFow, toggleFow,
     clearTerrainZones,
+    setAmbientLight, triggerLightningFlash,
   } from '$lib/stores/vtt.svelte';
   import type { VaultEntry } from '$lib/api';
   import SoundBoard from './SoundBoard.svelte';
@@ -46,6 +47,8 @@
   import WeatherPlanner from './WeatherPlanner.svelte';
   import DurationTracker from './DurationTracker.svelte';
   import SharedNotesModal from './SharedNotesModal.svelte';
+  import NarrativeAssistant from './NarrativeAssistant.svelte';
+  import DungeonGenerator from './DungeonGenerator.svelte';
 
   let { 
     onRoll,
@@ -71,6 +74,8 @@
   let showHandoutPicker = $state(false);
   let showTokenPicker = $state(false);
   let showSharedLibrary = $state(false);
+  let showNarrativeAssistant = $state(false);
+  let showDungeonGenerator = $state(false);
   let mapPickerSearch = $state('');
   let tokenPickerSearch = $state('');
   let ambientTextInput = $state('');
@@ -520,6 +525,16 @@
         <button class="dropdown-item" onclick={sendWeatherNarrative}>🌦️ Envoyer narration météo</button>
 
         <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Éclairage Ambiant</div>
+        <div class="dropdown-submenu-item tools-row">
+          <button class="mini-btn text-only" class:active={vttStore.ambientLight === 'day'} onclick={() => setAmbientLight('day')} title="Plein jour">☀️ Jour</button>
+          <button class="mini-btn text-only" class:active={vttStore.ambientLight === 'dusk'} onclick={() => setAmbientLight('dusk')} title="Crépuscule">🌅 Crépuscule</button>
+          <button class="mini-btn text-only" class:active={vttStore.ambientLight === 'night'} onclick={() => setAmbientLight('night')} title="Nuit">🌙 Nuit</button>
+          <button class="mini-btn text-only" class:active={vttStore.ambientLight === 'pitch_black'} onclick={() => setAmbientLight('pitch_black')} title="Noir total / Souterrain">🌑 Souterrain</button>
+        </div>
+        <button class="dropdown-item" onclick={triggerLightningFlash}>⚡ Flash d'Éclair & Foudre</button>
+
+        <div class="dropdown-divider"></div>
         <div class="dropdown-submenu-item">
           <input type="text" class="ambient-input" style="width: 100%" placeholder="Texte d'ambiance personnalisé..." bind:value={ambientTextInput} onkeydown={(e) => { if (e.key === 'Enter') { const v = ambientTextInput.trim(); if (v) { sendAmbientText(v); ambientTextInput = ''; activeMenu = null; } } }} />
         </div>
@@ -568,6 +583,8 @@
         <button class="dropdown-item" onclick={() => { merchantGen?.toggle(); activeMenu = null; }}>🛍️ Marchand Générateur</button>
         <button class="dropdown-item" onclick={() => { rumorMan?.toggle(); activeMenu = null; }}>🎭 Système de Murmures</button>
         <div class="dropdown-divider"></div>
+        <button class="dropdown-item" onclick={() => { showNarrativeAssistant = true; activeMenu = null; }}>🤖 Assistant IA & Narratif</button>
+        <button class="dropdown-item" onclick={() => { showDungeonGenerator = true; activeMenu = null; }}>🏰 Donjon & Murs Procédural</button>
         <button class="dropdown-item" onclick={() => { showNpcModal = true; activeMenu = null; }}>🧟 PNJ Rapide</button>
         <button class="dropdown-item" onclick={() => { showLootModal = true; activeMenu = null; }}>💰 Butin Rapide</button>
         
@@ -641,6 +658,8 @@
 {#if showRoomGen}<RoomGenerator onclose={() => showRoomGen = false} />{/if}
 {#if showWeatherPlanner}<WeatherPlanner onclose={() => showWeatherPlanner = false} />{/if}
 {#if showSharedNotes}<SharedNotesModal onclose={() => showSharedNotes = false} />{/if}
+{#if showNarrativeAssistant}<NarrativeAssistant onclose={() => showNarrativeAssistant = false} />{/if}
+{#if showDungeonGenerator}<DungeonGenerator onclose={() => showDungeonGenerator = false} />{/if}
 
 <!-- Panneau Relations PNJ -->
 {#if showRelationMap}
