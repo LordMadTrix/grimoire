@@ -236,19 +236,29 @@ Vos joueurs n'ont rien à installer : ils jouent depuis Safari, Chrome ou Firefo
 
 ---
 
-## 13. Packs d'Aventures Partageables (.grimoirepack)
+## 13. Boutique d'Addons, Google Drive & Gestion des Médias
 
-Le format `.grimoirepack` permet d'échanger des scénarios et donjons complets prêts à jouer entre Maîtres du Jeu.
+Grimoire intègre un **gestionnaire simplifié de cartes, figurines (tokens) et musiques** accessible via le bouton **📦 Boutique Addons** (en bas du panneau latéral gauche) :
 
-### Exporter une Aventure :
-1. Cliquez sur **📋 Exporter Session** dans la barre d'outils.
-2. Cliquez sur **📦 Exporter Pack .grimoirepack**.
-3. Grimoire regroupe la carte active, tous les murs LOS, les éclairages, les zones audio, les tokens, les pièges et les combats dans un unique fichier `.grimoirepack`.
+### Les 3 façons simples d'enrichir votre jeu :
 
-### Importer une Aventure :
-1. Ouvrez **📋 Exporter Session**.
-2. Cliquez sur **📂 Importer Pack** et sélectionnez votre fichier `.grimoirepack`.
-3. Votre VTT se configure instantanément avec tous les paramètres de l'auteur !
+1. **📁 Accès Direct aux Dossiers Windows (Glisser-Déposer direct)** :
+   - Dans la boutique, cliquez simplement sur **`📁 Cartes`**, **`📁 Tokens`** ou **`📁 Audio`**.
+   - L'Explorateur Windows s'ouvre directement sur le bon dossier de Grimoire (`public/maps/`, `public/tokens/`, `public/audio/`).
+   - Glissez-y directement vos fichiers `.jpg`, `.png` ou `.mp3` depuis votre ordinateur !
+
+2. **📥 Importer un Pack ZIP en 1 Clic** :
+   - Cliquez sur **`📥 Importer ZIP…`** dans la boutique.
+   - Sélectionnez une archive `.zip` ou `.grimoirepack`.
+   - Grimoire extrait, range et indexe tous les assets au bon endroit sans manipulation technique.
+
+3. **☁️ Google Drive Communautaire** :
+   - Cliquez sur **`☁️ Google Drive ↗`** pour accéder au dossier partagé contenant des dizaines de cartes tactiques, tokens transparents et ambiances prêts à télécharger.
+
+### 📦 Format d'Aventure Complète (.grimoirepack) :
+Le format `.grimoirepack` permet d'échanger des scénarios complets avec carte, murs LOS, zones audio, PNJ et combats :
+- **Exporter** : *📋 Exporter Session → 📦 Exporter Pack .grimoirepack*.
+- **Importer** : *📋 Exporter Session → 📂 Importer Pack* ou via la boutique d'addons.
 
 ---
 

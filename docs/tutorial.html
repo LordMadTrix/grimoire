@@ -48,8 +48,8 @@
       </a>
     </div>
     <div class="flex items-center gap-4 text-sm">
-      <span class="px-3 py-1 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent rounded-full font-semibold">v0.4.1</span>
-      <a href="index.html" class="px-4 py-2 rounded-full glass text-white font-medium hover:border-grimoire-accent transition-all">← Accueil</a>
+      <span class="px-3 py-1 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent rounded-full font-semibold">Version 0.4.3</span>
+      <a href="index.html" class="text-gray-400 hover:text-white transition-colors">← Retour au site</a>
     </div>
   </header>
 
@@ -68,7 +68,7 @@
         <a href="#combat" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">7. Combat & SL Net WFRP</a>
         <a href="#quests" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">8. Journal de Quêtes & Résumé</a>
         <a href="#mobile" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">9. Compagnon PWA & D-Pad</a>
-        <a href="#packs" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">10. Packs .grimoirepack</a>
+        <a href="#packs" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">10. Boutique d'Addons & Médias</a>
         <a href="#ai" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">11. Assistant IA & Narratif</a>
         <a href="#workflow" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">12. Guide de Session Pas à Pas</a>
         <a href="#shortcuts" class="block text-gray-400 hover:text-grimoire-accent transition-colors py-1">13. Raccourcis Clavier</a>
@@ -244,15 +244,45 @@
       </section>
 
       <!-- Chapitre 10 -->
-      <section id="packs" class="scroll-mt-24 space-y-4">
-        <h2 class="text-2xl font-bold text-grimoire-accent border-b border-gray-800 pb-2">10. Packs d'Aventures Partageables (.grimoirepack)</h2>
+      <section id="packs" class="scroll-mt-24 space-y-6">
+        <h2 class="text-2xl font-bold text-grimoire-accent border-b border-gray-800 pb-2">10. Boutique d'Addons, Google Drive & Gestion Simplifiée des Médias</h2>
         <p class="text-gray-300 leading-relaxed">
-          Échangez facilement des scénarios complets avec d'autres MJ :
+          Grimoire propose <strong>3 méthodes ultra-simples</strong> pour enrichir votre univers en cartes tactiques, figurines de créatures et pistes audio, accessibles via le bouton <strong>📦 Boutique Addons</strong> (en bas de la barre latérale) :
         </p>
-        <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm">
-          <li><strong>Export</strong> : Cliquez sur <em>📋 Exporter Session → 📦 Exporter Pack</em> pour créer un fichier <code>.grimoirepack</code> contenant la carte, les murs, l'audio, les tokens et les combats.</li>
-          <li><strong>Import</strong> : Sélectionnez un fichier <code>.grimoirepack</code> pour charger instantanément toute l'aventure sur votre VTT.</li>
-        </ul>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div class="p-5 rounded-2xl bg-white/5 border border-white/10 card-hover space-y-2">
+            <div class="text-2xl mb-1">📁</div>
+            <h4 class="font-bold text-grimoire-accent">1. Accès Direct Dossiers Windows</h4>
+            <p class="text-gray-400 text-xs leading-relaxed">
+              Dans la boutique, cliquez sur <code>📁 Cartes</code>, <code>📁 Tokens</code> ou <code>📁 Audio</code> pour ouvrir instantanément le dossier correspondant dans l'Explorateur Windows.
+            </p>
+            <div class="text-xs text-green-400 font-semibold mt-2">👉 Glissez-déposez simplement vos images (.jpg, .png) ou musiques (.mp3) dedans !</div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-white/5 border border-white/10 card-hover space-y-2">
+            <div class="text-2xl mb-1">📥</div>
+            <h4 class="font-bold text-grimoire-accent">2. Importation ZIP en 1 Clic</h4>
+            <p class="text-gray-400 text-xs leading-relaxed">
+              Cliquez sur <code>📥 Importer ZIP…</code> et sélectionnez une archive (.zip ou .grimoirepack) sur votre PC.
+            </p>
+            <div class="text-xs text-blue-400 font-semibold mt-2">👉 Grimoire extrait, trie et indexe automatiquement tous les fichiers.</div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-white/5 border border-white/10 card-hover space-y-2">
+            <div class="text-2xl mb-1">☁️</div>
+            <h4 class="font-bold text-grimoire-accent">3. Google Drive Communautaire</h4>
+            <p class="text-gray-400 text-xs leading-relaxed">
+              Cliquez sur <code>☁️ Google Drive ↗</code> pour parcourir et télécharger les packs partagés par la communauté Grimoire.
+            </p>
+            <div class="text-xs text-yellow-400 font-semibold mt-2">👉 Des centaines de cartes, tokens transparents et ambiances prêts à jouer.</div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-grimoire-accent/10 border border-grimoire-accent/30 text-xs space-y-1">
+          <strong class="text-grimoire-accent">💡 Format d'Aventure .grimoirepack :</strong>
+          <p class="text-gray-300">Vous pouvez aussi exporter ou importer une aventure complète avec murs de ligne de vue, zones audio et monstres préconfigurés via <em>📋 Exporter Session → 📦 Exporter/Importer Pack</em>.</p>
+        </div>
       </section>
 
       <!-- Chapitre 11 -->
