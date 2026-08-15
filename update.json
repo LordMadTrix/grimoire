@@ -1,6 +1,6 @@
 {
-  "version": "0.3.2",
-  "changelog": "Éditeur de cartes : vue 3D perspective (donjon), correctif éditeur absent de l'exe, performances renderer.",
+  "version": "0.4.2",
+  "changelog": "Boutique d'Addons & Catalogue communautaire avec Google Drive en 1 clic, fix permissions ACL, Compagnon PWA Mobile avec WakeLock & D-Pad, Journal de Quêtes et packs d'aventures .grimoirepack.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-06-23"
+  "release_date": "2026-08-15"
 }
