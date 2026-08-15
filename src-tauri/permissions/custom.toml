@@ -49,5 +49,6 @@ commands.allow = [
   "addon_list_installed",
   "addon_install",
   "addon_install_local_file",
-  "addon_uninstall"
+  "addon_uninstall",
+  "addon_open_folder"
 ]

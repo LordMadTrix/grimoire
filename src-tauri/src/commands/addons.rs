@@ -298,3 +298,10 @@ pub fn addon_uninstall(app: AppHandle, addon_id: String) -> Result<(), String> {
     save_registry(&app, &registry)?;
     Ok(())
 }
+
+/// Ouvre le dossier de destination (maps, tokens, audio, etc.) dans l'Explorateur Windows.
+#[command]
+pub fn addon_open_folder(app: AppHandle, destination: String) -> Result<(), String> {
+    let dir = resolve_public_dir(&app, &destination)?;
+    opener::open(&dir).map_err(|e| e.to_string())
+}

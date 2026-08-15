@@ -272,6 +272,14 @@
     }
   }
 
+  async function openFolder(dest: string) {
+    try {
+      await invoke('addon_open_folder', { destination: dest });
+    } catch (e) {
+      alert(`Erreur ouverture dossier : ${e}`);
+    }
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   onMount(async () => {
@@ -320,16 +328,27 @@
         <!-- Community Banner Bar -->
         <div class="drive-banner-bar">
           <div class="banner-text">
-            <span>🌟 <strong>Packs & Ressources Communautaires Grimoire</strong></span>
-            <small>Téléchargez en 1 clic ou déposez vos propres archives ZIP / .grimoirepack</small>
+            <span>🌟 <strong>Gestionnaire Simplifié de Packs & Ressources</strong></span>
+            <small>Importez vos ZIP, téléchargez depuis le Drive ou glissez vos fichiers directement dans les dossiers Windows.</small>
           </div>
           <div class="banner-actions">
-            <button class="btn-drive-link" onclick={() => openExternal(COMMUNITY_DRIVE_URL)}>
-              📂 Google Drive Partagé ↗
+            <button class="btn-drive-link" onclick={() => openExternal(COMMUNITY_DRIVE_URL)} title="Ouvrir le Google Drive Partagé">
+              ☁️ Google Drive ↗
             </button>
-            <button class="btn-import-zip" onclick={pickAndImportLocalZip}>
-              📥 Importer un pack ZIP local…
+            <button class="btn-import-zip" onclick={pickAndImportLocalZip} title="Déployer une archive ZIP ou .grimoirepack">
+              📥 Importer ZIP…
             </button>
+            <div class="folder-quick-links">
+              <button class="btn-open-folder" onclick={() => openFolder('maps')} title="Ouvrir le dossier public/maps sur votre PC">
+                📁 Cartes
+              </button>
+              <button class="btn-open-folder" onclick={() => openFolder('tokens')} title="Ouvrir le dossier public/tokens sur votre PC">
+                📁 Tokens
+              </button>
+              <button class="btn-open-folder" onclick={() => openFolder('audio')} title="Ouvrir le dossier public/audio sur votre PC">
+                📁 Audio
+              </button>
+            </div>
           </div>
         </div>
 
@@ -764,6 +783,13 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
   .btn-import-zip:hover { background: #3b82f6; transform: translateY(-1px); }
+  .folder-quick-links { display: flex; gap: 4px; }
+  .btn-open-folder {
+    background: #1e293b; border: 1px solid #334155; color: #cbd5e1;
+    font-size: 0.78rem; font-weight: 600; padding: .4rem .65rem; border-radius: 6px;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-open-folder:hover { background: #334155; color: #fff; border-color: #64748b; }
 
   /* Toolbar */
   .toolbar {
