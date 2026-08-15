@@ -664,6 +664,15 @@ async fn handle_player_message(
                 "emoji": env.data.get("emoji").and_then(|v| v.as_str()).unwrap_or("👍"),
             })).await;
         }
+        // Déplacement de token par le joueur
+        "token_move" => {
+            emit_to_gm(state, "player_token_move", serde_json::json!({
+                "id": player_id,
+                "name": player_name,
+                "dx": env.data.get("dx").and_then(|v| v.as_i64()).unwrap_or(0),
+                "dy": env.data.get("dy").and_then(|v| v.as_i64()).unwrap_or(0),
+            })).await;
+        }
         // Jet d'initiative — partagé avec MJ et groupe
         "initiative_roll" => {
             if let Ok(msg) = serde_json::to_string(&WsEnvelope {

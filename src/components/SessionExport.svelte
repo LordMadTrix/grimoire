@@ -148,6 +148,83 @@ ${timeline.length > 0 ? `
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  async function exportGrimoirePack() {
+    exporting = true;
+    try {
+      const pack = {
+        format: 'grimoirepack',
+        version: 1,
+        createdAt: new Date().toISOString(),
+        campaignTitle: vttStore.campaignTitle || 'Aventure Grimoire',
+        currentMapRelPath: vttStore.currentMapRelPath,
+        currentMap: vttStore.currentMap, // Data URL
+        fowShapes: vttStore.fowShapes,
+        tokens: vttStore.tokens,
+        pins: vttStore.pins,
+        spells: vttStore.spells,
+        walls: vttStore.walls,
+        audioZones: vttStore.audioZones,
+        weather: vttStore.weather,
+        ambientLight: vttStore.ambientLight,
+        lights: vttStore.lights,
+        combatants: vttStore.combatants,
+        dungeonTiles: vttStore.dungeonTiles,
+        maps: vttStore.maps
+      };
+
+      const jsonStr = JSON.stringify(pack, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanTitle = (vttStore.campaignTitle || 'aventure').toLowerCase().replace(/[^a-z0-9]/g, '-');
+      a.download = `${cleanTitle}-${new Date().toISOString().slice(0,10)}.grimoirepack`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      exporting = false;
+    }
+  }
+
+  function handleImportPack(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const raw = e.target?.result as string;
+        const pack = JSON.parse(raw);
+        if (pack.format !== 'grimoirepack') {
+          alert('Fichier invalide : ce n\'est pas un format .grimoirepack valide.');
+          return;
+        }
+
+        if (pack.currentMap) vttStore.currentMap = pack.currentMap;
+        if (pack.currentMapRelPath) vttStore.currentMapRelPath = pack.currentMapRelPath;
+        if (pack.fowShapes) vttStore.fowShapes = pack.fowShapes;
+        if (pack.tokens) vttStore.tokens = pack.tokens;
+        if (pack.pins) vttStore.pins = pack.pins;
+        if (pack.spells) vttStore.spells = pack.spells;
+        if (pack.walls) vttStore.walls = pack.walls;
+        if (pack.audioZones) vttStore.audioZones = pack.audioZones;
+        if (pack.weather) vttStore.weather = pack.weather;
+        if (pack.ambientLight) vttStore.ambientLight = pack.ambientLight;
+        if (pack.lights) vttStore.lights = pack.lights;
+        if (pack.combatants) vttStore.combatants = pack.combatants;
+        if (pack.dungeonTiles) vttStore.dungeonTiles = pack.dungeonTiles;
+        if (pack.maps) vttStore.maps = pack.maps;
+        if (pack.campaignTitle) vttStore.campaignTitle = pack.campaignTitle;
+
+        alert('✅ Pack d\'Aventure chargé avec succès !');
+        visible = false;
+      } catch (err) {
+        alert('Erreur lors du chargement du pack : ' + String(err));
+      }
+    };
+    reader.readAsText(file);
+  }
+
   async function exportHtml() {
     exporting = true;
     try {
@@ -180,15 +257,15 @@ ${timeline.length > 0 ? `
   }
 </script>
 
-<button class="export-toggle" onclick={toggle} title="Exporter le rapport de session">📋</button>
+<button class="export-toggle" onclick={toggle} title="Exporter / Importer le rapport de session">📋</button>
 
 {#if visible}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="export-backdrop" onclick={() => visible = false}>
-    <div class="export-panel" onclick={e => e.stopPropagation()}>
+  <div class="export-backdrop" onclick={() => visible = false} role="presentation">
+    <div class="export-panel" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <div class="export-header">
-        <span>📋 Exporter la Session</span>
+        <span>📋 Gestionnaire de Session & Packs</span>
         <button class="close-btn" onclick={() => visible = false}>✕</button>
       </div>
 
@@ -207,8 +284,8 @@ ${timeline.length > 0 ? `
             <span class="preview-val">{vttStore.combatants.length} (Round {vttStore.combatRound})</span>
           </div>
           <div class="preview-row">
-            <span class="preview-label">🌤️ Météo</span>
-            <span class="preview-val">{vttStore.weather}</span>
+            <span class="preview-label">🌤️ Météo / Lumière</span>
+            <span class="preview-val">{vttStore.weather} / {vttStore.ambientLight}</span>
           </div>
           <div class="preview-row">
             <span class="preview-label">🗺️ Scènes</span>
@@ -216,13 +293,25 @@ ${timeline.length > 0 ? `
           </div>
         </div>
 
-        <p class="export-desc">
-          Génère un rapport HTML complet incluant tokens, combat, calendrier et timeline.
-        </p>
+        <div style="font-size:11px;font-weight:bold;color:var(--accent);text-transform:uppercase;margin-top:2px">
+          📦 Pack d'Aventure Complet (.grimoirepack)
+        </div>
+        <div class="export-actions">
+          <button class="btn-pack-export" onclick={exportGrimoirePack} disabled={exporting}>
+            📦 Exporter Pack .grimoirepack
+          </button>
+          <label class="btn-pack-import">
+            📂 Importer Pack
+            <input type="file" accept=".grimoirepack,.json" onchange={handleImportPack} style="display:none"/>
+          </label>
+        </div>
 
+        <div style="font-size:11px;font-weight:bold;color:var(--text-muted);text-transform:uppercase;margin-top:4px">
+          📜 Rapport Imprimable
+        </div>
         <div class="export-actions">
           <button class="btn-export" onclick={exportHtml} disabled={exporting}>
-            {exporting ? '⏳ Génération…' : '💾 Télécharger HTML'}
+            {exporting ? '⏳ Génération…' : '💾 Rapport HTML'}
           </button>
           <button class="btn-print" onclick={printReport} disabled={exporting}>
             🖨️ Imprimer / PDF
@@ -314,18 +403,12 @@ ${timeline.length > 0 ? `
   .preview-label { color: var(--text-muted); }
   .preview-val { color: var(--text-primary); font-weight: 500; font-family: monospace; }
 
-  .export-desc {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
   .export-actions {
     display: flex;
     gap: 8px;
   }
 
-  .btn-export, .btn-print {
+  .btn-export, .btn-print, .btn-pack-export, .btn-pack-import {
     flex: 1;
     padding: 8px 12px;
     border-radius: 6px;
@@ -333,12 +416,29 @@ ${timeline.length > 0 ? `
     font-weight: 600;
     cursor: pointer;
     transition: all 0.1s;
+    text-align: center;
+    display: inline-block;
   }
 
-  .btn-export {
-    background: var(--accent);
+  .btn-pack-export {
+    background: #e5a853;
     border: none;
     color: #000;
+  }
+  .btn-pack-export:hover:not(:disabled) { opacity: 0.85; }
+  .btn-pack-export:disabled { opacity: 0.5; cursor: wait; }
+
+  .btn-pack-import {
+    background: #1f6feb;
+    border: none;
+    color: #fff;
+  }
+  .btn-pack-import:hover { background: #388bfd; }
+
+  .btn-export {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
   }
   .btn-export:hover:not(:disabled) { opacity: 0.85; }
   .btn-export:disabled { opacity: 0.5; cursor: wait; }

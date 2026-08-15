@@ -257,6 +257,15 @@
     unlistens.push(await listen<any>('player_play_sound', ({ payload }) => {
       addLog(payload.name, `🔊 a joué un son (${payload.sound_id})`);
     }));
+    unlistens.push(await listen<any>('player_token_move', ({ payload }) => {
+      const gs = vttStore.gridSize || 50;
+      const token = vttStore.tokens.find(t => t.playerId === payload.id || t.name.toLowerCase() === payload.name.toLowerCase());
+      if (token) {
+        token.x += payload.dx * gs;
+        token.y += payload.dy * gs;
+        emitToPlayerView('update_tokens', vttStore.tokens);
+      }
+    }));
     unlistens.push(await listen<any>('player_poll_vote', ({ payload }) => {
       const opt = payload.option as string;
       if (!pollResults[opt]) pollResults[opt] = { count: 0, voters: [] };

@@ -49,6 +49,7 @@
   import SharedNotesModal from './SharedNotesModal.svelte';
   import NarrativeAssistant from './NarrativeAssistant.svelte';
   import DungeonGenerator from './DungeonGenerator.svelte';
+  import QuestJournal from './QuestJournal.svelte';
 
   let { 
     onRoll,
@@ -76,6 +77,7 @@
   let showSharedLibrary = $state(false);
   let showNarrativeAssistant = $state(false);
   let showDungeonGenerator = $state(false);
+  let showQuestJournal = $state(false);
   let mapPickerSearch = $state('');
   let tokenPickerSearch = $state('');
   let ambientTextInput = $state('');
@@ -583,6 +585,7 @@
         <button class="dropdown-item" onclick={() => { merchantGen?.toggle(); activeMenu = null; }}>🛍️ Marchand Générateur</button>
         <button class="dropdown-item" onclick={() => { rumorMan?.toggle(); activeMenu = null; }}>🎭 Système de Murmures</button>
         <div class="dropdown-divider"></div>
+        <button class="dropdown-item" onclick={() => { showQuestJournal = true; activeMenu = null; }}>📜 Journal de Quêtes & Campagne</button>
         <button class="dropdown-item" onclick={() => { showNarrativeAssistant = true; activeMenu = null; }}>🤖 Assistant IA & Narratif</button>
         <button class="dropdown-item" onclick={() => { showDungeonGenerator = true; activeMenu = null; }}>🏰 Donjon & Murs Procédural</button>
         <button class="dropdown-item" onclick={() => { showNpcModal = true; activeMenu = null; }}>🧟 PNJ Rapide</button>
@@ -660,6 +663,7 @@
 {#if showSharedNotes}<SharedNotesModal onclose={() => showSharedNotes = false} />{/if}
 {#if showNarrativeAssistant}<NarrativeAssistant onclose={() => showNarrativeAssistant = false} />{/if}
 {#if showDungeonGenerator}<DungeonGenerator onclose={() => showDungeonGenerator = false} />{/if}
+{#if showQuestJournal}<QuestJournal onclose={() => showQuestJournal = false} />{/if}
 
 <!-- Panneau Relations PNJ -->
 {#if showRelationMap}
