@@ -82,6 +82,7 @@ pub fn run() {
             commands::addons::addon_install_local_file,
             commands::addons::addon_uninstall,
             commands::addons::addon_open_folder,
+            commands::addons::addon_fetch_pdf_bytes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");

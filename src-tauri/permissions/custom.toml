@@ -53,5 +53,6 @@ commands.allow = [
   "addon_install",
   "addon_install_local_file",
   "addon_uninstall",
-  "addon_open_folder"
+  "addon_open_folder",
+  "addon_fetch_pdf_bytes"
 ]

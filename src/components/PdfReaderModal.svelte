@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
   import * as pdfjsLib from 'pdfjs-dist';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import { readFileBase64 } from '$lib/api';
@@ -15,11 +16,13 @@
   const {
     fileUrl = '',
     fileName = 'Grimoire PDF',
+    fileId = '',
     localPath = '',
     onclose
   } = $props<{
     fileUrl?: string;
     fileName?: string;
+    fileId?: string;
     localPath?: string;
     onclose: () => void;
   }>();
@@ -100,10 +103,38 @@
           bytes[i] = binaryStr.charCodeAt(i);
         }
         source = { data: bytes };
-      } else if (fileUrl) {
-        source = { url: fileUrl };
       } else {
-        throw new Error('Aucune URL ou chemin de fichier fourni.');
+        // Extraction du fileId s'il est présent
+        let fid = fileId;
+        if (!fid && fileUrl) {
+          const m1 = fileUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          const m2 = fileUrl.match(/id=([a-zA-Z0-9_-]+)/);
+          if (m1) fid = m1[1];
+          else if (m2) fid = m2[1];
+        }
+
+        // Essayer de récupérer les octets binaires via Rust (sans restrictions CORS ni redirection proxy)
+        if (fid) {
+          try {
+            const rawBytes = await invoke<number[]>('addon_fetch_pdf_bytes', { fileId: fid, url: fileUrl || undefined });
+            if (rawBytes && rawBytes.length > 0) {
+              source = { data: new Uint8Array(rawBytes) };
+            }
+          } catch (tauriErr) {
+            console.warn('addon_fetch_pdf_bytes failed, trying direct stream URL...', tauriErr);
+          }
+        }
+
+        if (!source) {
+          const directUrl = fid
+            ? `https://drive.usercontent.google.com/download?id=${fid}&export=download&authuser=0&confirm=t`
+            : fileUrl;
+          if (directUrl) {
+            source = { url: directUrl };
+          } else {
+            throw new Error('Aucune source PDF disponible.');
+          }
+        }
       }
 
       const loadingTask = pdfjsLib.getDocument(source);

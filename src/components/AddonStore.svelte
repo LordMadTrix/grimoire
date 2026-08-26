@@ -66,7 +66,7 @@
   let dragStart = $state({ x: 0, y: 0 });
 
   // PDF Reader Modal State
-  let activePdfModal = $state<{ url: string; name: string; localPath?: string } | null>(null);
+  let activePdfModal = $state<{ id?: string; url: string; name: string; localPath?: string } | null>(null);
 
   let booksCount = $derived(
     rawFiles.filter(f => f.destination === 'books' || f.path.toLowerCase().endsWith('.pdf') || f.name.toLowerCase().endsWith('.pdf')).length
@@ -74,7 +74,8 @@
 
   function openPdfReader(file: DriveFile) {
     activePdfModal = {
-      url: file.url || file.highResUrl,
+      id: file.id,
+      url: `https://drive.usercontent.google.com/download?id=${file.id}&export=download&authuser=0&confirm=t`,
       name: file.name
     };
   }
@@ -1193,6 +1194,7 @@
 
 {#if activePdfModal}
   <PdfReaderModal
+    fileId={activePdfModal.id}
     fileUrl={activePdfModal.url}
     fileName={activePdfModal.name}
     localPath={activePdfModal.localPath}

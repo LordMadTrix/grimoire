@@ -149,36 +149,61 @@ pub(crate) fn resolve_public_dir(app: &AppHandle, destination: &str) -> Result<P
     Ok(candidate)
 }
 
+/// Télécharge les octets d'un PDF Google Drive pour la Liseuse PDF intégrée
+#[command]
+pub async fn addon_fetch_pdf_bytes(
+    file_id: String,
+    url: Option<String>,
+) -> Result<Vec<u8>, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    fetch_google_drive_bytes(&client, &file_id, url.as_deref(), true).await
+}
+
 /// Télécharge les données brutes d'une image/fichier depuis Google Drive en testant successivement tous les endpoints CDN
 async fn fetch_google_drive_bytes(
     client: &reqwest::Client,
     file_id: &str,
     passed_url: Option<&str>,
+    is_pdf: bool,
 ) -> Result<Vec<u8>, String> {
     let mut candidate_urls = Vec::new();
-    if let Some(u) = passed_url {
-        if !u.trim().is_empty() {
-            candidate_urls.push(u.to_string());
+    if is_pdf {
+        // Endpoints de téléchargement direct de binaires/PDFs
+        candidate_urls.push(format!("https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t"));
+        candidate_urls.push(format!("https://drive.google.com/uc?export=download&id={file_id}&confirm=t"));
+        candidate_urls.push(format!("https://docs.google.com/uc?export=download&id={file_id}"));
+    } else {
+        if let Some(u) = passed_url {
+            if !u.trim().is_empty() {
+                candidate_urls.push(u.to_string());
+            }
         }
+        // Endpoints rapides Google CDN sans captcha/cookies pour images
+        candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}=s0"));
+        candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}"));
+        candidate_urls.push(format!("https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t"));
+        candidate_urls.push(format!("https://drive.google.com/uc?export=download&id={file_id}"));
+        candidate_urls.push(format!("https://drive.google.com/thumbnail?id={file_id}&sz=w4000"));
     }
-    // Endpoints rapides Google CDN sans captcha/cookies
-    candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}=s0"));
-    candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}"));
-    candidate_urls.push(format!("https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t"));
-    candidate_urls.push(format!("https://drive.google.com/uc?export=download&id={file_id}"));
-    candidate_urls.push(format!("https://drive.google.com/thumbnail?id={file_id}&sz=w4000"));
 
     let mut last_err = String::new();
 
     for url in candidate_urls {
         let req = client.get(&url)
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            .header("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+            .header("Accept", if is_pdf { "application/pdf,*/*" } else { "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8" });
 
         match req.send().await {
             Ok(resp) if resp.status().is_success() => {
                 if let Ok(bytes) = resp.bytes().await {
                     if bytes.len() > 100 {
+                        if is_pdf && bytes.starts_with(b"%PDF") {
+                            return Ok(bytes.to_vec());
+                        }
                         let header_preview = String::from_utf8_lossy(&bytes[..std::cmp::min(bytes.len(), 120)]).to_lowercase();
                         if !header_preview.contains("<!doctype html") && !header_preview.contains("<html") {
                             return Ok(bytes.to_vec());
@@ -302,7 +327,8 @@ pub async fn addon_download_file(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let bytes = fetch_google_drive_bytes(&client, &file_id, url.as_deref()).await?;
+    let is_pdf = filename.to_lowercase().ends_with(".pdf") || destination == "books";
+    let bytes = fetch_google_drive_bytes(&client, &file_id, url.as_deref(), is_pdf).await?;
     std::fs::write(&target_path, &bytes).map_err(|e| format!("Erreur écriture fichier : {e}"))?;
 
     // Copie miroir dans public/ pour la VTT
@@ -405,7 +431,8 @@ pub async fn addon_download_pack(
         }
 
         if !target_path.exists() {
-            if let Ok(bytes) = fetch_google_drive_bytes(&client, &file_item.id, file_item.url.as_deref()).await {
+            let is_pdf = file_item.filename.to_lowercase().ends_with(".pdf") || destination == "books";
+            if let Ok(bytes) = fetch_google_drive_bytes(&client, &file_item.id, file_item.url.as_deref(), is_pdf).await {
                 let _ = std::fs::write(&target_path, &bytes);
                 if let Some(ref p_dir) = pub_dir {
                     let pub_target = p_dir.join(&target_rel);
