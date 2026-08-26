@@ -5,8 +5,8 @@
 
   const CATALOG_URL = 'https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/library-catalog.json';
 
-  type Tab = 'tokens' | 'maps' | 'tables';
-  let activeTab = $state<Tab>('tokens');
+  type Tab = 'tokens' | 'maps' | 'drive' | 'tables';
+  let activeTab = $state<Tab>('drive');
   let search = $state('');
   let tokenCategory = $state<'all' | 'heroes' | 'enemies' | 'npcs'>('all');
   let onlineStatus = $state<'idle' | 'loading' | 'ok' | 'error'>('idle');
@@ -14,6 +14,45 @@
   let onlineMaps = $state<any[]>([]);
   let onlineTables = $state<any[]>([]);
   let showOnline = $state(false);
+
+  // ── Google Drive Cloud Streaming ─────────────────────────────────
+  let driveStatus = $state<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  let driveMaps = $state<any[]>([]);
+  let driveFolders = $state<string[]>([]);
+  let selectedDriveFolder = $state<string>('all');
+  let driveDisplayLimit = $state(24);
+  let driveTotalMaps = $state(0);
+
+  import { getCelestialCatalog } from '$lib/stores/celestialCache';
+
+  async function fetchDriveCatalog() {
+    if (driveStatus === 'ok') return;
+    driveStatus = 'loading';
+    try {
+      const data = await getCelestialCatalog();
+      const mapsOnly = data.files.filter(f => f.destination === 'maps');
+      driveMaps = mapsOnly.map(f => ({
+        id: f.id,
+        name: f.name,
+        folder: f.category || 'Général',
+        url: f.url,
+        highResUrl: f.highResUrl,
+        thumbUrl: f.thumbUrl,
+        path: f.path
+      }));
+      driveTotalMaps = driveMaps.length;
+      
+      const folderSet = new Set<string>();
+      for (const m of driveMaps) {
+        if (m.folder) folderSet.add(m.folder);
+      }
+      driveFolders = Array.from(folderSet).sort();
+      driveStatus = 'ok';
+    } catch (e) {
+      console.error('Erreur chargement catalogue Archives Célestes:', e);
+      driveStatus = 'error';
+    }
+  }
 
   async function fetchOnlineCatalog() {
     onlineStatus = 'loading';
@@ -30,6 +69,11 @@
       onlineStatus = 'error';
     }
   }
+
+  // Load drive catalog immediately on mount
+  $effect(() => {
+    fetchDriveCatalog();
+  });
 
   // ── Catalogue tokens ─────────────────────────────────────────────
   const TOKEN_CATALOG = [
@@ -181,6 +225,7 @@
   let filteredTokens = $state(TOKEN_CATALOG);
   let filteredMaps = $state(MAP_CATALOG);
   let filteredTables = $state(TABLES);
+  let filteredDriveMaps = $state<any[]>([]);
 
   $effect(() => {
     const q = search.toLowerCase();
@@ -190,6 +235,12 @@
     );
     filteredMaps = MAP_CATALOG.filter(m => !q || m.name.toLowerCase().includes(q));
     filteredTables = TABLES.filter(t => !q || t.name.toLowerCase().includes(q));
+    
+    filteredDriveMaps = driveMaps.filter(m => {
+      const matchFolder = selectedDriveFolder === 'all' || m.folder === selectedDriveFolder;
+      const matchSearch = !q || m.name.toLowerCase().includes(q) || (m.folder && m.folder.toLowerCase().includes(q));
+      return matchFolder && matchSearch;
+    });
   });
 </script>
 
@@ -198,17 +249,23 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="lib-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="lib-header">
-      <span class="lib-title">📚 Bibliothèque Commune</span>
+      <span class="lib-title">📚 Bibliothèque Grimoire</span>
       <button class="lib-close" onclick={onClose}>✕</button>
     </div>
 
     <div class="lib-search-bar">
-      <input class="lib-search" type="text" placeholder="Rechercher…" bind:value={search} />
+      <input class="lib-search" type="text" placeholder="Rechercher par nom, donjon, pack ou thème…" bind:value={search} />
     </div>
 
     <div class="lib-tabs">
+      <button class="lib-tab drive-tab" class:active={activeTab === 'drive'} onclick={() => activeTab = 'drive'}>
+        🌌 Archives Célestes
+        {#if driveTotalMaps > 0}
+          <span class="drive-count-badge">{driveTotalMaps}</span>
+        {/if}
+      </button>
       <button class="lib-tab" class:active={activeTab === 'tokens'} onclick={() => activeTab = 'tokens'}>🪙 Tokens</button>
-      <button class="lib-tab" class:active={activeTab === 'maps'}   onclick={() => activeTab = 'maps'}>🗺️ Maps</button>
+      <button class="lib-tab" class:active={activeTab === 'maps'}   onclick={() => activeTab = 'maps'}>🗺️ Maps Locales</button>
       <button class="lib-tab" class:active={activeTab === 'tables'} onclick={() => activeTab = 'tables'}>🎲 Tables</button>
       <div class="lib-tab-spacer"></div>
       {#if onlineStatus === 'idle'}
@@ -224,8 +281,71 @@
 
     <div class="lib-body">
 
+      <!-- ARCHIVES CÉLESTES (STREAMING) -->
+      {#if activeTab === 'drive'}
+        <div class="drive-toolbar">
+          <div class="drive-filter-group">
+            <span class="drive-filter-label">📁 Dossier / Pack :</span>
+            <select class="drive-select" bind:value={selectedDriveFolder}>
+              <option value="all">Tous les packs ({driveMaps.length} cartes)</option>
+              {#each driveFolders as folder}
+                <option value={folder}>{folder}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="drive-info-badge">
+            ⚡ Streaming Haute Résolution Direct
+          </div>
+        </div>
+
+        {#if driveStatus === 'loading'}
+          <div class="drive-loading-state">
+            <span class="spinner">⏳</span>
+            <span>Chargement des Archives Célestes…</span>
+          </div>
+        {:else if driveStatus === 'error'}
+          <div class="drive-error-state">
+            <span>⚠️ Impossible de charger les Archives Célestes.</span>
+            <button class="map-btn" onclick={() => { driveStatus = 'idle'; fetchDriveCatalog(); }}>Réessayer</button>
+          </div>
+        {:else}
+          <div class="map-grid">
+            {#each filteredDriveMaps.slice(0, driveDisplayLimit) as m}
+              <div class="map-card drive-card">
+                <div class="map-thumb-wrap">
+                  <img src={m.thumbUrl || m.url} alt={m.name} class="map-thumb" loading="lazy" />
+                  <span class="map-badge-folder">{m.folder}</span>
+                </div>
+                <div class="map-info">
+                  <span class="map-name">{m.name}</span>
+                  <span class="map-desc">📂 {m.path}</span>
+                  <div class="map-actions">
+                    <button class="map-btn" onclick={() => loadMap({ name: m.name, url: m.highResUrl || m.url })} title="Charger sur la scène active">
+                      🎮 Charger
+                    </button>
+                    <button class="map-btn secondary" onclick={() => loadMap({ name: m.name, url: m.highResUrl || m.url }, true)} title="Créer une nouvelle scène avec cette carte">
+                      + Scène
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {/each}
+            {#if filteredDriveMaps.length === 0}
+              <p class="lib-empty">Aucune carte trouvée pour cette recherche ou ce dossier.</p>
+            {/if}
+          </div>
+
+          {#if driveDisplayLimit < filteredDriveMaps.length}
+            <div class="drive-load-more">
+              <button class="load-more-btn" onclick={() => driveDisplayLimit += 24}>
+                Afficher plus de cartes ({driveDisplayLimit} / {filteredDriveMaps.length})
+              </button>
+            </div>
+          {/if}
+        {/if}
+
       <!-- TOKENS -->
-      {#if activeTab === 'tokens'}
+      {:else if activeTab === 'tokens'}
         <div class="lib-cat-bar">
           {#each [['all','Tous'],['heroes','Héros'],['enemies','Ennemis'],['npcs','PNJs']] as [val, label]}
             {@const catVal = val as 'all' | 'heroes' | 'enemies' | 'npcs'}
@@ -422,4 +542,26 @@
 .token-card.online:hover { border-color:#4a9eff; background:#0d1f30; }
 .svg-token { filter: invert(1) sepia(1) saturate(2) hue-rotate(190deg); background:#1a3060; border-radius:50%; padding:6px; }
 .map-license { font-size:.72rem; color:#4a9eff; }
+
+/* Google Drive Cloud tab styling */
+.drive-tab { color: #38bdf8; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.drive-tab.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+.drive-count-badge { background: #0284c7; color: #fff; font-size: 0.72rem; padding: 1px 6px; border-radius: 10px; font-weight: 700; }
+
+.drive-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding: 8px 12px; background: #131b24; border: 1px solid #1e3a5f; border-radius: 6px; }
+.drive-filter-group { display: flex; align-items: center; gap: 8px; }
+.drive-filter-label { font-size: 0.82rem; color: #93c5fd; font-weight: 500; }
+.drive-select { background: #0b131e; color: #e0f2fe; border: 1px solid #2563eb; border-radius: 4px; padding: 4px 10px; font-size: 0.82rem; outline: none; max-width: 320px; }
+.drive-info-badge { font-size: 0.75rem; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.2); }
+
+.drive-card { border-color: #1e3a5f; background: #0b131e; }
+.drive-card:hover { border-color: #38bdf8; }
+.map-thumb-wrap { position: relative; width: 160px; height: 100px; flex-shrink: 0; background: #050b14; display: flex; align-items: center; justify-content: center; }
+.map-badge-folder { position: absolute; bottom: 4px; left: 4px; background: rgba(0, 0, 0, 0.75); color: #38bdf8; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+.drive-loading-state, .drive-error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 12px; color: #93c5fd; }
+.spinner { font-size: 1.8rem; }
+.drive-load-more { display: flex; justify-content: center; margin-top: 16px; margin-bottom: 8px; }
+.load-more-btn { background: #0e2439; border: 1px solid #0284c7; color: #38bdf8; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+.load-more-btn:hover { background: #0369a1; color: #fff; }
 </style>

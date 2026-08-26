@@ -33,3 +33,10 @@ Grimoire is a TTRPG toolkit combining a Markdown wiki, a Virtual TableTop (VTT),
 - **Data**: Uses SQLite with FTS5 for the notebook's full-text search capabilities.
 - **AI**: Integrates with local Ollama instances for text generation.
 - **Mobile**: The Rust backend serves a mobile-optimized web app to players via QR code.
+
+## 📦 Releases & Distribution (Windows SmartScreen / Chrome)
+- **Active Development Status**: Grimoire is in active development. Binaries (.msi, .exe) distributed via GitHub Releases may trigger Windows SmartScreen ("Windows a protégé votre ordinateur") or Chrome ("Fichier non couramment téléchargé") warnings due to the lack of long-term reputation and commercial code signing.
+- **Release Workflow**: Configured in `.github/workflows/build.yml` (triggered on tag push `v*`). It automatically generates release notes instructing users how to proceed ("Informations complémentaires" -> "Exécuter quand même" / Chrome "Conserver").
+- **Future Stable Steps**:
+  - Submit major release binaries to [Microsoft Security Intelligence](https://www.microsoft.com/en-us/wdsi/filesubmission) (free developer sample submission for false positive resolution).
+  - Submit Grimoire to **WinGet** (`microsoft/winget-pkgs`) for single-command safe installations.

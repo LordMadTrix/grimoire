@@ -788,6 +788,8 @@
       errorMessage = null;
       minimapImgReady = false;
       const img = new Image();
+      img.referrerPolicy = "no-referrer";
+      img.crossOrigin = "anonymous";
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = () => reject(new Error("L'image n'a pas pu se charger."));

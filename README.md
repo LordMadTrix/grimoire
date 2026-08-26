@@ -81,11 +81,14 @@ Tous accessibles via le menu **🧙‍♂️ Outils MJ** de la barre d'outils VT
 | `Alt` + Molette | VTT — token survolé | Redimensionner le token |
 | Poignée ⬤ (coin du token) | VTT — mode Sélect | Redimensionner par glisser-déposer |
 
-## 🚀 Installation & Développement
+## 🚀 Téléchargement & Installation
 
-Grimoire utilise une architecture moderne et ultra-rapide : **SvelteKit (Svelte 5) + Tauri v2 + Rust + PixiJS v8**.
+### Pour les utilisateurs / Joueurs
+1. Rendez-vous sur la page des [Releases GitHub](https://github.com/LordMadTrix/grimoire/releases/latest).
+2. Téléchargez l'installateur `.msi` (Windows) ou `.AppImage` (Linux).
+3. **Au premier lancement sous Windows** : Si l'avertissement *SmartScreen* apparaît (*« Windows a protégé votre ordinateur »*), cliquez sur **« Informations complémentaires »** puis **« Exécuter quand même »**. Ce message est normal pour les projets open-source récents en cours de développement.
 
-### Lancer le projet
+### Pour les développeurs
 
 ```bash
 # Installer les dépendances

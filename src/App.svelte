@@ -506,8 +506,8 @@
             🔄 Réindexer
           </button>
         </div>
-        <button onclick={() => showAddonStore = true} class="footer-btn" title="Boutique d'addons d'images">
-          📦 Boutique Addons
+        <button onclick={() => showAddonStore = true} class="footer-btn" title="Bibliothèque Céleste & Gestionnaire de Packs">
+          🌌 Bibliothèque Céleste
         </button>
         <button onclick={handleOpenVault} class="footer-btn" title="Changer de vault">
           📂 Changer de Vault

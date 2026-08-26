@@ -1,6 +1,6 @@
 [package]
 name = "grimoire"
-version = "0.4.3"
+version = "0.4.4"
 description = "Grimoire - Outil de Maître du Jeu TTRPG & VTT Local"
 authors = ["MadTrix"]
 license = "MIT"

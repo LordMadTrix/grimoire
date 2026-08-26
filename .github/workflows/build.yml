@@ -48,6 +48,27 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "Grimoire v__VERSION__"
-          releaseBody: "### Grimoire v__VERSION__\n\nBuild ultra-léger : les cartes et musiques volumineuses ont été retirées du paquet pour une installation rapide.\n\nVoir le détail des changements dans l'historique des commits."
+          releaseBody: |
+            ### 🐉 Grimoire v__VERSION__
+
+            Build de développement autonome et ultra-léger.
+
+            #### 📥 Téléchargement & Installation
+            - **Windows** : Téléchargez l'installateur `.msi` ou le setup `.exe` ci-dessous.
+            - **Linux** : Téléchargez le paquet `.AppImage` ou `.deb`.
+
+            ---
+
+            #### 🛡️ Remarque importante concernant Windows SmartScreen et Chrome :
+            *Grimoire est un projet open-source indépendant en cours de développement.*
+            Comme les nouvelles versions n'ont pas encore accumulé d'historique auprès des serveurs de Microsoft/Google, votre navigateur ou Windows peut afficher un message de précaution au premier lancement :
+            
+            - **Sur Google Chrome** : Si le téléchargement est mis en attente, cliquez sur la flèche ou les trois petits points à côté du fichier > sélectionnez **« Conserver »** (ou « Télécharger le fichier suspect »).
+            - **Sous Windows (SmartScreen)** : Lorsque la fenêtre bleue *« Windows a protégé votre ordinateur »* s'affiche, cliquez sur le lien **« Informations complémentaires »**, puis sur le bouton **« Exécuter quand même »**.
+
+            Le code source est 100% ouvert, auditable et disponible sur ce dépôt GitHub.
+
+            ---
+            *Voir le détail des changements récents dans l'historique des commits.*
           releaseDraft: false
           prerelease: false

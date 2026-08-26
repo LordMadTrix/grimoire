@@ -3,25 +3,12 @@
   import { listen } from '@tauri-apps/api/event';
   import { open } from '@tauri-apps/plugin-dialog';
   import { onMount, onDestroy } from 'svelte';
+  import { addMapScene, replaceActiveScene } from '$lib/stores/vtt.svelte';
+  import { getCelestialCatalog, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
 
   const { onclose } = $props<{ onclose: () => void }>();
 
   // ── Types ──────────────────────────────────────────────────────────────────
-
-  interface AddonManifest {
-    id: string;
-    name: string;
-    version: string;
-    category: string;
-    description: string;
-    author: string;
-    thumbnail?: string;
-    download_url: string;
-    size_bytes?: number;
-    file_count?: number;
-    destination: string;
-    tags?: string[];
-  }
 
   interface InstalledAddon {
     id: string;
@@ -39,22 +26,33 @@
     file: string;
   }
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── Constants & State ──────────────────────────────────────────────────────
 
-  const DEFAULT_CATALOG_URL = 'https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/addons-catalog.json';
   const COMMUNITY_DRIVE_URL = 'https://drive.google.com/drive/folders/16ZM0lg66rgFdsQ9kmFoA2pQZ2a0mciF3?usp=drive_link';
 
-  let catalogUrl = $state(localStorage.getItem('grimoire_addon_catalog_url') ?? DEFAULT_CATALOG_URL);
-  let catalog = $state<AddonManifest[]>([]);
-  let installed = $state<InstalledAddon[]>([]);
-  let loading = $state(false);
-  let error = $state('');
-  let activeCategory = $state('all');
+  let rawFiles = $state<DriveFile[]>([]);
+  let rootTree = $state<TreeNode>({
+    name: 'Archives Célestes',
+    path: '',
+    subfolders: {},
+    files: [],
+    totalFiles: 0,
+    destination: 'maps'
+  });
+
+  let currentPath = $state<string>('maps'); // Default to maps root
   let searchQuery = $state('');
-  let activeTab = $state<'store' | 'installed' | 'admin'>('store');
-  let progress = $state<Record<string, number>>({});   // addon_id → %
-  let installing = $state<Set<string>>(new Set());
-  let uninstalling = $state<Set<string>>(new Set());
+  let activeTab = $state<'explorer' | 'installed' | 'import'>('explorer');
+
+  let installed = $state<InstalledAddon[]>([]);
+  let localFilesOnDisk = $state<Set<string>>(new Set());
+  let loading = $state(true);
+  let error = $state('');
+
+  // Downloading state
+  let installingPacks = $state<Set<string>>(new Set());
+  let downloadingFiles = $state<Set<string>>(new Set());
+  let progress = $state<Record<string, { done: number; total: number; pct: number; currentFile: string }>>({});
   let unlisten: (() => void) | null = null;
 
   // Local import dialog state
@@ -64,67 +62,98 @@
   let localDestination = $state('maps');
   let localImporting = $state(false);
 
-  // Admin form state
-  let newAddon = $state<AddonManifest>({
-    id: '',
-    name: '',
-    version: '1.0.0',
-    category: 'maps',
-    description: '',
-    author: 'LordMadTrix',
-    thumbnail: '',
-    download_url: '',
-    size_bytes: 10485760,
-    file_count: 5,
-    destination: 'maps',
-    tags: []
+  // Toast / notification
+  let toastMsg = $state('');
+  let toastTimer: any = null;
+
+  function showToast(msg: string) {
+    toastMsg = msg;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastMsg = ''; }, 3500);
+  }
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+
+  function getNodeAtPath(node: TreeNode, path: string): TreeNode {
+    if (!path) return node;
+    const parts = path.split('/').filter(Boolean);
+    let curr = node;
+    for (const part of parts) {
+      if (curr.subfolders[part]) {
+        curr = curr.subfolders[part];
+      } else {
+        break;
+      }
+    }
+    return curr;
+  }
+
+  function getAllFilesInNode(node: TreeNode): DriveFile[] {
+    const list: DriveFile[] = [...node.files];
+    for (const sub of Object.values(node.subfolders)) {
+      list.push(...getAllFilesInNode(sub));
+    }
+    return list;
+  }
+
+  // Current node in the tree
+  const currentNode = $derived(getNodeAtPath(rootTree, currentPath));
+
+  // Breadcrumbs: [ { label: '🏠 Drive', path: '' }, { label: 'maps', path: 'maps' }, ... ]
+  const breadcrumbs = $derived.by(() => {
+    const list = [{ label: '🏠 Drive', path: '' }];
+    if (!currentPath) return list;
+    const parts = currentPath.split('/').filter(Boolean);
+    let acc = '';
+    for (const part of parts) {
+      acc = acc ? `${acc}/${part}` : part;
+      let label = part;
+      if (part === 'maps') label = '🗺️ Cartes';
+      else if (part === 'textures') label = '🧱 Textures';
+      else if (part === 'stamps') label = '🎨 Tampons';
+      list.push({ label, path: acc });
+    }
+    return list;
   });
-  let newTagInput = $state('');
 
-  function convertGoogleDriveUrl(url: string): string {
-    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/uc?export=download&id=${match[1]}`;
-    }
-    return url;
+  // Subfolders in current node (sorted alphabetically)
+  const currentSubfolders = $derived(
+    Object.values(currentNode.subfolders).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+  );
+
+  // Files in current node
+  const currentFiles = $derived(currentNode.files);
+
+  // Search results across whole tree if searchQuery is active
+  const searchResults = $derived.by(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return rawFiles.filter(f =>
+      f.name.toLowerCase().includes(q) ||
+      f.filename.toLowerCase().includes(q) ||
+      f.path.toLowerCase().includes(q)
+    ).slice(0, 150); // Limit to top 150 for smooth UI rendering
+  });
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function isFileOnDisk(file: DriveFile): boolean {
+    const cleanPath = file.path.replace(/\\/g, '/').replace(/^\/+/, '');
+    const cleanNoRoot = cleanPath.split('/').slice(1).join('/');
+    return localFilesOnDisk.has(cleanPath) ||
+      localFilesOnDisk.has(cleanNoRoot) ||
+      localFilesOnDisk.has(file.filename);
   }
 
-  function handleAddTag() {
-    if (!newTagInput.trim()) return;
-    if (!newAddon.tags) newAddon.tags = [];
-    newAddon.tags.push(newTagInput.trim());
-    newAddon.tags = [...newAddon.tags];
-    newTagInput = '';
+  function isNodeDownloaded(node: TreeNode): boolean {
+    const all = getAllFilesInNode(node);
+    if (all.length === 0) return false;
+    return all.every(f => isFileOnDisk(f));
   }
 
-  function handleRemoveTag(idx: number) {
-    if (!newAddon.tags) return;
-    newAddon.tags.splice(idx, 1);
-    newAddon.tags = [...newAddon.tags];
-  }
-
-  function handleAddCustomAddon() {
-    if (!newAddon.name.trim() || !newAddon.download_url.trim()) {
-      alert('Veuillez renseigner au moins le titre et l\'URL de téléchargement.');
-      return;
-    }
-    if (!newAddon.id.trim()) {
-      newAddon.id = newAddon.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
-    }
-    newAddon.download_url = convertGoogleDriveUrl(newAddon.download_url);
-    catalog = [newAddon, ...catalog];
-    alert('✅ Pack ajouté au catalogue local avec succès !');
-    activeTab = 'store';
-  }
-
-  function copyCatalogJson() {
-    const exportData = {
-      version: '1.1',
-      community_drive_url: COMMUNITY_DRIVE_URL,
-      addons: catalog
-    };
-    navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
-    alert('📋 JSON du catalogue copié dans le presse-papiers ! Vous pouvez le coller sur GitHub.');
+  function countDownloadedInNode(node: TreeNode): number {
+    const all = getAllFilesInNode(node);
+    return all.filter(f => isFileOnDisk(f)).length;
   }
 
   function openExternal(url: string) {
@@ -133,46 +162,25 @@
     });
   }
 
-  const categories = [
-    { id: 'all',    label: '✨ Tous' },
-    { id: 'maps',   label: '🗺️ Cartes' },
-    { id: 'tokens', label: '🧙 Jetons' },
-    { id: 'tiles',  label: '🧱 Tuiles' },
-    { id: 'other',  label: '📦 Autre & Audio' },
-  ];
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  function fmtSize(bytes?: number): string {
-    if (!bytes) return '';
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-  }
-
-  function isInstalled(id: string): InstalledAddon | undefined {
-    return installed.find(a => a.id === id);
-  }
-
-  const filtered = $derived(catalog.filter(a => {
-    if (activeCategory !== 'all' && a.category !== activeCategory) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return a.name.toLowerCase().includes(q)
-        || a.description.toLowerCase().includes(q)
-        || (a.tags ?? []).some(t => t.toLowerCase().includes(q));
+  async function openFolder(dest: string) {
+    try {
+      await invoke('addon_open_folder', { destination: dest });
+    } catch (e) {
+      alert(`Erreur ouverture dossier : ${e}`);
     }
-    return true;
-  }));
+  }
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  async function loadCatalog() {
+  async function loadDriveCatalog(forceRefresh = false) {
     loading = true;
     error = '';
     try {
-      catalog = await invoke<AddonManifest[]>('addon_fetch_catalog', { catalogUrl });
-      localStorage.setItem('grimoire_addon_catalog_url', catalogUrl);
+      const data = await getCelestialCatalog(forceRefresh);
+      rawFiles = data.files;
+      rootTree = data.tree;
     } catch (e) {
+      console.error('Erreur chargement catalogue Archives Célestes:', e);
       error = String(e);
     } finally {
       loading = false;
@@ -185,39 +193,157 @@
     } catch {
       installed = [];
     }
+
+    try {
+      const [mapsFiles, tokenFiles, tileFiles] = await Promise.all([
+        invoke<string[]>('addon_check_installed_files', { destination: 'maps' }).catch(() => []),
+        invoke<string[]>('addon_check_installed_files', { destination: 'tokens' }).catch(() => []),
+        invoke<string[]>('addon_check_installed_files', { destination: 'tiles/custom' }).catch(() => []),
+      ]);
+
+      const diskSet = new Set<string>();
+      for (const f of mapsFiles) {
+        diskSet.add(`maps/${f}`);
+        diskSet.add(f);
+      }
+      for (const f of tokenFiles) {
+        diskSet.add(`tokens/${f}`);
+        diskSet.add(`stamps/${f}`);
+        diskSet.add(f);
+      }
+      for (const f of tileFiles) {
+        diskSet.add(`textures/${f}`);
+        diskSet.add(`tiles/custom/${f}`);
+        diskSet.add(f);
+      }
+      localFilesOnDisk = diskSet;
+    } catch (e) {
+      console.warn('Erreur vérification fichiers locaux:', e);
+    }
   }
 
-  let showNotFoundFallbackModal = $state(false);
-  let failedAddon = $state<AddonManifest | null>(null);
+  async function downloadFolder(node: TreeNode) {
+    const allFiles = getAllFilesInNode(node);
+    if (allFiles.length === 0) {
+      alert('Ce dossier ne contient aucun fichier.');
+      return;
+    }
 
-  async function install(addon: AddonManifest) {
-    installing = new Set([...installing, addon.id]);
-    progress = { ...progress, [addon.id]: 0 };
+    const packId = `folder-${node.path.replace(/[^a-zA-Z0-9_-]/g, '-') || 'root'}`;
+    installingPacks = new Set([...installingPacks, packId]);
+    progress[packId] = { done: 0, total: allFiles.length, pct: 0, currentFile: 'Démarrage…' };
+    progress = { ...progress };
+
     try {
-      const result = await invoke<InstalledAddon>('addon_install', { addon });
+      const result = await invoke<InstalledAddon>('addon_download_pack', {
+        packId,
+        packName: node.name || 'Dossier Drive',
+        destination: node.destination,
+        subfolder: node.path,
+        files: allFiles.map(f => ({
+          id: f.id,
+          name: f.name,
+          filename: f.filename,
+          path: f.path,
+          category: f.category,
+          destination: f.destination,
+          subfolder: f.subfolder,
+          url: f.highResUrl || f.url,
+          high_res_url: f.highResUrl,
+          thumb_url: f.thumbUrl
+        }))
+      });
+
       installed = [...installed.filter(i => i.id !== result.id), result];
+      await loadInstalled();
+      showToast(`✅ Dossier "${node.name}" téléchargé avec succès (${result.files.length} fichiers) !`);
     } catch (e) {
-      // Si 404 ou échec distant, afficher la modal d'aide simplifiée avec Drive / Import local
-      failedAddon = addon;
-      showNotFoundFallbackModal = true;
+      alert(`Erreur lors du téléchargement du dossier "${node.name}" : ${e}`);
     } finally {
-      installing = new Set([...installing].filter(id => id !== addon.id));
-      const { [addon.id]: _, ...rest } = progress;
+      installingPacks = new Set([...installingPacks].filter(id => id !== packId));
+      const { [packId]: _, ...rest } = progress;
       progress = rest;
     }
   }
 
+  async function downloadSingleFile(file: DriveFile) {
+    downloadingFiles = new Set([...downloadingFiles, file.id]);
+    try {
+      const relPath = await invoke<string>('addon_download_file', {
+        fileId: file.id,
+        filename: file.filename,
+        destination: file.destination,
+        subfolder: file.subfolder,
+        url: file.highResUrl || file.url,
+        relPath: file.path
+      });
+      await loadInstalled();
+      showToast(`✅ "${file.name}" téléchargé dans public/${file.destination}/${relPath} !`);
+    } catch (e) {
+      alert(`Erreur téléchargement fichier : ${e}`);
+    } finally {
+      downloadingFiles = new Set([...downloadingFiles].filter(id => id !== file.id));
+    }
+  }
+
+  async function loadIntoVTT(file: DriveFile, asNew = false) {
+    showToast(`⏳ Préparation de la carte "${file.name}"…`);
+    try {
+      let src = file.highResUrl || file.url;
+      // Si le fichier n'est pas encore sur le PC, le télécharger localement pour garantir 0 erreur PixiJS et 0 latence
+      if (!isFileOnDisk(file)) {
+        try {
+          const relPath = await invoke<string>('addon_download_file', {
+            fileId: file.id,
+            filename: file.filename,
+            destination: file.destination,
+            subfolder: file.subfolder,
+            url: file.highResUrl || file.url,
+            relPath: file.path
+          });
+          await loadInstalled();
+          src = `/${file.destination}/${relPath}`;
+        } catch (dlErr) {
+          console.warn('Téléchargement local échoué, fallback streaming:', dlErr);
+          src = file.highResUrl || file.url;
+        }
+      } else {
+        const cleanPath = file.path.replace(/\\/g, '/').replace(/^\/+/, '');
+        src = `/${cleanPath}`;
+      }
+
+      if (asNew) {
+        addMapScene(file.name, src, src);
+        showToast(`🗺️ Nouvelle scène "${file.name}" créée dans la VTT !`);
+      } else {
+        replaceActiveScene(file.name, src, src);
+        showToast(`🗺️ Carte "${file.name}" chargée sur la scène active !`);
+      }
+    } catch (e) {
+      console.error('Erreur chargement VTT:', e);
+      const fallbackSrc = file.highResUrl || file.url;
+      if (asNew) addMapScene(file.name, fallbackSrc, fallbackSrc);
+      else replaceActiveScene(file.name, fallbackSrc, fallbackSrc);
+    }
+  }
+
   async function uninstall(addonId: string) {
-    if (!confirm('Désinstaller cet addon et supprimer ses fichiers du dossier public ?')) return;
-    uninstalling = new Set([...uninstalling, addonId]);
+    if (!confirm('Désinstaller ce dossier et supprimer ses fichiers du disque local ?')) return;
     try {
       await invoke('addon_uninstall', { addonId });
       installed = installed.filter(a => a.id !== addonId);
+      await loadInstalled();
+      showToast('🗑️ Dossier désinstallé et fichiers supprimés.');
     } catch (e) {
       alert(`Erreur de désinstallation : ${e}`);
-    } finally {
-      uninstalling = new Set([...uninstalling].filter(id => id !== addonId));
     }
+  }
+
+  function navigateUp() {
+    if (!currentPath) return;
+    const parts = currentPath.split('/').filter(Boolean);
+    parts.pop();
+    currentPath = parts.join('/');
   }
 
   async function pickAndImportLocalZip() {
@@ -237,16 +363,13 @@
       const fileName = selected.split(/[\\/]/).pop() || '';
       localPackName = fileName.replace(/\.(zip|grimoirepack)$/i, '').replace(/[-_]/g, ' ');
 
-      // Deviner la destination d'après le nom
       const lower = fileName.toLowerCase();
-      if (lower.includes('token') || lower.includes('figurine') || lower.includes('pnj') || lower.includes('monstre')) {
+      if (lower.includes('token') || lower.includes('figurine') || lower.includes('monstre')) {
         localDestination = 'tokens';
       } else if (lower.includes('audio') || lower.includes('son') || lower.includes('music')) {
         localDestination = 'audio';
-      } else if (lower.includes('tuile') || lower.includes('tile')) {
+      } else if (lower.includes('tuile') || lower.includes('tile') || lower.includes('texture')) {
         localDestination = 'tiles/custom';
-      } else if (lower.includes('scenario') || lower.includes('aventure') || lower.includes('module')) {
-        localDestination = 'scenarios';
       } else {
         localDestination = 'maps';
       }
@@ -267,8 +390,9 @@
         name: localPackName.trim() || undefined
       });
       installed = [...installed.filter(i => i.id !== result.id), result];
+      await loadInstalled();
       showLocalImportModal = false;
-      alert(`✅ Pack "${result.name}" importé et installé avec succès dans public/${result.destination}/ (${result.files.length} fichiers) !`);
+      showToast(`✅ Pack "${result.name}" importé avec succès (${result.files.length} fichiers) !`);
       activeTab = 'installed';
     } catch (e) {
       alert(`Erreur d'importation locale : ${e}`);
@@ -277,30 +401,31 @@
     }
   }
 
-  async function openFolder(dest: string) {
-    try {
-      await invoke('addon_open_folder', { destination: dest });
-    } catch (e) {
-      alert(`Erreur ouverture dossier : ${e}`);
-    }
-  }
-
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   onMount(async () => {
-    await Promise.all([loadCatalog(), loadInstalled()]);
+    await Promise.all([loadDriveCatalog(), loadInstalled()]);
 
     unlisten = await listen<ProgressEvent>('addon://progress', ({ payload }) => {
       const pct = Math.round((payload.done / payload.total) * 100);
-      progress = { ...progress, [payload.addon_id]: pct };
+      progress[payload.addon_id] = {
+        done: payload.done,
+        total: payload.total,
+        pct,
+        currentFile: payload.file
+      };
+      progress = { ...progress };
     });
   });
 
-  onDestroy(() => unlisten?.());
+  onDestroy(() => {
+    unlisten?.();
+    if (toastTimer) clearTimeout(toastTimer);
+  });
 </script>
 
 <!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- Modal overlay                                                           -->
+<!-- Modal Principal : Explorateur Arborescent Google Drive                   -->
 <!-- ─────────────────────────────────────────────────────────────────────── -->
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
@@ -310,60 +435,102 @@
     <!-- Header -->
     <div class="modal-header">
       <div class="modal-title-wrap">
-        <h2>📦 Boutique & Catalogue Communautaire</h2>
-        <span class="catalog-status">Grimoire vWFRP</span>
+        <div class="header-icon">🌌</div>
+        <div>
+          <h2>Bibliothèque Céleste & Packs Grimoire</h2>
+          <span class="catalog-sub">Arborescence des archives • {rawFiles.length.toLocaleString()} ressources en ligne</span>
+        </div>
       </div>
       <div class="tabs">
-        <button class:active={activeTab === 'store'} onclick={() => activeTab = 'store'}>
-          🛒 Catalogue ({catalog.length})
+        <button class:active={activeTab === 'explorer'} onclick={() => { activeTab = 'explorer'; searchQuery = ''; }}>
+          🌌 Archives Célestes
         </button>
         <button class:active={activeTab === 'installed'} onclick={() => activeTab = 'installed'}>
           💾 Installés ({installed.length})
         </button>
-        <button class:active={activeTab === 'admin'} onclick={() => activeTab = 'admin'}>
-          🛠️ Administration
+        <button class:active={activeTab === 'import'} onclick={() => activeTab = 'import'}>
+          📥 Importer ZIP
         </button>
       </div>
       <button class="close-btn" onclick={onclose} title="Fermer">✕</button>
     </div>
 
-    <!-- Tab 1: Store / Catalog -->
-    {#if activeTab === 'store'}
+    <!-- Toast Notification -->
+    {#if toastMsg}
+      <div class="toast-bar">
+        <span>{toastMsg}</span>
+      </div>
+    {/if}
+
+    <!-- Tab 1: Hierarchical Drive Explorer -->
+    {#if activeTab === 'explorer'}
       <div class="tab-content">
-        <!-- Community Banner Bar -->
+
+        <!-- Top Shortcuts & Drive link bar -->
         <div class="drive-banner-bar">
-          <div class="banner-text">
-            <span>🌟 <strong>Gestionnaire Simplifié de Packs & Ressources</strong></span>
-            <small>Importez vos ZIP, téléchargez depuis le Drive ou glissez vos fichiers directement dans les dossiers Windows.</small>
-          </div>
-          <div class="banner-actions">
-            <button class="btn-drive-link" onclick={() => openExternal(COMMUNITY_DRIVE_URL)} title="Ouvrir le Google Drive Partagé">
-              ☁️ Google Drive ↗
+          <div class="quick-nav-pills">
+            <span class="quick-nav-label">Accès direct :</span>
+            <button class="nav-pill" class:active-pill={currentPath === 'maps'} onclick={() => { currentPath = 'maps'; searchQuery = ''; }}>
+              🗺️ Cartes ({rootTree.subfolders['maps']?.totalFiles ?? 0})
             </button>
-            <button class="btn-import-zip" onclick={pickAndImportLocalZip} title="Déployer une archive ZIP ou .grimoirepack">
-              📥 Importer ZIP…
+            <button class="nav-pill" class:active-pill={currentPath === 'textures'} onclick={() => { currentPath = 'textures'; searchQuery = ''; }}>
+              🧱 Textures ({rootTree.subfolders['textures']?.totalFiles ?? 0})
+            </button>
+            <button class="nav-pill" class:active-pill={currentPath === 'stamps'} onclick={() => { currentPath = 'stamps'; searchQuery = ''; }}>
+              🎨 Tampons ({rootTree.subfolders['stamps']?.totalFiles ?? 0})
+            </button>
+            <button class="nav-pill" class:active-pill={currentPath === ''} onclick={() => { currentPath = ''; searchQuery = ''; }}>
+              🌌 Toutes les Archives
+            </button>
+          </div>
+
+          <div class="banner-actions">
+            <button class="btn-drive-link" onclick={() => openExternal(COMMUNITY_DRIVE_URL)} title="Ouvrir la réserve en ligne dans votre navigateur">
+              🌐 Réserve en Ligne ↗
             </button>
             <div class="folder-quick-links">
-              <button class="btn-open-folder" onclick={() => openFolder('maps')} title="Ouvrir le dossier public/maps sur votre PC">
+              <button class="btn-open-folder" onclick={() => openFolder('maps')} title="Ouvrir public/maps dans l'explorateur Windows">
                 📁 Cartes
               </button>
-              <button class="btn-open-folder" onclick={() => openFolder('tokens')} title="Ouvrir le dossier public/tokens sur votre PC">
+              <button class="btn-open-folder" onclick={() => openFolder('tokens')} title="Ouvrir public/tokens dans l'explorateur Windows">
                 📁 Tokens
               </button>
-              <button class="btn-open-folder" onclick={() => openFolder('audio')} title="Ouvrir le dossier public/audio sur votre PC">
-                📁 Audio
+              <button class="btn-open-folder" onclick={() => openFolder('tiles/custom')} title="Ouvrir public/tiles dans l'explorateur Windows">
+                📁 Tuiles
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Filter & Search Toolbar -->
+        <!-- Breadcrumbs & Search Toolbar -->
         <div class="toolbar">
+          <!-- Breadcrumbs bar -->
+          <div class="breadcrumbs-container">
+            {#if currentPath}
+              <button class="btn-back" onclick={navigateUp} title="Remonter au dossier parent">
+                ⬅ Retour
+              </button>
+            {/if}
+            <div class="breadcrumbs-list">
+              {#each breadcrumbs as crumb, i}
+                {#if i > 0}<span class="crumb-separator">/</span>{/if}
+                <button
+                  class="crumb-btn"
+                  class:crumb-active={i === breadcrumbs.length - 1 && !searchQuery}
+                  onclick={() => { currentPath = crumb.path; searchQuery = ''; }}
+                >
+                  {crumb.label}
+                </button>
+              {/each}
+            </div>
+          </div>
+
+          <!-- Search input -->
           <div class="search-wrap">
             <span class="search-icon">🔍</span>
             <input
               class="search"
-              placeholder="Rechercher cartes, monstres, audio, tokens…"
+              placeholder="Rechercher dans toutes les archives…"
               bind:value={searchQuery}
             />
             {#if searchQuery}
@@ -371,145 +538,284 @@
             {/if}
           </div>
 
-          <div class="category-bar">
-            {#each categories as cat}
-              <button
-                class:active={activeCategory === cat.id}
-                onclick={() => activeCategory = cat.id}
-              >{cat.label}</button>
-            {/each}
-          </div>
-
-          <button class="btn-reload" onclick={loadCatalog} disabled={loading} title="Recharger le catalogue distant">
+          <button class="btn-reload" onclick={() => loadDriveCatalog(true)} disabled={loading} title="Forcer le rafraîchissement des archives">
             {loading ? '⏳' : '↺'}
           </button>
         </div>
 
-        <!-- Catalog Grid / Content -->
-        <div class="grid-container">
-          {#if error}
-            <div class="error-box">
-              <div class="error-title">⚠️ Impossible de charger le catalogue distant</div>
-              <div class="error-msg">{error}</div>
-              <div class="error-actions">
-                <button class="btn-retry" onclick={loadCatalog}>Réessayer</button>
-                <button class="btn-drive-link" onclick={() => openExternal(COMMUNITY_DRIVE_URL)}>Accéder au Google Drive</button>
-                <button class="btn-import-zip" onclick={pickAndImportLocalZip}>Importer un fichier ZIP local</button>
+        <!-- Download Current Directory Action Banner -->
+        {#if !searchQuery && currentNode.totalFiles > 0}
+          {@const curPackId = `folder-${currentNode.path.replace(/[^a-zA-Z0-9_-]/g, '-') || 'root'}`}
+          {@const isDownCur = installingPacks.has(curPackId)}
+          {@const curProg = progress[curPackId]}
+          {@const curDownloadedCount = countDownloadedInNode(currentNode)}
+          <div class="current-dir-banner">
+            <div class="current-dir-info">
+              <div class="dir-title-row">
+                <span class="dir-icon">📂</span>
+                <strong>{currentNode.name}</strong>
+                <span class="dir-badge-count">{currentNode.totalFiles} fichiers au total</span>
+                {#if curDownloadedCount > 0}
+                  <span class="dir-badge-dl">{curDownloadedCount} / {currentNode.totalFiles} sur votre PC</span>
+                {/if}
               </div>
+              <small class="dir-sub-path">public/{currentNode.destination}/{currentNode.path}</small>
             </div>
-          {:else if loading}
-            <div class="loading-box">
-              <div class="spinner"></div>
-              <span>Chargement des packs communautaires…</span>
-            </div>
-          {:else if filtered.length === 0}
-            <div class="empty-box">
-              <div style="font-size: 2.5rem; margin-bottom: 0.5rem">🔍</div>
-              <div>Aucun pack ne correspond à votre recherche.</div>
-              <button class="btn-reset" onclick={() => { searchQuery = ''; activeCategory = 'all'; }}>
-                Réinitialiser les filtres
-              </button>
-            </div>
-          {:else}
-            <div class="grid">
-              {#each filtered as addon (addon.id)}
-                {@const inst = isInstalled(addon.id)}
-                {@const isInst = installing.has(addon.id)}
-                {@const pct = progress[addon.id]}
-                <div class="card" class:installed-card={!!inst}>
-                  <!-- Thumbnail -->
-                  <div class="card-thumb-wrap">
-                    {#if addon.thumbnail}
-                      <img class="thumb" src={addon.thumbnail} alt={addon.name} loading="lazy" />
-                    {:else}
-                      <div class="thumb-placeholder">
-                        {#if addon.category === 'maps'}🗺️
-                        {:else if addon.category === 'tokens'}🧙
-                        {:else if addon.category === 'tiles'}🧱
-                        {:else if addon.destination === 'audio'}🎵
-                        {:else}📦{/if}
-                      </div>
-                    {/if}
-                    <div class="card-badge-dest">{addon.destination}</div>
-                  </div>
 
-                  <!-- Body -->
-                  <div class="card-body">
-                    <div class="card-title">{addon.name}</div>
-                    <div class="card-meta">
-                      <span>v{addon.version}</span>
-                      <span>·</span>
-                      <span>{addon.author}</span>
-                      {#if addon.size_bytes}
-                        <span>·</span>
-                        <span class="size-tag">{fmtSize(addon.size_bytes)}</span>
-                      {/if}
-                    </div>
-                    <div class="card-desc">{addon.description}</div>
-                    {#if addon.tags?.length}
-                      <div class="tags">
-                        {#each addon.tags as tag}<span class="tag">{tag}</span>{/each}
-                      </div>
-                    {/if}
+            <div class="current-dir-actions">
+              {#if isDownCur && curProg}
+                <div class="header-progress-wrap">
+                  <div class="pack-progress-bar">
+                    <div class="pack-progress-fill" style="width: {curProg.pct}%"></div>
                   </div>
-
-                  <!-- Footer Actions -->
-                  <div class="card-footer">
-                    {#if inst}
-                      <div class="inst-info">
-                        <span class="badge-installed">✓ Installé</span>
-                        <span class="files-count">{inst.files.length} fichiers</span>
-                      </div>
-                      <button
-                        class="btn-uninstall"
-                        disabled={uninstalling.has(addon.id)}
-                        onclick={() => uninstall(addon.id)}
-                        title="Désinstaller et supprimer les fichiers"
-                      >
-                        {uninstalling.has(addon.id) ? '…' : '🗑️ Désinstaller'}
-                      </button>
-                    {:else if isInst}
-                      <div class="progress-wrap">
-                        <div class="progress-bar">
-                          <div class="progress-fill" style="width:{pct ?? 0}%"></div>
-                        </div>
-                        <span class="pct">{pct ?? 0}%</span>
-                      </div>
-                    {:else}
-                      <button class="btn-install" onclick={() => install(addon)}>
-                        ⬇️ Installer en 1 Clic
-                        {#if addon.file_count}<small>({addon.file_count} f.)</small>{/if}
-                      </button>
-                    {/if}
+                  <div class="pack-progress-text">
+                    <span>{curProg.done} / {curProg.total} ({curProg.pct}%)</span>
+                    <span class="file-name-cut">{curProg.currentFile}</span>
                   </div>
                 </div>
-              {/each}
+              {:else}
+                <button class="btn-download-folder" onclick={() => downloadFolder(currentNode)}>
+                  📥 Télécharger TOUT ce répertoire ({currentNode.totalFiles} fichiers)
+                </button>
+                <button class="btn-open-folder" onclick={() => openFolder(currentNode.destination)}>
+                  📁 Ouvrir dossier Windows
+                </button>
+              {/if}
             </div>
+          </div>
+        {/if}
+
+        <!-- Main Explorer Content Grid -->
+        <div class="explorer-body">
+          {#if error}
+            <div class="error-box">
+              <div class="error-title">⚠️ Erreur de chargement des archives</div>
+              <div class="error-msg">{error}</div>
+              <div class="error-actions">
+                <button class="btn-retry" onclick={() => loadDriveCatalog(true)}>Réessayer</button>
+                <button class="btn-drive-link" onclick={() => openExternal(COMMUNITY_DRIVE_URL)}>Accéder aux Archives en ligne ↗</button>
+              </div>
+            </div>
+
+          {:else if loading}
+            <div class="loading-box">
+              <div class="spinner">⏳</div>
+              <span>Chargement des Archives Célestes…</span>
+            </div>
+
+          <!-- Search Mode Results -->
+          {:else if searchQuery.trim()}
+            <div class="section-title">
+              🔍 Résultats de recherche pour « {searchQuery} » ({searchResults.length} résultats)
+            </div>
+
+            {#if searchResults.length === 0}
+              <div class="empty-box">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem">🔍</div>
+                <div>Aucun fichier ne correspond à votre recherche.</div>
+                <button class="btn-reset" onclick={() => searchQuery = ''}>Effacer la recherche</button>
+              </div>
+            {:else}
+              <div class="files-grid">
+                {#each searchResults as file (file.id)}
+                  {@const onDisk = isFileOnDisk(file)}
+                  {@const isDl = downloadingFiles.has(file.id)}
+                  <div class="file-card" class:file-on-disk={onDisk}>
+                    <div class="file-thumb-wrap">
+                      <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
+                      {#if onDisk}
+                        <div class="badge-on-disk">✓ Sur PC</div>
+                      {/if}
+                      <button class="btn-jump-folder" onclick={() => {
+                        const parentPath = file.path.split('/').slice(0, -1).join('/');
+                        currentPath = parentPath;
+                        searchQuery = '';
+                      }} title="Aller dans ce dossier">
+                        📂 Ouvrir dossier
+                      </button>
+                    </div>
+                    <div class="file-info">
+                      <div class="file-name" title={file.filename}>{file.name}</div>
+                      <div class="file-path-sub" title={file.path}>📂 {file.path}</div>
+                    </div>
+                    <div class="file-actions">
+                      <button
+                        class="btn-file-dl"
+                        class:btn-file-done={onDisk}
+                        disabled={isDl}
+                        onclick={() => downloadSingleFile(file)}
+                        title="Télécharger ce fichier sur votre PC"
+                      >
+                        {#if isDl}⏳ En cours…
+                        {:else if onDisk}💾 Re-télécharger
+                        {:else}⬇️ Télécharger{/if}
+                      </button>
+                      {#if file.destination === 'maps'}
+                        <button class="btn-file-vtt" onclick={() => loadIntoVTT(file, false)} title="Charger sur la VTT">
+                          🎮 VTT
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+          <!-- Normal Tree Explorer Mode -->
+          {:else}
+            <!-- 1. Subfolders Section (if any) -->
+            {#if currentSubfolders.length > 0}
+              <div class="section-title">
+                📁 Sous-Dossiers ({currentSubfolders.length})
+              </div>
+              <div class="folders-grid">
+                {#each currentSubfolders as subNode (subNode.path)}
+                  {@const subPackId = `folder-${subNode.path.replace(/[^a-zA-Z0-9_-]/g, '-') || 'sub'}`}
+                  {@const isDownSub = installingPacks.has(subPackId)}
+                  {@const subProg = progress[subPackId]}
+                  {@const isSubFull = isNodeDownloaded(subNode)}
+                  {@const dlCount = countDownloadedInNode(subNode)}
+                  <div class="folder-card" class:folder-installed={isSubFull}>
+                    <button type="button" class="folder-header-click" onclick={() => currentPath = subNode.path}>
+                      <div class="folder-thumb-wrap">
+                        {#if subNode.thumbnail}
+                          <img class="folder-thumb" src={subNode.thumbnail} alt="" loading="lazy" referrerpolicy="no-referrer" />
+                        {:else}
+                          <div class="folder-icon-placeholder">📁</div>
+                        {/if}
+                        <div class="folder-badge-dest">
+                          {#if subNode.destination === 'maps'}🗺️ Cartes
+                          {:else if subNode.destination === 'tiles/custom'}🧱 Textures
+                          {:else}🎨 Tampons{/if}
+                        </div>
+                        <div class="folder-count-tag">{subNode.totalFiles} fichiers</div>
+                      </div>
+                      <div class="folder-info">
+                        <div class="folder-name-row">
+                          <span class="folder-emoji">📁</span>
+                          <span class="folder-name" title={subNode.name}>{subNode.name}</span>
+                        </div>
+                        <div class="folder-meta-row">
+                          {#if Object.keys(subNode.subfolders).length > 0}
+                            <span>📂 {Object.keys(subNode.subfolders).length} sous-dossiers</span>
+                            <span>•</span>
+                          {/if}
+                          <span>{subNode.totalFiles} fichiers</span>
+                          {#if dlCount > 0}
+                            <span class="sub-dl-count">({dlCount} sur PC)</span>
+                          {/if}
+                        </div>
+                      </div>
+                    </button>
+
+                    <div class="folder-footer-actions">
+                      {#if isDownSub && subProg}
+                        <div class="pack-progress-wrap">
+                          <div class="pack-progress-bar">
+                            <div class="pack-progress-fill" style="width: {subProg.pct}%"></div>
+                          </div>
+                          <div class="pack-progress-text">
+                            <span>{subProg.done} / {subProg.total} ({subProg.pct}%)</span>
+                            <span class="file-name-cut">{subProg.currentFile}</span>
+                          </div>
+                        </div>
+                      {:else}
+                        <button class="btn-enter-folder" onclick={() => currentPath = subNode.path}>
+                          👁️ Explorer
+                        </button>
+                        <button
+                          class="btn-dl-subfolder"
+                          class:btn-sub-installed={isSubFull}
+                          onclick={() => downloadFolder(subNode)}
+                          title="Télécharger tous les fichiers de ce dossier"
+                        >
+                          {#if isSubFull}✓ Installé ({subNode.totalFiles}){:else}📥 Télécharger ({subNode.totalFiles}){/if}
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <!-- 2. Files Section in current folder (if any) -->
+            {#if currentFiles.length > 0}
+              <div class="section-title" style="margin-top: {currentSubfolders.length > 0 ? '1.5rem' : '0'}">
+                📄 Fichiers dans ce dossier ({currentFiles.length})
+              </div>
+              <div class="files-grid">
+                {#each currentFiles as file (file.id)}
+                  {@const onDisk = isFileOnDisk(file)}
+                  {@const isDl = downloadingFiles.has(file.id)}
+                  <div class="file-card" class:file-on-disk={onDisk}>
+                    <div class="file-thumb-wrap">
+                      <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
+                      {#if onDisk}
+                        <div class="badge-on-disk">✓ Sur PC</div>
+                      {/if}
+                    </div>
+                    <div class="file-info">
+                      <div class="file-name" title={file.filename}>{file.name}</div>
+                      <div class="file-orig-name">{file.filename}</div>
+                    </div>
+                    <div class="file-actions">
+                      <button
+                        class="btn-file-dl"
+                        class:btn-file-done={onDisk}
+                        disabled={isDl}
+                        onclick={() => downloadSingleFile(file)}
+                        title="Télécharger ce fichier sur votre PC"
+                      >
+                        {#if isDl}⏳ En cours…
+                        {:else if onDisk}💾 Re-télécharger
+                        {:else}⬇️ Télécharger{/if}
+                      </button>
+                      {#if file.destination === 'maps'}
+                        <button class="btn-file-vtt" onclick={() => loadIntoVTT(file, false)} title="Charger cette carte directement sur la VTT">
+                          🎮 VTT
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            {#if currentSubfolders.length === 0 && currentFiles.length === 0}
+              <div class="empty-box">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem">📂</div>
+                <div>Ce dossier est vide.</div>
+                <button class="btn-reset" onclick={navigateUp}>Retour au dossier parent</button>
+              </div>
+            {/if}
           {/if}
         </div>
       </div>
 
-    <!-- Tab 2: Installed -->
+    <!-- Tab 2: Installed on local disk -->
     {:else if activeTab === 'installed'}
       <div class="tab-content">
         <div class="installed-header">
           <div class="inst-header-text">
-            <h3>Packs installés ({installed.length})</h3>
-            <p>Ces packs sont déployés et utilisables dans vos aventures Grimoire.</p>
+            <h3>Dossiers & Fichiers installés localement ({installed.length})</h3>
+            <p>Ces ressources sont sauvegardées sur votre ordinateur dans les dossiers de Grimoire.</p>
           </div>
-          <button class="btn-import-zip" onclick={pickAndImportLocalZip}>
-            📥 Importer un autre pack ZIP…
-          </button>
+          <div class="installed-header-actions">
+            <button class="btn-open-folder" onclick={() => openFolder('maps')}>📁 public/maps</button>
+            <button class="btn-open-folder" onclick={() => openFolder('tokens')}>📁 public/tokens</button>
+            <button class="btn-open-folder" onclick={() => openFolder('tiles/custom')}>📁 public/tiles</button>
+            <button class="btn-import-zip" onclick={pickAndImportLocalZip}>📥 Importer un ZIP…</button>
+          </div>
         </div>
 
         <div class="installed-list-wrap">
           {#if installed.length === 0}
             <div class="empty-box">
               <div style="font-size: 2.5rem; margin-bottom: 0.5rem">📦</div>
-              <div>Aucun pack n'est encore installé.</div>
-              <p style="font-size: 0.85rem; color: #8899b7">Explorez le catalogue pour enrichir votre Grimoire en cartes, jetons et ambiances !</p>
-              <button class="btn-primary" onclick={() => activeTab = 'store'}>
-                🛒 Parcourir le Catalogue
+              <div>Aucun pack ou dossier n'est encore installé localement.</div>
+              <p style="font-size: 0.85rem; color: #8899b7">Explorez les Archives Célestes pour télécharger vos cartes de bataille, textures et décors !</p>
+              <button class="btn-primary" onclick={() => activeTab = 'explorer'}>
+                🌌 Parcourir les Archives Célestes
               </button>
             </div>
           {:else}
@@ -520,24 +826,25 @@
                     {#if a.destination === 'maps'}🗺️
                     {:else if a.destination === 'tokens'}🧙
                     {:else if a.destination === 'audio'}🎵
-                    {:else}📦{/if}
+                    {:else}🧱{/if}
                   </div>
                   <div class="inst-details">
                     <div class="inst-title-line">
                       <strong>{a.name}</strong>
-                      <span class="badge-ver">v{a.version}</span>
+                      <span class="badge-dest">{a.destination}</span>
                     </div>
                     <div class="inst-meta">
                       📁 public/{a.destination}/ · {a.files.length} fichiers installés
                     </div>
                   </div>
-                  <button
-                    class="btn-uninstall"
-                    disabled={uninstalling.has(a.id)}
-                    onclick={() => uninstall(a.id)}
-                  >
-                    {uninstalling.has(a.id) ? 'Suppression…' : '🗑️ Désinstaller'}
-                  </button>
+                  <div class="inst-row-actions">
+                    <button class="btn-open-folder" onclick={() => openFolder(a.destination)} title="Ouvrir dans Windows">
+                      📁 Ouvrir
+                    </button>
+                    <button class="btn-uninstall" onclick={() => uninstall(a.id)} title="Supprimer du PC">
+                      🗑️ Supprimer
+                    </button>
+                  </div>
                 </div>
               {/each}
             </div>
@@ -545,105 +852,16 @@
         </div>
       </div>
 
-    <!-- Tab 3: Admin / Publisher -->
+    <!-- Tab 3: Local ZIP import -->
     {:else}
       <div class="tab-content">
-        <div class="admin-panel">
-          <div class="admin-header-box">
-            <div>
-              <h3 style="color:#e5a853;margin-bottom:4px">🛠️ Administration : Créer & Publier des Packs</h3>
-              <p style="font-size:12px;color:#8899b7">
-                Générez des fiches d'addons pour le catalogue GitHub ou convertissez directement vos liens de partage Google Drive.
-              </p>
-            </div>
-            <button class="btn-export-json" onclick={copyCatalogJson}>
-              📋 Copier JSON pour GitHub
-            </button>
-          </div>
-
-          <!-- svelte-ignore a11y_label_has_associated_control -->
-          <div class="admin-form-grid">
-            <div class="form-group">
-              <label class="form-label">Titre du Pack *</label>
-              <input class="form-input" bind:value={newAddon.name} placeholder="Ex: 🗺️ Pack Donjons d'Altdorf" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Identifiant Unique (ID)</label>
-              <input class="form-input" bind:value={newAddon.id} placeholder="Généré automatiquement si vide" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Catégorie</label>
-              <select class="form-select" bind:value={newAddon.category}>
-                <option value="maps">🗺️ Cartes & Plans</option>
-                <option value="tokens">🧙 Figurines & Monstres</option>
-                <option value="tiles">🧱 Tuiles de Donjon</option>
-                <option value="other">📦 Audio / Aventures / Autre</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Dossier de Destination</label>
-              <select class="form-select" bind:value={newAddon.destination}>
-                <option value="maps">public/maps (Cartes VTT)</option>
-                <option value="tokens">public/tokens (Tokens & PNJ)</option>
-                <option value="tiles/custom">public/tiles/custom (Tuiles)</option>
-                <option value="audio">public/audio (Pistes sonores)</option>
-                <option value="scenarios">public/scenarios (Aventures)</option>
-              </select>
-            </div>
-
-            <div class="form-group" style="grid-column: 1 / -1">
-              <label class="form-label">URL de Téléchargement ZIP ou .grimoirepack *</label>
-              <div style="display:flex;gap:6px">
-                <input class="form-input" style="flex:1" bind:value={newAddon.download_url} placeholder="Lien direct ZIP ou lien de partage Google Drive" />
-                <button class="btn-convert-gdrive" onclick={() => newAddon.download_url = convertGoogleDriveUrl(newAddon.download_url)}>
-                  🔗 Convertir Google Drive
-                </button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Auteur</label>
-              <input class="form-input" bind:value={newAddon.author} placeholder="Ex: LordMadTrix" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Version</label>
-              <input class="form-input" bind:value={newAddon.version} placeholder="1.0.0" />
-            </div>
-
-            <div class="form-group" style="grid-column: 1 / -1">
-              <label class="form-label">URL de la Miniature (Optionnel)</label>
-              <input class="form-input" bind:value={newAddon.thumbnail} placeholder="https://.../preview.jpg" />
-            </div>
-
-            <div class="form-group" style="grid-column: 1 / -1">
-              <label class="form-label">Description détaillée</label>
-              <textarea class="form-textarea" bind:value={newAddon.description} rows="3" placeholder="Contenu du pack, crédits, compatibilité..."></textarea>
-            </div>
-
-            <div class="form-group" style="grid-column: 1 / -1">
-              <label class="form-label">Tags & Mots-clés</label>
-              <div style="display:flex;gap:6px">
-                <input class="form-input" style="flex:1" bind:value={newTagInput} placeholder="Ajouter un tag..." onkeydown={e => e.key === 'Enter' && handleAddTag()} />
-                <button class="btn-add-tag" onclick={handleAddTag}>+ Ajouter</button>
-              </div>
-              <div class="tags" style="margin-top:6px">
-                {#each newAddon.tags ?? [] as tag, i}
-                  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-                  <span class="tag" style="cursor:pointer" onclick={() => handleRemoveTag(i)}>
-                    {tag} ✕
-                  </span>
-                {/each}
-              </div>
-            </div>
-          </div>
-
-          <div class="admin-actions">
-            <button class="btn-submit-addon" onclick={handleAddCustomAddon}>
-              ➕ Ajouter ce Pack au Catalogue Local
+        <div class="import-panel">
+          <div class="import-card">
+            <div style="font-size: 3rem; margin-bottom: 1rem">📥</div>
+            <h3>Importer vos propres Packs ou Archives ZIP</h3>
+            <p>Déployez instantanément vos fichiers (cartes, tokens, tuiles, bruitages) directement dans les dossiers locaux de Grimoire.</p>
+            <button class="btn-big-import" onclick={pickAndImportLocalZip}>
+              📂 Sélectionner un fichier .ZIP ou .grimoirepack
             </button>
           </div>
         </div>
@@ -653,7 +871,10 @@
   </div>
 </div>
 
-<!-- Modal Local Import Confirmation -->
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+<!-- Sub-Modal (Local Import)                                                -->
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+
 {#if showLocalImportModal}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="sub-overlay" onclick={(e) => e.target === e.currentTarget && !localImporting && (showLocalImportModal = false)} role="presentation">
@@ -665,23 +886,22 @@
 
       <div class="sub-modal-body">
         <div class="form-group">
-          <label class="form-label">Fichier sélectionné</label>
-          <div class="path-preview" title={localFilePath}>{localFilePath}</div>
+          <label class="form-label" for="zip-path-preview">Fichier sélectionné</label>
+          <div id="zip-path-preview" class="path-preview" title={localFilePath}>{localFilePath}</div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Nom du Pack</label>
-          <input class="form-input" bind:value={localPackName} placeholder="Nom du pack" />
+          <label class="form-label" for="zip-pack-name">Nom du Pack</label>
+          <input id="zip-pack-name" class="form-input" bind:value={localPackName} placeholder="Nom du pack" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Dossier de destination Grimoire</label>
-          <select class="form-select" bind:value={localDestination}>
+          <label class="form-label" for="zip-dest-select">Dossier de destination Grimoire</label>
+          <select id="zip-dest-select" class="form-select" bind:value={localDestination}>
             <option value="maps">🗺️ public/maps (Cartes de bataille VTT)</option>
             <option value="tokens">🧙 public/tokens (Jetons de créatures / PJ)</option>
             <option value="tiles/custom">🧱 public/tiles/custom (Tuiles tactiques)</option>
             <option value="audio">🎵 public/audio (Pistes d'ambiance et bruitages)</option>
-            <option value="scenarios">📜 public/scenarios (Aventures complètes)</option>
           </select>
         </div>
 
@@ -702,393 +922,376 @@
   </div>
 {/if}
 
-<!-- Modal Fallback Téléchargement Pack -->
-{#if showNotFoundFallbackModal && failedAddon}
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="sub-overlay" onclick={(e) => e.target === e.currentTarget && (showNotFoundFallbackModal = false)} role="presentation">
-    <div class="sub-modal" style="max-width: 520px">
-      <div class="sub-modal-header">
-        <h3>☁️ Récupérer le Pack : {failedAddon.name}</h3>
-        <button class="close-btn" onclick={() => showNotFoundFallbackModal = false}>✕</button>
-      </div>
-
-      <div class="sub-modal-body" style="gap: 1rem">
-        <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; margin: 0">
-          Les fichiers de ce pack sont hébergés sur le <strong>Google Drive Communautaire</strong>. Vous pouvez le récupérer et l'installer en toute simplicité :
-        </p>
-
-        <div style="display: flex; flex-direction: column; gap: 0.6rem">
-          <button class="btn-fallback-action btn-drive-primary" onclick={() => { openExternal(COMMUNITY_DRIVE_URL); showNotFoundFallbackModal = false; }}>
-            <span style="font-weight: 700; font-size: 0.95rem">☁️ 1. Ouvrir le Google Drive Grimoire ↗</span>
-            <small style="opacity: 0.85; font-size: 0.75rem">Téléchargez l'archive ZIP du pack</small>
-          </button>
-
-          <button class="btn-fallback-action btn-import-secondary" onclick={() => { showNotFoundFallbackModal = false; pickAndImportLocalZip(); }}>
-            <span style="font-weight: 700; font-size: 0.95rem">📥 2. Importer l'archive ZIP téléchargée</span>
-            <small style="opacity: 0.85; font-size: 0.75rem">Sélectionnez le fichier sur votre PC pour le déployer en 1 clic</small>
-          </button>
-
-          <button class="btn-fallback-action btn-folder-secondary" onclick={() => { if (failedAddon) openFolder(failedAddon.destination); showNotFoundFallbackModal = false; }}>
-            <span style="font-weight: 700; font-size: 0.95rem">📁 3. Ouvrir le dossier public/{failedAddon.destination}/</span>
-            <small style="opacity: 0.85; font-size: 0.75rem">Glissez manuellement vos images ou fichiers dans Windows</small>
-          </button>
-        </div>
-      </div>
-
-      <div class="sub-modal-footer">
-        <button class="btn-cancel" onclick={() => showNotFoundFallbackModal = false}>
-          Fermer
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
-
 <style>
   .overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,.75);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,.82);
+    backdrop-filter: blur(6px);
     z-index: 1000;
     display: flex; align-items: center; justify-content: center;
     padding: 1rem;
   }
   .modal {
-    background: #0f141c;
-    border: 1px solid #2a3447;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(229,168,83,0.2);
+    background: #0c121c;
+    border: 1px solid #1e293b;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(56,189,248,0.25);
     border-radius: 14px;
-    width: min(1040px, 95vw);
-    height: 88vh;
-    max-height: 88vh;
+    width: min(1240px, 96vw);
+    height: 92vh;
+    max-height: 92vh;
     display: flex; flex-direction: column;
     overflow: hidden;
     color: #e2e8f0;
   }
   .modal-header {
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    padding: 0.8rem 1.2rem;
+    padding: 0.9rem 1.4rem;
     border-bottom: 1px solid #1e293b;
-    background: #141b26;
+    background: #111827;
     flex-shrink: 0;
   }
   .modal-title-wrap {
-    display: flex; align-items: center; gap: 0.6rem;
+    display: flex; align-items: center; gap: 0.8rem;
   }
-  .modal-header h2 { margin: 0; font-size: 1.15rem; color: #e5a853; font-weight: 700; }
-  .catalog-status {
-    font-size: 0.7rem; font-weight: bold; background: rgba(229,168,83,0.15); color: #e5a853;
-    padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(229,168,83,0.3);
+  .header-icon {
+    font-size: 1.6rem;
+    background: rgba(56,189,248,0.12);
+    border: 1px solid rgba(56,189,248,0.3);
+    padding: 6px 10px;
+    border-radius: 8px;
+  }
+  .modal-header h2 { margin: 0; font-size: 1.15rem; color: #38bdf8; font-weight: 700; }
+  .catalog-sub {
+    font-size: 0.75rem; color: #94a3b8;
   }
   .tabs { display: flex; gap: .4rem; }
   .tabs button {
-    padding: .4rem .9rem; border-radius: 6px;
+    padding: .45rem 1rem; border-radius: 6px;
     border: 1px solid transparent;
     background: #1e293b; color: #94a3b8; cursor: pointer;
     font-size: .85rem; font-weight: 600; transition: all .15s;
   }
   .tabs button:hover { background: #334155; color: #fff; }
   .tabs button.active {
-    background: #e5a853;
-    color: #000;
+    background: #0284c7;
+    color: #fff;
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(229,168,83,0.3);
+    box-shadow: 0 2px 10px rgba(2,132,199,0.4);
   }
   .close-btn {
     background: none; border: none; color: #94a3b8;
     font-size: 1.2rem; cursor: pointer; padding: .2rem .5rem;
     border-radius: 4px;
   }
-  .close-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .close-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+  /* Toast */
+  .toast-bar {
+    background: #0284c7; color: #fff; font-size: 0.85rem; font-weight: 600;
+    padding: 6px 16px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    animation: slideDown 0.2s ease;
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+  }
 
   .tab-content {
-    display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
   }
 
-  /* Banner */
+  /* Quick Nav Pills Bar */
   .drive-banner-bar {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: .6rem 1.2rem; background: linear-gradient(90deg, rgba(229,168,83,0.15), rgba(30,41,59,0.5));
-    border-bottom: 1px solid rgba(229,168,83,0.25);
-    flex-shrink: 0; gap: 1rem;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    padding: 0.6rem 1.4rem; background: #0b1320; border-bottom: 1px solid #1e293b; flex-shrink: 0;
   }
-  .banner-text { display: flex; flex-direction: column; gap: 2px; }
-  .banner-text span { font-size: .9rem; color: #f6ad55; }
-  .banner-text small { font-size: .75rem; color: #94a3b8; }
-  .banner-actions { display: flex; gap: 0.6rem; }
-  .btn-drive-link {
-    background: #e5a853; color: #000; font-weight: 700;
-    padding: .4rem .9rem; border-radius: 6px; border: none;
-    font-size: .8rem; cursor: pointer; transition: all .15s;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  .quick-nav-pills { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .quick-nav-label { font-size: 0.78rem; color: #64748b; font-weight: 600; }
+  .nav-pill {
+    background: #141d2b; border: 1px solid #1e293b; color: #cbd5e1; border-radius: 6px;
+    padding: 4px 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
   }
-  .btn-drive-link:hover { filter: brightness(1.15); transform: translateY(-1px); }
-  .btn-import-zip {
-    background: #2563eb; color: #fff; font-weight: 700;
-    padding: .4rem .9rem; border-radius: 6px; border: none;
-    font-size: .8rem; cursor: pointer; transition: all .15s;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  }
-  .btn-import-zip:hover { background: #3b82f6; transform: translateY(-1px); }
+  .nav-pill:hover { background: #1e293b; color: #fff; }
+  .active-pill { background: #0369a1; border-color: #38bdf8; color: #fff; }
+
+  .banner-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .folder-quick-links { display: flex; gap: 4px; }
+  .btn-drive-link {
+    background: #0284c7; color: #fff; border: 1px solid #38bdf8;
+    border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-drive-link:hover { background: #0369a1; }
   .btn-open-folder {
-    background: #1e293b; border: 1px solid #334155; color: #cbd5e1;
-    font-size: 0.78rem; font-weight: 600; padding: .4rem .65rem; border-radius: 6px;
-    cursor: pointer; transition: all .15s;
+    background: #131b26; color: #94a3b8; border: 1px solid #1e293b;
+    border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer;
   }
-  .btn-open-folder:hover { background: #334155; color: #fff; border-color: #64748b; }
+  .btn-open-folder:hover { background: #1e293b; color: #e2e8f0; }
 
-  /* Toolbar */
+  /* Toolbar & Breadcrumbs */
   .toolbar {
-    display: flex; align-items: center; gap: .8rem; padding: .6rem 1.2rem;
-    border-bottom: 1px solid #1e293b; background: #0f141c;
-    flex-shrink: 0;
+    display: flex; align-items: center; gap: 12px; padding: 0.6rem 1.4rem;
+    border-bottom: 1px solid #1e293b; background: #0e1522; flex-wrap: wrap; flex-shrink: 0;
   }
-  .search-wrap {
-    position: relative; flex: 1; min-width: 180px; display: flex; align-items: center;
+  .breadcrumbs-container {
+    display: flex; align-items: center; gap: 8px; flex: 1; min-width: 280px; overflow-x: auto;
   }
-  .search-icon { position: absolute; left: 10px; font-size: 0.85rem; pointer-events: none; opacity: 0.6; }
-  .search {
-    width: 100%; padding: .45rem .7rem .45rem 2rem;
-    background: #141b26; border: 1px solid #334155;
-    border-radius: 6px; color: #fff; font-size: .85rem; outline: none;
+  .btn-back {
+    background: #1e293b; color: #38bdf8; border: 1px solid #334155; border-radius: 6px;
+    padding: 4px 10px; font-size: 0.8rem; font-weight: 700; cursor: pointer; flex-shrink: 0;
   }
-  .search:focus { border-color: #e5a853; }
-  .clear-search {
-    position: absolute; right: 8px; background: none; border: none; color: #888;
-    cursor: pointer; font-size: 0.8rem;
+  .btn-back:hover { background: #334155; color: #fff; }
+  .breadcrumbs-list { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+  .crumb-separator { color: #475569; font-size: 0.8rem; }
+  .crumb-btn {
+    background: none; border: none; color: #94a3b8; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; padding: 2px 6px; border-radius: 4px; white-space: nowrap;
   }
-  .category-bar {
-    display: flex; gap: .3rem; flex-wrap: wrap;
-  }
-  .category-bar button {
-    padding: .3rem .7rem; border-radius: 20px; border: 1px solid #334155;
-    background: #141b26; color: #94a3b8; cursor: pointer; font-size: .78rem; font-weight: 600;
-  }
-  .category-bar button:hover { border-color: #64748b; color: #fff; }
-  .category-bar button.active {
-    background: rgba(229,168,83,0.2); border-color: #e5a853; color: #e5a853; font-weight: 700;
-  }
-  .btn-reload {
-    padding: .4rem .7rem; border-radius: 6px;
-    background: #1e293b; border: 1px solid #334155;
-    color: #fff; cursor: pointer; font-size: 1rem;
-  }
-  .btn-reload:hover { background: #334155; }
+  .crumb-btn:hover { background: #1e293b; color: #fff; }
+  .crumb-active { color: #38bdf8; font-weight: 700; background: rgba(56,189,248,0.1); }
 
-  /* Grid Area */
-  .grid-container {
-    flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+  .search-wrap {
+    display: flex; align-items: center; position: relative; width: 280px;
   }
-  .grid {
+  .search-icon { position: absolute; left: 10px; font-size: 0.85rem; color: #64748b; }
+  .search {
+    width: 100%; padding: 5px 28px 5px 30px; border-radius: 6px;
+    background: #141d2b; border: 1px solid #1e293b; color: #e2e8f0; font-size: 0.82rem; outline: none;
+  }
+  .search:focus { border-color: #38bdf8; }
+  .clear-search { position: absolute; right: 8px; background: none; border: none; color: #64748b; cursor: pointer; }
+  .btn-reload {
+    background: #141d2b; border: 1px solid #1e293b; border-radius: 6px;
+    color: #94a3b8; padding: 4px 10px; font-size: 0.85rem; cursor: pointer;
+  }
+  .btn-reload:hover { background: #1e293b; color: #fff; }
+
+  /* Current Directory Banner */
+  .current-dir-banner {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    padding: 0.7rem 1.4rem; background: #111a28; border-bottom: 1px solid #1e293b; flex-shrink: 0;
+  }
+  .current-dir-info { display: flex; flex-direction: column; gap: 2px; }
+  .dir-title-row { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; color: #f8fafc; }
+  .dir-icon { font-size: 1.1rem; }
+  .dir-badge-count {
+    font-size: 0.72rem; background: #1e293b; color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: 700;
+  }
+  .dir-badge-dl {
+    font-size: 0.72rem; background: #065f46; color: #6ee7b7; padding: 2px 6px; border-radius: 4px; font-weight: 700;
+  }
+  .dir-sub-path { font-size: 0.75rem; color: #64748b; }
+  .current-dir-actions { display: flex; align-items: center; gap: 8px; }
+  
+  .btn-download-folder {
+    background: #0284c7; color: #fff; border: 1px solid #38bdf8; border-radius: 6px;
+    padding: 6px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-download-folder:hover { background: #0369a1; }
+
+  .header-progress-wrap { min-width: 220px; display: flex; flex-direction: column; gap: 3px; }
+
+  /* Main Explorer Scroll Body */
+  .explorer-body {
+    flex: 1; overflow-y: auto; padding: 1.2rem 1.4rem;
+  }
+  .section-title {
+    font-size: 0.82rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 0.8rem;
+  }
+
+  /* Subfolders Grid */
+  .folders-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.1rem;
-    padding: 1.2rem;
-    align-content: start;
-  }
-  .card {
-    background: #141b26;
-    border: 1px solid #232f42;
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex; flex-direction: column;
-    height: 100%;
-    transition: transform .15s, border-color .15s, box-shadow .15s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
-  .card:hover { border-color: #e5a853; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
-  .installed-card { border-color: #10b981; }
-
-  .card-thumb-wrap {
-    position: relative; width: 100%; height: 130px; background: #090c10;
-    overflow: hidden; display: flex; align-items: center; justify-content: center;
-  }
-  .thumb { width: 100%; height: 100%; object-fit: cover; }
-  .thumb-placeholder { font-size: 3rem; }
-  .card-badge-dest {
-    position: absolute; bottom: 6px; right: 6px;
-    background: rgba(0,0,0,0.75); color: #cbd5e1; font-size: 0.65rem; font-weight: 700;
-    padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
-    border: 1px solid rgba(255,255,255,0.1);
+    gap: 14px;
   }
 
-  .card-body {
-    padding: .8rem; flex: 1; display: flex; flex-direction: column; min-height: 0;
+  .folder-card {
+    background: #111827; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden;
+    display: flex; flex-direction: column; transition: all 0.15s;
   }
-  .card-title { font-weight: 700; font-size: .95rem; margin-bottom: .3rem; color: #fff; line-height: 1.3; }
-  .card-meta { font-size: .75rem; color: #94a3b8; margin-bottom: .5rem; display: flex; gap: 4px; align-items: center; }
-  .size-tag { color: #e5a853; font-weight: 600; }
-  .card-desc {
-    font-size: .8rem; color: #cbd5e1; line-height: 1.4;
-    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  .folder-card:hover { border-color: #0284c7; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  .folder-installed { border-color: #059669; }
+
+  .folder-header-click {
+    cursor: pointer; display: flex; flex-direction: column; flex: 1;
+    background: none; border: none; padding: 0; text-align: left; color: inherit; width: 100%; font: inherit;
   }
-  .tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: auto; padding-top: 0.6rem; }
-  .tag {
-    font-size: .65rem; padding: .15rem .45rem;
-    background: rgba(229,168,83,.12); border: 1px solid rgba(229,168,83,0.25);
-    border-radius: 4px; color: #f6ad55; font-weight: 500;
+  .folder-thumb-wrap {
+    position: relative; width: 100%; height: 110px; background: #060b13; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .folder-thumb { width: 100%; height: 100%; object-fit: cover; }
+  .folder-icon-placeholder { font-size: 3rem; color: #334155; }
+  .folder-badge-dest {
+    position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.8);
+    color: #38bdf8; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  }
+  .folder-count-tag {
+    position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.85);
+    color: #fff; font-size: 0.7rem; font-weight: 600; padding: 1px 6px; border-radius: 4px;
   }
 
-  .card-footer {
-    padding: .65rem .8rem;
-    border-top: 1px solid #1e293b;
-    background: #0d121a;
-    display: flex; align-items: center; justify-content: space-between; gap: .6rem;
-    margin-top: auto;
+  .folder-info { padding: 0.7rem 0.9rem; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .folder-name-row { display: flex; align-items: center; gap: 6px; }
+  .folder-emoji { font-size: 0.95rem; }
+  .folder-name {
+    font-size: 0.88rem; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .btn-install {
-    flex: 1; padding: .5rem .8rem; border-radius: 6px;
-    background: #e5a853; border: none; color: #000; font-weight: 700; cursor: pointer; font-size: .85rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: filter .15s;
-    display: flex; align-items: center; justify-content: center; gap: 4px;
-  }
-  .btn-install:hover { filter: brightness(1.15); }
-  .btn-uninstall {
-    padding: .4rem .7rem; border-radius: 6px;
-    background: rgba(239,68,68,0.15); border: 1px solid #ef4444;
-    color: #f87171; cursor: pointer; font-size: .75rem; font-weight: 600;
-  }
-  .btn-uninstall:hover { background: rgba(239,68,68,0.3); }
-  .badge-installed {
-    font-size: .8rem; color: #10b981; font-weight: 700;
-  }
-  .inst-info { display: flex; flex-direction: column; gap: 2px; }
-  .files-count { font-size: 0.7rem; color: #8899b7; }
+  .folder-meta-row { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #64748b; }
+  .sub-dl-count { color: #34d399; font-weight: 600; }
 
-  .progress-wrap { flex: 1; display: flex; align-items: center; gap: 8px; }
-  .progress-bar {
-    flex: 1; height: 8px; border-radius: 4px;
-    background: #1e293b; overflow: hidden;
+  .folder-footer-actions {
+    padding: 0.5rem 0.9rem 0.7rem; border-top: 1px solid #1e293b; background: #0d1420;
+    display: flex; gap: 6px;
   }
-  .progress-fill {
-    height: 100%; background: #e5a853;
-    transition: width .2s;
+  .btn-enter-folder {
+    flex: 1; background: #1e293b; color: #38bdf8; border: 1px solid #334155; border-radius: 6px;
+    padding: 5px 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
   }
-  .pct { font-size: .75rem; color: #e5a853; font-weight: 700; min-width: 2.5rem; text-align: right; }
+  .btn-enter-folder:hover { background: #334155; color: #fff; }
+  .btn-dl-subfolder {
+    flex: 1.3; background: #0284c7; color: #fff; border: 1px solid #38bdf8; border-radius: 6px;
+    padding: 5px 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-dl-subfolder:hover { background: #0369a1; }
+  .btn-sub-installed { background: #065f46; border-color: #10b981; color: #6ee7b7; }
 
-  /* States */
-  .error-box {
-    margin: 2rem auto; padding: 1.5rem; max-width: 500px;
-    background: rgba(239,68,68,0.1); border: 1px solid #ef4444; border-radius: 8px; text-align: center;
+  /* Files Grid */
+  .files-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;
   }
-  .error-title { font-weight: 700; color: #f87171; margin-bottom: 0.5rem; }
-  .error-msg { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 1rem; }
-  .error-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
-  .btn-retry { background: #334155; color: #fff; border: none; padding: .4rem .8rem; border-radius: 6px; cursor: pointer; }
-  .btn-reset { background: #e5a853; color: #000; font-weight: 700; border: none; padding: .4rem .8rem; border-radius: 6px; margin-top: 10px; cursor: pointer; }
-  .loading-box, .empty-box {
-    margin: auto; padding: 3rem 1rem; text-align: center; color: #94a3b8; display: flex; flex-direction: column; align-items: center;
+  .file-card {
+    background: #111827; border: 1px solid #1e293b; border-radius: 8px; overflow: hidden;
+    display: flex; flex-direction: column; transition: all 0.15s;
   }
-  .spinner {
-    width: 32px; height: 32px; border: 3px solid #1e293b; border-top-color: #e5a853;
-    border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;
+  .file-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
+  .file-on-disk { border-color: #059669; }
+
+  .file-thumb-wrap {
+    position: relative; width: 100%; height: 120px; background: #060b13; overflow: hidden;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .file-thumb { width: 100%; height: 100%; object-fit: cover; }
+  .badge-on-disk {
+    position: absolute; bottom: 4px; right: 4px; background: #059669; color: #fff;
+    font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  }
+  .btn-jump-folder {
+    position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.8); color: #38bdf8;
+    border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; font-size: 0.65rem; font-weight: 600;
+    padding: 2px 6px; cursor: pointer;
+  }
+  .btn-jump-folder:hover { background: #0284c7; color: #fff; }
+
+  .file-info { padding: 0.6rem 0.8rem; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .file-name { font-size: 0.82rem; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-orig-name, .file-path-sub { font-size: 0.7rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .file-actions {
+    display: flex; gap: 6px; padding: 0.5rem 0.8rem 0.7rem; border-top: 1px solid #1e293b; background: #0d1420;
+  }
+  .btn-file-dl {
+    flex: 1; background: #1e293b; color: #38bdf8; border: 1px solid #334155;
+    border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-file-dl:hover { background: #0284c7; color: #fff; }
+  .btn-file-done { color: #34d399; }
+  
+  .btn-file-vtt {
+    background: #312e81; color: #a5b4fc; border: 1px solid #4f46e5;
+    border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-file-vtt:hover { background: #4338ca; color: #fff; }
+
+  /* Progress bars */
+  .pack-progress-wrap { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .pack-progress-bar { width: 100%; height: 7px; background: #1e293b; border-radius: 4px; overflow: hidden; }
+  .pack-progress-fill { height: 100%; background: #38bdf8; transition: width 0.15s ease; }
+  .pack-progress-text { display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8; }
+  .file-name-cut { max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Loading & Empty States */
+  .loading-box, .empty-box, .error-box {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 20px; text-align: center; color: #94a3b8; gap: 12px;
+  }
+  .spinner { font-size: 2rem; }
+  .btn-reset, .btn-retry {
+    background: #0284c7; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+  }
 
   /* Installed Tab */
   .installed-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 1rem 1.2rem; border-bottom: 1px solid #1e293b; background: #141b26; flex-shrink: 0;
+    display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.4rem; border-bottom: 1px solid #1e293b; background: #0b1320; flex-wrap: wrap; gap: 10px;
   }
-  .inst-header-text h3 { margin: 0 0 4px; font-size: 1rem; color: #e5a853; }
-  .inst-header-text p { margin: 0; font-size: 0.8rem; color: #94a3b8; }
-  .installed-list-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 1.2rem; }
-  .installed-list { display: flex; flex-direction: column; gap: .7rem; }
+  .installed-header h3 { margin: 0 0 4px; font-size: 1rem; color: #e2e8f0; }
+  .installed-header p { margin: 0; font-size: 0.8rem; color: #64748b; }
+  .installed-header-actions { display: flex; gap: 8px; }
+  .installed-list-wrap { flex: 1; overflow-y: auto; padding: 1.2rem 1.4rem; }
+  .installed-list { display: flex; flex-direction: column; gap: 10px; }
   .installed-row {
-    display: flex; align-items: center; gap: 1rem;
-    padding: .8rem 1rem;
-    background: #141b26; border: 1px solid #232f42; border-radius: 8px;
+    display: flex; align-items: center; gap: 14px; padding: 10px 14px; background: #111827; border: 1px solid #1e293b; border-radius: 8px;
   }
   .inst-icon { font-size: 1.5rem; }
   .inst-details { flex: 1; }
-  .inst-title-line { display: flex; align-items: center; gap: 0.5rem; }
-  .badge-ver {
-    font-size: .7rem; padding: .1rem .4rem;
-    background: rgba(229,168,83,.2); border-radius: 4px; color: #e5a853; font-weight: 700;
+  .inst-title-line { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; color: #f1f5f9; }
+  .badge-dest { font-size: 0.7rem; background: #1e293b; color: #38bdf8; padding: 1px 6px; border-radius: 4px; }
+  .inst-meta { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+  .inst-row-actions { display: flex; gap: 8px; }
+  .btn-uninstall {
+    background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer;
   }
+  .btn-uninstall:hover { background: #991b1b; color: #fff; }
 
-  /* Admin tab */
-  .admin-panel {
-    padding: 1.2rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1rem;
+  /* Import Tab */
+  .import-panel { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+  .import-card {
+    background: #111827; border: 2px dashed #334155; border-radius: 12px; padding: 3rem; text-align: center; max-width: 500px;
   }
-  .admin-header-box {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #141b26; padding: .8rem 1rem; border-radius: 8px; border: 1px solid #232f42;
+  .import-card h3 { margin: 0 0 8px; color: #e2e8f0; }
+  .import-card p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 1.5rem; }
+  .btn-big-import {
+    background: #0284c7; color: #fff; border: 1px solid #38bdf8; padding: 10px 20px; font-size: 0.95rem; font-weight: 700; border-radius: 8px; cursor: pointer;
   }
-  .btn-export-json {
-    background: #2563eb; color: #fff; border: none; padding: .45rem .9rem;
-    border-radius: 6px; font-size: .8rem; font-weight: 700; cursor: pointer;
-  }
-  .admin-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
-  .form-group { display: flex; flex-direction: column; gap: 4px; }
-  .form-label { font-size: .75rem; text-transform: uppercase; color: #8899b7; font-weight: 600; }
-  .form-input, .form-select, .form-textarea {
-    background: #090c10; border: 1px solid #2a3447; border-radius: 6px;
-    padding: .45rem .65rem; color: #fff; font-size: .85rem; outline: none;
-  }
-  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #e5a853; }
-  .btn-convert-gdrive {
-    background: rgba(229,168,83,0.15); border: 1px solid #e5a853; color: #e5a853;
-    padding: .3rem .65rem; border-radius: 6px; font-size: .75rem; font-weight: bold; cursor: pointer; white-space: nowrap;
-  }
-  .btn-add-tag { background: #10b981; border: none; color: #000; font-weight: 700; padding: .3rem .6rem; border-radius: 6px; font-size: .75rem; cursor: pointer; }
-  .admin-actions { display: flex; justify-content: flex-end; margin-top: .5rem; }
-  .btn-submit-addon {
-    background: #10b981; color: #000; border: none; padding: .6rem 1.2rem;
-    border-radius: 6px; font-weight: bold; font-size: .9rem; cursor: pointer;
-  }
-  .btn-primary {
-    background: #e5a853; color: #000; font-weight: 700; border: none; padding: .6rem 1.2rem; border-radius: 6px; margin-top: 1rem; cursor: pointer;
-  }
+  .btn-big-import:hover { background: #0369a1; }
 
-  /* Sub Modal Local Import */
+  /* Sub-Modal (Local Import) */
   .sub-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-    z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 1rem;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
+    z-index: 1200; display: flex; align-items: center; justify-content: center; padding: 1rem;
   }
   .sub-modal {
-    background: #101620; border: 1px solid #2a384f; border-radius: 10px;
-    width: min(500px, 90vw); display: flex; flex-direction: column; overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+    background: #0f141c; border: 1px solid #2a3447; border-radius: 12px;
+    width: min(520px, 92vw); display: flex; flex-direction: column; overflow: hidden;
   }
   .sub-modal-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0.8rem 1rem; background: #16202e; border-bottom: 1px solid #232f42;
+    display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1.2rem;
+    border-bottom: 1px solid #1e293b; background: #141b26;
   }
-  .sub-modal-header h3 { margin: 0; font-size: 1rem; color: #e5a853; }
-  .sub-modal-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-  .sub-modal-footer {
-    display: flex; justify-content: flex-end; gap: 0.6rem;
-    padding: 0.8rem 1rem; background: #0c1117; border-top: 1px solid #1e293b;
-  }
+  .sub-modal-header h3 { margin: 0; font-size: 1rem; color: #38bdf8; font-weight: 700; }
+  .sub-modal-body { padding: 1.2rem; display: flex; flex-direction: column; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-label { font-size: 0.78rem; font-weight: 600; color: #94a3b8; }
   .path-preview {
-    font-size: 0.75rem; color: #94a3b8; background: #06090e; padding: 0.4rem 0.6rem;
-    border-radius: 4px; border: 1px solid #1e293b; word-break: break-all;
+    background: #0a0f16; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 10px;
+    font-size: 0.75rem; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .btn-cancel {
-    background: transparent; border: 1px solid #475569; color: #94a3b8; padding: 0.4rem 0.8rem;
-    border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+  .form-input, .form-select {
+    background: #0a0f16; border: 1px solid #1e293b; border-radius: 6px; padding: 7px 10px;
+    color: #e2e8f0; font-size: 0.85rem; outline: none;
+  }
+  .form-input:focus, .form-select:focus { border-color: #38bdf8; }
+  .sub-modal-footer {
+    padding: 0.8rem 1.2rem; border-top: 1px solid #1e293b; background: #141b26;
+    display: flex; justify-content: flex-end; gap: 8px;
   }
   .btn-confirm-import {
-    background: #10b981; border: none; color: #000; font-weight: 700; padding: 0.4rem 1rem;
-    border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+    background: #0284c7; color: #fff; border: 1px solid #38bdf8; padding: 6px 16px;
+    border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer;
   }
-  .btn-confirm-import:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .btn-fallback-action {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-    padding: 0.7rem 1rem; border-radius: 8px; border: none; cursor: pointer;
-    text-align: left; transition: all .15s; width: 100%;
+  .btn-confirm-import:hover { background: #0369a1; }
+  .btn-cancel {
+    background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
   }
-  .btn-fallback-action:hover { transform: translateY(-1px); filter: brightness(1.15); }
-  .btn-drive-primary {
-    background: #e5a853; color: #000;
-  }
-  .btn-import-secondary {
-    background: #2563eb; color: #fff;
-  }
-  .btn-folder-secondary {
-    background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
-  }
+  .btn-cancel:hover { background: #334155; color: #fff; }
 </style>

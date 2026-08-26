@@ -42,8 +42,12 @@
 ## 2. Installation & Premier Démarrage
 
 ### Téléchargement
-- **Windows** : Téléchargez le programme d'installation `.msi` ou l'exécutable portable depuis la page [Releases GitHub](https://github.com/LordMadTrix/grimoire/releases).
+- **Windows** : Téléchargez le programme d'installation `.msi` ou le setup `.exe` depuis la page [Releases GitHub](https://github.com/LordMadTrix/grimoire/releases).
 - **Linux** : Téléchargez le paquet `.AppImage` ou `.deb`. Rendez le fichier exécutable (`chmod +x Grimoire.AppImage`) et lancez-le.
+
+> 🛡️ **Note sur la sécurité (Windows / Chrome)** :  
+> Grimoire étant un projet open-source en développement actif, Chrome ou Windows SmartScreen peut afficher une alerte de précaution (*« Windows a protégé votre ordinateur »*).  
+> Pour lancer l'application : cliquez sur **« Informations complémentaires »** puis **« Exécuter quand même »** (et sous Chrome, choisissez **« Conserver »**).
 
 ### Premier Lancement
 Au premier démarrage, Grimoire vous propose :
