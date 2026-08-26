@@ -83,6 +83,16 @@ async function saveToIndexedDB(data: CelestialData): Promise<void> {
   }
 }
 
+export function detectDestination(path: string): string {
+  const clean = path.replace(/\\/g, '/').toLowerCase();
+  if (clean.endsWith('.pdf') || clean.includes('/livres/') || clean.includes('/books/') || clean.includes('/scenarios/') || clean.includes('/pdf/') || clean.startsWith('livres/') || clean.startsWith('books/') || clean.startsWith('pdf/')) {
+    return 'books';
+  }
+  if (clean.startsWith('textures/')) return 'tiles/custom';
+  if (clean.startsWith('stamps/') || clean.startsWith('tokens/')) return 'tokens';
+  return 'maps';
+}
+
 export function buildCelestialTree(files: DriveFile[]): TreeNode {
   const root: TreeNode = {
     name: 'Archives Célestes',
@@ -107,8 +117,7 @@ export function buildCelestialTree(files: DriveFile[]): TreeNode {
       curPath = curPath ? `${curPath}/${folderName}` : folderName;
 
       if (!curr.subfolders[folderName]) {
-        const rootType = folderParts[0].toLowerCase();
-        const dest = rootType === 'textures' ? 'tiles/custom' : (rootType === 'stamps' || rootType === 'tokens' ? 'tokens' : 'maps');
+        const dest = detectDestination(curPath + (f.filename ? '/' + f.filename : ''));
         curr.subfolders[folderName] = {
           name: folderName,
           path: curPath,
@@ -159,15 +168,14 @@ export async function getCelestialCatalog(forceRefresh = false): Promise<Celesti
       const name = item[2];
       const filename = p.split('/').pop() || name;
       const parts = p.split('/');
-      const rootType = parts[0].toLowerCase();
-      const dest = rootType === 'textures' ? 'tiles/custom' : (rootType === 'stamps' || rootType === 'tokens' ? 'tokens' : 'maps');
+      const dest = detectDestination(p);
 
       collected.push({
         id,
         name,
         filename,
         path: p,
-        category: parts[1] || 'Général',
+        category: parts[1] || (dest === 'books' ? 'Livres & Scénarios' : 'Général'),
         destination: dest,
         subfolder: parts.slice(0, -1).join('/'),
         url: `https://lh3.googleusercontent.com/d/${id}`,

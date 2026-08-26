@@ -52,6 +52,7 @@
   import QuestJournal from './QuestJournal.svelte';
   import SoundscapeMixer from './SoundscapeMixer.svelte';
   import { soundscape } from '$lib/stores/soundscape.svelte';
+  import AddonStore from './AddonStore.svelte';
 
   let { 
     onRoll,
@@ -78,6 +79,7 @@
   let showHandoutPicker = $state(false);
   let showTokenPicker = $state(false);
   let showSharedLibrary = $state(false);
+  let showAddonStore = $state(false);
   let showNarrativeAssistant = $state(false);
   let showDungeonGenerator = $state(false);
   let showQuestJournal = $state(false);
@@ -607,6 +609,7 @@
         
         <div class="dropdown-divider"></div>
         <div class="dropdown-title">Bibliothèques & Éditeurs</div>
+        <button class="dropdown-item" onclick={() => { showAddonStore = true; activeMenu = null; }}>🌌 Bibliothèque Céleste & Livres PDF</button>
         <button class="dropdown-item" onclick={() => { showSharedLibrary = true; activeMenu = null; }}>📚 Bibliothèque partagée</button>
         
         <button class="dropdown-item" onclick={() => { charCreator?.toggle(); activeMenu = null; }}>⚔️ Créateur de personnage</button>
@@ -918,6 +921,9 @@
       </div>
     </div>
   </div>
+{/if}
+{#if showAddonStore}
+  <AddonStore onclose={() => showAddonStore = false} />
 {/if}
 
 <style>

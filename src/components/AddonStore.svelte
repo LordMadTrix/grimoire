@@ -7,6 +7,7 @@
   import { getVaultPath, setVaultTree } from '$lib/stores/vault.svelte';
   import { addMapScene, replaceActiveScene } from '$lib/stores/vtt.svelte';
   import { getCelestialCatalog, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
+  import PdfReaderModal from './PdfReaderModal.svelte';
 
   const { onclose } = $props<{ onclose: () => void }>();
 
@@ -64,7 +65,25 @@
   let isDraggingPreview = $state(false);
   let dragStart = $state({ x: 0, y: 0 });
 
+  // PDF Reader Modal State
+  let activePdfModal = $state<{ url: string; name: string; localPath?: string } | null>(null);
+
+  let booksCount = $derived(
+    rawFiles.filter(f => f.destination === 'books' || f.path.toLowerCase().endsWith('.pdf') || f.name.toLowerCase().endsWith('.pdf')).length
+  );
+
+  function openPdfReader(file: DriveFile) {
+    activePdfModal = {
+      url: file.url || file.highResUrl,
+      name: file.name
+    };
+  }
+
   function openPreview(file: DriveFile) {
+    if (file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')) {
+      openPdfReader(file);
+      return;
+    }
     previewFile = file;
     previewZoom = 1;
     previewPan = { x: 0, y: 0 };
@@ -584,7 +603,15 @@
             <button class="nav-pill" class:active-pill={currentPath === 'stamps'} onclick={() => { currentPath = 'stamps'; searchQuery = ''; }}>
               🎨 Tampons ({rootTree.subfolders['stamps']?.totalFiles ?? 0})
             </button>
-            <button class="nav-pill" class:active-pill={currentPath === ''} onclick={() => { currentPath = ''; searchQuery = ''; }}>
+            <button class="nav-pill" class:active-pill={currentPath === 'books' || currentPath === 'livres' || currentPath === 'pdf' || searchQuery === '.pdf'} onclick={() => {
+              if (rootTree.subfolders['books']) { currentPath = 'books'; searchQuery = ''; }
+              else if (rootTree.subfolders['livres']) { currentPath = 'livres'; searchQuery = ''; }
+              else if (rootTree.subfolders['pdf']) { currentPath = 'pdf'; searchQuery = ''; }
+              else { currentPath = ''; searchQuery = '.pdf'; }
+            }}>
+              📚 Livres & PDF ({booksCount})
+            </button>
+            <button class="nav-pill" class:active-pill={currentPath === '' && !searchQuery} onclick={() => { currentPath = ''; searchQuery = ''; }}>
               🌌 Toutes les Archives
             </button>
           </div>
@@ -602,6 +629,9 @@
               </button>
               <button class="btn-open-folder" onclick={() => openFolder('tiles/custom')} title="Ouvrir public/tiles dans l'explorateur Windows">
                 📁 Tuiles
+              </button>
+              <button class="btn-open-folder" onclick={() => openFolder('books')} title="Ouvrir le dossier des livres dans l'explorateur Windows">
+                📁 Livres
               </button>
             </div>
           </div>
@@ -856,14 +886,22 @@
                 {#each currentFiles as file (file.id)}
                   {@const onDisk = isFileOnDisk(file)}
                   {@const isDl = downloadingFiles.has(file.id)}
-                  <div class="file-card" class:file-on-disk={onDisk}>
+                  {@const isPdf = file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')}
+                  <div class="file-card" class:file-on-disk={onDisk} class:file-is-pdf={isPdf}>
                     <div class="file-thumb-wrap" role="button" tabindex="0" onclick={() => openPreview(file)} onkeydown={(e) => e.key === 'Enter' && openPreview(file)}>
-                      <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
+                      {#if isPdf}
+                        <div class="pdf-card-cover">
+                          <span class="pdf-icon-big">📚</span>
+                          <span class="pdf-tag-cover">GRIMOIRE PDF</span>
+                        </div>
+                      {:else}
+                        <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
+                      {/if}
                       {#if onDisk}
                         <div class="badge-on-disk">✓ Sur PC</div>
                       {/if}
-                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title="Inspecter en plein écran (Zoom & Pan)">
-                        🔍 HD
+                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Ouvrir dans la Liseuse PDF & Voix' : 'Inspecter en plein écran (Zoom & Pan)'}>
+                        {isPdf ? '📖 Liseuse' : '🔍 HD'}
                       </button>
                     </div>
                     <div class="file-info">
@@ -882,7 +920,11 @@
                         {:else if onDisk}💾 Re-télécharger
                         {:else}⬇️ Télécharger{/if}
                       </button>
-                      {#if file.destination === 'maps'}
+                      {#if isPdf}
+                        <button class="btn-file-pdf" onclick={() => openPdfReader(file)} title="Ouvrir dans la Liseuse Vocale intégrée">
+                          🗣️ Liseuse
+                        </button>
+                      {:else if file.destination === 'maps'}
                         <button class="btn-file-vtt" onclick={() => loadIntoVTT(file, false)} title="Charger cette carte directement sur la VTT">
                           🎮 VTT
                         </button>
@@ -1129,6 +1171,15 @@
       </div>
     </div>
   </div>
+{/if}
+
+{#if activePdfModal}
+  <PdfReaderModal
+    fileUrl={activePdfModal.url}
+    fileName={activePdfModal.name}
+    localPath={activePdfModal.localPath}
+    onclose={() => activePdfModal = null}
+  />
 {/if}
 
 <style>
@@ -1640,4 +1691,23 @@
     border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
   }
   .btn-hd-vtt-new:hover { background: #2e1065; color: #fff; }
+
+  /* PDF Card styles */
+  .pdf-card-cover {
+    width: 100%; height: 100%;
+    background: linear-gradient(145deg, #1e1b4b, #0f172a);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; border-radius: 6px; border: 1px solid #4338ca;
+  }
+  .pdf-icon-big { font-size: 2.4rem; }
+  .pdf-tag-cover {
+    font-size: 0.65rem; font-weight: 800; color: #a5b4fc;
+    letter-spacing: 0.5px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px;
+  }
+  .btn-file-pdf {
+    background: #4338ca; border: 1px solid #6366f1; border-radius: 6px;
+    color: #e0e7ff; font-size: 0.72rem; font-weight: 700; padding: 4px 8px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-file-pdf:hover { background: #4f46e5; color: #fff; box-shadow: 0 0 10px rgba(99,102,241,0.4); }
 </style>

@@ -22,11 +22,14 @@
   } from '$lib/stores/vault.svelte';
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
   import { setGmCurrentMap } from '$lib/stores/vtt.svelte';
+  import PdfReaderModal from './PdfReaderModal.svelte';
   let { entries = [], depth = 0 }: { entries: VaultEntry[]; depth?: number } = $props();
 
-  const ASSET_DIRS = new Set(['assets', 'maps', 'tokens', 'audio']);
+  const ASSET_DIRS = new Set(['assets', 'maps', 'tokens', 'audio', 'books', 'pdf', 'livres']);
   const HIDDEN_DIRS = new Set(['.grimoire', '.git', 'node_modules']);
   const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
+
+  let activePdfModal = $state<{ localPath: string; name: string } | null>(null);
 
   // Flat search résultats (depth 0 uniquement)
   let filteredFiles = $derived((() => {
@@ -135,6 +138,15 @@
       await loadAsMap(entry);
       return;
     }
+    if (entry.extension?.toLowerCase() === 'pdf') {
+      const vp = getVaultPath();
+      if (!vp) return;
+      activePdfModal = {
+        localPath: `${vp}/${entry.path}`,
+        name: entry.name
+      };
+      return;
+    }
     if (entry.extension !== 'md') return;
     const vaultPath = getVaultPath();
     if (!vaultPath) return;
@@ -151,11 +163,13 @@
   function getIcon(entry: VaultEntry): string {
     if (entry.is_dir) {
       if (entry.name === '_templates') return '📋';
+      if (entry.name.toLowerCase() === 'books' || entry.name.toLowerCase() === 'pdf' || entry.name.toLowerCase() === 'livres') return '📚';
       return getExpandedDirs().has(entry.path) ? '📂' : '📁';
     }
     const ext = entry.extension?.toLowerCase();
     switch (ext) {
       case 'md': return '📝';
+      case 'pdf': return '📚';
       case 'json': return '⚙️';
       case 'png': case 'jpg': case 'jpeg': case 'webp': case 'avif': return '🖼️';
       case 'mp3': case 'ogg': case 'wav': return '🔊';
@@ -570,6 +584,14 @@
         </div>
       {/each}
     </div>
+  {/if}
+
+  {#if activePdfModal}
+    <PdfReaderModal
+      localPath={activePdfModal.localPath}
+      fileName={activePdfModal.name}
+      onclose={() => activePdfModal = null}
+    />
   {/if}
 {/if}
 
