@@ -18,7 +18,7 @@
     tokens = [],
     pins = [] as MapPin[],
     vaultPath = '',
-    vttMode = 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint',
+    vttMode = 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint' | 'calibrate-grid',
     fitRequest = 0,
     activeTokenId = null as string | null,
     externalPing = null as { x: number; y: number; seq: number } | null,
@@ -56,7 +56,7 @@
     spells?: SpellMarker[];
     weather?: string;
     vaultPath?: string;
-    vttMode?: 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint';
+    vttMode?: 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint' | 'calibrate-grid';
     fitRequest?: number;
     activeTokenId?: string | null;
     externalPing?: { x: number; y: number; seq: number } | null;
@@ -1838,6 +1838,33 @@
         previewShape.rect(drawStartX, drawStartY, dx, dy);
         previewShape.fill({ color: 0xf59e0b, alpha: 0.12 });
         previewShape.stroke();
+      } else if (vttMode === 'calibrate-grid') {
+        const dx = localPos.x - drawStartX;
+        const dy = localPos.y - drawStartY;
+        previewShape.setStrokeStyle({ width: 2, color: 0x38bdf8, alpha: 1 });
+        previewShape.rect(drawStartX, drawStartY, dx, dy);
+        previewShape.fill({ color: 0x38bdf8, alpha: 0.15 });
+        for (let i = 1; i < 3; i++) {
+          previewShape.moveTo(drawStartX + (dx * i) / 3, drawStartY);
+          previewShape.lineTo(drawStartX + (dx * i) / 3, drawStartY + dy);
+          previewShape.moveTo(drawStartX, drawStartY + (dy * i) / 3);
+          previewShape.lineTo(drawStartX + dx, drawStartY + (dy * i) / 3);
+        }
+        previewShape.stroke();
+
+        if (!previewShape.children[0]) {
+          const t = new PIXI.Text({
+            text: '',
+            style: { fill: 0x38bdf8, fontSize: 14, stroke: { color: 0x000000, width: 3 }, fontWeight: 'bold' }
+          });
+          t.anchor.set(0.5);
+          previewShape.addChild(t);
+        }
+        const textObj = previewShape.children[0] as PIXI.Text;
+        textObj.text = `Zone 3x3 : ${Math.abs(Math.round(dx))}x${Math.abs(Math.round(dy))} px`;
+        textObj.x = drawStartX + dx / 2;
+        textObj.y = drawStartY + dy / 2;
+        textObj.visible = true;
       } else if (vttMode === 'terrain') {
         if (previewShape.children[0]) previewShape.children[0].visible = false;
         const dx = localPos.x - drawStartX;
@@ -1988,6 +2015,21 @@
 
       if (vttMode === 'zoom-rect') {
         zoomToRect(drawStartX, drawStartY, localPos.x, localPos.y);
+        return;
+      }
+      if (vttMode === 'calibrate-grid') {
+        const width = Math.abs(dx);
+        const height = Math.abs(dy);
+        if (width > 20 && height > 20) {
+          const newSize = Math.max(10, Math.min(200, Math.round(width / 3)));
+          vttStore.gridSize = newSize;
+          vttStore.showGrid = true;
+          vttStore.mode = 'select';
+          emitToPlayerView('toggle_player_grid', { show: true, size: newSize });
+          alert(`📐 Grille calibrée avec succès : ${newSize} px par case (zone 3x3 = ${Math.round(width)}px) !`);
+        } else {
+          vttStore.mode = 'select';
+        }
         return;
       }
       if (vttMode === 'audio-zone') {

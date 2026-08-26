@@ -50,6 +50,8 @@
   import NarrativeAssistant from './NarrativeAssistant.svelte';
   import DungeonGenerator from './DungeonGenerator.svelte';
   import QuestJournal from './QuestJournal.svelte';
+  import SoundscapeMixer from './SoundscapeMixer.svelte';
+  import { soundscape } from '$lib/stores/soundscape.svelte';
 
   let { 
     onRoll,
@@ -72,6 +74,7 @@
   let showMapPicker = $state(false);
   let showAudioPicker = $state(false);
   let showAudio2Picker = $state(false);
+  let showSoundscapeMixer = $state(false);
   let showHandoutPicker = $state(false);
   let showTokenPicker = $state(false);
   let showSharedLibrary = $state(false);
@@ -373,6 +376,7 @@
         {/if}
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" class:active={vttStore.showGrid} onclick={toggleGrid}>#️⃣ Afficher/masquer grille</button>
+        <button class="dropdown-item" class:active={vttStore.mode === 'calibrate-grid'} onclick={() => { vttStore.mode = 'calibrate-grid'; activeMenu = null; }}>📐 Calibrer la grille (tracer 3x3 cases)</button>
         <div class="dropdown-submenu-item">
           <span class="grid-label">Taille grille:</span>
           <input type="number" class="grid-input" value={vttStore.gridSize} min="10" max="200" step="5" onchange={(e) => setGridSize(Number((e.target as HTMLInputElement).value))} />
@@ -496,6 +500,10 @@
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'audio' ? null : 'audio'; }}>🎭 Ambiance</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'audio'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+        <button class="dropdown-item soundscape-menu-highlight" onclick={() => { showSoundscapeMixer = true; activeMenu = null; }}>
+          🌧️ Mixeur d'Ambiance Sonore {#if soundscape.activeTracksCount > 0}⚡ ({soundscape.activeTracksCount} actives){/if}
+        </button>
+        <div class="dropdown-divider"></div>
         <button class="dropdown-item" onclick={() => { showAudioPicker = true; activeMenu = null; }}>{vttStore.audioSrc ? '🔊 Piste 1 en cours...' : '🎵 Choisir Piste 1'}</button>
         {#if vttStore.audioSrc}
           <div class="dropdown-submenu-item">
@@ -625,6 +633,11 @@
       title={vttStore.combatActive ? 'Terminer le combat' : 'Démarrer le tracker de combat'}>
       ⚔️
     </button>
+    <button class="soundscape-quick-btn" class:active-sound={soundscape.activeTracksCount > 0}
+      onclick={() => showSoundscapeMixer = true}
+      title="Mixeur d'Ambiances Sonores">
+      🌧️ Ambiance {#if soundscape.activeTracksCount > 0}<span class="sound-badge">{soundscape.activeTracksCount}</span>{/if}
+    </button>
     <div class="separator"></div>
     <div class="time-widget" style="display:flex; align-items:center; gap:4px; font-size:11px; background:var(--bg-secondary); padding:2px 8px; border-radius:4px; border:1px solid var(--border);">
       <span style="color:var(--text-secondary)">🕒 {$timeStore ? formatImperialDate($timeStore) : ''}</span>
@@ -653,6 +666,15 @@
 </div>
 
 <!-- Modals -->
+{#if showSoundscapeMixer}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="picker-backdrop" onclick={() => showSoundscapeMixer = false}>
+    <div class="soundscape-modal-wrap" onclick={e => e.stopPropagation()}>
+      <SoundscapeMixer onclose={() => showSoundscapeMixer = false} />
+    </div>
+  </div>
+{/if}
 {#if showNpcModal}<QuickNpcModal onclose={() => showNpcModal = false} />{/if}
 {#if showLootModal}<QuickLootModal onclose={() => showLootModal = false} />{/if}
 {#if showHandoutModal}<HandoutModal onclose={() => showHandoutModal = false} />{/if}
@@ -1060,6 +1082,50 @@
   .float-panel-header button {
     background: none; border: none; cursor: pointer;
     color: var(--text-muted); font-size: 14px;
+  }
+
+  .soundscape-quick-btn {
+    background: #141d2b;
+    border: 1px solid #1e293b;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .soundscape-quick-btn:hover {
+    background: #1e293b;
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
+  .soundscape-quick-btn.active-sound {
+    background: #0c4a6e;
+    color: #38bdf8;
+    border-color: #38bdf8;
+    box-shadow: 0 0 8px rgba(56,189,248,0.4);
+  }
+  .sound-badge {
+    background: #38bdf8;
+    color: #0c1320;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 0 4px;
+    border-radius: 8px;
+  }
+  .soundscape-modal-wrap {
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .soundscape-menu-highlight {
+    color: #38bdf8 !important;
+    font-weight: 700;
   }
   .float-panel-header button:hover { color: var(--text-primary); }
 

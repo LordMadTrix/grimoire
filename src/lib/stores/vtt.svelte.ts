@@ -220,7 +220,7 @@ export const vttStore = $state({
   fowShapes: [] as FowShape[],
   tokens: [] as Token[],
   pins: [] as MapPin[],
-  mode: 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint',
+  mode: 'select' as 'select' | 'fog-reveal' | 'fog-hide' | 'fog-rect' | 'measure' | 'ping' | 'pin' | 'spell' | 'zoom-rect' | 'draw' | 'blueprint' | 'audio-zone' | 'terrain' | 'dungeon-paint' | 'calibrate-grid',
   fitRequest: 0,
   showGrid: true,
   gridSize: 50,

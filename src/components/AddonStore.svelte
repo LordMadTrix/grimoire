@@ -55,6 +55,77 @@
   let progress = $state<Record<string, { done: number; total: number; pct: number; currentFile: string }>>({});
   let unlisten: (() => void) | null = null;
 
+  // Lightbox Preview State (Zoom & Pan HD)
+  let previewFile = $state<DriveFile | null>(null);
+  let previewZoom = $state(1);
+  let previewPan = $state({ x: 0, y: 0 });
+  let isDraggingPreview = $state(false);
+  let dragStart = $state({ x: 0, y: 0 });
+
+  function openPreview(file: DriveFile) {
+    previewFile = file;
+    previewZoom = 1;
+    previewPan = { x: 0, y: 0 };
+  }
+
+  function closePreview() {
+    previewFile = null;
+    isDraggingPreview = false;
+  }
+
+  function previewNext() {
+    if (!previewFile) return;
+    const currentList = searchQuery.trim() ? searchResults : currentFiles;
+    const idx = currentList.findIndex(f => f.id === previewFile?.id);
+    if (idx !== -1 && idx < currentList.length - 1) {
+      openPreview(currentList[idx + 1]);
+    } else if (currentList.length > 0) {
+      openPreview(currentList[0]);
+    }
+  }
+
+  function previewPrev() {
+    if (!previewFile) return;
+    const currentList = searchQuery.trim() ? searchResults : currentFiles;
+    const idx = currentList.findIndex(f => f.id === previewFile?.id);
+    if (idx > 0) {
+      openPreview(currentList[idx - 1]);
+    } else if (currentList.length > 0) {
+      openPreview(currentList[currentList.length - 1]);
+    }
+  }
+
+  function handlePreviewWheel(e: WheelEvent) {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.15 : -0.15;
+    previewZoom = Math.min(Math.max(0.2, previewZoom + delta), 4);
+  }
+
+  function handlePreviewMouseDown(e: MouseEvent) {
+    if (e.button !== 0) return;
+    isDraggingPreview = true;
+    dragStart = { x: e.clientX - previewPan.x, y: e.clientY - previewPan.y };
+  }
+
+  function handlePreviewMouseMove(e: MouseEvent) {
+    if (!isDraggingPreview) return;
+    previewPan = { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y };
+  }
+
+  function handlePreviewMouseUp() {
+    isDraggingPreview = false;
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (!previewFile) return;
+    if (e.key === 'Escape') closePreview();
+    else if (e.key === 'ArrowRight') previewNext();
+    else if (e.key === 'ArrowLeft') previewPrev();
+    else if (e.key === '+' || e.key === '=') previewZoom = Math.min(previewZoom + 0.25, 4);
+    else if (e.key === '-') previewZoom = Math.max(previewZoom - 0.25, 0.2);
+    else if (e.key === '0') { previewZoom = 1; previewPan = { x: 0, y: 0 }; }
+  }
+
   // Local import dialog state
   let showLocalImportModal = $state(false);
   let localFilePath = $state('');
@@ -424,8 +495,10 @@
   });
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
+
 <!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- Modal Principal : Explorateur Arborescent Google Drive                   -->
+<!-- Modal Principal : Explorateur Arborescent                               -->
 <!-- ─────────────────────────────────────────────────────────────────────── -->
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
@@ -621,12 +694,16 @@
                   {@const onDisk = isFileOnDisk(file)}
                   {@const isDl = downloadingFiles.has(file.id)}
                   <div class="file-card" class:file-on-disk={onDisk}>
-                    <div class="file-thumb-wrap">
+                    <div class="file-thumb-wrap" role="button" tabindex="0" onclick={() => openPreview(file)} onkeydown={(e) => e.key === 'Enter' && openPreview(file)}>
                       <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
                       {#if onDisk}
                         <div class="badge-on-disk">✓ Sur PC</div>
                       {/if}
-                      <button class="btn-jump-folder" onclick={() => {
+                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title="Inspecter en plein écran">
+                        🔍 HD
+                      </button>
+                      <button class="btn-jump-folder" onclick={(e) => {
+                        e.stopPropagation();
                         const parentPath = file.path.split('/').slice(0, -1).join('/');
                         currentPath = parentPath;
                         searchQuery = '';
@@ -748,11 +825,14 @@
                   {@const onDisk = isFileOnDisk(file)}
                   {@const isDl = downloadingFiles.has(file.id)}
                   <div class="file-card" class:file-on-disk={onDisk}>
-                    <div class="file-thumb-wrap">
+                    <div class="file-thumb-wrap" role="button" tabindex="0" onclick={() => openPreview(file)} onkeydown={(e) => e.key === 'Enter' && openPreview(file)}>
                       <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
                       {#if onDisk}
                         <div class="badge-on-disk">✓ Sur PC</div>
                       {/if}
+                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title="Inspecter en plein écran (Zoom & Pan)">
+                        🔍 HD
+                      </button>
                     </div>
                     <div class="file-info">
                       <div class="file-name" title={file.filename}>{file.name}</div>
@@ -917,6 +997,103 @@
         <button class="btn-confirm-import" disabled={localImporting} onclick={confirmLocalImport}>
           {localImporting ? '⏳ Extraction en cours…' : '🚀 Déployer le Pack'}
         </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+<!-- Modal Plein Écran : Visionneuse Haute Résolution (Zoom & Pan HD)         -->
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+{#if previewFile}
+  {@const isDl = downloadingFiles.has(previewFile.id)}
+  {@const onDisk = isFileOnDisk(previewFile)}
+  <div class="lightbox-overlay" role="dialog" aria-modal="true" tabindex="-1">
+    <!-- Top Header -->
+    <div class="lightbox-header">
+      <div class="lightbox-title-wrap">
+        <span class="lightbox-badge">
+          {#if previewFile.destination === 'maps'}🗺️ CARTE
+          {:else if previewFile.destination === 'tiles/custom'}🧱 TEXTURE
+          {:else}🎨 TAMPON{/if}
+        </span>
+        <strong class="lightbox-filename" title={previewFile.path}>{previewFile.name}</strong>
+        <span class="lightbox-subpath">{previewFile.filename}</span>
+      </div>
+
+      <!-- Zoom & Action controls in header -->
+      <div class="lightbox-controls">
+        <button class="btn-ctrl" onclick={() => previewZoom = Math.max(previewZoom - 0.25, 0.2)} title="Zoom arrière (-)">🔍-</button>
+        <span class="zoom-level">{Math.round(previewZoom * 100)}%</span>
+        <button class="btn-ctrl" onclick={() => previewZoom = Math.min(previewZoom + 0.25, 4)} title="Zoom avant (+)">🔍+</button>
+        <button class="btn-ctrl" onclick={() => { previewZoom = 1; previewPan = { x: 0, y: 0 }; }} title="Réinitialiser zoom (0)">↺ 100%</button>
+        <div class="ctrl-divider"></div>
+        <button class="btn-lightbox-close" onclick={closePreview} title="Fermer (Échap)">✕</button>
+      </div>
+    </div>
+
+    <!-- Central Viewport with Zoom / Pan -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="lightbox-viewport"
+      onwheel={handlePreviewWheel}
+      onmousedown={handlePreviewMouseDown}
+      onmousemove={handlePreviewMouseMove}
+      onmouseup={handlePreviewMouseUp}
+      onmouseleave={handlePreviewMouseUp}
+    >
+      <div
+        class="lightbox-canvas"
+        style="transform: translate({previewPan.x}px, {previewPan.y}px) scale({previewZoom}); cursor: {isDraggingPreview ? 'grabbing' : 'grab'}"
+      >
+        <img
+          src={previewFile.highResUrl || previewFile.url}
+          alt={previewFile.name}
+          class="lightbox-img"
+          referrerpolicy="no-referrer"
+          draggable="false"
+        />
+      </div>
+
+      <!-- Navigation Arrows -->
+      <button class="lightbox-arrow left-arrow" onclick={(e) => { e.stopPropagation(); previewPrev(); }} title="Carte précédente (←)">
+        ‹
+      </button>
+      <button class="lightbox-arrow right-arrow" onclick={(e) => { e.stopPropagation(); previewNext(); }} title="Carte suivante (→)">
+        ›
+      </button>
+    </div>
+
+    <!-- Bottom Actions Bar -->
+    <div class="lightbox-footer">
+      <div class="lightbox-footer-left">
+        {#if onDisk}
+          <span class="badge-disk-hd">✓ Enregistré sur votre PC (public/{previewFile.destination}/...)</span>
+        {:else}
+          <span class="badge-cloud-hd">☁️ Ressource en ligne (Haute Résolution)</span>
+        {/if}
+      </div>
+
+      <div class="lightbox-footer-actions">
+        <button
+          class="btn-hd-download"
+          class:btn-hd-done={onDisk}
+          disabled={isDl}
+          onclick={() => previewFile && downloadSingleFile(previewFile)}
+        >
+          {#if isDl}⏳ Téléchargement en cours…
+          {:else if onDisk}💾 Re-télécharger
+          {:else}⬇️ Télécharger sur PC{/if}
+        </button>
+
+        {#if previewFile.destination === 'maps'}
+          <button class="btn-hd-vtt" onclick={() => previewFile && loadIntoVTT(previewFile, false)}>
+            🎮 Projeter sur la Table Virtuelle
+          </button>
+          <button class="btn-hd-vtt-new" onclick={() => previewFile && loadIntoVTT(previewFile, true)} title="Créer une nouvelle scène">
+            ➕ Nouvelle Scène VTT
+          </button>
+        {/if}
       </div>
     </div>
   </div>
@@ -1294,4 +1471,141 @@
     background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
   }
   .btn-cancel:hover { background: #334155; color: #fff; }
+
+  /* ── Lightbox HD Preview ─────────────────────────────────────────────────── */
+  .btn-inspect-hd {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(15, 23, 42, 0.85); color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px;
+    padding: 2px 7px; font-size: 0.72rem; font-weight: 700;
+    cursor: pointer; opacity: 0.9; transition: all 0.15s;
+    backdrop-filter: blur(4px);
+  }
+  .btn-inspect-hd:hover {
+    background: #0284c7; color: #fff; border-color: #38bdf8;
+    transform: scale(1.05); box-shadow: 0 0 10px rgba(56,189,248,0.5);
+  }
+
+  .file-thumb-wrap {
+    cursor: pointer;
+  }
+  .file-thumb-wrap:hover .btn-inspect-hd {
+    opacity: 1;
+  }
+
+  .lightbox-overlay {
+    position: fixed; inset: 0;
+    background: rgba(2, 6, 12, 0.94);
+    backdrop-filter: blur(10px);
+    z-index: 2000;
+    display: flex; flex-direction: column;
+    color: #f1f5f9; overflow: hidden;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  .lightbox-header {
+    height: 54px; padding: 0 1.2rem;
+    background: #0b1320; border-bottom: 1px solid #1e293b;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; flex-shrink: 0; z-index: 10;
+  }
+  .lightbox-title-wrap {
+    display: flex; align-items: center; gap: 10px; overflow: hidden;
+  }
+  .lightbox-badge {
+    background: #0284c7; color: #fff; font-size: 0.68rem; font-weight: 800;
+    padding: 2px 7px; border-radius: 4px; letter-spacing: 0.5px;
+  }
+  .lightbox-filename {
+    font-size: 0.95rem; color: #f8fafc; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lightbox-subpath {
+    font-size: 0.75rem; color: #64748b; font-family: monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .lightbox-controls {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-ctrl {
+    background: #1e293b; color: #cbd5e1; border: 1px solid #334155;
+    border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: all 0.12s;
+  }
+  .btn-ctrl:hover { background: #334155; color: #fff; }
+  .zoom-level { font-size: 0.8rem; font-family: monospace; color: #38bdf8; min-width: 44px; text-align: center; }
+  .ctrl-divider { width: 1px; height: 20px; background: #334155; margin: 0 4px; }
+  .btn-lightbox-close {
+    background: #ef4444; color: #fff; border: none;
+    border-radius: 6px; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-lightbox-close:hover { background: #dc2626; }
+
+  .lightbox-viewport {
+    flex: 1; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none;
+  }
+  .lightbox-canvas {
+    transition: transform 0.05s ease-out;
+    display: flex; align-items: center; justify-content: center;
+    transform-origin: center center;
+  }
+  .lightbox-img {
+    max-width: 88vw; max-height: 80vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+
+  .lightbox-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(15, 23, 42, 0.7); color: #fff;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 50%;
+    width: 48px; height: 48px; font-size: 2rem; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s; backdrop-filter: blur(6px);
+    z-index: 20;
+  }
+  .lightbox-arrow:hover {
+    background: #0284c7; border-color: #38bdf8; transform: translateY(-50%) scale(1.1);
+  }
+  .left-arrow { left: 20px; }
+  .right-arrow { right: 20px; }
+
+  .lightbox-footer {
+    height: 56px; padding: 0 1.5rem;
+    background: #0b1320; border-top: 1px solid #1e293b;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; flex-shrink: 0; z-index: 10;
+  }
+  .badge-disk-hd { font-size: 0.8rem; color: #34d399; font-weight: 600; }
+  .badge-cloud-hd { font-size: 0.8rem; color: #38bdf8; font-weight: 600; }
+
+  .lightbox-footer-actions {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-hd-download {
+    background: #0284c7; color: #fff; border: 1px solid #38bdf8;
+    border-radius: 6px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-hd-download:hover { background: #0369a1; }
+  .btn-hd-done { background: #065f46; border-color: #10b981; color: #a7f3d0; }
+  .btn-hd-vtt {
+    background: linear-gradient(135deg, #7c3aed, #6366f1);
+    color: #fff; border: 1px solid #a78bfa;
+    border-radius: 6px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-hd-vtt:hover { background: linear-gradient(135deg, #6d28d9, #4f46e5); box-shadow: 0 0 14px rgba(124,58,237,0.4); }
+  .btn-hd-vtt-new {
+    background: #1e293b; color: #c4b5fd; border: 1px solid #6d28d9;
+    border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-hd-vtt-new:hover { background: #2e1065; color: #fff; }
 </style>
