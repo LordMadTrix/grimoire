@@ -128,11 +128,13 @@ pub async fn tts_synthesize_neural(
         .await
         .map_err(|e| format!("Erreur envoi config : {e}"))?;
 
-    // 2. Envoyer le texte SSML
-    let escaped_text = escape_xml(clean_text);
+    // 2. Envoyer le texte SSML avec pauses naturelles
+    let escaped_text = escape_xml(clean_text)
+        .replace("\n\n", "<break time='350ms'/>\n")
+        .replace('\n', " ");
     let req_id = Uuid::new_v4().simple().to_string();
     let ssml = format!(
-        "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='fr-FR'><voice name='{voice_id}'><prosody pitch='{pitch_str}' rate='{rate_str}'>{escaped_text}</prosody></voice></speak>"
+        "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='fr-FR'><voice name='{voice_id}'><prosody pitch='{pitch_str}' rate='{rate_str}'>{escaped_text}</prosody></voice></speak>"
     );
 
     let ssml_msg = format!(

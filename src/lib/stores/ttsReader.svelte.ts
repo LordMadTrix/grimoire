@@ -4,6 +4,7 @@
 // fallback automatique sur les voix locales hors-ligne.
 
 import { NEURAL_VOICES, synthesizeNeuralSpeech, type NeuralVoice } from '$lib/services/edgeTts';
+import { clusterTextIntoNaturalSentences, formatTextForNaturalSpeech } from '$lib/services/naturalSpeech';
 
 export interface VoiceOption {
   name: string;
@@ -104,22 +105,10 @@ class TtsReaderStore {
   }
 
   /**
-   * Découpe un texte brut en phrases intelligentes pour le surlignage et la lecture séquentielle
+   * Découpe intelligemment le texte en blocs de narration cohérents et mélodiques
    */
   splitIntoSentences(text: string): string[] {
-    const clean = text
-      .replace(/\r\n/g, '\n')
-      .replace(/(\w)-\n(\w)/g, '$1$2') // Réparer les césures de mots de PDF
-      .replace(/\n\n+/g, ' § ')
-      .replace(/\n/g, ' ')
-      .trim();
-
-    if (!clean) return [];
-
-    const rawSentences = clean.split(/(?<=[.?!;:])\s+/);
-    return rawSentences
-      .map(s => s.replace(/§/g, '\n\n').trim())
-      .filter(s => s.length > 0);
+    return clusterTextIntoNaturalSentences(text);
   }
 
   /**
