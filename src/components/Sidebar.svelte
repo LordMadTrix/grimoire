@@ -483,7 +483,8 @@
           class="tree-item"
           class:active={isActive}
           class:directory={entry.is_dir}
-          class:non-editable={!entry.is_dir && entry.extension !== 'md' && !isImage(entry)}
+          class:book-pdf={entry.extension?.toLowerCase() === 'pdf'}
+          class:non-editable={!entry.is_dir && entry.extension !== 'md' && entry.extension?.toLowerCase() !== 'pdf' && !isImage(entry)}
           class:map-image={isImage(entry) && entry.path.startsWith('assets/maps/')}
           class:draggable-token={isImage(entry)}
           draggable={isImage(entry)}

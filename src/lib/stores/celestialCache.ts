@@ -36,9 +36,9 @@ let memoryCache: CelestialData | null = null;
 
 // IndexedDB Helper
 const DB_NAME = 'GrimoireCelestialDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'celestial_store';
-const KEY_DATA = 'catalog_v3';
+const KEY_DATA = 'catalog_v4';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -85,11 +85,11 @@ async function saveToIndexedDB(data: CelestialData): Promise<void> {
 
 export function detectDestination(path: string): string {
   const clean = path.replace(/\\/g, '/').toLowerCase();
-  if (clean.endsWith('.pdf') || clean.includes('/livres/') || clean.includes('/books/') || clean.includes('/scenarios/') || clean.includes('/pdf/') || clean.startsWith('livres/') || clean.startsWith('books/') || clean.startsWith('pdf/')) {
+  if (clean.endsWith('.pdf') || clean.includes('/pdf') || clean.includes('/livres') || clean.includes('/books') || clean.includes('/scenarios') || clean.startsWith('pdf') || clean.startsWith('livres') || clean.startsWith('books')) {
     return 'books';
   }
-  if (clean.startsWith('textures/')) return 'tiles/custom';
-  if (clean.startsWith('stamps/') || clean.startsWith('tokens/')) return 'tokens';
+  if (clean.includes('/textures') || clean.startsWith('textures')) return 'tiles/custom';
+  if (clean.includes('/stamps') || clean.includes('/tokens') || clean.startsWith('stamps') || clean.startsWith('tokens')) return 'tokens';
   return 'maps';
 }
 
@@ -104,7 +104,11 @@ export function buildCelestialTree(files: DriveFile[]): TreeNode {
   };
 
   for (const f of files) {
-    const p = f.path.replace(/\\/g, '/').replace(/^\/+/, '');
+    let p = f.path.replace(/\\/g, '/').replace(/^\/+/, '');
+    // Nettoyer le préfixe racine redondant "assets/" si présent
+    if (p.toLowerCase().startsWith('assets/')) {
+      p = p.slice(7);
+    }
     const parts = p.split('/');
     const folderParts = parts.slice(0, -1);
 
@@ -118,8 +122,19 @@ export function buildCelestialTree(files: DriveFile[]): TreeNode {
 
       if (!curr.subfolders[folderName]) {
         const dest = detectDestination(curPath + (f.filename ? '/' + f.filename : ''));
+        let displayName = folderName;
+        if (folderName.toLowerCase() === 'pdf' || folderName.toLowerCase() === 'books' || folderName.toLowerCase() === 'livres') {
+          displayName = '📚 Livres & Grimoires PDF';
+        } else if (folderName.toLowerCase() === 'maps') {
+          displayName = '🗺️ Cartes de Bataille';
+        } else if (folderName.toLowerCase() === 'textures') {
+          displayName = '🧱 Textures';
+        } else if (folderName.toLowerCase() === 'stamps' || folderName.toLowerCase() === 'tokens') {
+          displayName = '🎨 Tampons & Tokens';
+        }
+
         curr.subfolders[folderName] = {
-          name: folderName,
+          name: displayName,
           path: curPath,
           subfolders: {},
           files: [],
@@ -167,14 +182,18 @@ export async function getCelestialCatalog(forceRefresh = false): Promise<Celesti
       const p = item[1];
       const name = item[2];
       const filename = p.split('/').pop() || name;
-      const parts = p.split('/');
-      const dest = detectDestination(p);
+      let cleanP = p.replace(/\\/g, '/').replace(/^\/+/, '');
+      if (cleanP.toLowerCase().startsWith('assets/')) {
+        cleanP = cleanP.slice(7);
+      }
+      const parts = cleanP.split('/');
+      const dest = detectDestination(cleanP);
 
       collected.push({
         id,
         name,
         filename,
-        path: p,
+        path: cleanP,
         category: parts[1] || (dest === 'books' ? 'Livres & Scénarios' : 'Général'),
         destination: dest,
         subfolder: parts.slice(0, -1).join('/'),

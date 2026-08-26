@@ -597,22 +597,22 @@
             <button class="nav-pill" class:active-pill={currentPath === 'maps'} onclick={() => { currentPath = 'maps'; searchQuery = ''; }}>
               🗺️ Cartes ({rootTree.subfolders['maps']?.totalFiles ?? 0})
             </button>
-            <button class="nav-pill" class:active-pill={currentPath === 'textures'} onclick={() => { currentPath = 'textures'; searchQuery = ''; }}>
-              🧱 Textures ({rootTree.subfolders['textures']?.totalFiles ?? 0})
-            </button>
-            <button class="nav-pill" class:active-pill={currentPath === 'stamps'} onclick={() => { currentPath = 'stamps'; searchQuery = ''; }}>
-              🎨 Tampons ({rootTree.subfolders['stamps']?.totalFiles ?? 0})
-            </button>
-            <button class="nav-pill" class:active-pill={currentPath === 'books' || currentPath === 'livres' || currentPath === 'pdf' || searchQuery === '.pdf'} onclick={() => {
-              if (rootTree.subfolders['books']) { currentPath = 'books'; searchQuery = ''; }
+            <button class="nav-pill" class:active-pill={currentPath === 'PDF' || currentPath === 'books' || currentPath === 'livres' || searchQuery === '.pdf'} onclick={() => {
+              if (rootTree.subfolders['PDF']) { currentPath = 'PDF'; searchQuery = ''; }
+              else if (rootTree.subfolders['books']) { currentPath = 'books'; searchQuery = ''; }
               else if (rootTree.subfolders['livres']) { currentPath = 'livres'; searchQuery = ''; }
-              else if (rootTree.subfolders['pdf']) { currentPath = 'pdf'; searchQuery = ''; }
               else { currentPath = ''; searchQuery = '.pdf'; }
             }}>
               📚 Livres & PDF ({booksCount})
             </button>
+            <button class="nav-pill" class:active-pill={currentPath === 'textures'} onclick={() => { currentPath = 'textures'; searchQuery = ''; }}>
+              🧱 Textures ({rootTree.subfolders['textures']?.totalFiles ?? 0})
+            </button>
+            <button class="nav-pill" class:active-pill={currentPath === 'stamps' || currentPath === 'tokens'} onclick={() => { currentPath = rootTree.subfolders['stamps'] ? 'stamps' : 'tokens'; searchQuery = ''; }}>
+              🎨 Tampons ({rootTree.subfolders['stamps']?.totalFiles ?? (rootTree.subfolders['tokens']?.totalFiles ?? 0)})
+            </button>
             <button class="nav-pill" class:active-pill={currentPath === '' && !searchQuery} onclick={() => { currentPath = ''; searchQuery = ''; }}>
-              🌌 Toutes les Archives
+              🌌 Toutes les Archives ({rootTree.totalFiles})
             </button>
           </div>
 
