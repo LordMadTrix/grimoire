@@ -250,7 +250,7 @@ pub fn addon_check_installed_files(app: AppHandle, destination: String) -> Resul
     Ok(files)
 }
 
-/// Télécharge un fichier individuel depuis Google Drive et l'enregistre dans son arborescence de sous-dossiers
+/// Télécharge un fichier individuel depuis Google Drive et l'enregistre dans son arborescence de sous-dossiers (dans le Vault actif et public/)
 #[command]
 pub async fn addon_download_file(
     app: AppHandle,
@@ -260,8 +260,19 @@ pub async fn addon_download_file(
     subfolder: Option<String>,
     url: Option<String>,
     rel_path: Option<String>,
+    vault_path: Option<String>,
 ) -> Result<String, String> {
-    let base_dir = resolve_public_dir(&app, &destination)?;
+    let base_dir = if let Some(ref vp) = vault_path {
+        if !vp.trim().is_empty() {
+            let v_dest = PathBuf::from(vp).join("assets").join(&destination);
+            let _ = std::fs::create_dir_all(&v_dest);
+            v_dest
+        } else {
+            resolve_public_dir(&app, &destination)?
+        }
+    } else {
+        resolve_public_dir(&app, &destination)?
+    };
     
     // Déterminer le chemin relatif exact en préservant tous les sous-dossiers
     let target_rel = if let Some(ref p) = rel_path {
@@ -294,6 +305,15 @@ pub async fn addon_download_file(
     let bytes = fetch_google_drive_bytes(&client, &file_id, url.as_deref()).await?;
     std::fs::write(&target_path, &bytes).map_err(|e| format!("Erreur écriture fichier : {e}"))?;
 
+    // Copie miroir dans public/ pour la VTT
+    if let Ok(public_dir) = resolve_public_dir(&app, &destination) {
+        let pub_target = public_dir.join(&target_rel);
+        if let Some(p) = pub_target.parent() {
+            let _ = std::fs::create_dir_all(p);
+        }
+        let _ = std::fs::write(&pub_target, &bytes);
+    }
+
     let rel_str = target_rel.to_string_lossy().replace('\\', "/");
 
     // Enregistrer dans le registre local
@@ -323,7 +343,7 @@ pub async fn addon_download_file(
     Ok(rel_str)
 }
 
-/// Télécharge un pack ou un sous-dossier complet depuis Google Drive en recréant toute l'arborescence de sous-dossiers
+/// Télécharge un pack ou un sous-dossier complet depuis Google Drive en recréant toute l'arborescence de sous-dossiers (dans le Vault actif et public/)
 #[command]
 pub async fn addon_download_pack(
     app: AppHandle,
@@ -332,13 +352,26 @@ pub async fn addon_download_pack(
     destination: String,
     subfolder: Option<String>,
     files: Vec<DriveFileItem>,
+    vault_path: Option<String>,
 ) -> Result<InstalledAddon, String> {
     if files.is_empty() {
         return Err("Aucun fichier dans ce pack.".to_string());
     }
 
-    let base_dir = resolve_public_dir(&app, &destination)?;
+    let base_dir = if let Some(ref vp) = vault_path {
+        if !vp.trim().is_empty() {
+            let v_dest = PathBuf::from(vp).join("assets").join(&destination);
+            let _ = std::fs::create_dir_all(&v_dest);
+            v_dest
+        } else {
+            resolve_public_dir(&app, &destination)?
+        }
+    } else {
+        resolve_public_dir(&app, &destination)?
+    };
+
     std::fs::create_dir_all(&base_dir).map_err(|e| e.to_string())?;
+    let pub_dir = resolve_public_dir(&app, &destination).ok();
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(45))
@@ -374,6 +407,13 @@ pub async fn addon_download_pack(
         if !target_path.exists() {
             if let Ok(bytes) = fetch_google_drive_bytes(&client, &file_item.id, file_item.url.as_deref()).await {
                 let _ = std::fs::write(&target_path, &bytes);
+                if let Some(ref p_dir) = pub_dir {
+                    let pub_target = p_dir.join(&target_rel);
+                    if let Some(p) = pub_target.parent() {
+                        let _ = std::fs::create_dir_all(p);
+                    }
+                    let _ = std::fs::write(&pub_target, &bytes);
+                }
             }
         }
 

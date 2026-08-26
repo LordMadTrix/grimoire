@@ -3,6 +3,8 @@
   import { listen } from '@tauri-apps/api/event';
   import { open } from '@tauri-apps/plugin-dialog';
   import { onMount, onDestroy } from 'svelte';
+  import { openVault } from '$lib/api';
+  import { getVaultPath, setVaultTree } from '$lib/stores/vault.svelte';
   import { addMapScene, replaceActiveScene } from '$lib/stores/vtt.svelte';
   import { getCelestialCatalog, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
 
@@ -306,11 +308,13 @@
     progress = { ...progress };
 
     try {
+      const vp = getVaultPath();
       const result = await invoke<InstalledAddon>('addon_download_pack', {
         packId,
         packName: node.name || 'Dossier Drive',
         destination: node.destination,
         subfolder: node.path,
+        vaultPath: vp || undefined,
         files: allFiles.map(f => ({
           id: f.id,
           name: f.name,
@@ -327,6 +331,14 @@
 
       installed = [...installed.filter(i => i.id !== result.id), result];
       await loadInstalled();
+      if (vp) {
+        try {
+          const tree = await openVault(vp);
+          setVaultTree(tree);
+        } catch (treeErr) {
+          console.warn('Erreur rafraîchissement coffre:', treeErr);
+        }
+      }
       showToast(`✅ Dossier "${node.name}" téléchargé avec succès (${result.files.length} fichiers) !`);
     } catch (e) {
       alert(`Erreur lors du téléchargement du dossier "${node.name}" : ${e}`);
@@ -341,16 +353,26 @@
     downloadingFiles = new Set([...downloadingFiles, file.id]);
     showToast(`⏳ Téléchargement de "${file.name}" en cours…`);
     try {
+      const vp = getVaultPath();
       const relPath = await invoke<string>('addon_download_file', {
         fileId: file.id,
         filename: file.filename,
         destination: file.destination,
         subfolder: file.subfolder,
         url: file.highResUrl || file.url,
-        relPath: file.path
+        relPath: file.path,
+        vaultPath: vp || undefined
       });
       await loadInstalled();
-      showToast(`✅ "${file.name}" enregistré avec succès sur votre PC !`);
+      if (vp) {
+        try {
+          const tree = await openVault(vp);
+          setVaultTree(tree);
+        } catch (treeErr) {
+          console.warn('Erreur rafraîchissement coffre:', treeErr);
+        }
+      }
+      showToast(`✅ "${file.name}" enregistré dans votre coffre (${file.destination}) !`);
     } catch (e) {
       console.error('Erreur téléchargement fichier:', e);
       showToast(`⚠️ Échec du téléchargement : ${e}`);
@@ -366,15 +388,23 @@
       // Si le fichier n'est pas encore sur le PC, le télécharger localement pour garantir 0 erreur PixiJS et 0 latence
       if (!isFileOnDisk(file)) {
         try {
+          const vp = getVaultPath();
           const relPath = await invoke<string>('addon_download_file', {
             fileId: file.id,
             filename: file.filename,
             destination: file.destination,
             subfolder: file.subfolder,
             url: file.highResUrl || file.url,
-            relPath: file.path
+            relPath: file.path,
+            vaultPath: vp || undefined
           });
           await loadInstalled();
+          if (vp) {
+            try {
+              const tree = await openVault(vp);
+              setVaultTree(tree);
+            } catch {}
+          }
           src = `/${file.destination}/${relPath}`;
         } catch (dlErr) {
           console.warn('Téléchargement local échoué, fallback streaming:', dlErr);
