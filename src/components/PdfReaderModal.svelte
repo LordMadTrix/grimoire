@@ -4,6 +4,7 @@
   import * as pdfjsLib from 'pdfjs-dist';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import { readFileBase64 } from '$lib/api';
+  import { extractTextFromCanvas } from '$lib/services/ocrService';
 
   // Configurer le worker PDF.js (localisé pour Vite)
   if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -44,6 +45,8 @@
   let error = $state('');
   let currentPageText = $state('');
   let customNarrationText = $state('');
+  let isScannedPage = $state(false);
+  let isOcrRunning = $state(false);
   let outline = $state<any[]>([]);
   let searchQuery = $state('');
   let searchResults = $state<{ page: number; snippet: string }[]>([]);
@@ -192,13 +195,22 @@
       if (pageNum === currentPage) {
         try {
           const textContent = await page.getTextContent();
-          currentPageText = textContent.items
+          const extracted = textContent.items
             .map((item: any) => item.str || '')
             .join(' ')
             .replace(/\s+/g, ' ')
             .trim();
+
+          if (extracted.length > 5) {
+            currentPageText = extracted;
+            isScannedPage = false;
+          } else {
+            currentPageText = '';
+            isScannedPage = true;
+          }
         } catch {
           currentPageText = '';
+          isScannedPage = true;
         }
       }
     } catch (err) {
@@ -293,13 +305,40 @@
     isSearching = false;
   }
 
+  // ── Reconnaissance Optique de Caractères (OCR pour pages scannées) ──
+  async function runOcrOnCurrentPage() {
+    if (!canvasEl) return;
+    isOcrRunning = true;
+    try {
+      const text = await extractTextFromCanvas(canvasEl);
+      if (text && text.trim().length > 0) {
+        currentPageText = text;
+        isScannedPage = false;
+        ttsReader.speakText(text);
+      } else {
+        alert('Aucun texte lisible n\'a pu être extrait de cette image.');
+      }
+    } catch (e) {
+      console.error('Erreur OCR:', e);
+    } finally {
+      isOcrRunning = false;
+    }
+  }
+
   // ── Contrôles Vocaux TTS ──
-  function handleTtsToggle() {
+  async function handleTtsToggle() {
     if (ttsReader.isPlaying) {
       if (ttsReader.isPaused) ttsReader.resume();
       else ttsReader.pause();
     } else {
-      ttsReader.speakText(currentPageText || 'Aucun texte détecté sur cette page.');
+      if (currentPageText && currentPageText.trim().length > 0) {
+        ttsReader.speakText(currentPageText);
+      } else if (canvasEl) {
+        // Déclenchement automatique de l'OCR pour les vieux scans de JDR sans texte brut
+        await runOcrOnCurrentPage();
+      } else {
+        alert('Aucun texte détecté sur cette page.');
+      }
     }
   }
 </script>
@@ -352,11 +391,17 @@
       <button
         class="btn-tts-play"
         class:btn-tts-playing={ttsReader.isPlaying}
+        class:btn-tts-ocr={isOcrRunning}
         onclick={handleTtsToggle}
-        title={ttsReader.isPlaying ? (ttsReader.isPaused ? 'Reprendre la lecture vocale' : 'Mettre en pause la voix') : 'Lire cette page à voix haute'}
+        disabled={isOcrRunning}
+        title={isOcrRunning ? 'Reconnaissance optique du texte en cours…' : ttsReader.isPlaying ? (ttsReader.isPaused ? 'Reprendre la lecture vocale' : 'Mettre en pause la voix') : (isScannedPage && !currentPageText ? 'Analyser le scan (OCR) et lire à haute voix' : 'Lire cette page à voix haute')}
       >
-        {#if ttsReader.isPlaying}
+        {#if isOcrRunning}
+          ⏳ Analyse OCR…
+        {:else if ttsReader.isPlaying}
           {ttsReader.isPaused ? '▶️ Reprendre' : '⏸️ Pause'}
+        {:else if isScannedPage && !currentPageText}
+          🔍 OCR & Lire Page {currentPage}
         {:else}
           🗣️ Lire Page {currentPage}
         {/if}
@@ -449,7 +494,13 @@
                 {/if}
               </div>
 
-              {#if ttsReader.sentences.length > 0}
+              {#if isOcrRunning}
+                <div class="ocr-loading-card">
+                  <span class="ocr-spinner">⏳</span>
+                  <strong>Reconnaissance de texte (OCR) en cours…</strong>
+                  <span class="ocr-sub">Lecture et extraction des caractères de la page numérisée…</span>
+                </div>
+              {:else if ttsReader.sentences.length > 0}
                 <div class="sentences-list">
                   {#each ttsReader.sentences as sentence, idx}
                     <button
@@ -466,8 +517,12 @@
               {:else if currentPageText}
                 <p class="raw-page-text">{currentPageText}</p>
               {:else}
-                <div class="sidebar-empty">
-                  <span>📷 Cette page est une image/scan sans couche texte OCR intégrée.</span>
+                <div class="ocr-banner">
+                  <div class="ocr-banner-title">📷 Page Numérisée (Scan sans texte natif)</div>
+                  <p class="ocr-banner-desc">Ce livre ancien est composé d'images scannées. Cliquez ci-dessous pour analyser le texte et lancer la lecture vocale.</p>
+                  <button class="btn-run-ocr" onclick={runOcrOnCurrentPage} disabled={isOcrRunning}>
+                    🔍 Extraire le texte de la page (OCR) & Lire
+                  </button>
                 </div>
               {/if}
 
@@ -690,6 +745,30 @@
     border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.25);
   }
   .raw-page-text { font-size: 0.8rem; line-height: 1.5; color: #94a3b8; white-space: pre-wrap; }
+
+  /* OCR Styles */
+  .btn-tts-ocr { background: #d97706 !important; border-color: #f59e0b !important; animation: pulseGlow 1.5s infinite; }
+  .ocr-loading-card {
+    background: #1e1b4b; border: 1px solid #6366f1; border-radius: 8px;
+    padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .ocr-spinner { font-size: 1.8rem; animation: spin 2s linear infinite; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .ocr-sub { font-size: 0.72rem; color: #c7d2fe; }
+  
+  .ocr-banner {
+    background: #111827; border: 1px dashed #d97706; border-radius: 8px;
+    padding: 12px; display: flex; flex-direction: column; gap: 6px; text-align: left;
+  }
+  .ocr-banner-title { font-size: 0.8rem; font-weight: 700; color: #fbbf24; }
+  .ocr-banner-desc { font-size: 0.74rem; color: #94a3b8; margin: 0; line-height: 1.35; }
+  .btn-run-ocr {
+    background: linear-gradient(135deg, #d97706, #b45309); border: 1px solid #f59e0b;
+    border-radius: 6px; color: #fff; font-size: 0.76rem; font-weight: 700;
+    padding: 6px 12px; cursor: pointer; transition: all 0.15s; margin-top: 4px;
+  }
+  .btn-run-ocr:hover:not(:disabled) { background: linear-gradient(135deg, #b45309, #92400e); box-shadow: 0 0 12px rgba(245,158,11,0.4); }
+  .btn-run-ocr:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* Custom Narration */
   .custom-narration-box {

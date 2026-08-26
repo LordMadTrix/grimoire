@@ -41,6 +41,7 @@
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "pdfjs-dist": "^6.2.108",
-    "pixi.js": "^8.18.1"
+    "pixi.js": "^8.18.1",
+    "tesseract.js": "^7.0.0"
   }
 }
