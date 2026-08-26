@@ -1,79 +1,99 @@
-// ── TTS Voice Reader Engine (Web Speech API + Reactive Svelte 5 Store) ────────
-// Permet la lecture vocale fluide, hors-ligne et gratuite de tout texte/page PDF
-// avec surlignage de phrases en temps réel, réglage du débit et sélection des voix.
+// ── TTS Voice Reader Engine (IA Neuronale HD + Fallback Web Speech) ───────────
+// Permet la lecture vocale fluide, ultra-réaliste et naturelle (Microsoft Azure Neural AI)
+// avec surlignage de phrases en temps réel, pré-chargement en arrière-plan et
+// fallback automatique sur les voix locales hors-ligne.
+
+import { NEURAL_VOICES, synthesizeNeuralSpeech, type NeuralVoice } from '$lib/services/edgeTts';
 
 export interface VoiceOption {
   name: string;
   lang: string;
-  isDefault: boolean;
+  isAi?: boolean;
+  aiId?: string;
+  personality?: string;
 }
 
 class TtsReaderStore {
   synth: SpeechSynthesis | null = null;
+  
   availableVoices = $state<VoiceOption[]>([]);
-  selectedVoiceName = $state<string>('');
+  selectedVoiceName = $state<string>('fr-FR-HenriNeural'); // Voix IA Henri Narrateur par défaut
   
   isPlaying = $state<boolean>(false);
   isPaused = $state<boolean>(false);
-  rate = $state<number>(1.0); // 0.75 à 1.5
+  isLoadingAudio = $state<boolean>(false);
+  rate = $state<number>(1.0);
   pitch = $state<number>(1.0);
   
   currentFullText = $state<string>('');
   sentences = $state<string[]>([]);
   currentSentenceIndex = $state<number>(-1);
 
+  // Audio HTML5 pour les voix neuronales IA
+  private currentAudio: HTMLAudioElement | null = null;
+  private currentBlobUrl: string | null = null;
+  private preloadedUrls = new Map<number, string>();
+  private abortController: AbortController | null = null;
+
   constructor() {
+    this.buildVoiceList();
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       this.synth = window.speechSynthesis;
-      this.initVoices();
       if (this.synth.onvoiceschanged !== undefined) {
-        this.synth.onvoiceschanged = () => this.initVoices();
+        this.synth.onvoiceschanged = () => this.buildVoiceList();
       }
-      // Réessayer après un court délai pour WebView2 sur Windows
-      setTimeout(() => this.initVoices(), 300);
-      setTimeout(() => this.initVoices(), 1000);
+      setTimeout(() => this.buildVoiceList(), 500);
+      setTimeout(() => this.buildVoiceList(), 1500);
     }
   }
 
-  initVoices() {
-    if (!this.synth) return;
-    const all = this.synth.getVoices();
-    if (!all || all.length === 0) return;
+  buildVoiceList() {
+    const list: VoiceOption[] = [];
 
-    // Priorité aux voix françaises puis anglaises
-    const sorted = [...all].sort((a, b) => {
-      const aFr = a.lang.toLowerCase().startsWith('fr');
-      const bFr = b.lang.toLowerCase().startsWith('fr');
-      if (aFr && !bFr) return -1;
-      if (!aFr && bFr) return 1;
-      return a.name.localeCompare(b.name);
-    });
+    // 1. Ajouter toutes les voix neuronales IA Ultra-Réalistes
+    for (const nv of NEURAL_VOICES) {
+      list.push({
+        name: nv.name,
+        lang: nv.lang,
+        isAi: true,
+        aiId: nv.id,
+        personality: nv.personality
+      });
+    }
 
-    this.availableVoices = sorted.map(v => ({
-      name: v.name,
-      lang: v.lang,
-      isDefault: v.default
-    }));
+    // 2. Ajouter les voix locales de l'ordinateur (SAPI/Web Speech)
+    if (this.synth) {
+      const systemVoices = this.synth.getVoices() || [];
+      const frVoices = systemVoices.filter(v => v.lang.toLowerCase().startsWith('fr'));
+      const otherVoices = systemVoices.filter(v => !v.lang.toLowerCase().startsWith('fr'));
 
-    if (!this.selectedVoiceName || !sorted.some(v => v.name === this.selectedVoiceName)) {
-      const bestFr = sorted.find(v => v.lang.toLowerCase().startsWith('fr')) || sorted[0];
-      if (bestFr) this.selectedVoiceName = bestFr.name;
+      for (const sv of [...frVoices, ...otherVoices]) {
+        list.push({
+          name: `💻 ${sv.name} (${sv.lang})`,
+          lang: sv.lang,
+          isAi: false
+        });
+      }
+    }
+
+    this.availableVoices = list;
+
+    // Définir la voix par défaut sur Henri Narrateur IA si pas encore défini
+    if (!this.selectedVoiceName || !list.some(v => v.aiId === this.selectedVoiceName || v.name === this.selectedVoiceName)) {
+      this.selectedVoiceName = 'fr-FR-HenriNeural';
     }
   }
 
   setRate(newRate: number) {
     this.rate = Math.max(0.5, Math.min(2.0, newRate));
-    if (this.isPlaying && !this.isPaused) {
-      const curIdx = this.currentSentenceIndex;
-      this.stop();
-      if (curIdx >= 0 && curIdx < this.sentences.length) {
-        this.speakFromSentence(curIdx);
-      }
+    if (this.currentAudio) {
+      this.currentAudio.playbackRate = this.rate;
     }
   }
 
-  setVoice(voiceName: string) {
-    this.selectedVoiceName = voiceName;
+  setVoice(voiceKey: string) {
+    this.selectedVoiceName = voiceKey;
     if (this.isPlaying && !this.isPaused) {
       const curIdx = this.currentSentenceIndex;
       this.stop();
@@ -90,7 +110,7 @@ class TtsReaderStore {
     const clean = text
       .replace(/\r\n/g, '\n')
       .replace(/(\w)-\n(\w)/g, '$1$2') // Réparer les césures de mots de PDF
-      .replace(/\n\n+/g, ' § ') // Marqueur de paragraphe
+      .replace(/\n\n+/g, ' § ')
       .replace(/\n/g, ' ')
       .trim();
 
@@ -107,10 +127,6 @@ class TtsReaderStore {
    */
   speakText(text: string) {
     this.stop();
-    if (!this.synth) {
-      console.warn('SpeechSynthesis non disponible.');
-      return;
-    }
 
     const sentences = this.splitIntoSentences(text);
     if (sentences.length === 0) return;
@@ -120,23 +136,81 @@ class TtsReaderStore {
     this.currentSentenceIndex = 0;
     this.isPlaying = true;
     this.isPaused = false;
-
-    // Débloquer l'audio WebView2
-    try {
-      this.synth.resume();
-    } catch {}
+    this.preloadedUrls.clear();
 
     this.speakFromSentence(0);
   }
 
-  private speakFromSentence(index: number) {
-    if (!this.synth || index >= this.sentences.length) {
+  private async speakFromSentence(index: number) {
+    if (index >= this.sentences.length || !this.isPlaying) {
       this.stop();
       return;
     }
 
     this.currentSentenceIndex = index;
     const sentenceText = this.sentences[index];
+    const selectedVoice = this.availableVoices.find(
+      v => v.aiId === this.selectedVoiceName || v.name === this.selectedVoiceName
+    );
+
+    // ── Cas 1 : Voix Neuronale IA Ultra-Réaliste ──
+    if (selectedVoice?.isAi && selectedVoice.aiId) {
+      this.isLoadingAudio = true;
+      try {
+        let audioUrl = this.preloadedUrls.get(index);
+
+        if (!audioUrl) {
+          audioUrl = await synthesizeNeuralSpeech(sentenceText, selectedVoice.aiId, this.rate, this.pitch);
+        }
+
+        if (!this.isPlaying || this.currentSentenceIndex !== index) return;
+
+        this.isLoadingAudio = false;
+        this.cleanupAudio();
+
+        const audio = new Audio(audioUrl);
+        audio.playbackRate = this.rate;
+        this.currentAudio = audio;
+        this.currentBlobUrl = audioUrl;
+
+        // Pré-charger la phrase suivante en arrière-plan pour une fluidité absolue
+        if (index + 1 < this.sentences.length && !this.preloadedUrls.has(index + 1)) {
+          synthesizeNeuralSpeech(this.sentences[index + 1], selectedVoice.aiId, this.rate, this.pitch)
+            .then(nextUrl => {
+              if (this.isPlaying) this.preloadedUrls.set(index + 1, nextUrl);
+            })
+            .catch(() => {});
+        }
+
+        audio.onended = () => {
+          if (this.isPlaying && !this.isPaused) {
+            this.speakFromSentence(index + 1);
+          }
+        };
+
+        audio.onerror = (e) => {
+          console.warn('Erreur lecture audio IA:', e);
+          if (this.isPlaying) this.speakFromSentence(index + 1);
+        };
+
+        await audio.play();
+      } catch (err) {
+        console.warn('Synthèse vocale IA échouée, bascule sur voix système...', err);
+        this.isLoadingAudio = false;
+        // Fallback local Web Speech si pas de connexion internet
+        this.speakWithWebSpeech(sentenceText, index);
+      }
+    } else {
+      // ── Cas 2 : Voix Système Locale ──
+      this.speakWithWebSpeech(sentenceText, index);
+    }
+  }
+
+  private speakWithWebSpeech(sentenceText: string, index: number) {
+    if (!this.synth) {
+      this.stop();
+      return;
+    }
 
     const utterance = new SpeechSynthesisUtterance(sentenceText);
     utterance.rate = this.rate;
@@ -145,7 +219,7 @@ class TtsReaderStore {
 
     if (this.selectedVoiceName) {
       const all = this.synth.getVoices();
-      const matched = all.find(v => v.name === this.selectedVoiceName);
+      const matched = all.find(v => v.name === this.selectedVoiceName || `💻 ${v.name} (${v.lang})` === this.selectedVoiceName);
       if (matched) {
         utterance.voice = matched;
         utterance.lang = matched.lang || 'fr-FR';
@@ -173,44 +247,62 @@ class TtsReaderStore {
       }
     };
 
-    // Empêcher le Garbage Collector de couper la parole dans Chromium/WebView2
     if (typeof window !== 'undefined') {
       (window as any).__grimoire_tts_utterance = utterance;
     }
 
     try {
-      this.synth.speak(utterance);
       this.synth.resume();
+      this.synth.speak(utterance);
     } catch (e) {
       console.error('Erreur speak:', e);
     }
   }
 
   pause() {
-    if (!this.synth || !this.isPlaying) return;
-    try {
-      this.synth.pause();
-    } catch {}
+    if (!this.isPlaying) return;
     this.isPaused = true;
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+    } else if (this.synth) {
+      this.synth.pause();
+    }
   }
 
   resume() {
-    if (!this.synth || !this.isPlaying) return;
-    try {
-      this.synth.resume();
-    } catch {}
+    if (!this.isPlaying) return;
     this.isPaused = false;
+    if (this.currentAudio) {
+      this.currentAudio.play().catch(() => {});
+    } else if (this.synth) {
+      this.synth.resume();
+    }
   }
 
   stop() {
+    this.isPlaying = false;
+    this.isPaused = false;
+    this.isLoadingAudio = false;
+    this.currentSentenceIndex = -1;
+
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    this.cleanupAudio();
+
     if (this.synth) {
       try {
         this.synth.cancel();
       } catch {}
     }
-    this.isPlaying = false;
-    this.isPaused = false;
-    this.currentSentenceIndex = -1;
+  }
+
+  private cleanupAudio() {
+    if (this.currentBlobUrl) {
+      URL.revokeObjectURL(this.currentBlobUrl);
+      this.currentBlobUrl = null;
+    }
   }
 }
 

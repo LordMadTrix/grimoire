@@ -387,11 +387,20 @@
           class="tts-voice-select"
           value={ttsReader.selectedVoiceName}
           onchange={(e) => ttsReader.setVoice((e.target as HTMLSelectElement).value)}
-          title="Choix de la voix"
+          title="Choix de la voix IA / Système"
         >
-          {#each ttsReader.availableVoices as v}
-            <option value={v.name}>{v.name.slice(0, 18)} ({v.lang})</option>
-          {/each}
+          <optgroup label="✨ Voix IA Neuronales HD (Ultra-Réalistes)">
+            {#each ttsReader.availableVoices.filter(v => v.isAi) as v}
+              <option value={v.aiId || v.name}>{v.name}</option>
+            {/each}
+          </optgroup>
+          {#if ttsReader.availableVoices.some(v => !v.isAi)}
+            <optgroup label="💻 Voix Système (Hors-ligne)">
+              {#each ttsReader.availableVoices.filter(v => !v.isAi) as v}
+                <option value={v.name}>{v.name}</option>
+              {/each}
+            </optgroup>
+          {/if}
         </select>
       {/if}
     </div>
@@ -636,7 +645,7 @@
     background: #1e293b; border: 1px solid #334155; border-radius: 4px;
     color: #cbd5e1; font-size: 0.72rem; padding: 2px 4px;
   }
-  .tts-voice-select { max-width: 140px; }
+  .tts-voice-select { max-width: 230px; text-overflow: ellipsis; }
 
   .pdf-header-right { display: flex; align-items: center; gap: 8px; }
   .btn-close {
