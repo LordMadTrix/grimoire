@@ -95,27 +95,107 @@ pub fn sanitize_relative_path(path_str: &str) -> PathBuf {
 
 /// Résout le dossier public/ du projet Grimoire depuis l'exe Tauri.
 /// En dev : <project_root>/public/<dest>
-/// En prod : <resource_dir>/public/<dest> (ou à côté de l'exe si packagé)
+/// En prod : <app_data_dir>/public/<dest> (toujours accessible en écriture sans droits admin)
 pub(crate) fn resolve_public_dir(app: &AppHandle, destination: &str) -> Result<PathBuf, String> {
-    let base = app.path().resource_dir().map_err(|e| e.to_string())?;
-    let candidate = base.join("public").join(destination);
-    if candidate.exists() || cfg!(debug_assertions) {
-        if cfg!(debug_assertions) {
-            let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-            if let Some(p) = exe.ancestors().nth(3) {
-                let dev_public = p.join("public").join(destination);
-                std::fs::create_dir_all(&dev_public).map_err(|e| e.to_string())?;
-                return Ok(dev_public);
+    // 1. En mode développement, remonter les ancêtres pour trouver la racine du projet contenant package.json
+    if cfg!(debug_assertions) {
+        if let Ok(exe) = std::env::current_exe() {
+            for ancestor in exe.ancestors() {
+                if ancestor.join("package.json").exists() {
+                    let dev_public = ancestor.join("public").join(destination);
+                    let _ = std::fs::create_dir_all(&dev_public);
+                    if dev_public.exists() {
+                        return Ok(dev_public);
+                    }
+                }
             }
         }
-        std::fs::create_dir_all(&candidate).map_err(|e| e.to_string())?;
-        return Ok(candidate);
+        if let Ok(cwd) = std::env::current_dir() {
+            for ancestor in cwd.ancestors() {
+                if ancestor.join("package.json").exists() {
+                    let dev_public = ancestor.join("public").join(destination);
+                    let _ = std::fs::create_dir_all(&dev_public);
+                    if dev_public.exists() {
+                        return Ok(dev_public);
+                    }
+                }
+            }
+        }
     }
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let dir = exe.parent().ok_or("Impossible de trouver le dossier exe")?
-        .join("public").join(destination);
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+
+    // 2. En production, utiliser app_data_dir (dossier utilisateur garanti en écriture sans droit admin)
+    if let Ok(app_data) = app.path().app_data_dir() {
+        let user_public = app_data.join("public").join(destination);
+        if let Ok(_) = std::fs::create_dir_all(&user_public) {
+            return Ok(user_public);
+        }
+    }
+
+    // 3. Fallback dossier exe parent
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            let dir = parent.join("public").join(destination);
+            let _ = std::fs::create_dir_all(&dir);
+            if dir.exists() {
+                return Ok(dir);
+            }
+        }
+    }
+
+    // 4. Dernier fallback resource_dir
+    let base = app.path().resource_dir().map_err(|e| e.to_string())?;
+    let candidate = base.join("public").join(destination);
+    let _ = std::fs::create_dir_all(&candidate);
+    Ok(candidate)
+}
+
+/// Télécharge les données brutes d'une image/fichier depuis Google Drive en testant successivement tous les endpoints CDN
+async fn fetch_google_drive_bytes(
+    client: &reqwest::Client,
+    file_id: &str,
+    passed_url: Option<&str>,
+) -> Result<Vec<u8>, String> {
+    let mut candidate_urls = Vec::new();
+    if let Some(u) = passed_url {
+        if !u.trim().is_empty() {
+            candidate_urls.push(u.to_string());
+        }
+    }
+    // Endpoints rapides Google CDN sans captcha/cookies
+    candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}=s0"));
+    candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}"));
+    candidate_urls.push(format!("https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t"));
+    candidate_urls.push(format!("https://drive.google.com/uc?export=download&id={file_id}"));
+    candidate_urls.push(format!("https://drive.google.com/thumbnail?id={file_id}&sz=w4000"));
+
+    let mut last_err = String::new();
+
+    for url in candidate_urls {
+        let req = client.get(&url)
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .header("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+
+        match req.send().await {
+            Ok(resp) if resp.status().is_success() => {
+                if let Ok(bytes) = resp.bytes().await {
+                    if bytes.len() > 100 {
+                        let header_preview = String::from_utf8_lossy(&bytes[..std::cmp::min(bytes.len(), 120)]).to_lowercase();
+                        if !header_preview.contains("<!doctype html") && !header_preview.contains("<html") {
+                            return Ok(bytes.to_vec());
+                        }
+                    }
+                }
+            }
+            Ok(resp) => {
+                last_err = format!("HTTP {}", resp.status());
+            }
+            Err(e) => {
+                last_err = e.to_string();
+            }
+        }
+    }
+
+    Err(format!("Échec du téléchargement pour ({file_id}) : {last_err}"))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -186,7 +266,6 @@ pub async fn addon_download_file(
     // Déterminer le chemin relatif exact en préservant tous les sous-dossiers
     let target_rel = if let Some(ref p) = rel_path {
         let mut clean_p = p.trim().to_string();
-        // Si le chemin commence par la destination (ex: "maps/"), le retirer pour être relatif à base_dir
         if let Some(stripped) = clean_p.strip_prefix(&format!("{}/", destination)) {
             clean_p = stripped.to_string();
         }
@@ -208,29 +287,11 @@ pub async fn addon_download_file(
     }
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(45))
         .build()
         .map_err(|e| e.to_string())?;
 
-    let download_url = url.unwrap_or_else(|| format!("https://lh3.googleusercontent.com/d/{file_id}"));
-    
-    let mut resp = client.get(&download_url)
-        .header("User-Agent", "Mozilla/5.0")
-        .send().await;
-
-    if resp.is_err() || !resp.as_ref().map(|r| r.status().is_success()).unwrap_or(false) {
-        let fallback_url = format!("https://drive.google.com/uc?export=download&id={file_id}");
-        resp = client.get(&fallback_url)
-            .header("User-Agent", "Mozilla/5.0")
-            .send().await;
-    }
-
-    let response = resp.map_err(|e| format!("Échec du téléchargement : {e}"))?;
-    if !response.status().is_success() {
-        return Err(format!("Erreur HTTP lors du téléchargement : {}", response.status()));
-    }
-
-    let bytes = response.bytes().await.map_err(|e| format!("Erreur lecture données : {e}"))?;
+    let bytes = fetch_google_drive_bytes(&client, &file_id, url.as_deref()).await?;
     std::fs::write(&target_path, &bytes).map_err(|e| format!("Erreur écriture fichier : {e}"))?;
 
     let rel_str = target_rel.to_string_lossy().replace('\\', "/");
@@ -280,7 +341,7 @@ pub async fn addon_download_pack(
     std::fs::create_dir_all(&base_dir).map_err(|e| e.to_string())?;
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(45))
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -288,7 +349,6 @@ pub async fn addon_download_pack(
     let mut downloaded_files = Vec::new();
 
     for (i, file_item) in files.iter().enumerate() {
-        // Déterminer le chemin cible précis pour préserver les sous-sous-dossiers
         let target_rel = if let Some(ref p) = file_item.path {
             let mut clean_p = p.trim().to_string();
             if let Some(stripped) = clean_p.strip_prefix(&format!("{}/", destination)) {
@@ -311,28 +371,9 @@ pub async fn addon_download_pack(
             let _ = std::fs::create_dir_all(parent);
         }
 
-        // Si le fichier n'existe pas déjà sur le disque, le télécharger
         if !target_path.exists() {
-            let direct_url = file_item.url.clone()
-                .unwrap_or_else(|| format!("https://lh3.googleusercontent.com/d/{}", file_item.id));
-            
-            let mut resp = client.get(&direct_url)
-                .header("User-Agent", "Mozilla/5.0")
-                .send().await;
-
-            if resp.is_err() || !resp.as_ref().map(|r| r.status().is_success()).unwrap_or(false) {
-                let fallback_url = format!("https://drive.google.com/uc?export=download&id={}", file_item.id);
-                resp = client.get(&fallback_url)
-                    .header("User-Agent", "Mozilla/5.0")
-                    .send().await;
-            }
-
-            if let Ok(res) = resp {
-                if res.status().is_success() {
-                    if let Ok(bytes) = res.bytes().await {
-                        let _ = std::fs::write(&target_path, &bytes);
-                    }
-                }
+            if let Ok(bytes) = fetch_google_drive_bytes(&client, &file_item.id, file_item.url.as_deref()).await {
+                let _ = std::fs::write(&target_path, &bytes);
             }
         }
 

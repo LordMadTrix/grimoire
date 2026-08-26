@@ -339,6 +339,7 @@
 
   async function downloadSingleFile(file: DriveFile) {
     downloadingFiles = new Set([...downloadingFiles, file.id]);
+    showToast(`⏳ Téléchargement de "${file.name}" en cours…`);
     try {
       const relPath = await invoke<string>('addon_download_file', {
         fileId: file.id,
@@ -349,9 +350,10 @@
         relPath: file.path
       });
       await loadInstalled();
-      showToast(`✅ "${file.name}" téléchargé dans public/${file.destination}/${relPath} !`);
+      showToast(`✅ "${file.name}" enregistré avec succès sur votre PC !`);
     } catch (e) {
-      alert(`Erreur téléchargement fichier : ${e}`);
+      console.error('Erreur téléchargement fichier:', e);
+      showToast(`⚠️ Échec du téléchargement : ${e}`);
     } finally {
       downloadingFiles = new Set([...downloadingFiles].filter(id => id !== file.id));
     }
