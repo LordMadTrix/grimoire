@@ -54,5 +54,6 @@ commands.allow = [
   "addon_install_local_file",
   "addon_uninstall",
   "addon_open_folder",
-  "addon_fetch_pdf_bytes"
+  "addon_fetch_pdf_bytes",
+  "tts_synthesize_neural"
 ]

@@ -83,6 +83,8 @@ pub fn run() {
             commands::addons::addon_uninstall,
             commands::addons::addon_open_folder,
             commands::addons::addon_fetch_pdf_bytes,
+            // TTS Synthèse Neuronale IA
+            commands::edge_tts::tts_synthesize_neural,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");
