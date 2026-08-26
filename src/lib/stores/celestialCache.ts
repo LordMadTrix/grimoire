@@ -1,5 +1,6 @@
-// ── Celestial Cache (In-Memory Singleton + IndexedDB) ──────────────────────
+// ── Celestial Cache (In-Memory Singleton + IndexedDB + Auto-Sync) ─────────────
 // Permet un chargement instantané (0 ms en mémoire, < 15 ms sur disque)
+// et une vérification automatique des nouveautés à chaque démarrage.
 
 export interface DriveFile {
   id: string;
@@ -39,6 +40,27 @@ const DB_NAME = 'GrimoireCelestialDB';
 const DB_VERSION = 2;
 const STORE_NAME = 'celestial_store';
 const KEY_DATA = 'catalog_v4';
+
+// Listeners pour notifier les composants en temps réel
+type CatalogListener = (data: CelestialData, newCount: number) => void;
+const listeners = new Set<CatalogListener>();
+
+export function subscribeToCelestialUpdates(listener: CatalogListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function notifyListeners(data: CelestialData, newCount: number) {
+  for (const listener of listeners) {
+    try {
+      listener(data, newCount);
+    } catch (e) {
+      console.warn('Listener error in celestialCache:', e);
+    }
+  }
+}
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -153,30 +175,11 @@ export function buildCelestialTree(files: DriveFile[]): TreeNode {
   return root;
 }
 
-export async function getCelestialCatalog(forceRefresh = false): Promise<CelestialData> {
-  // 1. Retour immédiat depuis la mémoire (0 ms)
-  if (!forceRefresh && memoryCache) {
-    return memoryCache;
-  }
-
-  // 2. Lecture depuis IndexedDB (< 15 ms)
-  if (!forceRefresh) {
-    const idbData = await getFromIndexedDB();
-    if (idbData && idbData.files && idbData.files.length > 0) {
-      memoryCache = idbData;
-      return idbData;
-    }
-  }
-
-  // 3. Téléchargement et parsing du catalogue compact (~3.6 Mo)
-  const res = await fetch('/drive-catalog.json');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-
+function parseJsonToCelestialData(json: any): CelestialData {
   const collected: DriveFile[] = [];
 
   if (Array.isArray(json.files)) {
-    // Format ultra-compact [id, path, name]
+    // Format compact [id, path, name]
     for (const item of json.files) {
       const id = item[0];
       const p = item[1];
@@ -251,16 +254,124 @@ export async function getCelestialCatalog(forceRefresh = false): Promise<Celesti
   }
 
   const tree = buildCelestialTree(collected);
-  const result: CelestialData = {
+  return {
     files: collected,
     tree,
     totalFiles: collected.length,
-    updatedAt: new Date().toISOString()
+    updatedAt: json.updated || new Date().toISOString()
   };
+}
 
-  // Stocker en mémoire et dans IndexedDB
+/**
+ * Récupère le catalogue. Si en cache, le retourne instantanément (0 ms)
+ * et lance une vérification de nouveautés en arrière-plan.
+ */
+export async function getCelestialCatalog(forceRefresh = false): Promise<CelestialData> {
+  // 1. Retour immédiat depuis la mémoire si disponible et non forcé
+  if (!forceRefresh && memoryCache) {
+    // Vérification en arrière-plan sans bloquer
+    setTimeout(() => { checkForCatalogUpdates().catch(() => {}); }, 100);
+    return memoryCache;
+  }
+
+  // 2. Lecture depuis IndexedDB (< 15 ms)
+  if (!forceRefresh) {
+    const idbData = await getFromIndexedDB();
+    if (idbData && idbData.files && idbData.files.length > 0) {
+      memoryCache = idbData;
+      // Vérification en arrière-plan
+      setTimeout(() => { checkForCatalogUpdates().catch(() => {}); }, 100);
+      return idbData;
+    }
+  }
+
+  // 3. Téléchargement forcé / premier chargement
+  return await fetchFreshCatalog();
+}
+
+async function fetchFreshCatalog(): Promise<CelestialData> {
+  const timestamp = Date.now();
+  let json: any = null;
+
+  try {
+    const res = await fetch(`/drive-catalog.json?t=${timestamp}`);
+    if (res.ok) {
+      json = await res.json();
+    }
+  } catch (e) {
+    console.warn('Fetch local drive-catalog.json failed, trying online fallback...', e);
+  }
+
+  if (!json) {
+    // Fallback GitHub raw
+    const remoteUrl = `https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/drive-catalog.json?t=${timestamp}`;
+    const res = await fetch(remoteUrl);
+    if (!res.ok) throw new Error(`Impossible de charger le catalogue (HTTP ${res.status})`);
+    json = await res.json();
+  }
+
+  const result = parseJsonToCelestialData(json);
+
+  // Mettre en cache
   memoryCache = result;
-  saveToIndexedDB(result);
+  await saveToIndexedDB(result);
+  notifyListeners(result, 0);
 
   return result;
+}
+
+/**
+ * Vérifie si de nouvelles ressources (Cartes, PDFs, Textures) sont disponibles.
+ * Exécuté automatiquement à chaque démarrage de Grimoire.
+ */
+export async function checkForCatalogUpdates(): Promise<{ updated: boolean; newFiles: number; total: number }> {
+  try {
+    const current = memoryCache || (await getFromIndexedDB());
+    const timestamp = Date.now();
+    
+    let json: any = null;
+    try {
+      const res = await fetch(`/drive-catalog.json?t=${timestamp}`);
+      if (res.ok) json = await res.json();
+    } catch {
+      // Ignorer erreur réseau locale
+    }
+
+    if (!json) {
+      const remoteUrl = `https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/drive-catalog.json?t=${timestamp}`;
+      const res = await fetch(remoteUrl);
+      if (res.ok) json = await res.json();
+    }
+
+    if (!json) {
+      return { updated: false, newFiles: 0, total: current?.totalFiles || 0 };
+    }
+
+    const remoteTotal = Array.isArray(json.files) ? json.files.length : (json.totalFiles || 0);
+    const remoteUpdated = json.updated || '';
+    const currentTotal = current?.totalFiles || 0;
+    const currentUpdated = current?.updatedAt || '';
+
+    // Si nouveau total ou date de mise à jour différente
+    if (remoteTotal !== currentTotal || remoteUpdated !== currentUpdated || currentTotal === 0) {
+      console.log(`✨ Nouveautés détectées dans les Archives Célestes (${currentTotal} -> ${remoteTotal} fichiers)`);
+      const newData = parseJsonToCelestialData(json);
+      memoryCache = newData;
+      await saveToIndexedDB(newData);
+
+      const diff = Math.max(0, newData.totalFiles - currentTotal);
+      notifyListeners(newData, diff);
+
+      return {
+        updated: true,
+        newFiles: diff,
+        total: newData.totalFiles
+      };
+    }
+
+    return { updated: false, newFiles: 0, total: currentTotal };
+  } catch (e) {
+    console.warn('Vérification des nouveautés du catalogue ignorée:', e);
+    return { updated: false, newFiles: 0, total: memoryCache?.totalFiles || 0 };
+  }
 }

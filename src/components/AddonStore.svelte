@@ -6,7 +6,7 @@
   import { openVault } from '$lib/api';
   import { getVaultPath, setVaultTree } from '$lib/stores/vault.svelte';
   import { addMapScene, replaceActiveScene } from '$lib/stores/vtt.svelte';
-  import { getCelestialCatalog, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
+  import { getCelestialCatalog, checkForCatalogUpdates, subscribeToCelestialUpdates, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
   import PdfReaderModal from './PdfReaderModal.svelte';
 
   const { onclose } = $props<{ onclose: () => void }>();
@@ -267,10 +267,14 @@
   async function loadDriveCatalog(forceRefresh = false) {
     loading = true;
     error = '';
+    if (forceRefresh) showToast('🔄 Recherche des nouveautés en cours...');
     try {
       const data = await getCelestialCatalog(forceRefresh);
       rawFiles = data.files;
       rootTree = data.tree;
+      if (forceRefresh) {
+        showToast(`✨ Catalogue actualisé (${data.totalFiles} ressources disponibles) !`);
+      }
     } catch (e) {
       console.error('Erreur chargement catalogue Archives Célestes:', e);
       error = String(e);
@@ -525,8 +529,21 @@
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
+  let unsubUpdates: (() => void) | null = null;
+
   onMount(async () => {
+    unsubUpdates = subscribeToCelestialUpdates((data, newCount) => {
+      rawFiles = data.files;
+      rootTree = data.tree;
+      if (newCount > 0) {
+        showToast(`✨ ${newCount} nouvelles ressources synchronisées !`);
+      }
+    });
+
     await Promise.all([loadDriveCatalog(), loadInstalled()]);
+
+    // Vérification automatique en arrière-plan
+    checkForCatalogUpdates().catch(() => {});
 
     unlisten = await listen<ProgressEvent>('addon://progress', ({ payload }) => {
       const pct = Math.round((payload.done / payload.total) * 100);
@@ -542,6 +559,7 @@
 
   onDestroy(() => {
     unlisten?.();
+    unsubUpdates?.();
     if (toastTimer) clearTimeout(toastTimer);
   });
 </script>

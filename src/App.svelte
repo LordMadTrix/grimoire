@@ -21,6 +21,7 @@
   import AddonStore from './components/AddonStore.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
+  import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
   import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus } from '$lib/api';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
@@ -231,6 +232,13 @@
       _unlistenApp.push(await listen('player_roll', (e: any) => {
         notifStore.add('🎲', e.payload.name, JSON.stringify(e.payload.data ?? ''), 'info', 4000);
       }));
+
+      // Vérification automatique des nouveautés des Archives Célestes (Cartes, PDFs, Textures) au démarrage
+      checkForCatalogUpdates().then(result => {
+        if (result.updated && result.newFiles > 0) {
+          notifStore.add('🌌', 'Archives Célestes', `✨ ${result.newFiles} nouvelles ressources détectées (${result.total} au total) !`, 'success', 6000);
+        }
+      }).catch(() => {});
     })();
     return () => _unlistenApp.forEach(fn => fn());
   });
