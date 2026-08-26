@@ -22,8 +22,6 @@ class TtsReaderStore {
   sentences = $state<string[]>([]);
   currentSentenceIndex = $state<number>(-1);
 
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
-
   constructor() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       this.synth = window.speechSynthesis;
@@ -31,10 +29,13 @@ class TtsReaderStore {
       if (this.synth.onvoiceschanged !== undefined) {
         this.synth.onvoiceschanged = () => this.initVoices();
       }
+      // Réessayer après un court délai pour WebView2 sur Windows
+      setTimeout(() => this.initVoices(), 300);
+      setTimeout(() => this.initVoices(), 1000);
     }
   }
 
-  private initVoices() {
+  initVoices() {
     if (!this.synth) return;
     const all = this.synth.getVoices();
     if (!all || all.length === 0) return;
@@ -63,7 +64,6 @@ class TtsReaderStore {
   setRate(newRate: number) {
     this.rate = Math.max(0.5, Math.min(2.0, newRate));
     if (this.isPlaying && !this.isPaused) {
-      // Reprendre à la phrase en cours avec le nouveau débit
       const curIdx = this.currentSentenceIndex;
       this.stop();
       if (curIdx >= 0 && curIdx < this.sentences.length) {
@@ -87,7 +87,6 @@ class TtsReaderStore {
    * Découpe un texte brut en phrases intelligentes pour le surlignage et la lecture séquentielle
    */
   splitIntoSentences(text: string): string[] {
-    // Nettoyer les sauts de lignes superflus des PDF
     const clean = text
       .replace(/\r\n/g, '\n')
       .replace(/(\w)-\n(\w)/g, '$1$2') // Réparer les césures de mots de PDF
@@ -97,7 +96,6 @@ class TtsReaderStore {
 
     if (!clean) return [];
 
-    // Découpage par ponctuation de fin de phrase
     const rawSentences = clean.split(/(?<=[.?!;:])\s+/);
     return rawSentences
       .map(s => s.replace(/§/g, '\n\n').trim())
@@ -110,7 +108,7 @@ class TtsReaderStore {
   speakText(text: string) {
     this.stop();
     if (!this.synth) {
-      console.warn('SpeechSynthesis non supporté dans cet environnement.');
+      console.warn('SpeechSynthesis non disponible.');
       return;
     }
 
@@ -122,6 +120,11 @@ class TtsReaderStore {
     this.currentSentenceIndex = 0;
     this.isPlaying = true;
     this.isPaused = false;
+
+    // Débloquer l'audio WebView2
+    try {
+      this.synth.resume();
+    } catch {}
 
     this.speakFromSentence(0);
   }
@@ -138,11 +141,15 @@ class TtsReaderStore {
     const utterance = new SpeechSynthesisUtterance(sentenceText);
     utterance.rate = this.rate;
     utterance.pitch = this.pitch;
+    utterance.lang = 'fr-FR';
 
     if (this.selectedVoiceName) {
       const all = this.synth.getVoices();
       const matched = all.find(v => v.name === this.selectedVoiceName);
-      if (matched) utterance.voice = matched;
+      if (matched) {
+        utterance.voice = matched;
+        utterance.lang = matched.lang || 'fr-FR';
+      }
     }
 
     utterance.onend = () => {
@@ -166,39 +173,43 @@ class TtsReaderStore {
       }
     };
 
-    this.currentUtterance = utterance;
-    this.synth.speak(utterance);
+    // Empêcher le Garbage Collector de couper la parole dans Chromium/WebView2
+    if (typeof window !== 'undefined') {
+      (window as any).__grimoire_tts_utterance = utterance;
+    }
+
+    try {
+      this.synth.speak(utterance);
+      this.synth.resume();
+    } catch (e) {
+      console.error('Erreur speak:', e);
+    }
   }
 
   pause() {
     if (!this.synth || !this.isPlaying) return;
-    this.synth.pause();
+    try {
+      this.synth.pause();
+    } catch {}
     this.isPaused = true;
   }
 
   resume() {
     if (!this.synth || !this.isPlaying) return;
-    this.synth.resume();
+    try {
+      this.synth.resume();
+    } catch {}
     this.isPaused = false;
-  }
-
-  togglePlayPause(fallbackText?: string) {
-    if (!this.isPlaying) {
-      if (fallbackText) this.speakText(fallbackText);
-    } else if (this.isPaused) {
-      this.resume();
-    } else {
-      this.pause();
-    }
   }
 
   stop() {
     if (this.synth) {
-      this.synth.cancel();
+      try {
+        this.synth.cancel();
+      } catch {}
     }
     this.isPlaying = false;
     this.isPaused = false;
-    this.currentUtterance = null;
     this.currentSentenceIndex = -1;
   }
 }

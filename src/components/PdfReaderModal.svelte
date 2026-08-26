@@ -43,6 +43,7 @@
   let loading = $state(true);
   let error = $state('');
   let currentPageText = $state('');
+  let customNarrationText = $state('');
   let outline = $state<any[]>([]);
   let searchQuery = $state('');
   let searchResults = $state<{ page: number; snippet: string }[]>([]);
@@ -137,7 +138,15 @@
         }
       }
 
-      const loadingTask = pdfjsLib.getDocument(source);
+      const docParams: any = {
+        ...source,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/cmaps/',
+        cMapPacked: true,
+        standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/standard_fonts/',
+        isEvalSupported: false
+      };
+
+      const loadingTask = pdfjsLib.getDocument(docParams);
       pdfDoc = await loadingTask.promise;
       numPages = pdfDoc.numPages;
       currentPage = 1;
@@ -181,11 +190,16 @@
 
       // Extraire le texte de la page pour la synthèse vocale
       if (pageNum === currentPage) {
-        const textContent = await page.getTextContent();
-        currentPageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ')
-          .replace(/\s+/g, ' ');
+        try {
+          const textContent = await page.getTextContent();
+          currentPageText = textContent.items
+            .map((item: any) => item.str || '')
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        } catch {
+          currentPageText = '';
+        }
       }
     } catch (err) {
       console.warn(`Erreur rendu page ${pageNum}:`, err);
@@ -421,7 +435,9 @@
             <div class="speech-view">
               <div class="speech-header">
                 <span class="speech-title">📜 Transcription Page {currentPage}</span>
-                <button class="mini-btn" onclick={() => ttsReader.speakText(currentPageText)}>▶️ Relire</button>
+                {#if currentPageText}
+                  <button class="mini-btn" onclick={() => ttsReader.speakText(currentPageText)}>▶️ Relire</button>
+                {/if}
               </div>
 
               {#if ttsReader.sentences.length > 0}
@@ -441,8 +457,35 @@
               {:else if currentPageText}
                 <p class="raw-page-text">{currentPageText}</p>
               {:else}
-                <div class="sidebar-empty">Aucun texte sélectionnable sur cette page (image ou scan).</div>
+                <div class="sidebar-empty">
+                  <span>📷 Cette page est une image/scan sans couche texte OCR intégrée.</span>
+                </div>
               {/if}
+
+              <!-- Boîte de narration libre pour le Maître du Jeu -->
+              <div class="custom-narration-box">
+                <div class="narration-header">
+                  <span class="narration-title">🎙️ Narration libre / Texte personnalisé :</span>
+                </div>
+                <textarea
+                  class="narration-textarea"
+                  placeholder="Tapez ou collez ici un texte, description de salle, dialogue de PNJ ou encadré de lecture…"
+                  bind:value={customNarrationText}
+                  rows="3"
+                ></textarea>
+                <div class="narration-actions">
+                  <button
+                    class="btn-speak-custom"
+                    disabled={!customNarrationText.trim()}
+                    onclick={() => ttsReader.speakText(customNarrationText)}
+                  >
+                    🗣️ Faire lire ce texte à haute voix
+                  </button>
+                  {#if customNarrationText}
+                    <button class="btn-clear-custom" onclick={() => customNarrationText = ''}>✕ Effacer</button>
+                  {/if}
+                </div>
+              </div>
             </div>
 
           <!-- Recherche dans le PDF -->
@@ -638,6 +681,33 @@
     border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.25);
   }
   .raw-page-text { font-size: 0.8rem; line-height: 1.5; color: #94a3b8; white-space: pre-wrap; }
+
+  /* Custom Narration */
+  .custom-narration-box {
+    margin-top: 14px; background: #0f172a; border: 1px solid #334155;
+    border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .narration-header { display: flex; align-items: center; justify-content: space-between; }
+  .narration-title { font-size: 0.76rem; font-weight: 700; color: #a5b4fc; }
+  .narration-textarea {
+    width: 100%; background: #090d16; border: 1px solid #1e293b; border-radius: 6px;
+    color: #e2e8f0; font-size: 0.8rem; padding: 8px; resize: vertical; box-sizing: border-box;
+    font-family: inherit; line-height: 1.4;
+  }
+  .narration-textarea:focus { outline: none; border-color: #6366f1; }
+  .narration-actions { display: flex; gap: 6px; }
+  .btn-speak-custom {
+    background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff;
+    border: none; border-radius: 6px; font-size: 0.76rem; font-weight: 700;
+    padding: 6px 12px; cursor: pointer; flex: 1; transition: all 0.15s;
+  }
+  .btn-speak-custom:hover:not(:disabled) { background: linear-gradient(135deg, #4338ca, #4f46e5); box-shadow: 0 0 10px rgba(99,102,241,0.4); }
+  .btn-speak-custom:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-clear-custom {
+    background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+    color: #94a3b8; font-size: 0.72rem; padding: 4px 8px; cursor: pointer;
+  }
+  .btn-clear-custom:hover { color: #fff; background: #334155; }
 
   /* Search */
   .search-view { display: flex; flex-direction: column; gap: 8px; }
