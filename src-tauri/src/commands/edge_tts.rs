@@ -42,6 +42,8 @@ pub async fn tts_synthesize_neural(
     rate: Option<f32>,
     pitch: Option<f32>,
 ) -> Result<Vec<u8>, String> {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     let clean_text = text.trim();
     if clean_text.is_empty() {
         return Err("Texte vide".into());

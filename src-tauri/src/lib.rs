@@ -7,6 +7,9 @@ use std::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Installer le CryptoProvider Rustls par défaut (Ring) pour le support TLS sécurisé
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     // Initialiser la base SQLite en mémoire (sera remplacée par fichier au vault open)
     let db = Connection::open_in_memory()
         .expect("Failed to create SQLite database");
