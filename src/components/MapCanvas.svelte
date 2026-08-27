@@ -105,6 +105,7 @@
   let lightTexture: PIXI.RenderTexture | null = null;
   let lightSprite: PIXI.Sprite | null = null;
   let dynamicLightLayer: PIXI.Graphics;
+  let ambientLightLayer: PIXI.Graphics;
 
   let tokenLayer: PIXI.Container;
   let tokenSprites: Map<string, PIXI.Container> = new Map();
@@ -328,6 +329,9 @@
     particleLayer = new PIXI.Container();
     worldContainer.addChild(particleLayer);
 
+    ambientLightLayer = new PIXI.Graphics();
+    app.stage.addChild(ambientLightLayer);
+
     weatherLayer = new PIXI.Container();
     app.stage.addChild(weatherLayer);
     weatherG = new PIXI.Graphics();
@@ -477,6 +481,30 @@
         updateDynamicLighting(dynamicLightLayer, tokens, vttStore.lights || [], now / 1000);
       } else if (dynamicLightLayer) {
         dynamicLightLayer.clear();
+      }
+
+      // ── Ambient Light Atmosphere & Lightning Flash ────────────
+      if (ambientLightLayer && app) {
+        ambientLightLayer.clear();
+        const W = app.screen.width;
+        const H = app.screen.height;
+
+        if (vttStore.lightningFlash) {
+          ambientLightLayer.rect(0, 0, W, H);
+          ambientLightLayer.fill({ color: 0xffffff, alpha: 0.92 });
+        } else {
+          const amb = vttStore.ambientLight || 'day';
+          if (amb === 'dusk') {
+            ambientLightLayer.rect(0, 0, W, H);
+            ambientLightLayer.fill({ color: 0x9a3412, alpha: isGM ? 0.18 : 0.32 });
+          } else if (amb === 'night') {
+            ambientLightLayer.rect(0, 0, W, H);
+            ambientLightLayer.fill({ color: 0x0f172a, alpha: isGM ? 0.42 : 0.72 });
+          } else if (amb === 'pitch_black') {
+            ambientLightLayer.rect(0, 0, W, H);
+            ambientLightLayer.fill({ color: 0x020617, alpha: isGM ? 0.70 : 0.94 });
+          }
+        }
       }
 
       // ── Screen shake ─────────────────────────────────────────
