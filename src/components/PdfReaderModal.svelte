@@ -7,6 +7,7 @@
   import { readFileBase64 } from '$lib/api';
   import { extractTextFromCanvas } from '$lib/services/ocrService';
   import { parseStatblockText, createTokenFromStatblock } from '$lib/services/statblockParser';
+  import { extractOrderedTextFromPdfItems, extractTextFromSelectionRect } from '$lib/services/pdfLayoutAnalyzer';
 
   // Configurer le worker PDF.js (localisé pour Vite)
   if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -53,6 +54,14 @@
   let searchQuery = $state('');
   let searchResults = $state<{ page: number; snippet: string }[]>([]);
   let isSearching = $state(false);
+
+  // Éléments géométriques bruts et sélection de zone (pour lire un encadré / colonne spécifique)
+  let currentPageRawItems: any[] = [];
+  let currentViewportHeight = 0;
+  let isSelecting = $state(false);
+  let selectionStart = { x: 0, y: 0 };
+  let selectionBox = $state<{ x: number; y: number; width: number; height: number } | null>(null);
+  let selectedAreaText = $state('');
 
   let containerEl: HTMLElement | undefined = $state();
 
@@ -193,17 +202,17 @@
 
       await page.render(renderContext).promise;
 
-      // Extraire le texte de la page pour la synthèse vocale
+      // Extraire le texte de la page pour la synthèse vocale avec réorganisation multi-colonnes
       if (pageNum === currentPage) {
+        currentViewportHeight = viewport.height;
+        selectionBox = null;
+        selectedAreaText = '';
         try {
           const textContent = await page.getTextContent();
-          const extracted = textContent.items
-            .map((item: any) => item.str || '')
-            .join(' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+          currentPageRawItems = textContent.items || [];
+          const extracted = extractOrderedTextFromPdfItems(currentPageRawItems as any);
 
-          if (extracted.length > 5) {
+          if (extracted && extracted.length > 5) {
             currentPageText = extracted;
             isScannedPage = false;
           } else {
@@ -325,6 +334,89 @@
     } finally {
       isOcrRunning = false;
     }
+  }
+
+  // ── Sélection Visuelle de Colonne / Encadré à la Souris ──
+  function handleCanvasMouseDown(e: MouseEvent) {
+    if (!canvasEl) return;
+    const rect = canvasEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    isSelecting = true;
+    selectionStart = { x, y };
+    selectionBox = null;
+    selectedAreaText = '';
+  }
+
+  function handleCanvasMouseMove(e: MouseEvent) {
+    if (!isSelecting || !canvasEl) return;
+    const rect = canvasEl.getBoundingClientRect();
+    const curX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const curY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+
+    const x = Math.min(selectionStart.x, curX);
+    const y = Math.min(selectionStart.y, curY);
+    const width = Math.abs(curX - selectionStart.x);
+    const height = Math.abs(curY - selectionStart.y);
+
+    selectionBox = { x, y, width, height };
+  }
+
+  function handleCanvasMouseUp() {
+    if (!isSelecting) return;
+    isSelecting = false;
+    if (selectionBox && selectionBox.width > 25 && selectionBox.height > 20 && canvasEl) {
+      const rect = canvasEl.getBoundingClientRect();
+      const scaleRatio = canvasEl.width / rect.width;
+      const pdfBox = {
+        x: selectionBox.x * scaleRatio,
+        y: selectionBox.y * scaleRatio,
+        width: selectionBox.width * scaleRatio,
+        height: selectionBox.height * scaleRatio
+      };
+
+      const extracted = extractTextFromSelectionRect(
+        currentPageRawItems,
+        pdfBox,
+        scale,
+        currentViewportHeight
+      );
+
+      if (extracted.trim().length > 3) {
+        selectedAreaText = extracted.trim();
+      }
+    } else {
+      selectionBox = null;
+      selectedAreaText = '';
+    }
+  }
+
+  function readSelectedArea() {
+    if (!selectedAreaText) return;
+    ttsReader.speakText(selectedAreaText);
+  }
+
+  function createTokenFromSelection() {
+    if (!selectedAreaText) return;
+    const stat = parseStatblockText(selectedAreaText);
+    if (stat) {
+      createTokenFromStatblock(stat);
+      alert(`Jeton "${stat.name}" créé avec succès sur le VTT !`);
+    } else {
+      alert("Aucune statistique de monstre détectée dans cette sélection.");
+    }
+  }
+
+  function copySelectionToSpeech() {
+    if (!selectedAreaText) return;
+    customNarrationText = selectedAreaText;
+    sidebarTab = 'speech';
+    if (!showSidebar) showSidebar = true;
+  }
+
+  function clearSelection() {
+    selectionBox = null;
+    selectedAreaText = '';
   }
 
   // ── Contrôles Vocaux TTS ──
@@ -661,9 +753,37 @@
         </div>
       {:else}
         <div class="canvases-wrapper" class:dual-mode={isDualPage}>
-          <div class="page-card">
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div 
+            class="page-card selection-target"
+            onmousedown={handleCanvasMouseDown}
+            onmousemove={handleCanvasMouseMove}
+            onmouseup={handleCanvasMouseUp}
+          >
             <canvas bind:this={canvasEl} class="pdf-canvas"></canvas>
             <span class="page-number-tag">Page {currentPage}</span>
+
+            {#if selectionBox}
+              <div 
+                class="pdf-selection-box"
+                style="left: {selectionBox.x}px; top: {selectionBox.y}px; width: {selectionBox.width}px; height: {selectionBox.height}px;"
+              >
+                {#if selectedAreaText}
+                  <div class="selection-floating-toolbar">
+                    <button class="sel-btn primary" onclick={readSelectedArea} title="Lire cette sélection avec la voix IA">
+                      🗣️ Lire ce paragraphe
+                    </button>
+                    <button class="sel-btn secondary" onclick={createTokenFromSelection} title="Extraire PNJ / Monstre et créer pion VTT">
+                      ⚔️ Jeton VTT
+                    </button>
+                    <button class="sel-btn secondary" onclick={copySelectionToSpeech} title="Copier dans la boîte de narration">
+                      📝 Personnaliser
+                    </button>
+                    <button class="sel-btn-close" onclick={clearSelection} title="Fermer la sélection">✕</button>
+                  </div>
+                {/if}
+              </div>
+            {/if}
           </div>
 
           {#if isDualPage && currentPage + 1 <= numPages}
@@ -925,10 +1045,34 @@
     width: 36px; height: 36px; border: 3px solid rgba(56,189,248,0.2);
     border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
   .error-icon { font-size: 2.5rem; }
   .btn-retry {
     background: #0284c7; border: 1px solid #38bdf8; border-radius: 6px;
     padding: 6px 14px; color: #fff; font-weight: 600; cursor: pointer;
   }
+  .page-card.selection-target { cursor: crosshair; user-select: none; }
+  .pdf-selection-box {
+    position: absolute; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.2);
+    border-radius: 4px; pointer-events: none; z-index: 10; box-shadow: 0 0 12px rgba(56,189,248,0.4);
+  }
+  .selection-floating-toolbar {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #0f172a; border: 1px solid #38bdf8; border-radius: 8px;
+    padding: 6px 10px; display: flex; gap: 6px; align-items: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.8); pointer-events: auto; white-space: nowrap; z-index: 20;
+    animation: fadeIn 0.15s ease-out;
+  }
+  .sel-btn {
+    border: none; border-radius: 5px; font-size: 0.72rem; font-weight: 700;
+    padding: 5px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .sel-btn.primary { background: #0284c7; color: #fff; border: 1px solid #38bdf8; }
+  .sel-btn.primary:hover { background: #0369a1; box-shadow: 0 0 8px rgba(56,189,248,0.5); }
+  .sel-btn.secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+  .sel-btn.secondary:hover { background: #334155; color: #fff; }
+  .sel-btn-close {
+    background: transparent; border: none; color: #94a3b8; font-size: 0.8rem;
+    padding: 2px 6px; cursor: pointer; border-radius: 4px;
+  }
+  .sel-btn-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
 </style>
