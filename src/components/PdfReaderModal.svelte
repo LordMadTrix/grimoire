@@ -4,10 +4,13 @@
   import * as pdfjsLib from 'pdfjs-dist';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import { ambianceStore } from '$lib/stores/ambianceStore.svelte';
-  import { readFileBase64 } from '$lib/api';
+  import { readFileBase64, emitToPlayerView, askOllama } from '$lib/api';
   import { extractTextFromCanvas } from '$lib/services/ocrService';
   import { parseStatblockText, createTokenFromStatblock } from '$lib/services/statblockParser';
   import { extractOrderedTextFromPdfItems, extractTextFromSelectionRect } from '$lib/services/pdfLayoutAnalyzer';
+  import { extractDiceFromText, executeDiceRoll, type DetectedDice } from '$lib/services/diceDetector';
+  import { segmentPageIntoNarrativeCards, type NarrativeCard } from '$lib/services/narrativeSegmenter';
+  import { setGmCurrentMap } from '$lib/stores/vtt.svelte';
 
   // Configurer le worker PDF.js (localisé pour Vite)
   if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -42,7 +45,7 @@
   let isDualPage = $state(false);
   let isFullscreen = $state(false);
   let showSidebar = $state(true);
-  let sidebarTab = $state<'toc' | 'search' | 'speech'>('toc');
+  let sidebarTab = $state<'toc' | 'speech' | 'cards' | 'dice' | 'search'>('speech');
 
   let loading = $state(true);
   let error = $state('');
@@ -62,6 +65,15 @@
   let selectionStart = { x: 0, y: 0 };
   let selectionBox = $state<{ x: number; y: number; width: number; height: number } | null>(null);
   let selectedAreaText = $state('');
+
+  // IA locale (Ollama) & Résumé de Scène
+  let aiSummary = $state('');
+  let isAiLoading = $state(false);
+
+  // Dés détectés & Cartes narratives réactives
+  let detectedDice = $derived(extractDiceFromText(selectedAreaText || currentPageText));
+  let narrativeCards = $derived(segmentPageIntoNarrativeCards(currentPageText));
+  let lastRollResult = $state<{ total: number; formula: string; rolls: number[] } | null>(null);
 
   let containerEl: HTMLElement | undefined = $state();
 
@@ -414,6 +426,92 @@
     if (!showSidebar) showSidebar = true;
   }
 
+  function extractMapFromSelection() {
+    if (!canvasEl || !selectionBox) return;
+    const rect = canvasEl.getBoundingClientRect();
+    const scaleRatio = canvasEl.width / rect.width;
+
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = selectionBox.width * scaleRatio;
+    cropCanvas.height = selectionBox.height * scaleRatio;
+    const ctx = cropCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(
+      canvasEl,
+      selectionBox.x * scaleRatio,
+      selectionBox.y * scaleRatio,
+      cropCanvas.width,
+      cropCanvas.height,
+      0,
+      0,
+      cropCanvas.width,
+      cropCanvas.height
+    );
+
+    const dataUrl = cropCanvas.toDataURL('image/jpeg', 0.95);
+    setGmCurrentMap(dataUrl);
+    alert('🗺️ La zone sélectionnée a été définie comme nouvelle carte active sur la Table Virtuelle !');
+  }
+
+  function revealHandoutToPlayers() {
+    if (!canvasEl || !selectionBox) return;
+    const rect = canvasEl.getBoundingClientRect();
+    const scaleRatio = canvasEl.width / rect.width;
+
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = selectionBox.width * scaleRatio;
+    cropCanvas.height = selectionBox.height * scaleRatio;
+    const ctx = cropCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(
+      canvasEl,
+      selectionBox.x * scaleRatio,
+      selectionBox.y * scaleRatio,
+      cropCanvas.width,
+      cropCanvas.height,
+      0,
+      0,
+      cropCanvas.width,
+      cropCanvas.height
+    );
+
+    const dataUrl = cropCanvas.toDataURL('image/jpeg', 0.95);
+    emitToPlayerView('show_handout', {
+      title: `${fileName} (Page ${currentPage})`,
+      image: dataUrl
+    });
+    alert('📱 Illustration / Indice projeté sur les écrans des joueurs !');
+  }
+
+  function rollDiceFromPdf(dice: DetectedDice) {
+    const res = executeDiceRoll(dice);
+    lastRollResult = res;
+    document.dispatchEvent(new CustomEvent('dice-rolled', {
+      detail: { result: res.total, label: `${dice.formula} = ${res.total} [${res.rolls.join('+')}]` }
+    }));
+  }
+
+  async function summarizeSceneWithAi() {
+    if (!currentPageText.trim()) {
+      alert('Veuillez d\'abord extraire du texte de cette page pour générer le résumé.');
+      return;
+    }
+    isAiLoading = true;
+    aiSummary = '';
+    sidebarTab = 'speech';
+    try {
+      const prompt = `Voici une page d'un scénario de jeu de rôle (JDR) :\n\n${currentPageText}\n\nEn tant qu'assistant de Maître du Jeu, résume en 4 points clés très concis (puces) :\n1. 🎯 Objectif ou situation immédiate\n2. ⚠️ Dangers, pièges ou ennemis\n3. 💡 Indices, secrets ou interactions\n4. 💎 Récompenses ou trésors`;
+      const res = await askOllama(prompt, 'llama3', 'Tu es un assistant expert pour Maître du Jeu TTRPG.');
+      aiSummary = res;
+    } catch (err) {
+      aiSummary = "Impossible de contacter l'IA locale (Ollama). Vérifiez qu'Ollama est bien lancé.";
+    } finally {
+      isAiLoading = false;
+    }
+  }
+
   function clearSelection() {
     selectionBox = null;
     selectedAreaText = '';
@@ -595,8 +693,10 @@
     {#if showSidebar}
       <aside class="pdf-sidebar">
         <div class="sidebar-tabs">
+          <button class="tab-btn" class:active={sidebarTab === 'speech'} onclick={() => sidebarTab = 'speech'}>🗣️ Narration</button>
+          <button class="tab-btn" class:active={sidebarTab === 'cards'} onclick={() => sidebarTab = 'cards'}>📜 Chapitres ({narrativeCards.length})</button>
+          <button class="tab-btn" class:active={sidebarTab === 'dice'} onclick={() => sidebarTab = 'dice'}>🎲 Dés ({detectedDice.length})</button>
           <button class="tab-btn" class:active={sidebarTab === 'toc'} onclick={() => sidebarTab = 'toc'}>📑 Sommaire</button>
-          <button class="tab-btn" class:active={sidebarTab === 'speech'} onclick={() => sidebarTab = 'speech'}>🗣️ Texte & Voix</button>
           <button class="tab-btn" class:active={sidebarTab === 'search'} onclick={() => sidebarTab = 'search'}>🔍 Recherche</button>
         </div>
 
@@ -615,7 +715,61 @@
               </div>
             {/if}
 
-          <!-- Texte extrait & Surlignage vocal -->
+          <!-- Cartes Narratives Découpées -->
+          {:else if sidebarTab === 'cards'}
+            <div class="cards-view">
+              {#if narrativeCards.length === 0}
+                <div class="sidebar-empty">Aucun bloc de texte détecté sur cette page.</div>
+              {:else}
+                {#each narrativeCards as card}
+                  <div class="narrative-card" class:card-dialogue={card.category === 'dialogue'} class:card-combat={card.category === 'combat'}>
+                    <div class="card-header">
+                      <span class="card-category">
+                        {#if card.category === 'description'}🌲 Description
+                        {:else if card.category === 'dialogue'}💬 Dialogue
+                        {:else if card.category === 'combat'}⚔️ Combat
+                        {:else if card.category === 'event'}📜 Évènement
+                        {:else}📝 Note MJ{/if}
+                      </span>
+                      <span class="card-reading-time">⏱️ ~{card.readingTimeSec}s</span>
+                    </div>
+                    <p class="card-text">{card.text}</p>
+                    <div class="card-actions">
+                      <button class="mini-btn-play" onclick={() => ttsReader.speakText(card.text)}>▶️ Lire ce bloc</button>
+                      <button class="mini-btn-edit" onclick={() => { customNarrationText = card.text; sidebarTab = 'speech'; }}>📝 Éditer</button>
+                    </div>
+                  </div>
+                {/each}
+              {/if}
+            </div>
+
+          <!-- Dés & Tests de Compétence Détectés -->
+          {:else if sidebarTab === 'dice'}
+            <div class="dice-view">
+              <span class="dice-section-title">🎲 Formules détectées sur cette page</span>
+              {#if detectedDice.length === 0}
+                <div class="sidebar-empty">Aucun dé ou test détecté sur cette page.</div>
+              {:else}
+                <div class="dice-grid">
+                  {#each detectedDice as dice}
+                    <button class="dice-badge-card" onclick={() => rollDiceFromPdf(dice)}>
+                      <span class="dice-formula">🎲 {dice.formula}</span>
+                      <span class="dice-sub">Cliquer pour lancer</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+
+              {#if lastRollResult}
+                <div class="last-roll-box">
+                  <div class="last-roll-title">Dernier Jet : {lastRollResult.formula}</div>
+                  <div class="last-roll-val">{lastRollResult.total}</div>
+                  <div class="last-roll-details">Détails : [{lastRollResult.rolls.join(' + ')}]</div>
+                </div>
+              {/if}
+            </div>
+
+          <!-- Texte extrait & Surlignage vocal & Résumé IA -->
           {:else if sidebarTab === 'speech'}
             <div class="speech-view">
               <div class="speech-header">
@@ -625,10 +779,30 @@
                     <span class="speaker-pill">{ttsReader.currentSpeakerEmoji} {ttsReader.currentSpeakerName}</span>
                   {/if}
                 </div>
-                {#if currentPageText}
-                  <button class="mini-btn" onclick={() => ttsReader.speakText(currentPageText)}>▶️ Relire</button>
-                {/if}
+                <div class="speech-header-actions">
+                  <button class="mini-btn-ai" onclick={summarizeSceneWithAi} disabled={isAiLoading} title="Résumer la scène pour le MJ via l'IA locale">
+                    {isAiLoading ? '⏳ Résumé IA…' : '🔮 Résumer Scène'}
+                  </button>
+                  {#if currentPageText}
+                    <button class="mini-btn" onclick={() => ttsReader.speakText(currentPageText)}>▶️ Relire</button>
+                  {/if}
+                </div>
               </div>
+
+              {#if isAiLoading}
+                <div class="ai-summary-card">
+                  <div class="ocr-spinner">🔮</div>
+                  <strong>Analyse et résumé de la scène par l'IA…</strong>
+                </div>
+              {:else if aiSummary}
+                <div class="ai-summary-card">
+                  <div class="ai-summary-header">
+                    <span>🔮 Résumé de Scène (IA)</span>
+                    <button class="btn-close-summary" onclick={() => aiSummary = ''}>✕</button>
+                  </div>
+                  <div class="ai-summary-content">{aiSummary}</div>
+                </div>
+              {/if}
 
               {#if isOcrRunning}
                 <div class="ocr-loading-card">
@@ -656,15 +830,17 @@
                   {/each}
                 </div>
               {:else if currentPageText}
-                <p class="raw-page-text">{currentPageText}</p>
-              {:else}
+                <div class="raw-page-text">{currentPageText}</div>
+              {:else if isScannedPage}
                 <div class="ocr-banner">
-                  <div class="ocr-banner-title">📷 Page Numérisée (Scan sans texte natif)</div>
-                  <p class="ocr-banner-desc">Ce livre ancien est composé d'images scannées. Cliquez ci-dessous pour analyser le texte et lancer la lecture vocale.</p>
+                  <span class="ocr-banner-title">🖼️ Page Numérisée (Scan Ancien)</span>
+                  <p class="ocr-banner-desc">Cette page est une image sans texte brut incorporé. Cliquez ci-dessous pour transcrire et écouter.</p>
                   <button class="btn-run-ocr" onclick={runOcrOnCurrentPage} disabled={isOcrRunning}>
-                    🔍 Extraire le texte de la page (OCR) & Lire
+                    {isOcrRunning ? '⏳ Reconnaissance en cours…' : '🔍 OCR & Lire à Haute Voix'}
                   </button>
                 </div>
+              {:else}
+                <div class="sidebar-empty">Aucun texte détecté sur cette page.</div>
               {/if}
 
               <!-- Boîte de narration libre pour le Maître du Jeu -->
@@ -769,18 +945,33 @@
                 style="left: {selectionBox.x}px; top: {selectionBox.y}px; width: {selectionBox.width}px; height: {selectionBox.height}px;"
               >
                 {#if selectedAreaText}
-                  <div class="selection-floating-toolbar">
+                <div class="selection-floating-toolbar">
+                  {#if selectedAreaText}
                     <button class="sel-btn primary" onclick={readSelectedArea} title="Lire cette sélection avec la voix IA">
-                      🗣️ Lire ce paragraphe
+                      🗣️ Lire Sélection
                     </button>
                     <button class="sel-btn secondary" onclick={createTokenFromSelection} title="Extraire PNJ / Monstre et créer pion VTT">
                       ⚔️ Jeton VTT
                     </button>
+                  {/if}
+                  <button class="sel-btn secondary map-btn" onclick={extractMapFromSelection} title="Extraire cette zone comme carte de combat VTT">
+                    🗺️ Carte VTT
+                  </button>
+                  <button class="sel-btn secondary player-btn" onclick={revealHandoutToPlayers} title="Projeter cette illustration sur l'écran des joueurs">
+                    📱 Révéler Joueurs
+                  </button>
+                  {#if detectedDice.length > 0}
+                    <button class="sel-btn secondary dice-btn" onclick={() => rollDiceFromPdf(detectedDice[0])} title="Lancer le dé détecté {detectedDice[0].formula}">
+                      🎲 {detectedDice[0].formula}
+                    </button>
+                  {/if}
+                  {#if selectedAreaText}
                     <button class="sel-btn secondary" onclick={copySelectionToSpeech} title="Copier dans la boîte de narration">
                       📝 Personnaliser
                     </button>
-                    <button class="sel-btn-close" onclick={clearSelection} title="Fermer la sélection">✕</button>
-                  </div>
+                  {/if}
+                  <button class="sel-btn-close" onclick={clearSelection} title="Fermer la sélection">✕</button>
+                </div>
                 {/if}
               </div>
             {/if}
@@ -1075,4 +1266,72 @@
     padding: 2px 6px; cursor: pointer; border-radius: 4px;
   }
   .sel-btn-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .map-btn { border-color: #10b981 !important; color: #6ee7b7 !important; }
+  .map-btn:hover { background: rgba(16, 185, 129, 0.2) !important; color: #fff !important; }
+  .player-btn { border-color: #ec4899 !important; color: #f472b6 !important; }
+  .player-btn:hover { background: rgba(236, 72, 153, 0.2) !important; color: #fff !important; }
+  .dice-btn { border-color: #eab308 !important; color: #fde047 !important; }
+  .dice-btn:hover { background: rgba(234, 179, 8, 0.2) !important; color: #fff !important; }
+
+  /* Cartes Narratives */
+  .cards-view { display: flex; flex-direction: column; gap: 8px; }
+  .narrative-card {
+    background: #111827; border: 1px solid #1e293b; border-radius: 8px;
+    padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: all 0.15s;
+  }
+  .narrative-card:hover { border-color: #38bdf8; background: #172033; }
+  .card-dialogue { border-left: 3px solid #ec4899; }
+  .card-combat { border-left: 3px solid #ef4444; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; }
+  .card-category { font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; }
+  .card-reading-time { font-size: 0.68rem; color: #64748b; }
+  .card-text { font-size: 0.78rem; line-height: 1.4; color: #cbd5e1; margin: 0; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-actions { display: flex; gap: 6px; margin-top: 4px; }
+  .mini-btn-play {
+    background: #0284c7; border: none; border-radius: 4px; color: #fff;
+    font-size: 0.72rem; font-weight: 600; padding: 4px 8px; cursor: pointer; flex: 1;
+  }
+  .mini-btn-play:hover { background: #0369a1; }
+  .mini-btn-edit {
+    background: #1e293b; border: 1px solid #334155; border-radius: 4px;
+    color: #94a3b8; font-size: 0.72rem; padding: 4px 8px; cursor: pointer;
+  }
+  .mini-btn-edit:hover { background: #334155; color: #fff; }
+
+  /* Dés Détectés */
+  .dice-view { display: flex; flex-direction: column; gap: 10px; }
+  .dice-section-title { font-size: 0.76rem; font-weight: 700; color: #fbbf24; text-transform: uppercase; }
+  .dice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .dice-badge-card {
+    background: #1e1b4b; border: 1px solid #6366f1; border-radius: 6px;
+    padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .dice-badge-card:hover { background: #312e81; border-color: #818cf8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+  .dice-formula { font-size: 0.95rem; font-weight: 800; color: #e0e7ff; }
+  .dice-sub { font-size: 0.65rem; color: #a5b4fc; }
+  .last-roll-box {
+    background: #111827; border: 1px solid #f59e0b; border-radius: 8px;
+    padding: 10px; text-align: center; display: flex; flex-direction: column; gap: 4px;
+  }
+  .last-roll-title { font-size: 0.72rem; font-weight: 700; color: #fbbf24; }
+  .last-roll-val { font-size: 2rem; font-weight: 900; color: #fff; font-family: monospace; }
+  .last-roll-details { font-size: 0.7rem; color: #94a3b8; }
+
+  /* Résumé IA */
+  .speech-header-actions { display: flex; gap: 6px; align-items: center; }
+  .mini-btn-ai {
+    background: linear-gradient(135deg, #7c3aed, #6366f1); border: 1px solid #a855f7;
+    border-radius: 4px; color: #fff; font-size: 0.72rem; font-weight: 700; padding: 2px 8px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .mini-btn-ai:hover:not(:disabled) { box-shadow: 0 0 10px rgba(168,85,247,0.4); }
+  .mini-btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ai-summary-card {
+    background: #170d2b; border: 1px solid #a855f7; border-radius: 8px;
+    padding: 10px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .ai-summary-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; font-weight: 700; color: #c084fc; }
+  .btn-close-summary { background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; }
+  .ai-summary-content { font-size: 0.76rem; line-height: 1.45; color: #e2e8f0; white-space: pre-wrap; }
 </style>
