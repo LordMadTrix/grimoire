@@ -198,7 +198,119 @@
     pendingAutosave = null;
   }
 
+  // ── Pont Bidirectionnel Grimoire <-> Map Editor ──
+  let toastMessage = $state<string | null>(null);
+  let toastTimer: any = null;
+  function showToast(msg: string) {
+    toastMessage = msg;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastMessage = null; }, 3500);
+  }
+
+  let broadcastChannel: BroadcastChannel | null = null;
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    broadcastChannel = new BroadcastChannel('grimoire-map-bridge');
+    broadcastChannel.onmessage = (ev) => {
+      if (ev.data?.type === 'open-map-in-editor') {
+        handleIncomingMap(ev.data.payload);
+      }
+    };
+  }
+
+  function handleIncomingMap(payload: any) {
+    if (!payload) return;
+    if (payload.projectJson) {
+      applyProjectData(payload.projectJson);
+      showToast(`🗺️ Projet « ${payload.title || 'Carte'} » chargé depuis Grimoire !`);
+    } else if (payload.backgroundImageUrl) {
+      mapStore.backgroundImageUrl = payload.backgroundImageUrl;
+      mapStore.backgroundImageOpacity = 1.0;
+      if (payload.title) mapStore.mapTitle = payload.title;
+      showToast(`🗺️ Image « ${payload.title || 'Carte'} » chargée en calque de fond !`);
+    }
+  }
+
+  async function getMapDataUrl(): Promise<string> {
+    if (canvasComponent && canvasComponent.getRenderedDataUrl) {
+      return canvasComponent.getRenderedDataUrl();
+    }
+    const canvasEl = document.querySelector('canvas');
+    if (canvasEl) {
+      return canvasEl.toDataURL('image/png');
+    }
+    return '';
+  }
+
+  async function sendToGrimoire() {
+    const dataUrl = await getMapDataUrl();
+    if (!dataUrl) {
+      alert("Impossible de générer le rendu de la carte.");
+      return;
+    }
+
+    const payload = {
+      title: mapStore.mapTitle || 'Nouvelle Carte Fantasy',
+      dataUrl,
+      width: mapStore.canvasWidth,
+      height: mapStore.canvasHeight,
+      gridSize: mapStore.gridSize,
+      projectJson: buildProjectData(true)
+    };
+
+    try {
+      const { emit } = await import('@tauri-apps/api/event');
+      await emit('map-send-to-grimoire', payload);
+    } catch (e) {
+      console.warn('Tauri event non disponible, passage par BroadcastChannel:', e);
+    }
+
+    if (broadcastChannel) {
+      broadcastChannel.postMessage({ type: 'map-send-to-grimoire', payload });
+    }
+
+    showToast(`🐉 Carte « ${payload.title} » envoyée sur la Table Virtuelle !`);
+  }
+
+  async function saveToVault() {
+    const dataUrl = await getMapDataUrl();
+    if (!dataUrl) return;
+
+    const payload = {
+      title: mapStore.mapTitle || 'Carte Fantasy',
+      dataUrl,
+      projectJson: buildProjectData(true)
+    };
+
+    let savedViaTauri = false;
+    try {
+      const { emit } = await import('@tauri-apps/api/event');
+      await emit('map-save-to-vault', payload);
+      savedViaTauri = true;
+      showToast(`💾 Projet « ${payload.title} » enregistré dans la campagne !`);
+    } catch {
+      // Fallback si hors Tauri
+    }
+
+    if (broadcastChannel) {
+      broadcastChannel.postMessage({ type: 'map-save-to-vault', payload });
+    }
+
+    if (!savedViaTauri) {
+      saveProjectJson();
+      handleExport();
+      showToast(`💾 Fichiers JSON et PNG exportés avec succès !`);
+    }
+  }
+
   onMount(() => {
+    // Écouteur Tauri d'ouverture de carte depuis Grimoire
+    let unlisten: (() => void) | null = null;
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen<any>('open-map-in-editor', (event) => {
+        handleIncomingMap(event.payload);
+      }).then(fn => { unlisten = fn; });
+    }).catch(() => {});
+
     // Proposer la restauration d'une session précédente
     try {
       const raw = localStorage.getItem(AUTOSAVE_KEY);
@@ -214,6 +326,7 @@
     const autosaveTimer = setInterval(saveAutosave, 60_000);
     window.addEventListener('beforeunload', saveAutosave);
     return () => {
+      if (unlisten) unlisten();
       clearInterval(autosaveTimer);
       window.removeEventListener('beforeunload', saveAutosave);
     };
@@ -234,6 +347,8 @@
     onSave={saveProjectJson}
     onLoad={loadProjectJson}
     onClear={handleClear}
+    onSendToGrimoire={sendToGrimoire}
+    onSaveToVault={saveToVault}
   />
 
   <!-- Barre latérale outils gauche (flottante) -->
@@ -248,6 +363,13 @@
   <!-- Catalogue d'assets (Modal) -->
   <CatalogModal />
   <TextureCatalogModal />
+
+  <!-- Toast de confirmation d'action Grimoire -->
+  {#if toastMessage}
+    <div class="grimoire-toast">
+      <span>{toastMessage}</span>
+    </div>
+  {/if}
 
   <!-- Bannière de restauration d'auto-sauvegarde -->
   {#if pendingAutosave}
@@ -340,5 +462,27 @@
     left: 0;
     width: 100vw;
     z-index: 130;
+  }
+
+  /* Toast de liaison Grimoire */
+  .grimoire-toast {
+    position: fixed;
+    top: calc(var(--editor-top-nav-height) + 16px);
+    right: 20px;
+    background: #0f172a;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    color: #fef08a;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.8), 0 0 16px rgba(245, 158, 11, 0.4);
+    z-index: 9999;
+    animation: slideInToast 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideInToast {
+    from { opacity: 0; transform: translateY(-12px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
 </style>

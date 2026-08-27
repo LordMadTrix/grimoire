@@ -91,7 +91,16 @@
     { id: 'banner', name: 'Bannière', file: '/assets/stamps/banner.png', icon: '📜', variants: ['banner'] },
   ];
 
-  const STAMPS_ISO: StampItem[] = [...DEFAULT_STAMPS_ISO, ...importedStamps];
+  const STAMPS_ISO: StampItem[] = [
+    ...DEFAULT_STAMPS_ISO,
+    ...(importedStamps as any[]).map(s => ({
+      id: s.id,
+      name: s.name,
+      file: s.file,
+      icon: s.icon || '🎨',
+      variants: s.variants || [s.id]
+    }))
+  ];
 
 
 

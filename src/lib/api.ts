@@ -48,6 +48,10 @@ export async function writeFile(vaultPath: string, relativePath: string, content
   return invoke('write_file', { vaultPath, relativePath, content });
 }
 
+export async function writeFileBase64(vaultPath: string, relativePath: string, base64Content: string): Promise<void> {
+  return invoke('write_file_base64', { vaultPath, relativePath, base64Content });
+}
+
 export async function createDirectory(vaultPath: string, relativePath: string): Promise<void> {
   return invoke('create_directory', { vaultPath, relativePath });
 }
@@ -97,6 +101,33 @@ export async function emitToPlayerView(eventName: string, payload: any): Promise
 
 export async function openMapEditor(): Promise<void> {
   return invoke('open_map_editor');
+}
+
+export async function openMapEditorWithMap(mapDataUrl: string, title?: string, projectJson?: any): Promise<void> {
+  await invoke('open_map_editor');
+  
+  const payload = {
+    title: title || 'Carte Importée',
+    backgroundImageUrl: mapDataUrl,
+    projectJson: projectJson || null
+  };
+
+  // 1. Envoyer via Tauri
+  try {
+    const { emit } = await import('@tauri-apps/api/event');
+    // Petit délai pour laisser la fenêtre map-editor s'initialiser
+    setTimeout(async () => {
+      await emit('open-map-in-editor', payload);
+    }, 500);
+  } catch {}
+
+  // 2. Envoyer via BroadcastChannel
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    const bc = new BroadcastChannel('grimoire-map-bridge');
+    setTimeout(() => {
+      bc.postMessage({ type: 'open-map-in-editor', payload });
+    }, 500);
+  }
 }
 
 // ── AI ──────────────────────────────────────────────────────────

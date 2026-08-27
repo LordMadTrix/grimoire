@@ -61,6 +61,26 @@ pub fn read_file_base64(path: String) -> Result<String, String> {
     Ok(general_purpose::STANDARD.encode(bytes))
 }
 
+/// Écrit des données base64 (ex: image PNG générée par le Map Editor) dans un fichier du vault
+#[tauri::command]
+pub fn write_file_base64(vault_path: String, relative_path: String, base64_content: String) -> Result<(), String> {
+    let full_path = Path::new(&vault_path).join(&relative_path);
+
+    let clean_b64 = if let Some(idx) = base64_content.find(',') {
+        &base64_content[idx + 1..]
+    } else {
+        &base64_content
+    };
+
+    let bytes = general_purpose::STANDARD.decode(clean_b64).map_err(|e| format!("Invalid base64: {}", e))?;
+
+    if let Some(parent) = full_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    std::fs::write(&full_path, bytes).map_err(|e| e.to_string())
+}
+
 /// Écrit du contenu dans un fichier du vault
 #[tauri::command]
 pub fn write_file(vault_path: String, relative_path: String, content: String) -> Result<(), String> {

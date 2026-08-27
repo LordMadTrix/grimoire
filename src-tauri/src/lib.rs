@@ -31,6 +31,7 @@ pub fn run() {
             commands::vault::read_file,
             commands::vault::read_file_base64,
             commands::vault::write_file,
+            commands::vault::write_file_base64,
             commands::vault::create_directory,
             commands::vault::delete_file,
             commands::vault::rename_entry,

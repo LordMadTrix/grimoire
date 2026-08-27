@@ -38,6 +38,7 @@
   const assetCache = new Map<string, HTMLCanvasElement | HTMLImageElement>();
   const imageLoadingPromises: Promise<void>[] = [];
 
+
   // États locaux de dessin / pan / interaction
   let isPointerDown = false;
   let isPanning = false;
@@ -3010,6 +3011,19 @@
     a.href = url;
     a.download = `${safeName}.png`;
     a.click();
+  }
+
+  // Obtenir le rendu pur sans téléchargement (pour envoi direct vers Grimoire)
+  export function getRenderedDataUrl(): string {
+    const savedSelection = [...mapStore.selectedIds];
+    const savedElement = mapStore.selectedElement;
+    mapStore.selectedIds = [];
+    mapStore.selectedElement = null;
+    drawMap();
+    const url = bufferCanvas.toDataURL('image/png');
+    mapStore.selectedIds = savedSelection;
+    mapStore.selectedElement = savedElement;
+    return url;
   }
 
   // Réinitialiser le terrain (masque plein + texture par défaut)

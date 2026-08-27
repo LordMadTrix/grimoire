@@ -1,6 +1,6 @@
 <script lang="ts">
   import SharedLibrary from './SharedLibrary.svelte';
-  import { emitToPlayerView, readFileBase64, readFile } from '$lib/api';
+  import { emitToPlayerView, readFileBase64, readFile, openMapEditor, openMapEditorWithMap } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import {
     vttStore,
@@ -366,8 +366,10 @@
       <div class="dropdown-content" class:hidden={activeMenu !== 'map'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
         {#if !vttStore.currentMap}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Charger une carte</button>
+          <button class="dropdown-item highlight-item" onclick={() => { openMapEditor(); activeMenu = null; }}>🎨 Créer dans Fantasy Map Editor</button>
         {:else}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Changer de carte</button>
+          <button class="dropdown-item highlight-item" onclick={() => { openMapEditorWithMap(vttStore.currentMap!, vttStore.currentMapRelPath?.split('/').pop()?.replace(/\.[^.]+$/, '') || 'Carte Active'); activeMenu = null; }}>✏️ Modifier dans le Map Editor</button>
           <button class="dropdown-item" onclick={() => { closeMap(); activeMenu = null; }}>✖️ Fermer la carte</button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" class:active={vttStore.mode === 'zoom-rect'} onclick={() => { vttStore.mode = 'zoom-rect'; activeMenu = null; }}>🔍 Zoomer sur une zone</button>
@@ -375,6 +377,7 @@
           <button class="dropdown-item" onclick={() => { undoMapAction(); activeMenu = null; }} disabled={!canUndo()}>↩️ Annuler action carte</button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" onclick={() => vttStore.exportRequest++}>🖼️💾 Exporter carte en PNG</button>
+          <button class="dropdown-item" onclick={() => { openMapEditor(); activeMenu = null; }}>🎨 Nouveau projet Map Editor</button>
         {/if}
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" class:active={vttStore.showGrid} onclick={toggleGrid}>#️⃣ Afficher/masquer grille</button>
@@ -1132,6 +1135,14 @@
   .soundscape-menu-highlight {
     color: #38bdf8 !important;
     font-weight: 700;
+  }
+  .highlight-item {
+    color: #fbbf24 !important;
+    font-weight: 700;
+  }
+  .highlight-item:hover {
+    background: rgba(251, 191, 36, 0.15) !important;
+    color: #fef08a !important;
   }
   .float-panel-header button:hover { color: var(--text-primary); }
 

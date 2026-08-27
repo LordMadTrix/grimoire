@@ -22,7 +22,7 @@
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
-  import { openVault, reindex, openPlayerView, listMonitors, writeFile, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus } from '$lib/api';
+  import { openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus } from '$lib/api';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
   import {
@@ -232,6 +232,60 @@
       _unlistenApp.push(await listen('player_roll', (e: any) => {
         notifStore.add('🎲', e.payload.name, JSON.stringify(e.payload.data ?? ''), 'info', 4000);
       }));
+
+      // ── Pont Bidirectionnel Map Editor -> Grimoire VTT ──
+      async function handleMapFromEditor(payload: any, switchScene = true) {
+        if (!payload || !payload.dataUrl) return;
+        const currentVault = getVaultPath();
+        const safeTitle = (payload.title || 'Carte Fantasy').replace(/[\\/:*?"<>|]+/g, '').trim() || 'Carte Fantasy';
+        const relImgPath = `assets/maps/${safeTitle}.png`;
+        const relJsonPath = `assets/maps/${safeTitle}.json`;
+
+        if (currentVault) {
+          try {
+            await writeFileBase64(currentVault, relImgPath, payload.dataUrl);
+            if (payload.projectJson) {
+              await writeFile(currentVault, relJsonPath, JSON.stringify(payload.projectJson, null, 2));
+            }
+            // Rafraîchir l'arborescence du coffre
+            const tree = await openVault(currentVault);
+            setVaultTree(tree);
+          } catch (err) {
+            console.error('Erreur sauvegarde carte dans le vault:', err);
+          }
+        }
+
+        if (switchScene) {
+          addMapScene(safeTitle, relImgPath, payload.dataUrl);
+          vttStore.currentMap = payload.dataUrl;
+          vttStore.currentMapRelPath = relImgPath;
+          if (payload.gridSize) vttStore.gridSize = payload.gridSize;
+          viewMode = 'editor';
+          notifStore.add('🐉', 'Map Editor', `Carte « ${safeTitle} » chargée sur la Table Virtuelle !`, 'success', 6000);
+        } else {
+          notifStore.add('💾', 'Campagne', `Projet & Carte « ${safeTitle} » enregistrés dans le Coffre !`, 'success', 5000);
+        }
+      }
+
+      _unlistenApp.push(await listen('map-send-to-grimoire', (e: any) => {
+        handleMapFromEditor(e.payload, true);
+      }));
+
+      _unlistenApp.push(await listen('map-save-to-vault', (e: any) => {
+        handleMapFromEditor(e.payload, false);
+      }));
+
+      // Support fallback via BroadcastChannel (web / multi-onglets)
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('grimoire-map-bridge');
+        bc.onmessage = (ev) => {
+          if (ev.data?.type === 'map-send-to-grimoire') {
+            handleMapFromEditor(ev.data.payload, true);
+          } else if (ev.data?.type === 'map-save-to-vault') {
+            handleMapFromEditor(ev.data.payload, false);
+          }
+        };
+      }
 
       // Vérification automatique des nouveautés des Archives Célestes (Cartes, PDFs, Textures) au démarrage
       checkForCatalogUpdates().then(result => {

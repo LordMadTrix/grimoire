@@ -6,13 +6,17 @@
     onSave = () => {},
     onLoad = (e: Event) => {},
     onClear = () => {},
-    onMenuClick = () => {}
+    onMenuClick = () => {},
+    onSendToGrimoire = () => {},
+    onSaveToVault = () => {}
   }: {
     onExport?: () => void;
     onSave?: () => void;
     onLoad?: (e: Event) => void;
     onClear?: () => void;
     onMenuClick?: () => void;
+    onSendToGrimoire?: () => void;
+    onSaveToVault?: () => void;
   } = $props();
 
   // Zoom centré sur le milieu du viewport
@@ -203,7 +207,17 @@
   </div>
 
   <!-- Séparateur flexible -->
-  <div style="flex: 1;"></div>
+  <!-- Boutons d'intégration Grimoire -->
+  <div class="tp-grimoire-actions">
+    <button type="button" class="tp-btn-grimoire-send" onclick={onSendToGrimoire} title="Envoyer directement la carte sur la Table Virtuelle Grimoire active">
+      🐉 Envoyer vers Grimoire VTT
+    </button>
+    <button type="button" class="tp-btn-grimoire-save" onclick={onSaveToVault} title="Sauvegarder l'image et le projet dans le dossier assets/maps/ du Coffre actif">
+      💾 Campagne
+    </button>
+  </div>
+
+  <div class="tp-divider"></div>
 
   <!-- Boutons projet (Enregistrer / Charger / Vider) -->
   <div class="tp-project-actions">
@@ -444,5 +458,55 @@
     background-color: rgba(239, 68, 68, 0.08);
     border-color: #ef4444;
     color: #fca5a5;
+  }
+
+  .tp-grimoire-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .tp-btn-grimoire-send {
+    background: linear-gradient(135deg, #b45309, #d97706);
+    border: 1px solid #f59e0b;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  }
+
+  .tp-btn-grimoire-send:hover {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .tp-btn-grimoire-save {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 5px;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+
+  .tp-btn-grimoire-save:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #38bdf8;
+    color: #38bdf8;
   }
 </style>
