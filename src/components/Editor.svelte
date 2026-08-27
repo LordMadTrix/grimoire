@@ -6,6 +6,7 @@
     setActiveFile, setActiveContent, getIsDirty, setIsDirty
   } from '$lib/stores/vault.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+  import PdfReaderModal from './PdfReaderModal.svelte';
 
   let saveTimeout: ReturnType<typeof setTimeout>;
   let backlinks = $state<BacklinkResult[]>([]);
@@ -376,36 +377,44 @@
       </div>
     {/if}
 
-    <div class="editor-wrapper" class:split-view={showPreview}>
-      <CodeMirrorEditor
-        value={getActiveContent()}
-        scrollToLine={scrollToLine}
-        onInput={(val) => {
-          setActiveContent(val);
-          setIsDirty(true);
-          scheduleAutoSave(val);
-          if (showPreview) markdownToHtml(val, false).then(h => { previewHtml = h; });
-        }}
-        onSave={() => {
-          clearTimeout(saveTimeout);
-          saveFile(true);
-        }}
+    {#if getActiveFile()?.toLowerCase().endsWith('.pdf')}
+      <PdfReaderModal
+        localPath={`${getVaultPath()}/${getActiveFile()}`}
+        fileName={getActiveFile()?.split('/').pop() || 'Livre PDF'}
+        onclose={() => setActiveFile(null)}
       />
-      {#if showPreview}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="preview-panel" onclick={(e) => {
-          const target = e.target as HTMLElement;
-          const link = target.closest('[data-href]') as HTMLElement | null;
-          if (!link) return;
-          const href = link.dataset.href;
-          if (!href) return;
-          openWikiFromPreview(href);
-        }}>
-          {@html previewHtml}
-        </div>
-      {/if}
-    </div>
+    {:else}
+      <div class="editor-wrapper" class:split-view={showPreview}>
+        <CodeMirrorEditor
+          value={getActiveContent()}
+          scrollToLine={scrollToLine}
+          onInput={(val) => {
+            setActiveContent(val);
+            setIsDirty(true);
+            scheduleAutoSave(val);
+            if (showPreview) markdownToHtml(val, false).then(h => { previewHtml = h; });
+          }}
+          onSave={() => {
+            clearTimeout(saveTimeout);
+            saveFile(true);
+          }}
+        />
+        {#if showPreview}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="preview-panel" onclick={(e) => {
+            const target = e.target as HTMLElement;
+            const link = target.closest('[data-href]') as HTMLElement | null;
+            if (!link) return;
+            const href = link.dataset.href;
+            if (!href) return;
+            openWikiFromPreview(href);
+          }}>
+            {@html previewHtml}
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <div class="editor-statusbar">
       <span>{wordCount} mots</span>

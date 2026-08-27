@@ -40,6 +40,12 @@
     const vaultPath = getVaultPath();
     if (!vaultPath) return;
 
+    if (result.path.toLowerCase().endsWith('.pdf')) {
+      setActiveFile(result.path);
+      close();
+      return;
+    }
+
     try {
       const content = await readFile(vaultPath, result.path);
       setActiveFile(result.path);

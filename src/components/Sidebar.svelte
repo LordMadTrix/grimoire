@@ -134,32 +134,39 @@
     }
   }
 
-  async function handleFileClick(entry: VaultEntry) {
-    if (entry.is_dir) { toggleDir(entry.path); return; }
-    if (isImage(entry) && entry.path.startsWith('assets/maps/')) {
-      await loadAsMap(entry);
-      return;
-    }
-    if (entry.extension?.toLowerCase() === 'pdf') {
-      const vp = getVaultPath();
-      if (!vp) return;
+  async function openPathSmart(path: string) {
+    const vp = getVaultPath();
+    if (!vp) return;
+
+    if (path.toLowerCase().endsWith('.pdf')) {
       activePdfModal = {
-        localPath: `${vp}/${entry.path}`,
-        name: entry.name
+        localPath: `${vp}/${path}`,
+        name: path.split('/').pop() || 'Livre PDF'
       };
       return;
     }
-    if (entry.extension !== 'md') return;
-    const vaultPath = getVaultPath();
-    if (!vaultPath) return;
+
+    if (path.startsWith('assets/maps/') && (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.webp') || path.endsWith('.jpeg'))) {
+      const b64 = await readFileBase64(`${vp}/${path}`);
+      const ext = path.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      setGmCurrentMap(`data:${mime};base64,${b64}`);
+      return;
+    }
+
     try {
-      const content = await readFile(vaultPath, entry.path);
-      setActiveFile(entry.path);
-      setActiveContent(content);
+      const c = await readFile(vp, path);
+      setActiveFile(path);
+      setActiveContent(c);
       setIsDirty(false);
     } catch (err) {
-      console.error('Failed to read file:', err);
+      console.error('Failed to open file:', err);
     }
+  }
+
+  async function handleFileClick(entry: VaultEntry) {
+    if (entry.is_dir) { toggleDir(entry.path); return; }
+    await openPathSmart(entry.path);
   }
 
   function getIcon(entry: VaultEntry): string {
@@ -401,10 +408,7 @@
             <button
               class="tree-item"
               class:active={getActiveFile() === path}
-              onclick={async () => {
-                const vp = getVaultPath(); if (!vp) return;
-                try { const c = await readFile(vp, path); setActiveFile(path); setActiveContent(c); setIsDirty(false); } catch {}
-              }}
+              onclick={() => openPathSmart(path)}
               oncontextmenu={(e) => { e.preventDefault(); ctxMenu = { entry: { name, path, is_dir: false, extension: path.split('.').pop() }, x: e.clientX, y: e.clientY }; }}
               title={path}
             >
@@ -431,13 +435,10 @@
               <button
                 class="tree-item recent-item"
                 class:active={getActiveFile() === path}
-                onclick={async () => {
-                  const vp = getVaultPath(); if (!vp) return;
-                  try { const c = await readFile(vp, path); setActiveFile(path); setActiveContent(c); setIsDirty(false); } catch {}
-                }}
+                onclick={() => openPathSmart(path)}
                 title={path}
               >
-                <span class="icon">📄</span>
+                <span class="icon">{path.toLowerCase().endsWith('.pdf') ? '📚' : '📄'}</span>
                 <span class="name">{name.replace(/\.md$/, '')}</span>
                 <span class="recent-path">{path.split('/').slice(0, -1).join('/') || '/'}</span>
               </button>
