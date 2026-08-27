@@ -7,3 +7,4 @@ pub mod config;
 pub mod update;
 pub mod addons;
 pub mod edge_tts;
+pub mod campaign;

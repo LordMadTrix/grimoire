@@ -1,10 +1,12 @@
-// ── TTS Voice Reader Engine (IA Neuronale HD + Fallback Web Speech) ───────────
+// ── TTS Voice Reader Engine (Multi-Voix PNJ + Auto-Ducking Ambiance) ────────
 // Permet la lecture vocale fluide, ultra-réaliste et naturelle (Microsoft Azure Neural AI)
-// avec surlignage de phrases en temps réel, pré-chargement en arrière-plan et
-// fallback automatique sur les voix locales hors-ligne.
+// avec alternance automatique Narrateur / Dialogues PNJ, synchronisation avec le mixeur
+// d'ambiance sonore (Auto-Ducking) et surlignage interactif en temps réel.
 
 import { NEURAL_VOICES, synthesizeNeuralSpeech, type NeuralVoice } from '$lib/services/edgeTts';
 import { clusterTextIntoNaturalSentences, formatTextForNaturalSpeech } from '$lib/services/naturalSpeech';
+import { parseMultiVoiceSegments, type NarrationSegment } from '$lib/services/dialogueParser';
+import { ambianceStore } from '$lib/stores/ambianceStore.svelte';
 
 export interface VoiceOption {
   name: string;
@@ -18,7 +20,8 @@ class TtsReaderStore {
   synth: SpeechSynthesis | null = null;
   
   availableVoices = $state<VoiceOption[]>([]);
-  selectedVoiceName = $state<string>('fr-FR-HenriNeural'); // Voix IA Henri Narrateur par défaut
+  selectedVoiceName = $state<string>('fr-FR-HenriNeural'); // Voix Narrateur par défaut
+  isMultiVoiceEnabled = $state<boolean>(true); // Mode dialogue multi-acteurs activé par défaut
   
   isPlaying = $state<boolean>(false);
   isPaused = $state<boolean>(false);
@@ -28,13 +31,15 @@ class TtsReaderStore {
   
   currentFullText = $state<string>('');
   sentences = $state<string[]>([]);
+  segments = $state<NarrationSegment[]>([]);
   currentSentenceIndex = $state<number>(-1);
+  currentSpeakerName = $state<string>('🧙‍♂️ Narrateur');
+  currentSpeakerEmoji = $state<string>('🧙‍♂️');
 
   // Audio HTML5 pour les voix neuronales IA
   private currentAudio: HTMLAudioElement | null = null;
   private currentBlobUrl: string | null = null;
   private preloadedUrls = new Map<number, string>();
-  private abortController: AbortController | null = null;
 
   constructor() {
     this.buildVoiceList();
@@ -80,7 +85,6 @@ class TtsReaderStore {
 
     this.availableVoices = list;
 
-    // Définir la voix par défaut sur Henri Narrateur IA si pas encore défini
     if (!this.selectedVoiceName || !list.some(v => v.aiId === this.selectedVoiceName || v.name === this.selectedVoiceName)) {
       this.selectedVoiceName = 'fr-FR-HenriNeural';
     }
@@ -104,6 +108,10 @@ class TtsReaderStore {
     }
   }
 
+  toggleMultiVoice() {
+    this.isMultiVoiceEnabled = !this.isMultiVoiceEnabled;
+  }
+
   /**
    * Découpe intelligemment le texte en blocs de narration cohérents et mélodiques
    */
@@ -117,15 +125,35 @@ class TtsReaderStore {
   speakText(text: string) {
     this.stop();
 
-    const sentences = this.splitIntoSentences(text);
-    if (sentences.length === 0) return;
+    if (this.isMultiVoiceEnabled) {
+      // Mode Multi-Voix : Découper en segments de rôles (Narrateur vs PNJ)
+      const parsedSegments = parseMultiVoiceSegments(text, this.selectedVoiceName);
+      if (parsedSegments.length === 0) return;
+
+      this.segments = parsedSegments;
+      this.sentences = parsedSegments.map(s => s.text);
+    } else {
+      // Mode Simple Voix
+      const s = this.splitIntoSentences(text);
+      if (s.length === 0) return;
+      this.sentences = s;
+      this.segments = s.map(txt => ({
+        text: txt,
+        isDialogue: false,
+        speakerName: 'Narrateur',
+        voiceId: this.selectedVoiceName,
+        voiceEmoji: '🧙‍♂️'
+      }));
+    }
 
     this.currentFullText = text;
-    this.sentences = sentences;
     this.currentSentenceIndex = 0;
     this.isPlaying = true;
     this.isPaused = false;
     this.preloadedUrls.clear();
+
+    // Activer l'Auto-Ducking de la musique de fond
+    ambianceStore.setDucking(true);
 
     this.speakFromSentence(0);
   }
@@ -137,9 +165,22 @@ class TtsReaderStore {
     }
 
     this.currentSentenceIndex = index;
-    const sentenceText = this.sentences[index];
+    const segment = this.segments[index] || {
+      text: this.sentences[index],
+      isDialogue: false,
+      speakerName: 'Narrateur',
+      voiceId: this.selectedVoiceName,
+      voiceEmoji: '🧙‍♂️'
+    };
+
+    this.currentSpeakerName = segment.speakerName;
+    this.currentSpeakerEmoji = segment.voiceEmoji;
+
+    const sentenceText = segment.text;
+    const voiceToUse = segment.voiceId || this.selectedVoiceName;
+
     const selectedVoice = this.availableVoices.find(
-      v => v.aiId === this.selectedVoiceName || v.name === this.selectedVoiceName
+      v => v.aiId === voiceToUse || v.name === voiceToUse
     );
 
     // ── Cas 1 : Voix Neuronale IA Ultra-Réaliste ──
@@ -162,9 +203,11 @@ class TtsReaderStore {
         this.currentAudio = audio;
         this.currentBlobUrl = audioUrl;
 
-        // Pré-charger la phrase suivante en arrière-plan pour une fluidité absolue
+        // Pré-charger la phrase suivante en arrière-plan avec sa propre voix
         if (index + 1 < this.sentences.length && !this.preloadedUrls.has(index + 1)) {
-          synthesizeNeuralSpeech(this.sentences[index + 1], selectedVoice.aiId, this.rate, this.pitch)
+          const nextSegment = this.segments[index + 1];
+          const nextVoiceId = nextSegment?.voiceId || selectedVoice.aiId;
+          synthesizeNeuralSpeech(this.sentences[index + 1], nextVoiceId, this.rate, this.pitch)
             .then(nextUrl => {
               if (this.isPlaying) this.preloadedUrls.set(index + 1, nextUrl);
             })
@@ -186,7 +229,6 @@ class TtsReaderStore {
       } catch (err) {
         console.warn('Synthèse vocale IA échouée, bascule sur voix système...', err);
         this.isLoadingAudio = false;
-        // Fallback local Web Speech si pas de connexion internet
         this.speakWithWebSpeech(sentenceText, index);
       }
     } else {
@@ -251,6 +293,8 @@ class TtsReaderStore {
   pause() {
     if (!this.isPlaying) return;
     this.isPaused = true;
+    ambianceStore.setDucking(false); // Rétablir le volume de fond quand la voix est en pause
+
     if (this.currentAudio) {
       this.currentAudio.pause();
     } else if (this.synth) {
@@ -261,6 +305,8 @@ class TtsReaderStore {
   resume() {
     if (!this.isPlaying) return;
     this.isPaused = false;
+    ambianceStore.setDucking(true); // Re-baisser le volume de fond
+
     if (this.currentAudio) {
       this.currentAudio.play().catch(() => {});
     } else if (this.synth) {
@@ -273,6 +319,10 @@ class TtsReaderStore {
     this.isPaused = false;
     this.isLoadingAudio = false;
     this.currentSentenceIndex = -1;
+    this.currentSpeakerName = '🧙‍♂️ Narrateur';
+
+    // Rétablir la musique de fond
+    ambianceStore.setDucking(false);
 
     if (this.currentAudio) {
       this.currentAudio.pause();

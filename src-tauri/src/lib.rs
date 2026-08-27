@@ -88,6 +88,9 @@ pub fn run() {
             commands::addons::addon_fetch_pdf_bytes,
             // TTS Synthèse Neuronale IA
             commands::edge_tts::tts_synthesize_neural,
+            // Campagne Export / Import .grimoire
+            commands::campaign::campaign_export_package,
+            commands::campaign::campaign_import_package,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");

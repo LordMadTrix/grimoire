@@ -3,8 +3,10 @@
   import { invoke } from '@tauri-apps/api/core';
   import * as pdfjsLib from 'pdfjs-dist';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
+  import { ambianceStore } from '$lib/stores/ambianceStore.svelte';
   import { readFileBase64 } from '$lib/api';
   import { extractTextFromCanvas } from '$lib/services/ocrService';
+  import { parseStatblockText, createTokenFromStatblock } from '$lib/services/statblockParser';
 
   // Configurer le worker PDF.js (localisé pour Vite)
   if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -341,6 +343,19 @@
       }
     }
   }
+
+  // ── Extraction de Fiche & Création de Jeton VTT ──
+  function handleCreateTokenFromPage() {
+    const textToParse = customNarrationText.trim() || currentPageText.trim();
+    if (!textToParse) {
+      alert('Veuillez d\'abord extraire ou sélectionner du texte sur cette page.');
+      return;
+    }
+
+    const stats = parseStatblockText(textToParse);
+    const token = createTokenFromStatblock(stats);
+    alert(`⚔️ Jeton VTT créé avec succès !\n\nNom: ${token.name}\nPV: ${token.hp} | CA: ${token.ac}\nLe pion a été déposé sur votre Table Virtuelle.`);
+  }
 </script>
 
 <div class="pdf-modal-backdrop" bind:this={containerEl}>
@@ -448,6 +463,30 @@
           {/if}
         </select>
       {/if}
+
+      <!-- Mode Multi-Voix PNJ -->
+      <button
+        class="tool-btn"
+        class:active={ttsReader.isMultiVoiceEnabled}
+        onclick={() => ttsReader.toggleMultiVoice()}
+        title="Activer/Désactiver l'alternance automatique de voix pour les dialogues PNJ"
+      >
+        🎭 {ttsReader.isMultiVoiceEnabled ? 'Multi-Voix PNJ' : 'Voix Simple'}
+      </button>
+
+      <!-- Fond Sonore d'Ambiance (Auto-Ducking) -->
+      <select
+        class="ambiance-select"
+        onchange={(e) => ambianceStore.loadPreset((e.target as HTMLSelectElement).value as any)}
+        title="Fond sonore d'ambiance immersif (s'atténue automatiquement pendant la voix)"
+      >
+        <option value="clear">🔇 Ambiance : Silence</option>
+        <option value="dungeon">🏰 Donjon Sombre</option>
+        <option value="tavern">🕯️ Taverne Médiévale</option>
+        <option value="storm">🌧️ Orage & Pluie</option>
+        <option value="camp">🔥 Feu de Camp</option>
+        <option value="mystic">🔮 Magie & Mystère</option>
+      </select>
     </div>
 
     <div class="pdf-header-right">
@@ -488,7 +527,12 @@
           {:else if sidebarTab === 'speech'}
             <div class="speech-view">
               <div class="speech-header">
-                <span class="speech-title">📜 Transcription Page {currentPage}</span>
+                <div class="speech-header-left">
+                  <span class="speech-title">📜 Transcription Page {currentPage}</span>
+                  {#if ttsReader.isPlaying}
+                    <span class="speaker-pill">{ttsReader.currentSpeakerEmoji} {ttsReader.currentSpeakerName}</span>
+                  {/if}
+                </div>
                 {#if currentPageText}
                   <button class="mini-btn" onclick={() => ttsReader.speakText(currentPageText)}>▶️ Relire</button>
                 {/if}
@@ -503,13 +547,18 @@
               {:else if ttsReader.sentences.length > 0}
                 <div class="sentences-list">
                   {#each ttsReader.sentences as sentence, idx}
+                    {@const seg = ttsReader.segments[idx]}
                     <button
                       type="button"
                       class="sentence-p"
+                      class:sentence-dialogue={seg?.isDialogue}
                       class:sentence-active={ttsReader.currentSentenceIndex === idx}
                       onclick={() => ttsReader.speakText(sentence)}
                       title="Cliquer pour écouter cette phrase"
                     >
+                      {#if seg?.isDialogue}
+                        <span class="speaker-tag">{seg.voiceEmoji} {seg.speakerName} :</span>
+                      {/if}
                       {sentence}
                     </button>
                   {/each}
@@ -543,10 +592,18 @@
                     disabled={!customNarrationText.trim()}
                     onclick={() => ttsReader.speakText(customNarrationText)}
                   >
-                    🗣️ Faire lire ce texte à haute voix
+                    🗣️ Faire lire ce texte
+                  </button>
+                  <button
+                    class="btn-extract-token"
+                    disabled={!customNarrationText.trim() && !currentPageText.trim()}
+                    onclick={handleCreateTokenFromPage}
+                    title="Générer automatiquement un pion monstre / PNJ sur la carte virtuelle"
+                  >
+                    ⚔️ Créer Jeton VTT
                   </button>
                   {#if customNarrationText}
-                    <button class="btn-clear-custom" onclick={() => customNarrationText = ''}>✕ Effacer</button>
+                    <button class="btn-clear-custom" onclick={() => customNarrationText = ''}>✕</button>
                   {/if}
                 </div>
               </div>
@@ -702,6 +759,25 @@
   }
   .tts-voice-select { max-width: 230px; text-overflow: ellipsis; }
 
+  .ambiance-select {
+    background: #0f172a; border: 1px solid #38bdf8; border-radius: 6px;
+    color: #38bdf8; font-size: 0.72rem; font-weight: 700; padding: 2px 6px; cursor: pointer;
+  }
+  .ambiance-select:hover { background: #1e293b; }
+
+  .speech-header-left { display: flex; align-items: center; gap: 8px; }
+  .speaker-pill {
+    background: #1e1b4b; border: 1px solid #818cf8; border-radius: 999px;
+    color: #c7d2fe; font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
+    animation: pulseGlow 2s infinite;
+  }
+  .speaker-tag {
+    font-weight: 800; color: #a5b4fc; margin-right: 4px; font-size: 0.8rem;
+  }
+  .sentence-dialogue {
+    background: #141b2d !important; border-left: 3px solid #818cf8 !important;
+  }
+
   .pdf-header-right { display: flex; align-items: center; gap: 8px; }
   .btn-close {
     background: none; border: none; color: #94a3b8; font-size: 1.2rem;
@@ -791,6 +867,14 @@
   }
   .btn-speak-custom:hover:not(:disabled) { background: linear-gradient(135deg, #4338ca, #4f46e5); box-shadow: 0 0 10px rgba(99,102,241,0.4); }
   .btn-speak-custom:disabled { opacity: 0.4; cursor: not-allowed; }
+  
+  .btn-extract-token {
+    background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff;
+    border: 1px solid #ef4444; border-radius: 6px; font-size: 0.76rem; font-weight: 700;
+    padding: 6px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-extract-token:hover:not(:disabled) { background: linear-gradient(135deg, #b91c1c, #991b1b); box-shadow: 0 0 10px rgba(239,68,68,0.4); }
+  .btn-extract-token:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-clear-custom {
     background: #1e293b; border: 1px solid #334155; border-radius: 6px;
     color: #94a3b8; font-size: 0.72rem; padding: 4px 8px; cursor: pointer;

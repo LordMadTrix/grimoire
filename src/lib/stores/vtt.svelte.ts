@@ -57,6 +57,7 @@ export type Token = {
   color?: number;
   hp?: number;
   maxHp?: number;
+  ac?: number;
   visionRange?: number;
   lightRadius?: number;
   lightColor?: string;

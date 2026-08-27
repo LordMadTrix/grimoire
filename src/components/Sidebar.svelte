@@ -23,6 +23,7 @@
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
   import { setGmCurrentMap } from '$lib/stores/vtt.svelte';
   import PdfReaderModal from './PdfReaderModal.svelte';
+  import CampaignBackupModal from './CampaignBackupModal.svelte';
   let { entries = [], depth = 0 }: { entries: VaultEntry[]; depth?: number } = $props();
 
   const ASSET_DIRS = new Set(['assets', 'maps', 'tokens', 'audio', 'books', 'pdf', 'livres']);
@@ -30,6 +31,7 @@
   const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
 
   let activePdfModal = $state<{ localPath: string; name: string } | null>(null);
+  let showBackupModal = $state(false);
 
   // Flat search résultats (depth 0 uniquement)
   let filteredFiles = $derived((() => {
@@ -338,6 +340,7 @@
       <button class="filter-clear" onclick={() => { filterText = ''; activeTag = ''; }}>✕</button>
     {:else}
       <button class="filter-collapse" onclick={collapseAllDirs} title="Tout replier">⊟</button>
+      <button class="filter-backup" onclick={() => showBackupModal = true} title="Sauvegarder / Exporter la campagne (.grimoire)">📦</button>
     {/if}
   </div>
   {#if availableTags.length > 0}
@@ -594,6 +597,10 @@
       onclose={() => activePdfModal = null}
     />
   {/if}
+
+  {#if showBackupModal}
+    <CampaignBackupModal onclose={() => showBackupModal = false} />
+  {/if}
 {/if}
 
 <style>
@@ -623,7 +630,8 @@
   .filter-input:focus { border-color: var(--accent); }
 
   .filter-clear,
-  .filter-collapse {
+  .filter-collapse,
+  .filter-backup {
     background: transparent;
     border: none;
     color: var(--text-muted);
@@ -634,7 +642,8 @@
     flex-shrink: 0;
   }
   .filter-clear:hover,
-  .filter-collapse:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .filter-collapse:hover,
+  .filter-backup:hover { background: var(--bg-hover); color: var(--text-primary); }
 
   /* ── Tags ─────────────────────────────────────────────────────── */
 

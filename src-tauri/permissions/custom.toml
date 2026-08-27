@@ -55,5 +55,7 @@ commands.allow = [
   "addon_uninstall",
   "addon_open_folder",
   "addon_fetch_pdf_bytes",
-  "tts_synthesize_neural"
+  "tts_synthesize_neural",
+  "campaign_export_package",
+  "campaign_import_package"
 ]

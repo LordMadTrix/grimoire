@@ -7,6 +7,7 @@
   import TokenSettingsModal from './TokenSettingsModal.svelte';
   import { readFileBase64, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
+  import { updateDynamicLighting } from '$lib/vtt/lighting';
 
   // Svelte 5 — $props() obligatoire (pas export let)
   let {
@@ -103,6 +104,7 @@
   // Light overlay (above tokens — darkness with holes per lightRadius)
   let lightTexture: PIXI.RenderTexture | null = null;
   let lightSprite: PIXI.Sprite | null = null;
+  let dynamicLightLayer: PIXI.Graphics;
 
   let tokenLayer: PIXI.Container;
   let tokenSprites: Map<string, PIXI.Container> = new Map();
@@ -337,6 +339,9 @@
     previewShape = new PIXI.Graphics();
     worldContainer.addChild(previewShape);
 
+    dynamicLightLayer = new PIXI.Graphics();
+    worldContainer.addChild(dynamicLightLayer);
+
     movePathG = new PIXI.Graphics();
     worldContainer.addChild(movePathG);
 
@@ -468,10 +473,10 @@
       }
 
       // ── Dynamic Lighting & Torch Flicker ───────────────────
-      if (lightSprite && lightSprite.visible && (tokens.some(t => t.lightFlicker) || (vttStore.lights && vttStore.lights.some(l => l.flicker)) || vttStore.lightningFlash)) {
-        if (Math.floor(now / 60) % 2 === 0) {
-          renderLighting();
-        }
+      if (dynamicLightLayer && (tokens.some(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision) || (vttStore.lights && vttStore.lights.length > 0))) {
+        updateDynamicLighting(dynamicLightLayer, tokens, vttStore.lights || [], now / 1000);
+      } else if (dynamicLightLayer) {
+        dynamicLightLayer.clear();
       }
 
       // ── Screen shake ─────────────────────────────────────────
