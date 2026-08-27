@@ -1,7 +1,6 @@
 // ── Multi-Column & Boxed-Text Layout Analyzer pour PDF de JDR ─────────────────
-// Reconstitue l'ordre de lecture naturel pour les livres de jeu de rôle
-// à 2 ou 3 colonnes (AD&D, D&D 5e, Pathfinder, Warhammer) en évitant
-// que le texte soit lu horizontalement à travers les colonnes.
+// Détecte et désentrelace les colonnes multiples (1, 2 ou 3 colonnes)
+// même lorsque l'OCR ou le générateur PDF a fusionné les lignes horizontalement.
 
 export interface PdfTextItem {
   str: string;
@@ -11,43 +10,131 @@ export interface PdfTextItem {
   dir?: string;
 }
 
-export interface BoundingBox {
+export interface SpatialTextItem {
+  str: string;
   x: number;
   y: number;
   w: number;
   h: number;
-  text: string;
+  right: number;
+  top: number;
+}
+
+/**
+ * Décompose les lignes d'un PDF en éléments spatiaux individuels
+ * (gère les lignes uniques qui traversent plusieurs colonnes avec des espaces).
+ */
+function decomposePdfItem(it: PdfTextItem, pageWidth: number): SpatialTextItem[] {
+  if (!it || typeof it.str !== 'string' || it.str.trim().length === 0) {
+    return [];
+  }
+
+  const rawStr = it.str;
+  const baseX = it.transform ? it.transform[4] : 0;
+  const baseY = it.transform ? it.transform[5] : 0;
+  const baseW = it.width || 10;
+  const baseH = it.height || (it.transform ? Math.abs(it.transform[3]) : 10);
+
+  // 1. Si la chaîne contient de multiples espaces (gap d'espacement de colonnes >= 2 espaces)
+  const gapRegex = /\s{2,}|\t/g;
+  if (gapRegex.test(rawStr)) {
+    const parts: SpatialTextItem[] = [];
+    const tokens = rawStr.split(/\s{2,}|\t/).filter(t => t.trim().length > 0);
+    
+    let curIndex = 0;
+    for (const token of tokens) {
+      const tokenPos = rawStr.indexOf(token, curIndex);
+      const ratio = rawStr.length > 0 ? tokenPos / rawStr.length : 0;
+      const widthRatio = rawStr.length > 0 ? token.length / rawStr.length : 1;
+      
+      const tokenX = baseX + ratio * baseW;
+      const tokenW = Math.max(10, widthRatio * baseW);
+      
+      parts.push({
+        str: token.trim(),
+        x: tokenX,
+        y: baseY,
+        w: tokenW,
+        h: baseH,
+        right: tokenX + tokenW,
+        top: baseY + baseH
+      });
+      curIndex = tokenPos + token.length;
+    }
+    if (parts.length > 0) return parts;
+  }
+
+  // 2. Si l'élément est large (> 45% de la page) et contient des mots séparés,
+  // vérifier si c'est une ligne fusionnée à travers 2 ou 3 colonnes
+  if (baseW > pageWidth * 0.45 && rawStr.includes(' ')) {
+    const words = rawStr.split(/\s+/).filter(w => w.length > 0);
+    if (words.length >= 4) {
+      // Découper en 3 tiers ou 2 moitiés selon la largeur
+      const isLikely3Cols = baseW > pageWidth * 0.65;
+      const numSegments = isLikely3Cols ? 3 : 2;
+      const wordsPerSeg = Math.ceil(words.length / numSegments);
+      
+      const parts: SpatialTextItem[] = [];
+      for (let i = 0; i < numSegments; i++) {
+        const segWords = words.slice(i * wordsPerSeg, (i + 1) * wordsPerSeg);
+        if (segWords.length === 0) continue;
+        const segStr = segWords.join(' ');
+        const segX = baseX + (i / numSegments) * baseW;
+        const segW = baseW / numSegments;
+        
+        parts.push({
+          str: segStr,
+          x: segX,
+          y: baseY,
+          w: segW,
+          h: baseH,
+          right: segX + segW,
+          top: baseY + baseH
+        });
+      }
+      return parts;
+    }
+  }
+
+  return [{
+    str: rawStr.trim(),
+    x: baseX,
+    y: baseY,
+    w: baseW,
+    h: baseH,
+    right: baseX + baseW,
+    top: baseY + baseH
+  }];
 }
 
 /**
  * Analyse géométrique des éléments textuels PDF.js et reconstitution de l'ordre
- * de lecture logique (Haut de page -> Colonne 1 -> Colonne 2 -> Colonne 3 -> Bas de page).
+ * de lecture logique (Titre -> Colonne 1 -> Colonne 2 -> Colonne 3).
  */
 export function extractOrderedTextFromPdfItems(items: PdfTextItem[]): string {
   if (!items || items.length === 0) return '';
 
-  // 1. Filtrer les éléments valides et calculer les boîtes englobantes
-  const validItems = items
-    .filter(it => it && typeof it.str === 'string' && it.str.length > 0)
-    .map(it => {
-      const x = it.transform ? it.transform[4] : 0;
-      const y = it.transform ? it.transform[5] : 0; // Dans PDF.js, y grand = haut de page
-      const h = it.height || (it.transform ? Math.abs(it.transform[3]) : 10);
-      const w = it.width || 10;
-      return {
-        str: it.str,
-        x,
-        y,
-        w,
-        h,
-        right: x + w,
-        top: y + h
-      };
-    });
+  // Estimation préalable de la largeur de page
+  const xs = items.map(it => it.transform ? it.transform[4] : 0).filter(x => x > 0);
+  const rights = items.map(it => (it.transform ? it.transform[4] : 0) + (it.width || 0)).filter(x => x > 0);
+  const minPageX = xs.length ? Math.min(...xs) : 0;
+  const maxPageX = rights.length ? Math.max(...rights) : 600;
+  const approxPageWidth = maxPageX - minPageX || 600;
+
+  // 1. Décomposer tous les éléments (désentrelacement des colonnes fusionnées)
+  const validItems: SpatialTextItem[] = [];
+  for (const it of items) {
+    const subItems = decomposePdfItem(it, approxPageWidth);
+    for (const sub of subItems) {
+      if (sub.str.length > 0) {
+        validItems.push(sub);
+      }
+    }
+  }
 
   if (validItems.length === 0) return '';
 
-  // 2. Déterminer les dimensions globales de la page
+  // 2. Déterminer les dimensions réelles de la page
   const minX = Math.min(...validItems.map(i => i.x));
   const maxX = Math.max(...validItems.map(i => i.right));
   const maxY = Math.max(...validItems.map(i => i.y));
@@ -55,43 +142,38 @@ export function extractOrderedTextFromPdfItems(items: PdfTextItem[]): string {
   const pageWidth = maxX - minX || 600;
   const pageHeight = maxY - minY || 800;
 
-  // 3. Détecter les en-têtes et titres principaux pleine largeur (ex: "Chapitre 1 : Évènements")
-  // Un titre pleine largeur est situé dans les 15% supérieurs et a une largeur > 35% de la page
-  const topThreshold = maxY - pageHeight * 0.15;
-  const headers: typeof validItems = [];
-  const bodyItems: typeof validItems = [];
+  // 3. Détecter les grands titres / en-têtes pleine page (12% supérieurs)
+  const topThreshold = maxY - pageHeight * 0.12;
+  const headers: SpatialTextItem[] = [];
+  const bodyItems: SpatialTextItem[] = [];
 
   for (const item of validItems) {
-    // Si l'élément est en haut de page et large ou centré
-    if (item.y >= topThreshold && (item.w > pageWidth * 0.35 || item.x > minX + pageWidth * 0.25 && item.x < minX + pageWidth * 0.75)) {
+    if (item.y >= topThreshold && (item.w > pageWidth * 0.35 || (item.x > minX + pageWidth * 0.2 && item.x < minX + pageWidth * 0.8))) {
       headers.push(item);
     } else {
       bodyItems.push(item);
     }
   }
 
-  // 4. Détecter automatiquement le nombre de colonnes (1, 2 ou 3 colonnes)
-  // Analyse de l'histogramme des positions horizontales X
-  const xCenters = bodyItems.map(i => i.x);
-  const col1Items: typeof validItems = [];
-  const col2Items: typeof validItems = [];
-  const col3Items: typeof validItems = [];
-
-  // Déterminer les séparateurs de colonnes
-  // Dans un format 3 colonnes (comme AD&D Dragonlance) :
-  // Col 1 : 0% - 34% de la largeur
-  // Col 2 : 33% - 67% de la largeur
-  // Col 3 : 66% - 100% de la largeur
+  // 4. Détecter le partitionnement des colonnes
+  // Dans les livres de JDR (Dragonlance, AD&D, D&D 5e) :
+  // Col 1 : 0% -> 34%
+  // Col 2 : 33% -> 67%
+  // Col 3 : 66% -> 100%
   const col1Boundary = minX + pageWidth * 0.34;
   const col2Boundary = minX + pageWidth * 0.67;
 
-  // Tester s'il y a des éléments dans les 3 tiers
-  const hasCol1 = bodyItems.some(i => i.x < col1Boundary);
-  const hasCol2 = bodyItems.some(i => i.x >= col1Boundary && i.x < col2Boundary);
-  const hasCol3 = bodyItems.some(i => i.x >= col2Boundary);
+  const col1Items: SpatialTextItem[] = [];
+  const col2Items: SpatialTextItem[] = [];
+  const col3Items: SpatialTextItem[] = [];
 
-  const is3Columns = hasCol1 && hasCol2 && hasCol3;
-  const is2Columns = !is3Columns && hasCol1 && (hasCol2 || hasCol3);
+  // Détecter s'il y a 3 colonnes réelles
+  const countCol1 = bodyItems.filter(i => i.x < col1Boundary).length;
+  const countCol2 = bodyItems.filter(i => i.x >= col1Boundary && i.x < col2Boundary).length;
+  const countCol3 = bodyItems.filter(i => i.x >= col2Boundary).length;
+
+  const is3Columns = countCol1 > 3 && countCol2 > 3 && countCol3 > 3;
+  const is2Columns = !is3Columns && countCol1 > 3 && (countCol2 > 3 || countCol3 > 3);
 
   for (const item of bodyItems) {
     if (is3Columns) {
@@ -114,15 +196,12 @@ export function extractOrderedTextFromPdfItems(items: PdfTextItem[]): string {
     }
   }
 
-  // 5. Fonction pour trier et assembler les éléments d'une colonne (Haut vers Bas, Gauche vers Droite)
-  function sortAndAssembleColumn(columnItems: typeof validItems): string {
+  // 5. Fonction pour trier et assembler les lignes d'une colonne (Haut vers Bas)
+  function sortAndAssembleColumn(columnItems: SpatialTextItem[]): string {
     if (columnItems.length === 0) return '';
 
-    // Grouper les éléments en lignes selon leur coordonnée Y (avec tolérance de 5px)
-    // Note: Dans PDF.js, Y est inversé (les grands Y sont en haut)
-    const lines: { y: number; items: typeof validItems }[] = [];
-
-    // Trier d'abord par Y décroissant (du haut vers le bas)
+    // Grouper en lignes selon Y (tolérance de 5px)
+    const lines: { y: number; items: SpatialTextItem[] }[] = [];
     const sortedByY = [...columnItems].sort((a, b) => b.y - a.y);
 
     for (const item of sortedByY) {
@@ -134,7 +213,7 @@ export function extractOrderedTextFromPdfItems(items: PdfTextItem[]): string {
       }
     }
 
-    // Pour chaque ligne, trier les mots de gauche à droite (X croissant)
+    // Dans chaque ligne, ordonner de gauche à droite
     const assembledLines: string[] = [];
     for (const line of lines) {
       line.items.sort((a, b) => a.x - b.x);
@@ -144,7 +223,7 @@ export function extractOrderedTextFromPdfItems(items: PdfTextItem[]): string {
       }
     }
 
-    // Réparer les césures de fin de ligne (ex: "terri-" + "ble" -> "terrible")
+    // Réparer les césures de coupure de mot ("personna-" + "ges" -> "personnages")
     let columnText = '';
     for (let i = 0; i < assembledLines.length; i++) {
       const current = assembledLines[i];
@@ -158,7 +237,7 @@ export function extractOrderedTextFromPdfItems(items: PdfTextItem[]): string {
     return columnText.trim();
   }
 
-  // 6. Assembler le document complet dans le vrai ordre de lecture
+  // 6. Assemblage final séquentiel
   const headerText = sortAndAssembleColumn(headers);
   const col1Text = sortAndAssembleColumn(col1Items);
   const col2Text = sortAndAssembleColumn(col2Items);
@@ -174,7 +253,7 @@ export function extractOrderedTextFromPdfItems(items: PdfTextItem[]): string {
 }
 
 /**
- * Extrait le texte contenu à l'intérieur d'un rectangle de sélection sélectionné à la souris par le MJ
+ * Extrait le texte contenu dans une zone sélectionnée à la souris par le MJ
  */
 export function extractTextFromSelectionRect(
   items: PdfTextItem[],
@@ -184,18 +263,57 @@ export function extractTextFromSelectionRect(
 ): string {
   if (!items || items.length === 0) return '';
 
-  // Conversion des coordonnées du canvas en coordonnées de l'espace PDF
+  const xs = items.map(it => it.transform ? it.transform[4] : 0).filter(x => x > 0);
+  const rights = items.map(it => (it.transform ? it.transform[4] : 0) + (it.width || 0)).filter(x => x > 0);
+  const minPageX = xs.length ? Math.min(...xs) : 0;
+  const maxPageX = rights.length ? Math.max(...rights) : 600;
+  const approxPageWidth = maxPageX - minPageX || 600;
+
+  // Décomposer les éléments
+  const validItems: SpatialTextItem[] = [];
+  for (const it of items) {
+    const subItems = decomposePdfItem(it, approxPageWidth);
+    for (const sub of subItems) {
+      if (sub.str.length > 0) validItems.push(sub);
+    }
+  }
+
   const selMinX = rect.x / viewportScale;
   const selMaxX = (rect.x + rect.width) / viewportScale;
-  // Dans le canvas Y=0 est en haut, dans PDF Y=0 est en bas
   const selTopInPdf = (viewportHeight - rect.y) / viewportScale;
   const selBottomInPdf = (viewportHeight - (rect.y + rect.height)) / viewportScale;
 
-  const selectedItems = items.filter(it => {
-    const x = it.transform ? it.transform[4] : 0;
-    const y = it.transform ? it.transform[5] : 0;
-    return x >= selMinX - 10 && x <= selMaxX + 10 && y >= selBottomInPdf - 10 && y <= selTopInPdf + 10;
+  const selectedItems = validItems.filter(it => {
+    return it.x >= selMinX - 15 && it.x <= selMaxX + 15 && it.y >= selBottomInPdf - 15 && it.y <= selTopInPdf + 15;
   });
 
-  return extractOrderedTextFromPdfItems(selectedItems);
+  if (selectedItems.length === 0) return '';
+
+  // Grouper et ordonner les lignes sélectionnées
+  const lines: { y: number; items: SpatialTextItem[] }[] = [];
+  const sortedByY = [...selectedItems].sort((a, b) => b.y - a.y);
+
+  for (const item of sortedByY) {
+    const existingLine = lines.find(l => Math.abs(l.y - item.y) <= 6);
+    if (existingLine) {
+      existingLine.items.push(item);
+    } else {
+      lines.push({ y: item.y, items: [item] });
+    }
+  }
+
+  const assembledLines: string[] = [];
+  for (const line of lines) {
+    line.items.sort((a, b) => a.x - b.x);
+    const lineStr = line.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+    if (lineStr) assembledLines.push(lineStr);
+  }
+
+  let result = '';
+  for (const l of assembledLines) {
+    if (l.endsWith('-') || l.endsWith('—')) result += l.slice(0, -1);
+    else result += l + ' ';
+  }
+
+  return result.trim();
 }

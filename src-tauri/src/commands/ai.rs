@@ -253,8 +253,19 @@ pub async fn ask_ollama(_app_handle: tauri::AppHandle, prompt: String, model: St
         }
     }
 
+    // Trouver le meilleur modèle disponible si le modèle demandé n'existe pas
+    let mut target_model = model;
+    if let Ok(tags_res) = client.get(format!("{}/api/tags", host)).send().await {
+        if let Ok(parsed_tags) = tags_res.json::<OllamaTagsResponse>().await {
+            let model_exists = parsed_tags.models.iter().any(|m| m.name == target_model || m.name.starts_with(&target_model));
+            if !model_exists && !parsed_tags.models.is_empty() {
+                target_model = parsed_tags.models[0].name.clone();
+            }
+        }
+    }
+
     let req = OllamaRequest {
-        model,
+        model: target_model,
         prompt,
         system: system_prompt,
         stream: false,
