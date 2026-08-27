@@ -1126,11 +1126,31 @@
     padding: 0 4px;
     border-radius: 8px;
   }
-  .soundscape-modal-wrap {
-    z-index: 1000;
+  .picker-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    animation: fadeInModal 0.15s ease-out;
+  }
+
+  @keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .soundscape-modal-wrap {
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 95vw;
+    max-height: 90vh;
   }
   .soundscape-menu-highlight {
     color: #38bdf8 !important;

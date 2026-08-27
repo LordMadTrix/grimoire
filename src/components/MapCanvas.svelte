@@ -105,7 +105,6 @@
   let lightTexture: PIXI.RenderTexture | null = null;
   let lightSprite: PIXI.Sprite | null = null;
   let dynamicLightLayer: PIXI.Graphics;
-  let ambientLightLayer: PIXI.Graphics;
 
   let tokenLayer: PIXI.Container;
   let tokenSprites: Map<string, PIXI.Container> = new Map();
@@ -329,9 +328,6 @@
     particleLayer = new PIXI.Container();
     worldContainer.addChild(particleLayer);
 
-    ambientLightLayer = new PIXI.Graphics();
-    app.stage.addChild(ambientLightLayer);
-
     weatherLayer = new PIXI.Container();
     app.stage.addChild(weatherLayer);
     weatherG = new PIXI.Graphics();
@@ -483,29 +479,7 @@
         dynamicLightLayer.clear();
       }
 
-      // ── Ambient Light Atmosphere & Lightning Flash ────────────
-      if (ambientLightLayer && app) {
-        ambientLightLayer.clear();
-        const W = app.screen.width;
-        const H = app.screen.height;
 
-        if (vttStore.lightningFlash) {
-          ambientLightLayer.rect(0, 0, W, H);
-          ambientLightLayer.fill({ color: 0xffffff, alpha: 0.92 });
-        } else {
-          const amb = vttStore.ambientLight || 'day';
-          if (amb === 'dusk') {
-            ambientLightLayer.rect(0, 0, W, H);
-            ambientLightLayer.fill({ color: 0x9a3412, alpha: isGM ? 0.18 : 0.32 });
-          } else if (amb === 'night') {
-            ambientLightLayer.rect(0, 0, W, H);
-            ambientLightLayer.fill({ color: 0x0f172a, alpha: isGM ? 0.42 : 0.72 });
-          } else if (amb === 'pitch_black') {
-            ambientLightLayer.rect(0, 0, W, H);
-            ambientLightLayer.fill({ color: 0x020617, alpha: isGM ? 0.70 : 0.94 });
-          }
-        }
-      }
 
       // ── Screen shake ─────────────────────────────────────────
       if (shakeIntensity > 0) {
@@ -2968,6 +2942,17 @@
   {#if errorMessage}
     <div class="error-overlay">{errorMessage}</div>
   {/if}
+
+  {#if vttStore.lightningFlash}
+    <div class="vtt-lightning-flash"></div>
+  {:else if vttStore.ambientLight === 'dusk'}
+    <div class="vtt-ambient-dusk"></div>
+  {:else if vttStore.ambientLight === 'night'}
+    <div class="vtt-ambient-night"></div>
+  {:else if vttStore.ambientLight === 'pitch_black'}
+    <div class="vtt-ambient-pitch-black"></div>
+  {/if}
+
   {#if isGM && appReady && mapUrl}
     <div
       class="minimap-wrapper"
@@ -2989,10 +2974,51 @@
 
 <style>
   .canvas-container {
+    position: relative;
     width: 100%;
     height: 100%;
     overflow: hidden;
     background: #0a0c10;
+  }
+
+  .vtt-lightning-flash {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.88);
+    pointer-events: none;
+    z-index: 45;
+    animation: flashOut 0.18s ease-out forwards;
+  }
+  @keyframes flashOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .vtt-ambient-dusk {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(180, 83, 9, 0.12), rgba(124, 45, 18, 0.28));
+    pointer-events: none;
+    z-index: 40;
+    transition: opacity 0.6s ease;
+  }
+
+  .vtt-ambient-night {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(15, 23, 42, 0.35), rgba(2, 6, 23, 0.65));
+    pointer-events: none;
+    z-index: 40;
+    transition: opacity 0.6s ease;
+  }
+
+  .vtt-ambient-pitch-black {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.72);
+    pointer-events: none;
+    z-index: 40;
+    transition: opacity 0.6s ease;
   }
 
   .error-overlay {
