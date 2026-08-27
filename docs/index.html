@@ -137,7 +137,7 @@
     <main class="flex-grow pt-32 container mx-auto px-6 pb-20 text-center flex flex-col items-center">
         <div class="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-grimoire-accent/20 bg-grimoire-accent/5 text-grimoire-accent text-sm font-medium animate-pulse-slow">
             <span class="w-2 h-2 rounded-full bg-grimoire-accent"></span>
-            <span id="version-badge">Version 0.4.2 — Boutique d'Addons, Google Drive & PWA</span>
+            <span id="version-badge">Version 0.4.4 — Liseuse Vivante, Voix Neuronales & Fantasy Map Editor</span>
         </div>
         <h1 class="text-5xl md:text-8xl font-bold text-white mb-8 leading-tight tracking-tight">
             Tout votre univers <br>
@@ -171,47 +171,119 @@
         <section id="vtt" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
-                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">Virtual TableTop Tactique & Éclairage</h2>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">Virtual TableTop Tactique & Éclairage (PixiJS v8)</h2>
                 <div class="h-px flex-grow bg-gray-800"></div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="glass p-6 rounded-2xl card-hover border-grimoire-accent/20">
                     <h4 class="text-grimoire-accent font-bold mb-2">💡 Éclairage Dynamique & Torches</h4>
-                    <p class="text-gray-400 text-sm">Ambiance jour/crépuscule/nuit/ténèbres, scintillement organique des torches et suppression lors des éclairs d'orage.</p>
+                    <p class="text-gray-400 text-sm">Ambiance Jour / Crépuscule / Nuit / Ténèbres avec projection d'ombres vectorielles, torches oscillantes et éclairs d'orage synchronisés.</p>
                 </div>
                 <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Dynamic LOS (PixiJS v8)</h4>
-                    <p class="text-gray-400 text-sm">Gestion des ombres portées et de la vision des tokens en temps réel avec projection vectorielle contre les murs.</p>
+                    <h4 class="text-grimoire-accent font-bold mb-2">Dynamic LOS (Raycasting 2D)</h4>
+                    <p class="text-gray-400 text-sm">Gestion des ombres portées et de la vision des tokens en temps réel avec projection vectorielle contre les murs et portes.</p>
                 </div>
                 <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">🏰 Donjons & Murs Automatiques</h4>
-                    <p class="text-gray-400 text-sm">Génération procédurale de cryptes, égouts et grottes cellulaires avec génération instantanée des murs VTT.</p>
+                    <h4 class="text-grimoire-accent font-bold mb-2">🏰 Mode Blueprint & Portes</h4>
+                    <p class="text-gray-400 text-sm">Tracez vos murs et configurez des portes interactives ouvrables/fermables d'un clic pour laisser passer la lumière.</p>
                 </div>
                 <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">🎧 Audio Spatial 2.5D</h4>
-                    <p class="text-gray-400 text-sm">Zones sonores circulaires avec volume progressif calculé dynamiquement selon la position du groupe.</p>
+                    <h4 class="text-grimoire-accent font-bold mb-2">🌫️ Brouillard de Guerre Intelligent</h4>
+                    <p class="text-gray-400 text-sm">Révélation et masquage au pinceau, rectangle ou vision dynamique individuelle de chaque pion.</p>
                 </div>
                 <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">🎯 Combat Opposé WFRP</h4>
-                    <p class="text-gray-400 text-sm">Calcul automatique des Degrés de Succès Nets (SL Net), inversion des dés pour la localisation et calcul d'armure.</p>
+                    <h4 class="text-grimoire-accent font-bold mb-2">💫 Sorts & Gabarits de Magie</h4>
+                    <p class="text-gray-400 text-sm">Cônes orientables, cercles et lignes d'effet animés (Feu, Glace, Éclair, Poison, Silence, Divin, Ténèbres).</p>
                 </div>
                 <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">📦 Packs .grimoirepack</h4>
-                    <p class="text-gray-400 text-sm">Exportez et importez des modules d'aventures complets (cartes, murs, monstres, audio et notes) en 1 clic.</p>
+                    <h4 class="text-grimoire-accent font-bold mb-2">🌦️ Météo Dynamique</h4>
+                    <p class="text-gray-400 text-sm">Pluie battante, orage avec flashs lumineux, neige, brouillard et tempête de sable en direct sur le champ de bataille.</p>
                 </div>
                 <div class="glass p-6 rounded-2xl card-hover">
                     <h4 class="text-grimoire-accent font-bold mb-2">ConditionWheel</h4>
-                    <p class="text-gray-400 text-sm">Gestion radiale des conditions (8 états) au clic droit sur n'importe quel token.</p>
+                    <p class="text-gray-400 text-sm">Gestion radiale des conditions (8 états) au clic droit sur n'importe quel token avec halos de couleur.</p>
                 </div>
                 <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Double Écran</h4>
-                    <p class="text-gray-400 text-sm">Fenêtre dédiée pour les joueurs avec vue immersive et synchronisation temps réel des éclairages.</p>
+                    <h4 class="text-grimoire-accent font-bold mb-2">Double Écran (Player View)</h4>
+                    <p class="text-gray-400 text-sm">Fenêtre dédiée pour les joueurs avec vue immersive, synchronisation temps réel des éclairages et mode Écran Noir.</p>
                 </div>
             </div>
         </section>
 
-        <!-- Section 2: Quests & Journal -->
+        <!-- Section 2: PDF Reader & Neural Voice (Le Grimoire Vivant) -->
+        <section id="pdf-reader" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px flex-grow bg-gray-800"></div>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">📖 Liseuse de Campagnes & Voix Neuronales IA</h2>
+                <div class="h-px flex-grow bg-gray-800"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-2xl card-hover border-grimoire-accent/30">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🗣️ Voix Neuronales Ultra-Réalistes</h4>
+                    <p class="text-gray-400 text-sm">Synthèse vocale Microsoft Azure / Edge TTS avec voix expressives et chaudes pour lire descriptions et scénarios.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🎭 Mode Multi-Voix PNJ</h4>
+                    <p class="text-gray-400 text-sm">Grimoire détecte automatiquement les dialogues entre guillemets et change de voix selon les personnages (hommes, femmes, monstres).</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">📜 Analyseur 3 Colonnes</h4>
+                    <p class="text-gray-400 text-sm">Désentrelacement spatial et lecture fluide colonne par colonne sur les livres de règles (AD&D, Dragonlance, D&D 5e).</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🎲 Click-to-Roll depuis le PDF</h4>
+                    <p class="text-gray-400 text-sm">Détection automatique de toutes les formules de dés (`1d20+5`, `2d6`, etc.) avec boutons de lancer direct et bruitages réels.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🗺️ Découpeur de Carte VTT (1 Clic)</h4>
+                    <p class="text-gray-400 text-sm">Glissez la souris sur n'importe quel plan du livre pour le charger instantanément comme carte de jeu sur la Table Virtuelle.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🔮 Résumé de Scène par IA Locale</h4>
+                    <p class="text-gray-400 text-sm">Ollama extrait en quelques secondes les Objectifs 🎯, Dangers ⚠️, Secrets 💡 et Trésors 💎 de la page en cours.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Map Editor -->
+        <section id="mapeditor" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px flex-grow bg-gray-800"></div>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">🎨 Fantasy Map Editor & World Builder</h2>
+                <div class="h-px flex-grow bg-gray-800"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-2xl card-hover border-grimoire-accent/30">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🐉 Liaison Directe Grimoire VTT</h4>
+                    <p class="text-gray-400 text-sm">Bouton doré 1-clic pour projeter immédiatement votre carte HD sur la Table Virtuelle et l'enregistrer dans la campagne.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🏔️ Sculpture de Reliefs & Côtes</h4>
+                    <p class="text-gray-400 text-sm">Pinceau de terre avec fractal noise pour des littoraux réalistes, îles, mers profondes et continents.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🏰 Milliers de Tampons HD</h4>
+                    <p class="text-gray-400 text-sm">Arbres, montagnes, châteaux, villes, donjons, mobilier et monstres marins avec rotation 360° et calques.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">🌲 Pinceau à Dispersion (Scatter)</h4>
+                    <p class="text-gray-400 text-sm">Posez des forêts denses ou chaînes de montagnes variées d'un seul coup de pinceau sans répétition.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">✏️ Tracés Vectoriels & Textes</h4>
+                    <p class="text-gray-400 text-sm">Routes, rivières, frontières, formes géométriques et calligraphies médiévales avec ombrages.</p>
+                </div>
+                <div class="glass p-6 rounded-2xl card-hover">
+                    <h4 class="text-grimoire-accent font-bold mb-2">📜 Grilles & Filtres Parchemin</h4>
+                    <p class="text-gray-400 text-sm">Grilles carrées et hexagonales, filtres atmosphériques sépia/nuit et texture d'usure de vieux papier.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Quests & Journal -->
         <section id="quests" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
@@ -238,43 +310,7 @@
             </div>
         </section>
 
-        <!-- Section 2: Map Editor -->
-        <section id="mapeditor" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
-            <div class="flex items-center gap-4 mb-8">
-                <div class="h-px flex-grow bg-gray-800"></div>
-                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">Map Editor & World Builder</h2>
-                <div class="h-px flex-grow bg-gray-800"></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Pinceau à Tampons</h4>
-                    <p class="text-gray-400 text-sm">Dessinez des dizaines d'arbres, de rochers ou de montagnes aléatoires d'un seul coup de pinceau (Scatter Tool).</p>
-                </div>
-                <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Générateur de Continents</h4>
-                    <p class="text-gray-400 text-sm">Créez une carte continentale complète en un clic grâce à un algorithme de bruit cellulaire.</p>
-                </div>
-                <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Sculptage de Côtes</h4>
-                    <p class="text-gray-400 text-sm">Pinceau rugueux avec fractal noise pour des littoraux réalistes, remplissage instantané des océans.</p>
-                </div>
-                <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Chemins Adoucis</h4>
-                    <p class="text-gray-400 text-sm">Tracé vectoriel lissé avec courbes de Bézier pour des rivières et des routes élégantes.</p>
-                </div>
-                <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Générateur de Donjons</h4>
-                    <p class="text-gray-400 text-sm">Salles, couloirs et murs générés procéduralement, prêts à l'emploi dans le VTT.</p>
-                </div>
-                <div class="glass p-6 rounded-2xl card-hover">
-                    <h4 class="text-grimoire-accent font-bold mb-2">Catalogue de Textures</h4>
-                    <p class="text-gray-400 text-sm">Terrains, tampons et textures organisés par thème avec import de vos propres assets.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section 3: Notes -->
+        <!-- Section 5: Notes -->
         <section id="notes" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
@@ -303,15 +339,15 @@
                 <div class="bg-white/5 p-8 rounded-3xl border border-white/5">
                     <h4 class="text-xl font-bold text-white mb-4">Outils de Campagne</h4>
                     <ul class="text-gray-400 text-sm space-y-3">
-                        <li>• Graphe de Lore interactif (D3.js)</li>
+                        <li>• Graphe de Lore interactif (2D D3.js)</li>
                         <li>• Calendrier & Timeline personnalisables</li>
-                        <li>• Générateur de rencontres et PNJ</li>
+                        <li>• Générateurs de PNJ, Butin, Météo et Marchands</li>
                     </ul>
                 </div>
             </div>
         </section>
 
-        <!-- Section 4: Mobile PWA -->
+        <!-- Section 6: Mobile PWA -->
         <section id="mobile" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
@@ -333,12 +369,12 @@
                             <p class="text-xs text-gray-500 mt-1">D-Pad tactile pour déplacer son pion en direct sur la carte.</p>
                         </div>
                         <div class="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <span class="font-bold text-grimoire-accent">⚔️ Combat HUD</span>
-                            <p class="text-xs text-gray-500 mt-1">Actions de combat rapides, suivi des PV et jets de dés.</p>
+                            <span class="font-bold text-grimoire-accent">⚔️ Combat HUD & Fiches</span>
+                            <p class="text-xs text-gray-500 mt-1">Actions de combat rapides, suivi des PV en fioles liquides et jets de dés.</p>
                         </div>
                         <div class="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <span class="font-bold text-grimoire-accent">🎨 Sketchpad & Sons</span>
-                            <p class="text-xs text-gray-500 mt-1">Dessins tactiques et déclenchement d'effets sonores.</p>
+                            <span class="font-bold text-grimoire-accent">🎨 Sketchpad & Murmures</span>
+                            <p class="text-xs text-gray-500 mt-1">Dessins tactiques partagés et messagerie secrète MJ <-> Joueur.</p>
                         </div>
                     </div>
                 </div>
@@ -368,28 +404,32 @@
             </div>
         </section>
 
-        <!-- Section 5: AI -->
+        <!-- Section 7: AI & Soundscape -->
         <section id="ai" class="w-full max-w-6xl mb-32 text-left scroll-mt-28 reveal">
             <div class="flex items-center gap-4 mb-8">
                 <div class="h-px flex-grow bg-gray-800"></div>
-                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">IA Locale & Confidentialité</h2>
+                <h2 class="text-2xl font-bold text-white uppercase tracking-widest text-center">IA Locale & Mixeur Sonore</h2>
                 <div class="h-px flex-grow bg-gray-800"></div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div class="glass p-10 rounded-3xl border-grimoire-accent/10">
-                    <h3 class="text-2xl font-bold text-white mb-4">L'Écrivain Fantôme</h3>
-                    <p class="text-gray-400 leading-relaxed mb-6">Connectez Grimoire à votre instance Ollama locale. Générez du lore, complétez vos descriptions ou créez des PNJ complexes d'un seul raccourci clavier.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass p-8 rounded-3xl border-grimoire-accent/10">
+                    <h3 class="text-2xl font-bold text-white mb-4">🔮 L'Écrivain Fantôme (Ollama)</h3>
+                    <p class="text-gray-400 leading-relaxed mb-6">Connectez Grimoire à votre instance Ollama locale (Llama, Mistral, Qwen...). Générez du lore, résumez des scènes, complétez vos descriptions ou improvisez des dialogues de PNJ sans aucun cloud.</p>
                     <ul class="text-sm text-gray-500 space-y-2">
-                        <li>• Zéro Cloud : Vos données restent chez vous.</li>
-                        <li>• Mode MJ : L'IA adopte un ton narratif et sombre.</li>
-                        <li>• TTS : Synthèse vocale intégrée pour faire parler l'IA.</li>
+                        <li>• 100% Hors-ligne : Confidentialité totale de vos notes.</li>
+                        <li>• Mode Narrateur Sombre : Adapté au jeu de rôle sur table.</li>
+                        <li>• Auto-détection des modèles installés sur votre PC.</li>
                     </ul>
                 </div>
-                <div class="flex flex-col justify-center">
-                    <blockquote class="text-xl italic text-gray-300 border-l-4 border-grimoire-accent pl-6 py-2">
-                        "L'IA n'est pas là pour remplacer votre créativité, mais pour la décupler au moment où vous en avez le plus besoin."
-                    </blockquote>
+                <div class="glass p-8 rounded-3xl border-grimoire-accent/10">
+                    <h3 class="text-2xl font-bold text-white mb-4">🎵 Soundscape & Mixeur Multi-Pistes</h3>
+                    <p class="text-gray-400 leading-relaxed mb-6">Superposez des couches sonores réalistes (Pluie, Vent, Feu de camp, Forêt, Donjon, Taverne) et gérez deux pistes musicales avec crossfade et Soundboard interactif.</p>
+                    <ul class="text-sm text-gray-500 space-y-2">
+                        <li>• Auto-Ducking : Baisse automatique du volume lors de la narration.</li>
+                        <li>• Audio spatial 2.5D sur la carte VTT.</li>
+                        <li>• Sons déclenchables par le MJ et les joueurs.</li>
+                    </ul>
                 </div>
             </div>
         </section>
@@ -420,7 +460,7 @@
         <section class="py-20 reveal">
             <h2 class="text-4xl font-bold text-white mb-8">Prêt à transformer vos sessions ?</h2>
             <a href="#download" class="inline-block px-12 py-5 rounded-2xl bg-grimoire-accent text-black font-black text-xl hover:scale-110 transition-all shadow-2xl">
-                TÉLÉCHARGER GRIMOIRE <span id="cta-version">v0.4.1</span>
+                TÉLÉCHARGER GRIMOIRE <span id="cta-version">v0.4.4</span>
             </a>
             <p class="mt-6 text-gray-500 text-sm">Gratuit, Open Source et fièrement local.</p>
         </section>
