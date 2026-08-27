@@ -52,6 +52,7 @@
   import QuestJournal from './QuestJournal.svelte';
   import SoundscapeMixer from './SoundscapeMixer.svelte';
   import { soundscape } from '$lib/stores/soundscape.svelte';
+  import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import AddonStore from './AddonStore.svelte';
 
   let { 
@@ -102,16 +103,14 @@
   let showCountdownPicker = $state(false);
   let countdownSecs = $state(30);
 
-  $effect(() => {
-    if (vttStore.countdownEnd === null && showCountdownPicker) { /* keep open */ }
-  });
-
   function handleCountdown() {
     if (vttStore.countdownEnd !== null) { stopCountdown(); }
     else { startCountdown(countdownSecs); showCountdownPicker = false; }
   }
 
-  // Narration météo
+  // Narration météo & Voix IA
+  let isNarratorVoiceEnabled = $state(true);
+
   const WEATHER_NARR: Record<string, string[]> = {
     none: ["Le ciel est dégagé, le temps clément.", "Un soleil discret éclaire la scène."],
     rain: ["Une pluie froide cingle vos visages.", "Les pavés luisent sous une averse persistante.", "La pluie tambourine sur vos armures."],
@@ -120,13 +119,25 @@
     embers: ["Des braises volent dans l'air chaud, portées par un vent de cendres.", "Une chaleur oppressante fait danser l'air au-dessus des ruines."],
     storm: ["La tempête rugit. Le tonnerre fait trembler les fondations.", "Des éclairs déchirent le ciel. Il faut trouver un abri."],
   };
+
   function sendWeatherNarrative() {
     const w = vttStore.weather ?? 'none';
     const list = WEATHER_NARR[w] ?? WEATHER_NARR.none;
-    sendAmbientText(list[Math.floor(Math.random() * list.length)]);
+    const text = list[Math.floor(Math.random() * list.length)];
+    sendAmbientText(text);
+    if (isNarratorVoiceEnabled) {
+      ttsReader.speakText(text);
+    }
   }
 
-  // NPC
+  function handleCustomAmbient(text: string) {
+    sendAmbientText(text);
+    if (isNarratorVoiceEnabled) {
+      ttsReader.speakText(text);
+    }
+  }
+
+  // Modals & Panels
   let showNpcModal = $state(false);
   let showLootModal = $state(false);
   let showHandoutModal = $state(false);
@@ -141,6 +152,7 @@
   let showToolsOverflow = $state(false);
   let toolbarEl: HTMLElement | undefined;
   let toolbarH = $state(56);
+
   $effect(() => {
     if (!toolbarEl) return;
     const ro = new ResizeObserver(() => { toolbarH = toolbarEl!.offsetHeight; });
@@ -183,7 +195,6 @@
   // Timer de session (état partagé via vttStore.sessionTimerStart)
   let sessionDisplay = $state('00:00');
   let timerInterval: ReturnType<typeof setInterval> | null = null;
-
   $effect(() => {
     const start = vttStore.sessionTimerStart;
     if (start !== null) {
@@ -537,7 +548,9 @@
             <button class="mini-btn" class:active={vttStore.weather === w} onclick={() => setWeather(w)} title={w}>{w === 'none' ? '☀️' : w === 'rain' ? '🌧️' : w === 'snow' ? '❄️' : w === 'fog' ? '🌫️' : '🔥'}</button>
           {/each}
         </div>
-        <button class="dropdown-item" onclick={sendWeatherNarrative}>🌦️ Envoyer narration météo</button>
+        <button class="dropdown-item" onclick={sendWeatherNarrative} title="Diffuse et prononce une description du climat actuel">
+          🌦️ Envoyer narration météo {#if isNarratorVoiceEnabled}<span style="margin-left: auto; font-size: 11px; opacity: 0.8;">🗣️ Voix</span>{/if}
+        </button>
 
         <div class="dropdown-divider"></div>
         <div class="dropdown-title">Éclairage Ambiant</div>
@@ -550,8 +563,46 @@
         <button class="dropdown-item" onclick={triggerLightningFlash}>⚡ Flash d'Éclair & Foudre</button>
 
         <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Voix Narrateur IA</div>
+        <div class="dropdown-submenu-item" style="justify-content: space-between;">
+          <span style="font-size: 11px; color: var(--text-secondary);">Lecture vocale :</span>
+          <button 
+            class="mini-btn" 
+            class:active={isNarratorVoiceEnabled} 
+            onclick={() => isNarratorVoiceEnabled = !isNarratorVoiceEnabled}
+            title={isNarratorVoiceEnabled ? 'Désactiver la voix IA' : 'Activer la voix IA'}
+          >
+            {isNarratorVoiceEnabled ? '🗣️ Activée' : '🔇 Désactivée'}
+          </button>
+        </div>
+        {#if ttsReader.isPlaying}
+          <div class="dropdown-submenu-item" style="background: rgba(56,189,248,0.12); border-radius: 4px; margin: 2px 6px; padding: 4px 8px; justify-content: space-between;">
+            <span style="font-size: 11px; color: #38bdf8; display: flex; align-items: center; gap: 4px;">
+              🎙️ {ttsReader.currentSpeakerEmoji} Parle…
+            </span>
+            <button class="mini-btn btn-stop" onclick={() => ttsReader.stop()} title="Arrêter la voix">⏹️ Stop</button>
+          </div>
+        {/if}
+
+        <div class="dropdown-divider"></div>
         <div class="dropdown-submenu-item">
-          <input type="text" class="ambient-input" style="width: 100%" placeholder="Texte d'ambiance personnalisé..." bind:value={ambientTextInput} onkeydown={(e) => { if (e.key === 'Enter') { const v = ambientTextInput.trim(); if (v) { sendAmbientText(v); ambientTextInput = ''; activeMenu = null; } } }} />
+          <input 
+            type="text" 
+            class="ambient-input" 
+            style="width: 100%" 
+            placeholder="Texte d'ambiance personnalisé (Entrée pour dire/projeter)..." 
+            bind:value={ambientTextInput} 
+            onkeydown={(e) => { 
+              if (e.key === 'Enter') { 
+                const v = ambientTextInput.trim(); 
+                if (v) { 
+                  handleCustomAmbient(v); 
+                  ambientTextInput = ''; 
+                  activeMenu = null; 
+                } 
+              } 
+            }} 
+          />
         </div>
       </div>
     </div>
