@@ -1,6 +1,6 @@
 {
-  "version": "0.4.4",
-  "changelog": "Correction du débordement de la Boutique d'addons, ajout de l'importation locale de packs ZIP/.grimoirepack en 1 clic, boutons toujours visibles et intégration Google Drive.",
+  "version": "0.5.0",
+  "changelog": "Bibliothèque Céleste Audio & Studio Soundscape (+800 pistes studio, streaming player, diffusion VTT 1-clic), Éclairage & Météo Réelle avec flashs d'orages et voix neuronales IA, Liseuse PDF 2.0 multi-colonnes avec extraction de carte VTT, projection de handouts et lancer de dés interactif, et pont bidirectionnel Grimoire VTT <-> Fantasy Map Editor.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-08-15"
+  "release_date": "2026-08-28"
 }

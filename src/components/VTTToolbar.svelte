@@ -663,7 +663,7 @@
         
         <div class="dropdown-divider"></div>
         <div class="dropdown-title">Bibliothèques & Éditeurs</div>
-        <button class="dropdown-item" onclick={() => { showAddonStore = true; activeMenu = null; }}>🌌 Bibliothèque Céleste & Livres PDF</button>
+        <button class="dropdown-item" onclick={() => { showAddonStore = true; activeMenu = null; }}>🌌 Bibliothèque Céleste (Cartes, Audio, PDF)</button>
         <button class="dropdown-item" onclick={() => { showSharedLibrary = true; activeMenu = null; }}>📚 Bibliothèque partagée</button>
         
         <button class="dropdown-item" onclick={() => { charCreator?.toggle(); activeMenu = null; }}>⚔️ Créateur de personnage</button>

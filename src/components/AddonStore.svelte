@@ -5,7 +5,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { openVault } from '$lib/api';
   import { getVaultPath, setVaultTree } from '$lib/stores/vault.svelte';
-  import { addMapScene, replaceActiveScene } from '$lib/stores/vtt.svelte';
+  import { addMapScene, replaceActiveScene, updateGmAudio, updateGmAudio2 } from '$lib/stores/vtt.svelte';
   import { getCelestialCatalog, checkForCatalogUpdates, subscribeToCelestialUpdates, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
   import PdfReaderModal from './PdfReaderModal.svelte';
 
@@ -27,6 +27,18 @@
     done: number;
     total: number;
     file: string;
+  }
+
+  interface PlayingAudioState {
+    id: string;
+    name: string;
+    category?: string;
+    url: string;
+    file: DriveFile;
+    isPlaying: boolean;
+    currentTime: number;
+    duration: number;
+    loop: boolean;
   }
 
   // ── Constants & State ──────────────────────────────────────────────────────
@@ -68,9 +80,127 @@
   // PDF Reader Modal State
   let activePdfModal = $state<{ id?: string; url: string; name: string; localPath?: string } | null>(null);
 
+  // Audio Preview State & Player
+  let playingAudio = $state<PlayingAudioState | null>(null);
+  let audioEl: HTMLAudioElement | null = null;
+  let audioVolume = $state(0.7);
+
+  function anyAudio(fn: string): boolean {
+    const l = (fn || '').toLowerCase();
+    return l.endsWith('.mp3') || l.endsWith('.ogg') || l.endsWith('.wav') || l.endsWith('.flac') || l.endsWith('.m4a');
+  }
+
   let booksCount = $derived(
     rawFiles.filter(f => f.destination === 'books' || f.path.toLowerCase().endsWith('.pdf') || f.name.toLowerCase().endsWith('.pdf')).length
   );
+
+  let audioCount = $derived(
+    rawFiles.filter(f => f.destination === 'assets/audio' || f.destination === 'audio' || anyAudio(f.filename) || anyAudio(f.path)).length
+  );
+
+  function toggleAudioPreview(file: DriveFile) {
+    if (playingAudio && playingAudio.id === file.id) {
+      if (playingAudio.isPlaying) {
+        audioEl?.pause();
+        playingAudio.isPlaying = false;
+      } else {
+        audioEl?.play().catch(e => console.warn('Audio play error:', e));
+        playingAudio.isPlaying = true;
+      }
+      return;
+    }
+
+    if (audioEl) {
+      audioEl.pause();
+      audioEl.src = '';
+    }
+
+    const src = file.url;
+    audioEl = new Audio(src);
+    audioEl.volume = audioVolume;
+    audioEl.loop = false;
+
+    playingAudio = {
+      id: file.id,
+      name: file.name,
+      category: file.category,
+      url: src,
+      file,
+      isPlaying: false,
+      currentTime: 0,
+      duration: 0,
+      loop: false
+    };
+
+    audioEl.onloadedmetadata = () => {
+      if (playingAudio && audioEl) {
+        playingAudio.duration = audioEl.duration || 0;
+      }
+    };
+
+    audioEl.ontimeupdate = () => {
+      if (playingAudio && audioEl) {
+        playingAudio.currentTime = audioEl.currentTime || 0;
+      }
+    };
+
+    audioEl.onended = () => {
+      if (playingAudio && !playingAudio.loop) {
+        playingAudio.isPlaying = false;
+      }
+    };
+
+    audioEl.play().then(() => {
+      if (playingAudio) playingAudio.isPlaying = true;
+    }).catch(e => {
+      console.warn('Audio play error:', e);
+      showToast(`⚠️ Lecture audio impossible : ${e}`);
+    });
+  }
+
+  function stopAudioPreview() {
+    if (audioEl) {
+      audioEl.pause();
+      audioEl.src = '';
+    }
+    playingAudio = null;
+  }
+
+  function toggleAudioLoop() {
+    if (!playingAudio || !audioEl) return;
+    playingAudio.loop = !playingAudio.loop;
+    audioEl.loop = playingAudio.loop;
+  }
+
+  function setAudioVolume(vol: number) {
+    audioVolume = vol;
+    if (audioEl) audioEl.volume = vol;
+  }
+
+  function seekAudio(seconds: number) {
+    if (audioEl && playingAudio) {
+      audioEl.currentTime = seconds;
+      playingAudio.currentTime = seconds;
+    }
+  }
+
+  function formatAudioTime(sec: number): string {
+    if (!sec || isNaN(sec) || !isFinite(sec)) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function sendToVttAmbiance(file: DriveFile, channel: 1 | 2 = 1) {
+    const src = file.url;
+    if (channel === 1) {
+      updateGmAudio(src);
+      showToast(`🎶 "${file.name}" diffusé sur le canal Ambiance de la VTT !`);
+    } else {
+      updateGmAudio2(src);
+      showToast(`🎶 "${file.name}" diffusé sur le canal Ambiance 2 de la VTT !`);
+    }
+  }
 
   function openPdfReader(file: DriveFile) {
     activePdfModal = {
@@ -83,6 +213,10 @@
   function openPreview(file: DriveFile) {
     if (file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')) {
       openPdfReader(file);
+      return;
+    }
+    if (file.destination === 'assets/audio' || file.destination === 'audio' || anyAudio(file.filename)) {
+      toggleAudioPreview(file);
       return;
     }
     previewFile = file;
@@ -139,6 +273,13 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    if (e.key === ' ' && playingAudio && !previewFile && !activePdfModal) {
+      const activeEl = document.activeElement?.tagName.toLowerCase();
+      if (activeEl !== 'input' && activeEl !== 'textarea' && activeEl !== 'select') {
+        e.preventDefault();
+        toggleAudioPreview(playingAudio.file);
+      }
+    }
     if (!previewFile) return;
     if (e.key === 'Escape') closePreview();
     else if (e.key === 'ArrowRight') previewNext();
@@ -204,6 +345,17 @@
       if (part === 'maps') label = '🗺️ Cartes';
       else if (part === 'textures') label = '🧱 Textures';
       else if (part === 'stamps') label = '🎨 Tampons';
+      else if (part === 'audio' || part === 'Grimoire_Audio') label = '🎵 Grimoire Audio';
+      else if (part === 'Musiques_et_Ambiances') label = '🎼 Musiques & Ambiances';
+      else if (part === 'Bruitages_SFX') label = '🔊 Bruitages & SFX';
+      else if (part === 'Musiques_Combat') label = '⚔️ Combat';
+      else if (part === 'Horreur_et_Donjons') label = '🏰 Horreur & Donjons';
+      else if (part === 'Villes_et_Tavernes') label = '🍺 Villes & Tavernes';
+      else if (part === 'Nature_et_Elements') label = '🌲 Nature';
+      else if (part === 'SciFi_et_Futuriste') label = '🚀 Sci-Fi';
+      else if (part === 'Musiques_Exploration') label = '🧭 Exploration';
+      else if (part === 'Ambiances') label = '🌌 Ambiances';
+      else if (part.startsWith('Bruitages_')) label = `💥 SFX ${part.replace(/^Bruitages_/, '')}`;
       list.push({ label, path: acc });
     }
     return list;
@@ -292,10 +444,11 @@
     }
 
     try {
-      const [mapsFiles, tokenFiles, tileFiles] = await Promise.all([
+      const [mapsFiles, tokenFiles, tileFiles, audioFiles] = await Promise.all([
         invoke<string[]>('addon_check_installed_files', { destination: 'maps' }).catch(() => []),
         invoke<string[]>('addon_check_installed_files', { destination: 'tokens' }).catch(() => []),
         invoke<string[]>('addon_check_installed_files', { destination: 'tiles/custom' }).catch(() => []),
+        invoke<string[]>('addon_check_installed_files', { destination: 'assets/audio' }).catch(() => []),
       ]);
 
       const diskSet = new Set<string>();
@@ -311,6 +464,12 @@
       for (const f of tileFiles) {
         diskSet.add(`textures/${f}`);
         diskSet.add(`tiles/custom/${f}`);
+        diskSet.add(f);
+      }
+      for (const f of audioFiles) {
+        diskSet.add(`assets/audio/${f}`);
+        diskSet.add(`audio/${f}`);
+        diskSet.add(`Grimoire_Audio/${f}`);
         diskSet.add(f);
       }
       localFilesOnDisk = diskSet;
@@ -559,6 +718,7 @@
   });
 
   onDestroy(() => {
+    stopAudioPreview();
     unlisten?.();
     unsubUpdates?.();
     if (toastTimer) clearTimeout(toastTimer);
@@ -616,6 +776,17 @@
             <button class="nav-pill" class:active-pill={currentPath === 'maps'} onclick={() => { currentPath = 'maps'; searchQuery = ''; }}>
               🗺️ Cartes ({rootTree.subfolders['maps']?.totalFiles ?? 0})
             </button>
+            <button
+              class="nav-pill"
+              class:active-pill={currentPath.startsWith('audio') || currentPath.startsWith('Grimoire_Audio') || currentPath.includes('Musiques_et_Ambiances') || currentPath.includes('Bruitages_SFX')}
+              onclick={() => {
+                if (rootTree.subfolders['audio']) { currentPath = 'audio'; searchQuery = ''; }
+                else if (rootTree.subfolders['Grimoire_Audio']) { currentPath = 'Grimoire_Audio'; searchQuery = ''; }
+                else { currentPath = ''; searchQuery = '.mp3'; }
+              }}
+            >
+              🎵 Grimoire Audio ({audioCount})
+            </button>
             <button class="nav-pill" class:active-pill={currentPath === 'PDF' || currentPath === 'books' || currentPath === 'livres' || searchQuery === '.pdf'} onclick={() => {
               if (rootTree.subfolders['PDF']) { currentPath = 'PDF'; searchQuery = ''; }
               else if (rootTree.subfolders['books']) { currentPath = 'books'; searchQuery = ''; }
@@ -642,6 +813,9 @@
             <div class="folder-quick-links">
               <button class="btn-open-folder" onclick={() => openFolder('maps')} title="Ouvrir public/maps dans l'explorateur Windows">
                 📁 Cartes
+              </button>
+              <button class="btn-open-folder" onclick={() => openFolder('assets/audio/Grimoire_Audio')} title="Ouvrir le dossier Grimoire Audio dans l'explorateur Windows">
+                📁 Audio
               </button>
               <button class="btn-open-folder" onclick={() => openFolder('tokens')} title="Ouvrir public/tokens dans l'explorateur Windows">
                 📁 Tokens
@@ -684,7 +858,7 @@
             <span class="search-icon">🔍</span>
             <input
               class="search"
-              placeholder="Rechercher dans toutes les archives…"
+              placeholder="Rechercher dans toutes les archives (cartes, audios, livres)…"
               bind:value={searchQuery}
             />
             {#if searchQuery}
@@ -774,14 +948,38 @@
                 {#each searchResults as file (file.id)}
                   {@const onDisk = isFileOnDisk(file)}
                   {@const isDl = downloadingFiles.has(file.id)}
-                  <div class="file-card" class:file-on-disk={onDisk}>
+                  {@const isPdf = file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')}
+                  {@const isAudio = file.destination === 'assets/audio' || file.destination === 'audio' || anyAudio(file.filename)}
+                  {@const isPlayingThis = playingAudio?.id === file.id && playingAudio?.isPlaying}
+                  <div class="file-card" class:file-on-disk={onDisk} class:file-is-pdf={isPdf} class:file-is-audio={isAudio}>
                     <div class="file-thumb-wrap" role="button" tabindex="0" onclick={() => openPreview(file)} onkeydown={(e) => e.key === 'Enter' && openPreview(file)}>
-                      <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
+                      {#if isPdf}
+                        <div class="pdf-card-cover">
+                          <span class="pdf-icon-big">📚</span>
+                          <span class="pdf-tag-cover">GRIMOIRE PDF</span>
+                        </div>
+                      {:else if isAudio}
+                        <div class="audio-card-cover" class:audio-is-playing={isPlayingThis}>
+                          <div class="audio-waves">
+                            <span class="bar bar-1"></span>
+                            <span class="bar bar-2"></span>
+                            <span class="bar bar-3"></span>
+                            <span class="bar bar-4"></span>
+                            <span class="bar bar-5"></span>
+                          </div>
+                          <div class="audio-play-round">
+                            {isPlayingThis ? '⏸' : '▶'}
+                          </div>
+                          <span class="audio-format-tag">{file.filename.split('.').pop()?.toUpperCase() || 'MP3'}</span>
+                        </div>
+                      {:else}
+                        <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
+                      {/if}
                       {#if onDisk}
                         <div class="badge-on-disk">✓ Sur PC</div>
                       {/if}
-                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title="Inspecter en plein écran">
-                        🔍 HD
+                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Liseuse PDF' : isAudio ? 'Écouter l\'audio' : 'Inspecter en plein écran'}>
+                        {isPdf ? '📖 Liseuse' : isAudio ? (isPlayingThis ? '⏸ Pause' : '▶ Écouter') : '🔍 HD'}
                       </button>
                       <button class="btn-jump-folder" onclick={(e) => {
                         e.stopPropagation();
@@ -808,7 +1006,15 @@
                         {:else if onDisk}💾 Re-télécharger
                         {:else}⬇️ Télécharger{/if}
                       </button>
-                      {#if file.destination === 'maps'}
+                      {#if isAudio}
+                        <button class="btn-file-vtt-audio" onclick={() => sendToVttAmbiance(file, 1)} title="Diffuser sur le canal Ambiance VTT">
+                          🎶 VTT
+                        </button>
+                      {:else if isPdf}
+                        <button class="btn-file-pdf" onclick={() => openPdfReader(file)} title="Ouvrir dans la Liseuse Vocale">
+                          🗣️ Liseuse
+                        </button>
+                      {:else if file.destination === 'maps'}
                         <button class="btn-file-vtt" onclick={() => loadIntoVTT(file, false)} title="Charger sur la VTT">
                           🎮 VTT
                         </button>
@@ -839,10 +1045,18 @@
                         {#if subNode.thumbnail}
                           <img class="folder-thumb" src={subNode.thumbnail} alt="" loading="lazy" referrerpolicy="no-referrer" />
                         {:else}
-                          <div class="folder-icon-placeholder">📁</div>
+                          <div class="folder-icon-placeholder">
+                            {#if subNode.destination === 'assets/audio' || subNode.destination === 'audio'}🎵
+                            {:else if subNode.destination === 'books'}📚
+                            {:else if subNode.destination === 'tiles/custom'}🧱
+                            {:else if subNode.destination === 'tokens'}🧙
+                            {:else}📁{/if}
+                          </div>
                         {/if}
                         <div class="folder-badge-dest">
                           {#if subNode.destination === 'maps'}🗺️ Cartes
+                          {:else if subNode.destination === 'assets/audio' || subNode.destination === 'audio'}🎵 Audio
+                          {:else if subNode.destination === 'books'}📚 Livres
                           {:else if subNode.destination === 'tiles/custom'}🧱 Textures
                           {:else}🎨 Tampons{/if}
                         </div>
@@ -850,7 +1064,11 @@
                       </div>
                       <div class="folder-info">
                         <div class="folder-name-row">
-                          <span class="folder-emoji">📁</span>
+                          <span class="folder-emoji">
+                            {#if subNode.destination === 'assets/audio' || subNode.destination === 'audio'}🎵
+                            {:else if subNode.destination === 'books'}📚
+                            {:else}📁{/if}
+                          </span>
                           <span class="folder-name" title={subNode.name}>{subNode.name}</span>
                         </div>
                         <div class="folder-meta-row">
@@ -906,12 +1124,28 @@
                   {@const onDisk = isFileOnDisk(file)}
                   {@const isDl = downloadingFiles.has(file.id)}
                   {@const isPdf = file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')}
-                  <div class="file-card" class:file-on-disk={onDisk} class:file-is-pdf={isPdf}>
+                  {@const isAudio = file.destination === 'assets/audio' || file.destination === 'audio' || anyAudio(file.filename)}
+                  {@const isPlayingThis = playingAudio?.id === file.id && playingAudio?.isPlaying}
+                  <div class="file-card" class:file-on-disk={onDisk} class:file-is-pdf={isPdf} class:file-is-audio={isAudio}>
                     <div class="file-thumb-wrap" role="button" tabindex="0" onclick={() => openPreview(file)} onkeydown={(e) => e.key === 'Enter' && openPreview(file)}>
                       {#if isPdf}
                         <div class="pdf-card-cover">
                           <span class="pdf-icon-big">📚</span>
                           <span class="pdf-tag-cover">GRIMOIRE PDF</span>
+                        </div>
+                      {:else if isAudio}
+                        <div class="audio-card-cover" class:audio-is-playing={isPlayingThis}>
+                          <div class="audio-waves">
+                            <span class="bar bar-1"></span>
+                            <span class="bar bar-2"></span>
+                            <span class="bar bar-3"></span>
+                            <span class="bar bar-4"></span>
+                            <span class="bar bar-5"></span>
+                          </div>
+                          <div class="audio-play-round">
+                            {isPlayingThis ? '⏸' : '▶'}
+                          </div>
+                          <span class="audio-format-tag">{file.filename.split('.').pop()?.toUpperCase() || 'MP3'}</span>
                         </div>
                       {:else}
                         <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
@@ -919,8 +1153,8 @@
                       {#if onDisk}
                         <div class="badge-on-disk">✓ Sur PC</div>
                       {/if}
-                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Ouvrir dans la Liseuse PDF & Voix' : 'Inspecter en plein écran (Zoom & Pan)'}>
-                        {isPdf ? '📖 Liseuse' : '🔍 HD'}
+                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Ouvrir dans la Liseuse PDF & Voix' : isAudio ? 'Écouter l\'audio' : 'Inspecter en plein écran (Zoom & Pan)'}>
+                        {isPdf ? '📖 Liseuse' : isAudio ? (isPlayingThis ? '⏸ Pause' : '▶ Écouter') : '🔍 HD'}
                       </button>
                     </div>
                     <div class="file-info">
@@ -939,7 +1173,11 @@
                         {:else if onDisk}💾 Re-télécharger
                         {:else}⬇️ Télécharger{/if}
                       </button>
-                      {#if isPdf}
+                      {#if isAudio}
+                        <button class="btn-file-vtt-audio" onclick={() => sendToVttAmbiance(file, 1)} title="Diffuser cette musique sur le canal Ambiance VTT">
+                          🎶 VTT
+                        </button>
+                      {:else if isPdf}
                         <button class="btn-file-pdf" onclick={() => openPdfReader(file)} title="Ouvrir dans la Liseuse Vocale intégrée">
                           🗣️ Liseuse
                         </button>
@@ -975,6 +1213,7 @@
           </div>
           <div class="installed-header-actions">
             <button class="btn-open-folder" onclick={() => openFolder('maps')}>📁 public/maps</button>
+            <button class="btn-open-folder" onclick={() => openFolder('assets/audio/Grimoire_Audio')}>📁 public/audio</button>
             <button class="btn-open-folder" onclick={() => openFolder('tokens')}>📁 public/tokens</button>
             <button class="btn-open-folder" onclick={() => openFolder('tiles/custom')}>📁 public/tiles</button>
             <button class="btn-import-zip" onclick={pickAndImportLocalZip}>📥 Importer un ZIP…</button>
@@ -986,7 +1225,7 @@
             <div class="empty-box">
               <div style="font-size: 2.5rem; margin-bottom: 0.5rem">📦</div>
               <div>Aucun pack ou dossier n'est encore installé localement.</div>
-              <p style="font-size: 0.85rem; color: #8899b7">Explorez les Archives Célestes pour télécharger vos cartes de bataille, textures et décors !</p>
+              <p style="font-size: 0.85rem; color: #8899b7">Explorez les Archives Célestes pour télécharger vos cartes de bataille, musiques et décors !</p>
               <button class="btn-primary" onclick={() => activeTab = 'explorer'}>
                 🌌 Parcourir les Archives Célestes
               </button>
@@ -998,7 +1237,8 @@
                   <div class="inst-icon">
                     {#if a.destination === 'maps'}🗺️
                     {:else if a.destination === 'tokens'}🧙
-                    {:else if a.destination === 'audio'}🎵
+                    {:else if a.destination === 'assets/audio' || a.destination === 'audio'}🎵
+                    {:else if a.destination === 'books'}📚
                     {:else}🧱{/if}
                   </div>
                   <div class="inst-details">
@@ -1032,11 +1272,79 @@
           <div class="import-card">
             <div style="font-size: 3rem; margin-bottom: 1rem">📥</div>
             <h3>Importer vos propres Packs ou Archives ZIP</h3>
-            <p>Déployez instantanément vos fichiers (cartes, tokens, tuiles, bruitages) directement dans les dossiers locaux de Grimoire.</p>
+            <p>Déployez instantanément vos fichiers (cartes, tokens, musiques, tuiles) directement dans les dossiers locaux de Grimoire.</p>
             <button class="btn-big-import" onclick={pickAndImportLocalZip}>
               📂 Sélectionner un fichier .ZIP ou .grimoirepack
             </button>
           </div>
+        </div>
+      </div>
+    {/if}
+
+    <!-- ── Floating Mini Audio Player ────────────────────────────────────── -->
+    {#if playingAudio}
+      <div class="mini-audio-player">
+        <div class="player-track-info">
+          <div class="player-icon-anim" class:playing={playingAudio.isPlaying}>🎵</div>
+          <div class="player-text">
+            <span class="player-track-title">{playingAudio.name}</span>
+            <span class="player-track-cat">{playingAudio.category || 'Grimoire Audio'}</span>
+          </div>
+        </div>
+
+        <div class="player-center-controls">
+          <div class="player-buttons-row">
+            <button class="btn-player-ctrl" onclick={() => seekAudio(Math.max(0, (playingAudio?.currentTime || 0) - 10))} title="Reculer de 10s">
+              ⏪ 10s
+            </button>
+            <button class="btn-player-main" onclick={() => playingAudio && toggleAudioPreview(playingAudio.file)} title={playingAudio.isPlaying ? 'Pause' : 'Lecture'}>
+              {playingAudio.isPlaying ? '⏸' : '▶'}
+            </button>
+            <button class="btn-player-ctrl" onclick={() => seekAudio(Math.min(playingAudio?.duration || 0, (playingAudio?.currentTime || 0) + 10))} title="Avancer de 10s">
+              10s ⏩
+            </button>
+            <button class="btn-player-loop" class:active-loop={playingAudio.loop} onclick={toggleAudioLoop} title="Répéter en boucle">
+              🔁
+            </button>
+          </div>
+
+          <div class="player-seek-row">
+            <span class="time-lbl">{formatAudioTime(playingAudio.currentTime)}</span>
+            <input
+              type="range"
+              class="player-seek-slider"
+              min="0"
+              max={playingAudio.duration || 100}
+              step="0.1"
+              value={playingAudio.currentTime}
+              oninput={(e) => seekAudio(Number((e.target as HTMLInputElement).value))}
+            />
+            <span class="time-lbl">{formatAudioTime(playingAudio.duration)}</span>
+          </div>
+        </div>
+
+        <div class="player-right-actions">
+          <div class="volume-slider-wrap">
+            <span class="vol-icon">{audioVolume === 0 ? '🔇' : audioVolume < 0.5 ? '🔉' : '🔊'}</span>
+            <input
+              type="range"
+              class="player-vol-slider"
+              min="0"
+              max="1"
+              step="0.05"
+              value={audioVolume}
+              oninput={(e) => setAudioVolume(Number((e.target as HTMLInputElement).value))}
+              title="Volume de préécoute"
+            />
+          </div>
+
+          <button class="btn-broadcast-vtt" onclick={() => playingAudio && sendToVttAmbiance(playingAudio.file, 1)} title="Diffuser sur la VTT pour le MJ et les Joueurs">
+            🎶 Diffuser VTT
+          </button>
+
+          <button class="btn-player-close" onclick={stopAudioPreview} title="Arrêter et fermer le lecteur">
+            ✕
+          </button>
         </div>
       </div>
     {/if}
@@ -1730,4 +2038,197 @@
     transition: all 0.15s;
   }
   .btn-file-pdf:hover { background: #4f46e5; color: #fff; box-shadow: 0 0 10px rgba(99,102,241,0.4); }
+
+  /* ── Audio Card & Waveform Animations ───────────────────────────────────── */
+  .file-is-audio {
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  .file-is-audio:hover {
+    border-color: #c084fc;
+    box-shadow: 0 4px 20px rgba(192, 132, 252, 0.15);
+  }
+
+  .audio-card-cover {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #180d2b 0%, #0d1222 60%, #151d30 100%);
+    position: relative; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; overflow: hidden; border: 1px solid rgba(168, 85, 247, 0.25);
+    cursor: pointer;
+  }
+
+  .audio-waves {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    gap: 4px; opacity: 0.25; transition: opacity 0.2s;
+  }
+  .audio-is-playing .audio-waves {
+    opacity: 0.65;
+  }
+
+  .bar {
+    width: 4px; height: 28px; background: linear-gradient(to top, #8b5cf6, #ec4899);
+    border-radius: 2px;
+  }
+  .audio-is-playing .bar-1 { animation: wave 0.8s ease-in-out infinite alternate; }
+  .audio-is-playing .bar-2 { animation: wave 1.1s ease-in-out 0.15s infinite alternate; }
+  .audio-is-playing .bar-3 { animation: wave 0.7s ease-in-out 0.3s infinite alternate; }
+  .audio-is-playing .bar-4 { animation: wave 1.2s ease-in-out 0.45s infinite alternate; }
+  .audio-is-playing .bar-5 { animation: wave 0.9s ease-in-out 0.6s infinite alternate; }
+
+  @keyframes wave {
+    0% { height: 10px; opacity: 0.4; }
+    100% { height: 50px; opacity: 1; filter: drop-shadow(0 0 6px #c084fc); }
+  }
+
+  .audio-play-round {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6, #d946ef);
+    color: #fff; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.5); z-index: 2;
+    transition: all 0.15s;
+  }
+  .audio-card-cover:hover .audio-play-round {
+    transform: scale(1.12);
+    box-shadow: 0 0 20px rgba(217, 70, 239, 0.8);
+  }
+  .audio-is-playing .audio-play-round {
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+  }
+
+  .audio-format-tag {
+    position: absolute; bottom: 6px; right: 6px;
+    font-size: 0.62rem; font-weight: 800; color: #d8b4fe;
+    background: rgba(15, 23, 42, 0.8); padding: 1px 5px; border-radius: 3px;
+    border: 1px solid rgba(168, 85, 247, 0.3); z-index: 2;
+  }
+
+  .btn-file-vtt-audio {
+    background: linear-gradient(135deg, #7e22ce, #a855f7); color: #fff;
+    border: 1px solid #c084fc; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem;
+    font-weight: 700; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-file-vtt-audio:hover {
+    background: linear-gradient(135deg, #6b21a8, #9333ea);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  }
+
+  /* ── Floating Mini Audio Player ──────────────────────────────────────────── */
+  .mini-audio-player {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 72px; padding: 0 1.5rem;
+    background: rgba(11, 17, 30, 0.96);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(168, 85, 247, 0.4);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1.2rem; z-index: 100; box-shadow: 0 -8px 30px rgba(0,0,0,0.7);
+    animation: slideUp 0.2s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .player-track-info {
+    display: flex; align-items: center; gap: 10px; width: 260px; overflow: hidden;
+  }
+  .player-icon-anim {
+    font-size: 1.6rem; transition: transform 0.2s;
+  }
+  .player-icon-anim.playing {
+    animation: pulseIcon 1.5s infinite ease-in-out;
+  }
+  @keyframes pulseIcon {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2) rotate(6deg); }
+  }
+
+  .player-text { display: flex; flex-direction: column; overflow: hidden; }
+  .player-track-title {
+    font-size: 0.88rem; font-weight: 700; color: #f1f5f9;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .player-track-cat {
+    font-size: 0.72rem; color: #c084fc; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .player-center-controls {
+    flex: 1; max-width: 480px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .player-buttons-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .btn-player-ctrl {
+    background: transparent; border: 1px solid #334155; color: #94a3b8;
+    border-radius: 4px; padding: 2px 8px; font-size: 0.72rem; cursor: pointer; transition: all 0.12s;
+  }
+  .btn-player-ctrl:hover { background: #1e293b; color: #fff; }
+
+  .btn-player-main {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    border: none; color: #fff; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.5); transition: transform 0.12s;
+  }
+  .btn-player-main:hover { transform: scale(1.1); box-shadow: 0 0 16px rgba(236, 72, 153, 0.7); }
+
+  .btn-player-loop {
+    background: transparent; border: 1px solid #334155; border-radius: 4px;
+    font-size: 0.9rem; padding: 3px 6px; cursor: pointer; color: #64748b;
+  }
+  .btn-player-loop.active-loop {
+    background: rgba(168, 85, 247, 0.2); border-color: #a855f7; color: #d8b4fe;
+  }
+
+  .player-seek-row {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+  }
+  .time-lbl {
+    font-size: 0.7rem; font-family: monospace; color: #94a3b8; min-width: 32px;
+  }
+  .player-seek-slider {
+    flex: 1; height: 4px; appearance: none; -webkit-appearance: none; background: #1e293b;
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  .player-seek-slider::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+    background: #c084fc; cursor: pointer; box-shadow: 0 0 6px #a855f7;
+  }
+
+  .player-right-actions {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .volume-slider-wrap {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .vol-icon { font-size: 0.9rem; }
+  .player-vol-slider {
+    width: 70px; height: 4px; appearance: none; -webkit-appearance: none; background: #1e293b;
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  .player-vol-slider::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%;
+    background: #38bdf8; cursor: pointer;
+  }
+
+  .btn-broadcast-vtt {
+    background: linear-gradient(135deg, #059669, #10b981);
+    color: #fff; border: 1px solid #34d399; border-radius: 6px;
+    padding: 6px 12px; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    white-space: nowrap; transition: all 0.15s;
+  }
+  .btn-broadcast-vtt:hover {
+    background: linear-gradient(135deg, #047857, #059669);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+  }
+
+  .btn-player-close {
+    background: #334155; color: #cbd5e1; border: none; border-radius: 50%;
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; cursor: pointer;
+  }
+  .btn-player-close:hover { background: #ef4444; color: #fff; }
 </style>
+

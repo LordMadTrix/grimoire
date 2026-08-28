@@ -112,6 +112,9 @@ export function detectDestination(path: string): string {
   }
   if (clean.includes('/textures') || clean.startsWith('textures')) return 'tiles/custom';
   if (clean.includes('/stamps') || clean.includes('/tokens') || clean.startsWith('stamps') || clean.startsWith('tokens')) return 'tokens';
+  if (clean.endsWith('.mp3') || clean.endsWith('.ogg') || clean.endsWith('.wav') || clean.endsWith('.flac') || clean.endsWith('.m4a') || clean.includes('/audio') || clean.includes('/ambiance') || clean.includes('/sound') || clean.includes('/musique') || clean.startsWith('audio') || clean.startsWith('ambiance') || clean.startsWith('musique')) {
+    return 'assets/audio';
+  }
   return 'maps';
 }
 
@@ -145,14 +148,38 @@ export function buildCelestialTree(files: DriveFile[]): TreeNode {
       if (!curr.subfolders[folderName]) {
         const dest = detectDestination(curPath + (f.filename ? '/' + f.filename : ''));
         let displayName = folderName;
-        if (folderName.toLowerCase() === 'pdf' || folderName.toLowerCase() === 'books' || folderName.toLowerCase() === 'livres') {
+        const lower = folderName.toLowerCase();
+        if (lower === 'pdf' || lower === 'books' || lower === 'livres') {
           displayName = '📚 Livres & Grimoires PDF';
-        } else if (folderName.toLowerCase() === 'maps') {
+        } else if (lower === 'maps') {
           displayName = '🗺️ Cartes de Bataille';
-        } else if (folderName.toLowerCase() === 'textures') {
+        } else if (lower === 'textures') {
           displayName = '🧱 Textures';
-        } else if (folderName.toLowerCase() === 'stamps' || folderName.toLowerCase() === 'tokens') {
+        } else if (lower === 'stamps' || lower === 'tokens') {
           displayName = '🎨 Tampons & Tokens';
+        } else if (lower === 'audio' || lower === 'grimoire_audio') {
+          displayName = '🎵 Grimoire Audio';
+        } else if (lower === 'musiques_et_ambiances') {
+          displayName = '🎼 Musiques & Ambiances';
+        } else if (lower === 'bruitages_sfx') {
+          displayName = '🔊 Bruitages & SFX';
+        } else if (lower === 'musiques_combat') {
+          displayName = '⚔️ Musiques de Combat';
+        } else if (lower === 'horreur_et_donjons') {
+          displayName = '🏰 Horreur & Donjons';
+        } else if (lower === 'villes_et_tavernes') {
+          displayName = '🍺 Villes & Tavernes';
+        } else if (lower === 'nature_et_elements') {
+          displayName = '🌲 Nature & Éléments';
+        } else if (lower === 'scifi_et_futuriste') {
+          displayName = '🚀 Sci-Fi & Futuriste';
+        } else if (lower === 'musiques_exploration') {
+          displayName = '🧭 Musiques d\'Exploration';
+        } else if (lower === 'ambiances') {
+          displayName = '🌌 Ambiances Immersives';
+        } else if (lower.startsWith('bruitages_')) {
+          const sfxName = folderName.replace(/^bruitages_/i, '').replace(/_/g, ' ');
+          displayName = `💥 SFX ${sfxName.charAt(0).toUpperCase() + sfxName.slice(1)}`;
         }
 
         curr.subfolders[folderName] = {
@@ -191,18 +218,25 @@ function parseJsonToCelestialData(json: any): CelestialData {
       }
       const parts = cleanP.split('/');
       const dest = detectDestination(cleanP);
+      const isAudio = dest === 'assets/audio' || anyAudioExt(filename);
+
+      // Si ID local ou format audio interne, servir directement depuis public/
+      const isGoogleDriveId = id && !id.startsWith('audio_') && !id.startsWith('local_') && !id.startsWith('drive_');
+      const fileUrl = isAudio
+        ? (isGoogleDriveId ? `https://drive.usercontent.google.com/download?id=${id}&export=download` : `/${p}`)
+        : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}` : `/${p}`);
 
       collected.push({
         id,
         name,
         filename,
         path: cleanP,
-        category: parts[1] || (dest === 'books' ? 'Livres & Scénarios' : 'Général'),
+        category: parts[1] || (dest === 'books' ? 'Livres & Scénarios' : isAudio ? 'Grimoire Audio' : 'Général'),
         destination: dest,
         subfolder: parts.slice(0, -1).join('/'),
-        url: `https://lh3.googleusercontent.com/d/${id}`,
-        highResUrl: `https://lh3.googleusercontent.com/d/${id}=w2560`,
-        thumbUrl: `https://drive.google.com/thumbnail?id=${id}&sz=w400`
+        url: fileUrl,
+        highResUrl: isAudio ? fileUrl : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}=w2560` : fileUrl),
+        thumbUrl: isAudio ? '' : (isGoogleDriveId ? `https://drive.google.com/thumbnail?id=${id}&sz=w400` : fileUrl)
       });
     }
   } else {
@@ -260,6 +294,11 @@ function parseJsonToCelestialData(json: any): CelestialData {
     totalFiles: collected.length,
     updatedAt: json.updated || new Date().toISOString()
   };
+}
+
+function anyAudioExt(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return lower.endsWith('.mp3') || lower.endsWith('.ogg') || lower.endsWith('.wav') || lower.endsWith('.flac') || lower.endsWith('.m4a');
 }
 
 /**
