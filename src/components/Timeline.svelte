@@ -1,7 +1,6 @@
 <script lang="ts">
   import { readFile, writeFile, createDirectory } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
-  import { onMount } from 'svelte';
 
   interface TimelineEvent {
     id: string;
@@ -24,6 +23,10 @@
 
   let events = $state<TimelineEvent[]>([]);
   let loaded = $state(false);
+  // Piste le chemin du vault effectivement chargé : sans ça, changer de vault ne
+  // recharge jamais `events` (chargé une seule fois via onMount), et toute
+  // modification écrit alors les anciens événements dans le timeline.json du nouveau vault.
+  let loadedVaultPath: string | null = null;
 
   let showForm = $state(false);
   let editingId = $state<string | null>(null);
@@ -32,11 +35,14 @@
   let formDesc = $state('');
   let formType = $state<TimelineEvent['type']>('other');
 
-  onMount(loadTimeline);
-
-  async function loadTimeline() {
+  $effect(() => {
     const vp = getVaultPath();
-    if (!vp) return;
+    if (!vp || vp === loadedVaultPath) return;
+    loadedVaultPath = vp;
+    loadTimeline(vp);
+  });
+
+  async function loadTimeline(vp: string) {
     try {
       const raw = await readFile(vp, TL_PATH);
       events = JSON.parse(raw) ?? [];

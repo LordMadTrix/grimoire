@@ -23,6 +23,7 @@
     if (!relativePath || !vaultPath) { fullSrc = null; return; }
 
     readFileBase64(`${vaultPath}/${relativePath}`).then(base64 => {
+      if (src !== relativePath) return; // une réponse plus récente a déjà pris le relais
       const ext = relativePath.split('.').pop()?.toLowerCase();
       let mime = 'audio/mpeg';
       if (ext === 'wav') mime = 'audio/wav';
@@ -30,6 +31,7 @@
       else if (ext === 'm4a') mime = 'audio/mp4';
       fullSrc = `data:${mime};base64,${base64}`;
     }).catch(err => {
+      if (src !== relativePath) return;
       console.error('AudioPlayer: impossible de charger', relativePath, err);
       fullSrc = null;
     });

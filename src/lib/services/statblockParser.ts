@@ -21,9 +21,9 @@ export interface ParsedMonsterStats {
 /**
  * Analyse un texte brut pour extraire les statistiques d'un monstre ou PNJ
  */
-export function parseStatblockText(text: string): ParsedMonsterStats {
+export function parseStatblockText(text: string): ParsedMonsterStats | null {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  
+
   // 1. Nom : première ligne non vide ou mot-clé
   let name = 'Créature Sans Nom';
   if (lines.length > 0) {
@@ -33,11 +33,12 @@ export function parseStatblockText(text: string): ParsedMonsterStats {
   // 2. Points de Vie (HP / PV)
   let hp = 20;
   const hpMatch = text.match(/(?:Points de vie|PV|Hit Points|HP)\s*[:=]?\s*(\d+)(?:\s*\(([^)]+)\))?/i);
+  let hdMatch: RegExpMatchArray | null = null;
   if (hpMatch) {
     hp = parseInt(hpMatch[1], 10);
   } else {
     // Tentative OSR / AD&D (ex: "HD 3", "3d8", "DV 4")
-    const hdMatch = text.match(/(?:HD|DV|Dés de vie)\s*[:=]?\s*(\d+)/i);
+    hdMatch = text.match(/(?:HD|DV|Dés de vie)\s*[:=]?\s*(\d+)/i);
     if (hdMatch) {
       hp = parseInt(hdMatch[1], 10) * 8; // Estimation moyenne 8 PV / HD
     }
@@ -48,6 +49,13 @@ export function parseStatblockText(text: string): ParsedMonsterStats {
   const acMatch = text.match(/(?:Classe d'armure|CA|Armor Class|AC)\s*[:=]?\s*(\d+)/i);
   if (acMatch) {
     ac = parseInt(acMatch[1], 10);
+  }
+
+  // Aucun indicateur de statblock trouvé (ni PV, ni DV, ni CA) : ce n'est probablement
+  // pas une fiche de monstre — signaler l'échec plutôt que de renvoyer des stats
+  // par défaut trompeuses (PV 20 / CA 12) pour un simple paragraphe descriptif.
+  if (!hpMatch && !hdMatch && !acMatch) {
+    return null;
   }
 
   // 4. Vitesse

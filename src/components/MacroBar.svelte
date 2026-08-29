@@ -53,7 +53,9 @@
     if (base === '/roll') {
       onRollRequest(parts.slice(1).join(' '));
     } else if (base === '/heal') {
-      const amount = parseInt(parts[2]) || 5;
+      // Accepte à la fois "/heal 20" (montant en 2e mot) et "/heal group 20"
+      // (montant en 3e mot, format historique) au lieu de supposer aveuglément ce dernier.
+      const amount = parseInt(parts.length >= 3 ? parts[2] : parts[1]) || 5;
       vttStore.tokens.forEach(t => {
         if (!t.isEnemy && t.hp !== undefined && t.maxHp) {
           const prev = t.hp;

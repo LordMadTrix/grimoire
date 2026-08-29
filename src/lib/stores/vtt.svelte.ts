@@ -796,6 +796,7 @@ export function addGmWall(points: {x:number, y:number}[]) {
     type: vttStore.blueprintType,
     isOpen: false
   });
+  emitToPlayerView('update_walls', vttStore.walls);
 }
 
 export function toggleGmDoor(id: string) {
@@ -803,17 +804,20 @@ export function toggleGmDoor(id: string) {
   if (wall && wall.type === 'door') {
     wall.isOpen = !wall.isOpen;
   }
+  emitToPlayerView('update_walls', vttStore.walls);
 }
 
-export function clearGmWalls() { vttStore.walls = []; }
-export function removeGmWall(id: string) { vttStore.walls = vttStore.walls.filter(w => w.id !== id); }
-export function undoGmWall() { vttStore.walls.pop(); }
+export function clearGmWalls() { vttStore.walls = []; emitToPlayerView('update_walls', vttStore.walls); }
+export function removeGmWall(id: string) { vttStore.walls = vttStore.walls.filter(w => w.id !== id); emitToPlayerView('update_walls', vttStore.walls); }
+export function undoGmWall() { vttStore.walls.pop(); emitToPlayerView('update_walls', vttStore.walls); }
 
 export function addGmAudioZone(x: number, y: number, radius: number, audioSrc: string) {
   vttStore.audioZones.push({ id: Math.random().toString(36).slice(2), x, y, radius, audioSrc, volume: 0.8 });
+  emitToPlayerView('update_audio_zones', vttStore.audioZones);
 }
 export function removeGmAudioZone(id: string) {
   vttStore.audioZones = vttStore.audioZones.filter(z => z.id !== id);
+  emitToPlayerView('update_audio_zones', vttStore.audioZones);
 }
 
 export function syncStateToPlayerView() {

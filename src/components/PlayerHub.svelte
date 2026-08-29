@@ -4,12 +4,13 @@
   import {
     broadcastToPlayers, getPlayerConnections, getServerStatus,
     applyDamageToPlayer, applyConditionToPlayer, removeConditionFromPlayer,
-    setActiveTurn, approveXpRequest, requestRoll,
+    setActiveTurn, approveXpRequest, requestRoll, assignCharacter,
     type ServerInfo, type PlayerInfo,
   } from '$lib/api';
   import { vttStore } from '$lib/stores/vtt.svelte';
   import { getVaultPath, getVaultTree, getActiveFile } from '$lib/stores/vault.svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import { parseCharacterMd } from '$lib/services/characterParser';
   import { fade, fly, scale } from 'svelte/transition';
 
   let visible = $state(false);
@@ -75,9 +76,18 @@
     if (!vaultPath) return;
     try {
       const content = await invoke('read_file', { vaultPath, relativePath: relPath }) as string;
-      // Simple parser for character MD (this is a placeholder, real Grimoire might have a better one)
-      // For now we push the raw data or let the mobile app handle it
-      await broadcastToPlayers('push_character', { playerId, character: { relPath, content } });
+      // Parser le markdown en objet de personnage structuré (nom/PV/CA...) et passer par
+      // la commande dédiée assign_character — l'ancien broadcast('push_character', {content})
+      // envoyait du markdown brut que le client mobile ne sait pas interpréter, donc
+      // aucune statistique n'était réellement mise à jour côté joueur.
+      const parsed = parseCharacterMd(content);
+      const charObj = {
+        ...parsed,
+        nom: parsed.nom || relPath.split('/').pop()?.replace(/\.md$/i, '') || 'Personnage',
+        profil: { act: { b: parsed.maxhp || 10 } },
+        bless: parsed.hp || 10,
+      };
+      await assignCharacter(playerId, relPath, charObj);
     } catch(e) { console.error(e); }
   }
 

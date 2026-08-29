@@ -923,9 +923,10 @@
       container.addChild(g);
     });
 
-    // Vision dynamique des pions
+    // Vision dynamique des pions (seulement les pions alliés/visibles, comme le filtre
+    // de visibilité ci-dessus — sinon un monstre caché révèle le brouillard autour de lui)
     tokens.forEach(token => {
-      if (token.visionRange && token.visionRange > 0) {
+      if (!token.isEnemy && token.visible !== false && token.visionRange && token.visionRange > 0) {
         const radius = token.visionRange * gridSize;
         const g = new PIXI.Graphics().circle(token.x, token.y, radius).fill(0xffffff);
         g.blendMode = 'erase';
@@ -2684,6 +2685,7 @@
 
   // Cache des textures pour les tiles de donjon
   const dungeonTexCache = new Map<string, PIXI.Texture>();
+  let dungeonRenderGen = 0;
 
   async function getDungeonTex(type: string, style: string): Promise<PIXI.Texture | null> {
     if (style === 'solid') return null;
@@ -2700,6 +2702,11 @@
 
   async function renderDungeonTiles() {
     if (!dungeonLayer) return;
+    // Jeton de génération : si un appel plus récent démarre pendant qu'on est encore
+    // dans la boucle async ci-dessous (glisser-peindre déclenche un appel par case),
+    // cet appel périmé doit s'arrêter au lieu de continuer à peupler dungeonLayer
+    // après qu'un appel plus récent l'a déjà vidé.
+    const myGen = ++dungeonRenderGen;
     dungeonLayer.removeChildren().forEach(c => c.destroy());
     if (vttStore.dungeonTiles.length === 0) return;
 
@@ -2711,6 +2718,7 @@
       const x = tile.col * gridSize;
       const y = tile.row * gridSize;
       const tex = await getDungeonTex(tile.type, vttStore.dungeonStyle);
+      if (myGen !== dungeonRenderGen) return; // un appel plus récent a pris le relais
       if (tex && tex.width > 16) {
         const sprite = new PIXI.Sprite(tex);
         sprite.x = x; sprite.y = y;
@@ -2720,7 +2728,7 @@
         drawTileGraphics(gFallback, tile.type, x, y, gridSize);
       }
     }
-    dungeonLayer.addChild(gFallback);
+    if (myGen === dungeonRenderGen) dungeonLayer.addChild(gFallback);
   }
 
   function renderTerrain() {

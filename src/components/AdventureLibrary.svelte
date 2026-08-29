@@ -122,7 +122,7 @@
     list = [...list].sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'title')    cmp = a.title.localeCompare(b.title);
-      if (sortBy === 'sessions') cmp = ((userData[b.id]?.sessionLog?.length ?? 0) - (userData[a.id]?.sessionLog?.length ?? 0));
+      if (sortBy === 'sessions') cmp = ((userData[a.id]?.sessionLog?.length ?? 0) - (userData[b.id]?.sessionLog?.length ?? 0));
       if (sortBy === 'status')   cmp = (STATUS_ORDER[userData[a.id]?.status ?? 'idle'] ?? 2) - (STATUS_ORDER[userData[b.id]?.status ?? 'idle'] ?? 2);
       return sortDir === 'asc' ? cmp : -cmp;
     });

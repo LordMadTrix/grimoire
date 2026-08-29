@@ -376,6 +376,7 @@
 
   async function launchPlayerView() {
     try {
+      monitors = await listMonitors();
       if (monitors.length > 1) {
         showMonitorPicker = true;
       } else {
@@ -404,6 +405,8 @@
     });
     if (vttStore.campaignTitle) emitToPlayerView('set_campaign_title', { title: vttStore.campaignTitle });
     emitToPlayerView('toggle_fow', { enabled: vttStore.fowEnabled });
+    emitToPlayerView('update_walls', vttStore.walls);
+    emitToPlayerView('update_audio_zones', vttStore.audioZones);
     syncCombatantsToPlayerView();
   }
 

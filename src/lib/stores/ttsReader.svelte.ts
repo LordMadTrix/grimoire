@@ -7,6 +7,7 @@ import { NEURAL_VOICES, synthesizeNeuralSpeech, type NeuralVoice } from '$lib/se
 import { clusterTextIntoNaturalSentences, formatTextForNaturalSpeech } from '$lib/services/naturalSpeech';
 import { parseMultiVoiceSegments, type NarrationSegment } from '$lib/services/dialogueParser';
 import { ambianceStore } from '$lib/stores/ambianceStore.svelte';
+import { soundscape } from '$lib/stores/soundscape.svelte';
 
 export interface VoiceOption {
   name: string;
@@ -103,6 +104,9 @@ class TtsReaderStore {
       const curIdx = this.currentSentenceIndex;
       this.stop();
       if (curIdx >= 0 && curIdx < this.sentences.length) {
+        // stop() vient de remettre isPlaying à false ; speakFromSentence() s'arrête
+        // immédiatement si !isPlaying, donc il faut le remettre à true pour reprendre.
+        this.isPlaying = true;
         this.speakFromSentence(curIdx);
       }
     }
@@ -152,8 +156,10 @@ class TtsReaderStore {
     this.isPaused = false;
     this.preloadedUrls.clear();
 
-    // Activer l'Auto-Ducking de la musique de fond
+    // Activer l'Auto-Ducking de la musique de fond (ambianceStore ET soundscape,
+    // ce sont deux moteurs audio distincts — le Mixeur d'Ambiance du VTT utilise soundscape)
     ambianceStore.setDucking(true);
+    soundscape.setDucking(true);
 
     this.speakFromSentence(0);
   }
@@ -294,6 +300,7 @@ class TtsReaderStore {
     if (!this.isPlaying) return;
     this.isPaused = true;
     ambianceStore.setDucking(false); // Rétablir le volume de fond quand la voix est en pause
+    soundscape.setDucking(false);
 
     if (this.currentAudio) {
       this.currentAudio.pause();
@@ -306,6 +313,7 @@ class TtsReaderStore {
     if (!this.isPlaying) return;
     this.isPaused = false;
     ambianceStore.setDucking(true); // Re-baisser le volume de fond
+    soundscape.setDucking(true);
 
     if (this.currentAudio) {
       this.currentAudio.play().catch(() => {});
@@ -323,6 +331,7 @@ class TtsReaderStore {
 
     // Rétablir la musique de fond
     ambianceStore.setDucking(false);
+    soundscape.setDucking(false);
 
     if (this.currentAudio) {
       this.currentAudio.pause();

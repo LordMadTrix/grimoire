@@ -7,26 +7,27 @@
   let showLog = $state(false);
 
   let timerDisplay = $state('00:00');
-  let timerInterval: ReturnType<typeof setInterval> | null = null;
 
+  // Retourner une fonction de nettoyage depuis le $effect garantit que setInterval est
+  // toujours arrêté, y compris quand le composant se démonte pendant que le timer tourne
+  // (ex: fermeture de carte via closeMap()) — l'ancienne version ne le faisait que dans
+  // la branche "start === null", jamais au démontage.
   $effect(() => {
     const start = vttStore.sessionTimerStart;
-    if (start !== null) {
-      if (!timerInterval) {
-        timerInterval = setInterval(() => {
-          const elapsed = Math.floor((Date.now() - vttStore.sessionTimerStart!) / 1000);
-          const h = Math.floor(elapsed / 3600);
-          const m = Math.floor((elapsed % 3600) / 60);
-          const s = elapsed % 60;
-          timerDisplay = h > 0
-            ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-            : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        }, 1000);
-      }
-    } else {
-      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (start === null) {
       timerDisplay = '00:00';
+      return;
     }
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      const h = Math.floor(elapsed / 3600);
+      const m = Math.floor((elapsed % 3600) / 60);
+      const s = elapsed % 60;
+      timerDisplay = h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }, 1000);
+    return () => clearInterval(interval);
   });
 
   function toggleTimer() {

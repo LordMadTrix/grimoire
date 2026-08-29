@@ -59,11 +59,20 @@ pub fn reindex_vault(vault_path: &Path, db: &Connection) -> Result<usize, Box<dy
                 .any(|c| c.as_os_str().to_string_lossy().starts_with('.'))
         })
     {
-        let content = std::fs::read_to_string(entry.path())?;
-        let rel_path = entry.path()
-            .strip_prefix(vault_path)?
-            .to_string_lossy()
-            .to_string();
+        // Un fichier illisible (encodage non-UTF8, verrouillé, permission refusée) ne doit
+        // pas faire échouer toute la ré-indexation : les tables ont déjà été vidées plus haut,
+        // donc propager l'erreur ici laisserait l'index dans un état partiel/vide.
+        let content = match std::fs::read_to_string(entry.path()) {
+            Ok(c) => c,
+            Err(e) => {
+                log::warn!("Skipping unreadable file {}: {}", entry.path().display(), e);
+                continue;
+            }
+        };
+        let rel_path = match entry.path().strip_prefix(vault_path) {
+            Ok(p) => p.to_string_lossy().to_string(),
+            Err(_) => continue,
+        };
 
         // Extraire le frontmatter YAML
         let (title, entity_type, tags, body) = parse_frontmatter(&content, &rel_path);

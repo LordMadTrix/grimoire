@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+use crate::commands::addons::sanitize_relative_path;
+
 /// Entrée dans l'arbre de fichiers du vault
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VaultEntry {
@@ -29,7 +31,7 @@ pub fn open_vault(path: String) -> Result<Vec<VaultEntry>, String> {
 /// Liste le contenu d'un répertoire du vault
 #[tauri::command]
 pub fn list_directory(vault_path: String, relative_path: String) -> Result<Vec<VaultEntry>, String> {
-    let full_path = Path::new(&vault_path).join(&relative_path);
+    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
     if !full_path.exists() || !full_path.is_dir() {
         return Err(format!("Directory not found: {}", relative_path));
     }
@@ -64,7 +66,7 @@ pub fn read_file_base64(path: String) -> Result<String, String> {
 /// Écrit des données base64 (ex: image PNG générée par le Map Editor) dans un fichier du vault
 #[tauri::command]
 pub fn write_file_base64(vault_path: String, relative_path: String, base64_content: String) -> Result<(), String> {
-    let full_path = Path::new(&vault_path).join(&relative_path);
+    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
 
     let clean_b64 = if let Some(idx) = base64_content.find(',') {
         &base64_content[idx + 1..]
@@ -84,15 +86,12 @@ pub fn write_file_base64(vault_path: String, relative_path: String, base64_conte
 /// Écrit du contenu dans un fichier du vault
 #[tauri::command]
 pub fn write_file(vault_path: String, relative_path: String, content: String) -> Result<(), String> {
-    let full_path = Path::new(&vault_path).join(&relative_path);
-
-    // Sécurité
-    let vault_canonical = Path::new(&vault_path).canonicalize().map_err(|e| e.to_string())?;
-    if let Ok(canonical) = full_path.canonicalize() {
-        if !canonical.starts_with(&vault_canonical) {
-            return Err("Path traversal detected".to_string());
-        }
-    }
+    // Sécurité : nettoyer le chemin AVANT de le résoudre. canonicalize() échoue
+    // systématiquement quand le fichier n'existe pas encore (cas de toute création
+    // de nouveau fichier), donc un check basé sur canonicalize() après coup est
+    // silencieusement contourné pour ce cas — sanitize_relative_path retire toute
+    // composante '..' avant même de construire le chemin.
+    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
 
     // Créer les dossiers parents si nécessaire
     if let Some(parent) = full_path.parent() {
@@ -105,7 +104,7 @@ pub fn write_file(vault_path: String, relative_path: String, content: String) ->
 /// Crée un nouveau dossier dans le vault
 #[tauri::command]
 pub fn create_directory(vault_path: String, relative_path: String) -> Result<(), String> {
-    let full_path = Path::new(&vault_path).join(&relative_path);
+    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
     std::fs::create_dir_all(&full_path).map_err(|e| e.to_string())
 }
 
@@ -130,8 +129,8 @@ pub fn delete_file(vault_path: String, relative_path: String) -> Result<(), Stri
 /// Renomme un fichier ou dossier
 #[tauri::command]
 pub fn rename_entry(vault_path: String, old_path: String, new_path: String) -> Result<(), String> {
-    let old_full = Path::new(&vault_path).join(&old_path);
-    let new_full = Path::new(&vault_path).join(&new_path);
+    let old_full = Path::new(&vault_path).join(sanitize_relative_path(&old_path));
+    let new_full = Path::new(&vault_path).join(sanitize_relative_path(&new_path));
 
     // Créer les dossiers parents du nouveau chemin
     if let Some(parent) = new_full.parent() {

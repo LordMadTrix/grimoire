@@ -49,6 +49,18 @@
   type SharedNoteOverlay = { id: string; title: string; body: string };
   let sharedNoteQueue = $state<SharedNoteOverlay[]>([]);
   let currentSharedNote = $derived(sharedNoteQueue[0] ?? null);
+  const CONDITION_ICONS: Record<string, string> = {
+    sanglant: '🩸', etourdi: '💫', fatigue: '😴', 'a terre': '⬇️', effraye: '😱'
+  };
+  // Les conditions sont stockées/transmises accentuées ('Étourdi', 'À terre'...) mais la
+  // table d'icônes ne l'était pas : toLowerCase() ne retire pas les diacritiques, donc
+  // presque tout retombait sur le fallback ❓. On normalise les deux côtés (NFD + retrait
+  // des diacritiques) avant de chercher dans la table.
+  function conditionIcon(c: string): string {
+    const norm = c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return CONDITION_ICONS[norm] || '❓';
+  }
+
   function dismissSharedNote() {
     sharedNoteQueue = sharedNoteQueue.slice(1);
   }
@@ -250,10 +262,9 @@
 <AudioPlayer src={audioSrc}  volume={audioVolume}  />
 <AudioPlayer src={audio2Src} volume={audio2Volume} />
 
-<PlayerEffects 
-  weather={weather} 
-  partyHealthStatus={partyState.some(p => p.hp > 0 && p.hp <= p.maxHp * 0.33) ? 'critical' : 'normal'}
-  isCorrupted={partyState.some(p => p.corruption > 0)}
+<PlayerEffects
+  weather={weather}
+  partyHealthStatus={partyState.some(p => p.hp > 0 && p.hp <= p.maxhp * 0.33) ? 'critical' : 'normal'}
 />
 
 <CinematicReveal 
@@ -435,7 +446,7 @@
             <div class="remote-conds">
               {#each p.conditions as c}
                 <span class="remote-cond" title={c}>
-                  {({sanglant:'🩸',etourdi:'💫',fatigue:'😴',prone:'⬇️',effraye:'😱'} as Record<string,string>)[c.toLowerCase()] || '❓'}
+                  {conditionIcon(c)}
                 </span>
               {/each}
             </div>
