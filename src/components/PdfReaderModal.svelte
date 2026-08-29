@@ -89,6 +89,7 @@
   onDestroy(() => {
     window.removeEventListener('keydown', handleKeydown);
     ttsReader.stop();
+    pdfDoc?.loadingTask.destroy();
   });
 
   function handleKeydown(e: KeyboardEvent) {
@@ -173,7 +174,9 @@
       };
 
       const loadingTask = pdfjsLib.getDocument(docParams);
-      pdfDoc = await loadingTask.promise;
+      const newDoc = await loadingTask.promise;
+      pdfDoc?.loadingTask.destroy(); // libère le worker/buffers de l'ancien document (ex: clic sur "Réessayer")
+      pdfDoc = newDoc;
       numPages = pdfDoc.numPages;
       currentPage = 1;
 
@@ -362,6 +365,10 @@
 
   function handleCanvasMouseMove(e: MouseEvent) {
     if (!isSelecting || !canvasEl) return;
+    // Le bouton peut avoir été relâché en dehors de cette div (mouseup non reçu ici) :
+    // sans ce check, isSelecting resterait bloqué à true et un simple survol relancerait
+    // une sélection fantôme depuis l'ancien selectionStart.
+    if (e.buttons === 0) { handleCanvasMouseUp(); return; }
     const rect = canvasEl.getBoundingClientRect();
     const curX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
     const curY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
@@ -543,10 +550,16 @@
     }
 
     const stats = parseStatblockText(textToParse);
+    if (!stats) {
+      alert("Aucune statistique de monstre détectée dans ce texte.");
+      return;
+    }
     const token = createTokenFromStatblock(stats);
     alert(`⚔️ Jeton VTT créé avec succès !\n\nNom: ${token.name}\nPV: ${token.hp} | CA: ${token.ac}\nLe pion a été déposé sur votre Table Virtuelle.`);
   }
 </script>
+
+<svelte:window onmouseup={handleCanvasMouseUp} />
 
 <div class="pdf-modal-backdrop" bind:this={containerEl}>
   <!-- En-tête / Barre d'outils supérieure -->

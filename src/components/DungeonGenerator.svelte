@@ -117,9 +117,10 @@
             map[room.y + 1][room.x + 1] = 'chest';
             actualChests++;
           }
-          // Torche ou porte
+          // Torche ou porte : sur le mur périphérique nord (room.y - 1), pas sur la
+          // rangée de sol intérieure (room.y fait partie du remplissage r=y..y+h-1)
           if (Math.random() > 0.3) {
-            map[room.y][Math.floor(room.x + room.w / 2)] = 'door_closed';
+            map[room.y - 1][Math.floor(room.x + room.w / 2)] = 'door_closed';
             actualDoors++;
           }
         }

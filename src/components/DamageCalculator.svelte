@@ -107,14 +107,19 @@
     // Calcul des dégâts WFRP : SL net + dégâts arme - E - Armure
     const rawDamage = Math.max(1, netSL + weaponDamage - defenderToughness - defenderArmor);
 
+    const success = netSL > 0 && attackerRoll <= attTotal;
+
     return {
       attSL,
       defSL,
       netSL,
-      success: netSL > 0 && attackerRoll <= attTotal,
+      success,
       hitLoc: hit.loc,
       hitIcon: hit.icon,
-      calculatedDamage: netSL > 0 ? rawDamage : 0
+      // Doit dépendre de `success` (qui vérifie aussi que l'attaquant a réussi son propre
+      // test), pas seulement de netSL > 0 — sinon un attaquant qui RATE son test peut
+      // quand même produire des dégâts si le défenseur a un SL encore pire.
+      calculatedDamage: success ? rawDamage : 0
     };
   })());
 

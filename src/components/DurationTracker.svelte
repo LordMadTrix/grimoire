@@ -36,9 +36,15 @@
 
   function remove(id: string) { entries = entries.filter(e => e.id !== id); }
 
-  // Auto-tick quand le tour avance
+  // Auto-tick quand le round de combat avance (l'effet précédent ne faisait que
+  // déclarer une dépendance sans jamais agir dessus — les durées restaient bloquées).
+  let lastTickedRound = vttStore.combatRound;
   $effect(() => {
-    void vttStore.combatRound; // track
+    const round = vttStore.combatRound;
+    if (round !== lastTickedRound) {
+      lastTickedRound = round;
+      tickAll();
+    }
   });
 
   function tickAll() {

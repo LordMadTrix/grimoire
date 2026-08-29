@@ -24,6 +24,9 @@ pub struct ServerInner {
     pub game_config: Mutex<Option<serde_json::Value>>,
     /// Personnages sauvegardés par nom de joueur (persistance entre reconnexions)
     pub saved_characters: Mutex<HashMap<String, SavedCharacter>>,
+    /// Canal d'envoi dédié à chaque connexion WS active, indexé par player_id — permet
+    /// à send_to_player() de cibler un seul joueur au lieu de diffuser à tous (broadcast_tx).
+    pub unicast_tx: Mutex<HashMap<String, tokio::sync::mpsc::UnboundedSender<String>>>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -46,6 +49,7 @@ fn get_server() -> &'static std::sync::Arc<ServerInner> {
             app_handle: Mutex::new(None),
             game_config: Mutex::new(None),
             saved_characters: Mutex::new(HashMap::new()),
+            unicast_tx: Mutex::new(HashMap::new()),
         })
     })
 }
@@ -410,6 +414,7 @@ async fn ws_handler(
 async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     let player_id = uuid::Uuid::new_v4().to_string();
     let mut rx = state.broadcast_tx.subscribe();
+    let (unicast_sender, mut unicast_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
     // Wait for join message
     let (name, password) = if let Some(Ok(Message::Text(raw))) = socket.recv().await {
@@ -446,6 +451,11 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     }
 
     // Register player
+    // L'insertion du canal unicast doit se faire APRÈS les retours anticipés ci-dessus
+    // (join invalide, mot de passe incorrect) : sinon chaque connexion refusée laisserait
+    // un UnboundedSender orphelin dans la table, jamais nettoyé (le remove n'a lieu qu'en
+    // fin de fonction, après la boucle principale).
+    state.unicast_tx.lock().await.insert(player_id.clone(), unicast_sender);
     {
         let mut players = state.players.lock().await;
         players.insert(player_id.clone(), PlayerInfo {
@@ -521,6 +531,13 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
                     Err(_) => break,
                 }
             }
+            // Message privé ciblé pour ce joueur uniquement (send_to_player)
+            msg = unicast_rx.recv() => {
+                match msg {
+                    Some(text) => { if socket.send(Message::Text(text)).await.is_err() { break; } }
+                    None => {}
+                }
+            }
             // Message from player → server
             msg = socket.recv() => {
                 match msg {
@@ -539,6 +556,7 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
 
     // Clean up
     state.players.lock().await.remove(&player_id);
+    state.unicast_tx.lock().await.remove(&player_id);
     emit_to_gm(&state, "player_left", serde_json::json!({ "id": player_id, "name": name })).await;
     broadcast_group_state(&state).await;
 }
@@ -743,12 +761,13 @@ async fn notify_os(state: &std::sync::Arc<ServerInner>, title: &str, body: &str)
     }
 }
 
-/// Envoie un message WS à un joueur spécifique via broadcast (filtré côté client)
+/// Envoie un message WS à un seul joueur, via son canal de connexion dédié (unicast_tx).
+/// Les autres joueurs connectés ne reçoivent jamais cette trame (contrairement à un
+/// envoi via broadcast_tx, qui diffuse physiquement à tous les sockets).
 async fn send_to_player(state: &std::sync::Arc<ServerInner>, player_id: &str, msg: String) {
-    // On embed le player_id cible dans l'enveloppe — le client l'ignore si ce n'est pas lui
-    // En pratique on broadcast à tous et chaque client filtre sur son propre id
-    let _ = state.broadcast_tx.send(msg);
-    let _ = player_id; // utilisé pour la logique côté client
+    if let Some(tx) = state.unicast_tx.lock().await.get(player_id) {
+        let _ = tx.send(msg);
+    }
 }
 
 /// Diffuse l'état du groupe à tous les joueurs connectés

@@ -22,16 +22,25 @@
   }
 
   let cal: CalState = $state({ day: 1, month: 1, year: 1432, events: [] });
-  let loaded = $state(false);
+  // Piste le chemin du vault effectivement chargé (pas juste un booléen "loaded") :
+  // sinon, changer de vault ne redéclenche jamais le chargement, et le calendrier
+  // de l'ancien vault (muté) finit par écraser calendar.json du nouveau vault.
+  let loadedVaultPath: string | null = null;
 
   $effect(() => {
     const vp = getVaultPath();
-    if (!vp || loaded) return;
+    if (!vp || vp === loadedVaultPath) return;
+    loadedVaultPath = vp;
     readFile(vp, '.grimoire/calendar.json').then(raw => {
-      try { const d = JSON.parse(raw); cal.day = d.day ?? 1; cal.month = d.month ?? 1; cal.year = d.year ?? 1432; cal.events = d.events ?? []; }
-      catch {}
-      loaded = true;
-    }).catch(() => { loaded = true; });
+      try {
+        const d = JSON.parse(raw);
+        cal.day = d.day ?? 1; cal.month = d.month ?? 1; cal.year = d.year ?? 1432; cal.events = d.events ?? [];
+      } catch {
+        cal.day = 1; cal.month = 1; cal.year = 1432; cal.events = [];
+      }
+    }).catch(() => {
+      cal.day = 1; cal.month = 1; cal.year = 1432; cal.events = [];
+    });
   });
 
   async function save() {

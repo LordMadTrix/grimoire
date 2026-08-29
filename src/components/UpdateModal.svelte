@@ -15,6 +15,7 @@
   export async function runCheck() {
     checking = true;
     error = '';
+    dismissed = false; // sinon une bannière ignorée une fois ne réapparaît plus jamais
     try {
       currentVersion = await getCurrentVersion();
       update = await checkForUpdates();

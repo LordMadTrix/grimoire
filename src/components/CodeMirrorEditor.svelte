@@ -68,7 +68,11 @@
       box.style.cssText = 'cursor:pointer;vertical-align:middle;margin-right:4px;accent-color:#e5a853';
       box.addEventListener('mousedown', e => {
         e.preventDefault();
-        const from = this.from;
+        // this.from est capturé une seule fois à la construction du widget et devient
+        // périmé si du texte est édité plus tôt dans le document (MatchDecorator ne
+        // remappe que la position d'affichage de la décoration, pas ce champ interne).
+        // posAtDOM() lit la position réelle du widget dans le document au moment du clic.
+        const from = view.posAtDOM(box);
         const doc = view.state.doc;
         const line = doc.lineAt(from);
         const text = line.text;

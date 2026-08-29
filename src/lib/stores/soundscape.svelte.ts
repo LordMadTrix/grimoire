@@ -24,6 +24,8 @@ export interface SoundPreset {
 class SoundscapeStore {
   audioCtx: AudioContext | null = null;
   masterGain: GainNode | null = null;
+  private duckingGain: GainNode | null = null;
+  private isDucked = false;
   masterVolume = $state(0.7);
   isMuted = $state(false);
 
@@ -81,11 +83,27 @@ class SoundscapeStore {
       this.audioCtx = new AudioContextClass();
       this.masterGain = this.audioCtx.createGain();
       this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.masterVolume, this.audioCtx.currentTime);
-      this.masterGain.connect(this.audioCtx.destination);
+      this.duckingGain = this.audioCtx.createGain();
+      this.duckingGain.gain.setValueAtTime(this.isDucked ? 0.35 : 1.0, this.audioCtx.currentTime);
+      this.masterGain.connect(this.duckingGain);
+      this.duckingGain.connect(this.audioCtx.destination);
     }
     if (this.audioCtx.state === 'suspended') {
       this.audioCtx.resume();
     }
+  }
+
+  /**
+   * Auto-Ducking : atténue les pistes d'ambiance du Mixeur pendant que le lecteur
+   * TTS parle (appelé par ttsReader, qui pilotait auparavant uniquement ambianceStore —
+   * un moteur audio distinct sans aucune piste active dans le Mixeur d'Ambiance du VTT).
+   */
+  setDucking(isSpeaking: boolean) {
+    this.isDucked = isSpeaking;
+    if (!this.duckingGain || !this.audioCtx) return;
+    const targetGain = isSpeaking ? 0.35 : 1.0;
+    const rampTime = isSpeaking ? 0.25 : 0.6;
+    this.duckingGain.gain.setTargetAtTime(targetGain, this.audioCtx.currentTime, rampTime);
   }
 
   setMasterVolume(val: number) {
