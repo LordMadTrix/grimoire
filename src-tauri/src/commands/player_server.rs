@@ -4,7 +4,7 @@ use axum::{
         State,
     },
     response::{Html, IntoResponse},
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -79,6 +79,8 @@ pub struct ServerInfo {
     pub port: u16,
     pub url: String,
     pub qr_svg: String,
+    pub mj_url: String,
+    pub mj_qr_svg: String,
 }
 
 // ── Commands ──────────────────────────────────────────────────────────────────
@@ -109,6 +111,9 @@ pub async fn start_player_server(
     let app_state = std::sync::Arc::clone(srv);
     let router = Router::new()
         .route("/", get(serve_player_app))
+        .route("/mj", get(serve_carnet_mj))
+        .route("/carnet", get(serve_carnet_mj))
+        .route("/api/mj/notes", post(handle_mj_note_post))
         .route("/ws", get(ws_handler))
         .with_state(app_state);
 
@@ -133,8 +138,10 @@ pub async fn start_player_server(
     let ip = local_ip().unwrap_or_else(|| "127.0.0.1".to_string());
     let url = format!("http://{}:{}", ip, actual_port);
     let qr_svg = generate_qr_svg(&url);
+    let mj_url = format!("{}/mj", url);
+    let mj_qr_svg = generate_qr_svg(&mj_url);
 
-    Ok(ServerInfo { ip, port: actual_port, url, qr_svg })
+    Ok(ServerInfo { ip, port: actual_port, url, qr_svg, mj_url, mj_qr_svg })
 }
 
 #[tauri::command]
@@ -359,7 +366,9 @@ pub async fn get_server_status() -> Result<Option<ServerInfo>, String> {
         let ip = local_ip().unwrap_or_else(|| "127.0.0.1".to_string());
         let url = format!("http://{}:{}", ip, p);
         let qr_svg = generate_qr_svg(&url);
-        Ok(Some(ServerInfo { ip, port: p, url, qr_svg }))
+        let mj_url = format!("{}/mj", url);
+        let mj_qr_svg = generate_qr_svg(&mj_url);
+        Ok(Some(ServerInfo { ip, port: p, url, qr_svg, mj_url, mj_qr_svg }))
     } else {
         Ok(None)
     }
@@ -402,6 +411,20 @@ pub async fn end_poll() -> Result<(), String> {
 
 async fn serve_player_app() -> impl IntoResponse {
     Html(PLAYER_APP_HTML)
+}
+
+async fn serve_carnet_mj() -> impl IntoResponse {
+    Html(CARNET_MJ_HTML)
+}
+
+async fn handle_mj_note_post(
+    State(state): State<std::sync::Arc<ServerInner>>,
+    axum::extract::Json(payload): axum::extract::Json<serde_json::Value>,
+) -> impl IntoResponse {
+    let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Note Sans Titre");
+    notify_os(&state, "📝 Note MJ reçue", title).await;
+    emit_to_gm(&state, "mj_note_received", payload).await;
+    axum::Json(serde_json::json!({ "success": true, "message": "Note reçue sur le PC" }))
 }
 
 async fn ws_handler(
@@ -589,6 +612,11 @@ async fn handle_player_message(
             emit_to_gm(state, "player_journal_push", serde_json::json!({
                 "id": player_id, "name": player_name, "entry": env.data
             })).await;
+        }
+        "mj_note_push" => {
+            let title = env.data.get("title").and_then(|v| v.as_str()).unwrap_or("Note Sans Titre");
+            notify_os(state, "📝 Note MJ reçue", title).await;
+            emit_to_gm(state, "mj_note_received", env.data).await;
         }
         "ai_query" => {
             // Forward AI query to Ollama
@@ -821,3 +849,4 @@ fn generate_qr_svg(url: &str) -> String {
 // ── Embedded player web app ───────────────────────────────────────────────────
 
 const PLAYER_APP_HTML: &str = include_str!("player_app.html");
+const CARNET_MJ_HTML: &str = include_str!("carnet_mj.html");

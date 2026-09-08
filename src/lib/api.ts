@@ -167,6 +167,8 @@ export interface ServerInfo {
   port: number;
   url: string;
   qr_svg: string;
+  mj_url?: string;
+  mj_qr_svg?: string;
 }
 
 export interface PlayerInfo {

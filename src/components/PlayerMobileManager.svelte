@@ -8,10 +8,12 @@
     setActiveTurn, approveXpRequest,
     sendPrivateMessage, startPoll, endPoll,
     emitToPlayerView,
+    createDirectory, writeFile, openVault,
     type ServerInfo, type PlayerInfo,
   } from '$lib/api';
   import { vttStore } from '$lib/stores/vtt.svelte';
   import { getGameConfig } from '$lib/stores/gameConfig.svelte';
+  import { getVaultPath, setVaultTree, setActiveFile } from '$lib/stores/vault.svelte';
   import { invoke } from '@tauri-apps/api/core';
 
   let visible     = $state(false);
@@ -22,6 +24,8 @@
   let gmMessage   = $state('');
   let showLog     = $state(true);
   let unlistens: (() => void)[] = [];
+  let activeTab   = $state<'players' | 'carnet'>('players');
+  let lastNote    = $state<{ title: string; filename: string } | null>(null);
   let pollInterval: ReturnType<typeof setInterval> | null = null;
 
   // Per-player GM controls
@@ -123,6 +127,10 @@
 
   function copyUrl() {
     if (serverInfo) navigator.clipboard.writeText(serverInfo.url);
+  }
+
+  function copyMjUrl() {
+    if (serverInfo?.mj_url) navigator.clipboard.writeText(serverInfo.mj_url);
   }
 
   async function handleSendPrivate(playerId: string) {
@@ -277,6 +285,29 @@
       }
       addLog(payload.name, `📊 a voté : "${opt}"`);
     }));
+
+    unlistens.push(await listen<any>('mj_note_received', async ({ payload }) => {
+      const title = payload?.title || 'Note Sans Titre';
+      const content = payload?.content || '';
+      const folder = payload?.folder || 'Notes/Mobile';
+      addLog('MJ Mobile', `📝 Note reçue : "${title}"`);
+
+      const vp = getVaultPath();
+      if (!vp) return;
+
+      const slug = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_');
+      const filename = `${folder}/${slug}.md`;
+      lastNote = { title, filename };
+
+      try {
+        await createDirectory(vp, folder).catch(() => {});
+        await writeFile(vp, filename, content);
+        const tree = await openVault(vp);
+        setVaultTree(tree);
+      } catch (err) {
+        console.error('Erreur écriture note MJ mobile:', err);
+      }
+    }));
   });
 
   onDestroy(() => {
@@ -306,6 +337,86 @@
         </div>
         <button class="pm-close" onclick={() => visible = false}>✕</button>
       </div>
+
+      <!-- ── Onglets Mode Joueurs / Mode Carnet MJ ── -->
+      <div style="display: flex; gap: 4px; padding: 6px 16px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border);">
+        <button
+          style="flex: 1; padding: 6px; font-size: 11px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: all .2s; {activeTab === 'players' ? 'background: var(--accent); color: #000;' : 'background: transparent; color: var(--text-secondary);'}"
+          onclick={() => activeTab = 'players'}
+        >
+          👥 Hub Joueurs (Compagnon)
+        </button>
+        <button
+          style="flex: 1; padding: 6px; font-size: 11px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: all .2s; {activeTab === 'carnet' ? 'background: var(--accent); color: #000;' : 'background: transparent; color: var(--text-secondary);'}"
+          onclick={() => activeTab = 'carnet'}
+        >
+          📱 Carnet Mobile MJ (GSM)
+        </button>
+      </div>
+
+      {#if activeTab === 'carnet'}
+        <!-- ── SECTION CARNET MOBILE DU MJ ── -->
+        <div class="pm-section">
+          <div class="pm-section-title">📱 Carnet Nomade du Maître du Jeu</div>
+          <p class="pm-hint">
+            Écrivez vos scénarios, PNJ et loots sur votre smartphone (avec dictée vocale), puis transférez-les en 1 clic dans votre Vault Grimoire !
+          </p>
+
+          {#if !serverInfo}
+            <div style="background: rgba(229,168,83,0.1); border: 1px dashed var(--accent); border-radius: 8px; padding: 12px; margin: 10px 0; text-align: center;">
+              <p style="font-size: 12px; color: var(--accent); margin-bottom: 8px;">Le serveur doit être démarré pour transférer directement via Wi-Fi.</p>
+              <button class="pm-btn-start" onclick={handleStart} disabled={starting}>
+                {starting ? '⏳ Démarrage…' : '🚀 Démarrer le Serveur'}
+              </button>
+            </div>
+          {:else}
+            <div class="pm-url-row">
+              <div class="pm-url" style="color: var(--accent)">{serverInfo.mj_url || `${serverInfo.url}/mj`}</div>
+              <button class="pm-copy-btn" onclick={copyMjUrl} title="Copier l'URL MJ">📋</button>
+            </div>
+            <div class="pm-qr" title="QR Code Carnet MJ" style="border: 2px solid var(--accent); border-radius: 12px; padding: 8px; background: #fff; width: fit-content; margin: 8px auto;">
+              {@html serverInfo.mj_qr_svg || serverInfo.qr_svg}
+            </div>
+            <p class="pm-hint" style="text-align:center; font-weight: 500;">
+              Flashez ce QR Code avec votre smartphone pour ouvrir le <strong>Carnet MJ</strong>.
+            </p>
+          {/if}
+
+          <!-- Notification dernière note reçue -->
+          {#if lastNote}
+            <div style="background: rgba(34,197,94,0.15); border: 1px solid #22c55e; border-radius: 8px; padding: 10px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+              <div style="font-size: 11px; color: #86efac;">
+                <strong>Dernière note reçue :</strong> {lastNote.title}
+                <div style="font-size: 10px; opacity: 0.8;">{lastNote.filename}</div>
+              </div>
+              <button 
+                style="padding: 4px 8px; background: #22c55e; color: #000; border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer;"
+                onclick={() => { setActiveFile(lastNote!.filename); visible = false; }}
+              >
+                Ouvrir
+              </button>
+            </div>
+          {/if}
+
+          <!-- Liens utiles -->
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <a 
+              href="docs/carnet-mj.html" 
+              target="_blank" 
+              style="flex: 1; text-align: center; padding: 8px; font-size: 11px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); text-decoration: none;"
+            >
+              🌐 Ouvrir dans le navigateur
+            </a>
+            <a 
+              href="docs/tutoriel-mj-mobile.html" 
+              target="_blank" 
+              style="flex: 1; text-align: center; padding: 8px; font-size: 11px; background: var(--bg-tertiary); border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); text-decoration: none; font-weight: 600;"
+            >
+              📖 Lire le Tutoriel
+            </a>
+          </div>
+        </div>
+      {:else}
 
       <!-- ── Serveur ── -->
       <div class="pm-section">
@@ -431,6 +542,7 @@
         <div class="pm-section">
           <div class="pm-hint" style="text-align:center;padding:8px 0">En attente de joueurs…</div>
         </div>
+      {/if}
       {/if}
 
       <!-- ── Actions GM ── -->

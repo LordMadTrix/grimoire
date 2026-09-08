@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel Carnet MJ Mobile (GSM) — Grimoire</title>
+  <meta name="description" content="Guide complet du Carnet Mobile pour Maître du Jeu : écrivez vos scénarios et PNJ sur smartphone (avec dictée vocale), puis transférez-les en 1 clic vers Grimoire PC.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              surface: '#181d27',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+
+    /* Mockup smartphone */
+    .phone-mockup {
+      width: 100%;
+      max-width: 320px;
+      height: 640px;
+      border: 10px solid #2d3748;
+      border-radius: 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(229, 168, 83, 0.15);
+      background: #0a0c10;
+    }
+    .phone-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 20px;
+      background: #2d3748;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- ================= HEADER ================= -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">CARNET MJ MOBILE (GSM)</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="carnet-mj.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold flex items-center gap-1.5 shadow-md shadow-amber-900/30 hover:scale-105 transition-transform">
+        <span>🚀</span> <span class="hidden sm:inline">Lancer l'App</span> <span>Mobile</span>
+      </a>
+      <a href="tutoriel-joueurs-mobile.html" class="hidden md:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent transition-colors">
+        👥 Hub Joueurs
+      </a>
+      <a href="tutorial.html" class="px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent transition-colors">
+        📖 Tous les Tutos
+      </a>
+    </div>
+  </header>
+
+  <!-- ================= HERO ================= -->
+  <section class="relative py-16 px-6 overflow-hidden border-b border-white/5">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-transparent to-transparent pointer-events-none"></div>
+
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10">
+      <div class="flex-1 text-center md:text-left space-y-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold">
+          <span class="w-2 h-2 rounded-full bg-grimoire-accent animate-pulse"></span>
+          NOUVEAUTÉ : VERSION NOMADE SIMPLIFIÉE POUR GSM
+        </div>
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+          Écrivez vos scénarios sur votre <span class="text-grimoire-accent">smartphone</span>, transférez-les sur votre <span class="text-amber-400">PC</span>.
+        </h1>
+        <p class="text-gray-400 text-base sm:text-lg leading-relaxed max-w-2xl">
+          Une idée de PNJ dans le métro ? Une scène inspirée pendant votre pause déjeuner ? Avec le <strong>Carnet MJ Mobile de Grimoire</strong>, écrivez ou dictez vos notes à la voix sur n'importe quel smartphone, puis synchronisez-les en un clic vers votre PC !
+        </p>
+
+        <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
+          <a href="#etapes" class="px-5 py-3 rounded-xl bg-grimoire-accent text-black font-bold text-sm shadow-xl shadow-grimoire-accent/20 hover:bg-grimoire-accentHover transition-colors flex items-center gap-2">
+            <span>📖</span> <span>Guide pas-à-pas</span>
+          </a>
+          <a href="carnet-mj.html" target="_blank" class="px-5 py-3 rounded-xl glass border border-white/10 text-white font-semibold text-sm hover:border-grimoire-accent/40 transition-colors flex items-center gap-2">
+            <span>📱</span> <span>Tester le Carnet Mobile</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Mockup Smartphone Live -->
+      <div class="flex-shrink-0 flex justify-center">
+        <div class="phone-mockup">
+          <div class="phone-notch"></div>
+          <iframe src="carnet-mj.html" class="w-full h-full border-none pt-5" title="Démo Carnet MJ Mobile"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= AVANTAGES CLES ================= -->
+  <section class="py-16 px-6 max-w-6xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3">Les Points Forts du Carnet MJ Mobile</h2>
+      <p class="text-gray-400 text-sm max-w-xl mx-auto">Conçu sur-mesure pour les Maîtres du Jeu qui souhaitent préparer leurs aventures à tout moment sans complexité.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="glass p-6 rounded-2xl border border-white/5 card-hover">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-2xl mb-4">🎙️</div>
+        <h3 class="text-lg font-bold text-white mb-2">Dictée Vocale Intégrée</h3>
+        <p class="text-gray-400 text-xs sm:text-sm leading-relaxed">
+          Activez le micro d'une seule touche : décrivez à voix haute vos ambiances, pièges et répliques de PNJ. Vos paroles sont transcrites instantanément en texte propre.
+        </p>
+      </div>
+
+      <div class="glass p-6 rounded-2xl border border-white/5 card-hover">
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl mb-4">⚡</div>
+        <h3 class="text-lg font-bold text-white mb-2">Transfert 1-Clic vers le PC</h3>
+        <p class="text-gray-400 text-xs sm:text-sm leading-relaxed">
+          Dès que vous rentrez chez vous, cliquez sur <strong>« Vers PC »</strong> : la note est immédiatement injectée dans votre coffre (Vault) Grimoire sous format <code>.md</code>.
+        </p>
+      </div>
+
+      <div class="glass p-6 rounded-2xl border border-white/5 card-hover">
+        <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-2xl mb-4">💾</div>
+        <h3 class="text-lg font-bold text-white mb-2">100% Hors-Ligne & Sécurisé</h3>
+        <p class="text-gray-400 text-xs sm:text-sm leading-relaxed">
+          Toutes vos notes sont sauvegardées localement dans votre smartphone (LocalStorage). Pas de compte obligatoire, zéro perte de données même sans réseau.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ÉTAPES DÉTAILLÉES ================= -->
+  <section id="etapes" class="py-16 px-6 bg-white/[0.01] border-t border-white/5">
+    <div class="max-w-4xl mx-auto space-y-16">
+
+      <!-- Étape 1 -->
+      <div class="flex flex-col md:flex-row gap-8 items-start">
+        <div class="flex-shrink-0 w-12 h-12 rounded-2xl bg-grimoire-accent text-black font-black text-xl flex items-center justify-center shadow-lg shadow-grimoire-accent/30">1</div>
+        <div class="space-y-4 flex-1">
+          <span class="text-xs uppercase tracking-widest text-grimoire-accent font-semibold">Installation Express</span>
+          <h2 class="text-2xl font-bold text-white">Accéder au Carnet MJ & l'installer sur votre écran d'accueil</h2>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            Le Carnet MJ est une application web progressive (PWA). Vous n'avez pas besoin de passer par Google Play ou l'App Store pour l'installer :
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div class="glass p-4 rounded-xl border border-white/5">
+              <h4 class="font-bold text-xs text-white mb-2 flex items-center gap-2">
+                <span>🍏</span> Sur iPhone (Safari)
+              </h4>
+              <ol class="text-xs text-gray-400 space-y-1.5 list-decimal pl-4">
+                <li>Ouvrez l'URL du carnet dans <strong>Safari</strong>.</li>
+                <li>Touchez l'icône de partage <strong>(carré avec flèche vers le haut)</strong>.</li>
+                <li>Sélectionnez <strong>« Sur l'écran d'accueil »</strong>.</li>
+                <li>L'icône Grimoire MJ s'ouvrira en plein écran sans barre d'adresse !</li>
+              </ol>
+            </div>
+            <div class="glass p-4 rounded-xl border border-white/5">
+              <h4 class="font-bold text-xs text-white mb-2 flex items-center gap-2">
+                <span>🤖</span> Sur Android (Chrome)
+              </h4>
+              <ol class="text-xs text-gray-400 space-y-1.5 list-decimal pl-4">
+                <li>Ouvrez l'URL du carnet dans <strong>Chrome</strong>.</li>
+                <li>Touchez les <strong>trois petits points (⋮)</strong> en haut à droite.</li>
+                <li>Appuyez sur <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.</li>
+                <li>L'application s'installe comme une véritable application native.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 2 -->
+      <div class="flex flex-col md:flex-row gap-8 items-start">
+        <div class="flex-shrink-0 w-12 h-12 rounded-2xl bg-grimoire-accent text-black font-black text-xl flex items-center justify-center shadow-lg shadow-grimoire-accent/30">2</div>
+        <div class="space-y-4 flex-1">
+          <span class="text-xs uppercase tracking-widest text-grimoire-accent font-semibold">Rédaction Tactile & Vocale</span>
+          <h2 class="text-2xl font-bold text-white">Rédiger, dicter et structurer en Markdown simplifié</h2>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            L'interface a été pensée pour être maniable d'une seule main sur smartphone :
+          </p>
+          <ul class="space-y-3 text-xs sm:text-sm text-gray-400">
+            <li class="flex items-start gap-2.5">
+              <span class="text-base">🎙️</span>
+              <span><strong>Touche Dictée :</strong> Appuyez sur le micro pour déclencher la reconnaissance vocale. Dictez votre récit et touchez à nouveau pour couper l'écoute.</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-base">✨</span>
+              <span><strong>Modèles Rapides en 1 Clic :</strong> Insérez des squelettes pré-formatés pour une <code>Scène</code>, un <code>PNJ</code>, un <code>Secret MJ</code> masqué ou un <code>Trésor / Butin</code>.</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-base">🎲</span>
+              <span><strong>Lancer de Dé Tactile :</strong> Cliquez sur <code>🎲 1d100</code> pour obtenir instantanément un résultat aléatoire inséré dans vos notes pour décider d'une réaction imprévue.</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-base">👁️</span>
+              <span><strong>Onglet Aperçu :</strong> Basculez à tout moment entre l'éditeur brut et le rendu final riche (titres dorés, encadrés secrets, citations).</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Étape 3 -->
+      <div class="flex flex-col md:flex-row gap-8 items-start">
+        <div class="flex-shrink-0 w-12 h-12 rounded-2xl bg-grimoire-accent text-black font-black text-xl flex items-center justify-center shadow-lg shadow-grimoire-accent/30">3</div>
+        <div class="space-y-4 flex-1">
+          <span class="text-xs uppercase tracking-widest text-grimoire-accent font-semibold">Synchronisation Magique</span>
+          <h2 class="text-2xl font-bold text-white">Transférer directement vers votre PC Grimoire</h2>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            Il existe deux façons simples d'envoyer vos écrits sur votre ordinateur :
+          </p>
+
+          <div class="space-y-4">
+            <div class="glass p-5 rounded-xl border border-amber-500/30">
+              <div class="flex items-center gap-2 text-grimoire-accent font-bold text-sm mb-2">
+                <span>⚡</span> Méthode 1 : Synchronisation Wi-Fi Directe (Recommandé)
+              </div>
+              <p class="text-xs text-gray-300 mb-3">
+                Lorsque votre PC Grimoire est allumé et connecté au même réseau Wi-Fi que votre smartphone :
+              </p>
+              <ol class="text-xs text-gray-400 space-y-1.5 list-decimal pl-4">
+                <li>Dans Grimoire sur PC, ouvrez le <strong>Hub Mobile</strong> (icône téléphone) et démarrez le serveur.</li>
+                <li>Sur votre téléphone, cliquez sur <strong>« ⚡ Vers PC »</strong> dans le Carnet MJ.</li>
+                <li>Vérifiez l'adresse IP affichée (ex: <code>http://192.168.1.50:7438</code>) et appuyez sur <strong>« Transférer »</strong>.</li>
+                <li>Votre PC affiche une notification instantanée et crée le fichier <code>.md</code> dans votre dossier <code>Notes/Mobile/</code> !</li>
+              </ol>
+            </div>
+
+            <div class="glass p-5 rounded-xl border border-white/5">
+              <div class="flex items-center gap-2 text-white font-bold text-sm mb-2">
+                <span>💾</span> Méthode 2 : Export de Fichier .md & Partage (Nomade)
+              </div>
+              <p class="text-xs text-gray-300 mb-2">
+                Si votre PC est éteint ou que vous n'êtes pas chez vous :
+              </p>
+              <ul class="text-xs text-gray-400 space-y-1.5 list-disc pl-4">
+                <li>Cliquez sur <strong>« Fichier .md »</strong> pour télécharger directement la note sur votre smartphone.</li>
+                <li>Ou cliquez sur <strong>« Partager »</strong> pour l'envoyer via WhatsApp, Google Drive, AirDrop ou par e-mail.</li>
+                <li>Il vous suffit ensuite de glisser-déposer le fichier dans votre dossier Vault sur votre PC.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= FOIRE AUX QUESTIONS ================= -->
+  <section class="py-16 px-6 max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold text-white text-center mb-8">Foire Aux Questions (FAQ)</h2>
+    <div class="space-y-4">
+      <div class="glass p-5 rounded-xl border border-white/5">
+        <h4 class="font-bold text-sm text-grimoire-accent mb-2">Mes notes sont-elles effacées si je ferme mon navigateur mobile ?</h4>
+        <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
+          Non ! Le carnet enregistre vos notes en temps réel dans le stockage persistant local (<code>localStorage</code>) de votre appareil. Vous pouvez redémarrer votre téléphone, vos notes restent intactes.
+        </p>
+      </div>
+
+      <div class="glass p-5 rounded-xl border border-white/5">
+        <h4 class="font-bold text-sm text-grimoire-accent mb-2">Puis-je gérer plusieurs scénarios et notes différentes ?</h4>
+        <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
+          Oui ! Touchez l'icône de menu en haut à gauche pour ouvrir le tiroir <strong>« Mes Notes Nomades »</strong>. Vous pouvez créer autant de notes que nécessaire, basculer entre elles ou supprimer celles devenues inutiles.
+        </p>
+      </div>
+
+      <div class="glass p-5 rounded-xl border border-white/5">
+        <h4 class="font-bold text-sm text-grimoire-accent mb-2">Où se retrouvent les notes sur mon PC Grimoire ?</h4>
+        <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
+          Par défaut, les notes transférées atterrissent dans le dossier <code>Notes/Mobile/</code> de votre Vault Grimoire. Elles sont immédiatement consultables, indexées dans le moteur de recherche et modifiables dans l'éditeur Markdown de Grimoire.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="mt-auto glass border-t border-white/5 py-8 px-6 text-center text-xs text-gray-500">
+    <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-grimoire-accent font-bold">GRIMOIRE</span>
+        <span>— Outil de Maître du Jeu TTRPG & VTT</span>
+      </div>
+      <div class="flex gap-4">
+        <a href="index.html" class="hover:text-grimoire-accent transition-colors">Accueil</a>
+        <a href="tutorial.html" class="hover:text-grimoire-accent transition-colors">Tous les Tutoriels</a>
+        <a href="carnet-mj.html" target="_blank" class="hover:text-grimoire-accent transition-colors">Carnet MJ</a>
+        <a href="https://github.com/LordMadTrix/grimoire" target="_blank" class="hover:text-grimoire-accent transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

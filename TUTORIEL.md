@@ -21,10 +21,11 @@
 12. [Moteur de Combat & Résolution des Tests Opposés (SL Net WFRP)](#12-moteur-de-combat--résolution-des-tests-opposés-sl-net-wfrp)
 13. [Journal de Campagne, Quêtes & Résumés de Session](#13-journal-de-campagne-quêtes--résumés-de-session)
 14. [Compagnon Mobile PWA & Contrôle Tactile](#14-compagnon-mobile-pwa--contrôle-tactile)
-15. [Assistant Narratif & IA Locale Ollama](#15-assistant-narratif--ia-locale-ollama)
-16. [Boîte à Outils du MJ & Générateurs Aléatoires](#16-boîte-à-outils-du-mj--générateurs-aléatoires)
-17. [Tutoriel Pas à Pas : Préparer et Lancer sa Première Session](#17-tutoriel-pas-à-pas--préparer-et-lancer-sa-première-session)
-18. [Index des Raccourcis Clavier & Astuces Pro](#18-index-des-raccourcis-clavier--astuces-pro)
+15. [Carnet Nomade du MJ (Version GSM & Dictée Vocale)](#15-carnet-nomade-du-mj-version-gsm-simplifiée--dictée-vocale)
+16. [Assistant Narratif & IA Locale Ollama](#16-assistant-narratif--ia-locale-ollama)
+17. [Boîte à Outils du MJ & Générateurs Aléatoires](#17-boîte-à-outils-du-mj--générateurs-aléatoires)
+18. [Tutoriel Pas à Pas : Préparer et Lancer sa Première Session](#18-tutoriel-pas-à-pas--préparer-et-lancer-sa-première-session)
+19. [Index des Raccourcis Clavier & Astuces Pro](#19-index-des-raccourcis-clavier--astuces-pro)
 
 ---
 
@@ -320,7 +321,30 @@ Vos joueurs n'ont rien à installer : ils jouent depuis Safari, Chrome ou Firefo
 
 ---
 
-## 15. Assistant Narratif & IA Locale Ollama
+## 15. Carnet Nomade du MJ (Version GSM Simplifiée & Dictée Vocale)
+
+Pour le Maître du Jeu qui souhaite préparer ses parties en déplacement (transports, pause déjeuner, canapé) sans allumer son ordinateur, Grimoire propose une **application web mobile simplifiée et optimisée pour smartphone** accessible via `docs/carnet-mj.html` ou directement sur le réseau local à `http://[IP]:7438/mj`.
+
+### 📱 Les Atouts du Carnet Nomade :
+1. **🎙️ Dictée Vocale Immédiate** : Touchez l'icône micro pour dicter vos idées de scènes, descriptions de lieux et dialogues de PNJ. Vos paroles sont transcrites en texte Markdown structuré sans fautes.
+2. **⚡ Synchronisation 1-Clic vers le PC** : Cliquez sur le bouton **« Vers PC »**. La note est envoyée via Wi-Fi à votre application Grimoire qui l'enregistre immédiatement dans votre Vault sous `Notes/Mobile/[titre].md` avec une notification sur votre ordinateur !
+3. **💾 100% Autonome & Hors-Ligne** : Toutes vos notes sont persistées dans votre téléphone (`localStorage`). Vous pouvez écrire sans aucune connexion internet ni serveur actif.
+4. **✨ Modèles JDR Intégrés** :
+   - `📜 Scène` : Squelette rapide (Lieu, Objectif, Ambiance, Événement déclencheur).
+   - `👤 PNJ` : Fiche PNJ express (Rôle, Caractère, Secret inavouable).
+   - `🗝️ Secret MJ` : Encadré masqué avec callout `> [!SECRET]`.
+   - `💰 Trésor` : Liste de monnaies, reliques et parchemins.
+   - `🎲 1d100` : Jet de dé aléatoire tactile pour trancher un imprévu.
+5. **📲 Export & Partage Universel** : Téléchargement en 1 clic du fichier `.md` sur le smartphone, ou partage natif vers WhatsApp, AirDrop, Google Drive ou e-mail.
+
+### 🚀 Guide Rapide d'Installation PWA sur GSM :
+- **Sur iPhone (Safari)** : Ouvrez la page, touchez l'icône de partage (carré avec flèche) > sélectionnez **« Sur l'écran d'accueil »**.
+- **Sur Android (Chrome)** : Touchez les trois points ⋮ > appuyez sur **« Installer l'application »** ou **« Ajouter à l'écran d'accueil »**.
+- L'application se lance désormais en plein écran comme une vraie application native !
+
+---
+
+## 16. Assistant Narratif & IA Locale Ollama
 
 Grimoire intègre un écrivain fantôme alimenté par vos modèles d'IA locaux (Llama 3, Mistral, Gemma, Qwen) via **Ollama**. Vos données ne quittent jamais votre machine.
 
@@ -333,7 +357,7 @@ Accessible via **🧙‍♂️ Outils MJ → 🤖 Assistant IA & Narratif** :
 
 ---
 
-## 16. Boîte à Outils du MJ & Générateurs Aléatoires
+## 17. Boîte à Outils du MJ & Générateurs Aléatoires
 
 Tous situés dans le menu déroulant **🧙‍♂️ Outils MJ** :
 
@@ -345,7 +369,7 @@ Tous situés dans le menu déroulant **🧙‍♂️ Outils MJ** :
 
 ---
 
-## 17. Tutoriel Pas à Pas : Préparer et Lancer sa Première Session
+## 18. Tutoriel Pas à Pas : Préparer et Lancer sa Première Session
 
 Voici la check-list idéale pour préparer et mener votre première partie sur Grimoire en moins de 15 minutes :
 
@@ -373,7 +397,7 @@ Voici la check-list idéale pour préparer et mener votre première partie sur G
 
 ---
 
-## 18. Index des Raccourcis Clavier & Astuces Pro
+## 19. Index des Raccourcis Clavier & Astuces Pro
 
 | Raccourci | Contexte | Action |
 | :--- | :--- | :--- |

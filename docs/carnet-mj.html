@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Grimoire Carnet MJ — Mobile</title>
+  <meta name="description" content="Carnet nomade pour Maître du Jeu TTRPG : écrivez vos scénarios, PNJ et loots sur smartphone et synchronisez-les en 1 clic sur Grimoire PC.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- PWA & Mobile Capabilities -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Carnet MJ">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a0c10">
+
+  <!-- Polices & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#121620',
+              surface: '#1a202c',
+              border: '#2d3748',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentDark: '#b87e28',
+              danger: '#ef4444',
+              success: '#22c55e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: #0a0c10;
+      color: #e2e8f0;
+      font-family: 'Outfit', sans-serif;
+      touch-action: manipulation;
+    }
+    .glass-header {
+      background: rgba(10, 12, 16, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Animation pulsation pour micro d'enregistrement */
+    @keyframes pulse-mic {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .recording-active {
+      animation: pulse-mic 1.4s infinite;
+      background-color: #ef4444 !important;
+      color: #ffffff !important;
+      border-color: #ef4444 !important;
+    }
+
+    /* Rendu Markdown simple */
+    .preview-body h1 { font-size: 1.5rem; font-weight: 800; color: #e5a853; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .preview-body h2 { font-size: 1.25rem; font-weight: 700; color: #f3c178; margin-top: 0.8rem; margin-bottom: 0.4rem; }
+    .preview-body h3 { font-size: 1.1rem; font-weight: 600; color: #cbd5e1; margin-top: 0.6rem; margin-bottom: 0.3rem; }
+    .preview-body p { margin-bottom: 0.75rem; line-height: 1.6; }
+    .preview-body ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+    .preview-body blockquote { border-left: 3px solid #e5a853; padding-left: 0.75rem; color: #94a3b8; font-style: italic; margin: 0.75rem 0; }
+    .preview-body code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); color: #e5a853; padding: 2px 5px; border-radius: 4px; font-size: 0.9em; }
+    .preview-body .secret-box { background: rgba(229,168,83,0.08); border: 1px dashed rgba(229,168,83,0.4); border-radius: 8px; padding: 10px; margin: 10px 0; }
+    .preview-body .secret-title { font-weight: 700; color: #e5a853; font-size: 0.85em; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  </style>
+</head>
+<body class="h-full flex flex-col selection:bg-grimoire-accent selection:text-black overflow-hidden">
+
+  <!-- ================= TOP BAR (STATIONARY) ================= -->
+  <header class="glass-header border-b border-grimoire-border/80 px-4 py-2.5 flex items-center justify-between z-30 flex-shrink-0">
+    <div class="flex items-center gap-2.5">
+      <button id="btnToggleDrawer" class="w-9 h-9 rounded-lg bg-grimoire-card border border-grimoire-border flex items-center justify-center text-grimoire-accent active:scale-95 transition-transform" title="Toutes les notes">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+      </button>
+      <div class="flex flex-col">
+        <div class="flex items-center gap-1.5">
+          <span class="font-black text-xs tracking-widest text-grimoire-accent">GRIMOIRE</span>
+          <span class="text-[10px] px-1.5 py-0.2 rounded bg-grimoire-accent/15 text-grimoire-accent border border-grimoire-accent/30 font-semibold">MJ GSM</span>
+        </div>
+        <span id="txtSaveStatus" class="text-[11px] text-gray-400 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Sauvegardé
+        </span>
+      </div>
+    </div>
+
+    <!-- Actions Rapides Header -->
+    <div class="flex items-center gap-1.5">
+      <button id="btnNewNote" class="px-2.5 py-1.5 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-200 flex items-center gap-1 active:bg-grimoire-surface">
+        <span>+</span> <span>Nouvelle</span>
+      </button>
+      <button id="btnOpenSyncModal" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-900/30 active:scale-95 transition-transform">
+        <span>⚡</span> <span>Vers PC</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= HORIZONTAL QUICK TOOLBAR ================= -->
+  <div class="bg-grimoire-card/90 border-b border-grimoire-border/60 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto hide-scrollbar z-20 flex-shrink-0">
+    <!-- Dictée Vocale -->
+    <button id="btnVoiceRecord" class="px-3 py-1 rounded-md bg-grimoire-surface border border-grimoire-border text-xs font-medium text-gray-200 flex items-center gap-1.5 flex-shrink-0 active:scale-95 transition-all" title="Dicter à la voix (Web Speech)">
+      <span id="micIcon" class="text-sm">🎙️</span>
+      <span id="micLabel">Dicter</span>
+    </button>
+    
+    <div class="h-4 w-px bg-grimoire-border flex-shrink-0 mx-0.5"></div>
+
+    <!-- Modèles Rapides (Dropdown / Clics) -->
+    <button onclick="insertTemplate('scenario')" class="px-2.5 py-1 rounded-md bg-grimoire-surface/80 border border-grimoire-border text-[11px] text-gray-300 flex-shrink-0 whitespace-nowrap active:border-grimoire-accent">
+      📜 Scénario
+    </button>
+    <button onclick="insertTemplate('npc')" class="px-2.5 py-1 rounded-md bg-grimoire-surface/80 border border-grimoire-border text-[11px] text-gray-300 flex-shrink-0 whitespace-nowrap active:border-grimoire-accent">
+      👤 PNJ
+    </button>
+    <button onclick="insertTemplate('secret')" class="px-2.5 py-1 rounded-md bg-grimoire-surface/80 border border-grimoire-border text-[11px] text-gray-300 flex-shrink-0 whitespace-nowrap active:border-grimoire-accent">
+      🗝️ Secret
+    </button>
+    <button onclick="insertTemplate('loot')" class="px-2.5 py-1 rounded-md bg-grimoire-surface/80 border border-grimoire-border text-[11px] text-gray-300 flex-shrink-0 whitespace-nowrap active:border-grimoire-accent">
+      💰 Trésor
+    </button>
+
+    <div class="h-4 w-px bg-grimoire-border flex-shrink-0 mx-0.5"></div>
+
+    <!-- Outils Markdown Rapides -->
+    <button onclick="insertMarkdown('# ', '')" class="w-7 h-7 rounded bg-grimoire-surface border border-grimoire-border text-xs font-black text-grimoire-accent flex-shrink-0 active:bg-grimoire-accent/20">H1</button>
+    <button onclick="insertMarkdown('## ', '')" class="w-7 h-7 rounded bg-grimoire-surface border border-grimoire-border text-xs font-bold text-grimoire-accent flex-shrink-0 active:bg-grimoire-accent/20">H2</button>
+    <button onclick="insertMarkdown('**', '**')" class="w-7 h-7 rounded bg-grimoire-surface border border-grimoire-border text-xs font-bold text-gray-200 flex-shrink-0 active:bg-grimoire-accent/20">B</button>
+    <button onclick="insertMarkdown('- ', '')" class="w-7 h-7 rounded bg-grimoire-surface border border-grimoire-border text-xs text-gray-200 flex-shrink-0 active:bg-grimoire-accent/20">•</button>
+    <button onclick="insertMarkdown('> ', '')" class="w-7 h-7 rounded bg-grimoire-surface border border-grimoire-border text-xs text-gray-200 flex-shrink-0 active:bg-grimoire-accent/20">”</button>
+    <button onclick="rollRandomDice()" class="px-2 h-7 rounded bg-grimoire-surface border border-grimoire-border text-xs font-semibold text-amber-400 flex-shrink-0 active:bg-grimoire-accent/20">🎲 1d100</button>
+  </div>
+
+  <!-- ================= MAIN EDITOR CONTAINER ================= -->
+  <main class="flex-1 flex flex-col p-3 overflow-hidden">
+    <!-- Onglets Mode Édition / Mode Lecture -->
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex bg-grimoire-card rounded-lg p-0.5 border border-grimoire-border">
+        <button id="tabEdit" class="px-3 py-1 rounded-md text-xs font-semibold bg-grimoire-accent text-black transition-all">Éditer</button>
+        <button id="tabPreview" class="px-3 py-1 rounded-md text-xs font-semibold text-gray-400 transition-all">Aperçu</button>
+      </div>
+
+      <!-- Compteur de mots -->
+      <span id="txtWordCount" class="text-[11px] text-gray-500 font-mono">0 mots</span>
+    </div>
+
+    <!-- Champ Titre -->
+    <input 
+      type="text" 
+      id="inpNoteTitle" 
+      placeholder="Titre du scénario ou de la note…" 
+      class="w-full bg-grimoire-card/70 border border-grimoire-border rounded-xl px-3.5 py-2.5 text-base font-bold text-grimoire-accent placeholder-gray-500 focus:outline-none focus:border-grimoire-accent transition-colors mb-2"
+    >
+
+    <!-- Zone d'Édition (Textarea) -->
+    <div id="editorWrap" class="flex-1 flex flex-col min-h-0">
+      <textarea 
+        id="txtNoteContent" 
+        placeholder="Rédigez ou dictez vos idées de jeu de rôle ici…
+Markdown supporté :
+# Titres
+**Gras**, *Italique*
+- Listes
+> Citations
+🗝️ Secrets et intrigues"
+        class="flex-1 w-full bg-grimoire-card/50 border border-grimoire-border/80 rounded-xl p-3.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-grimoire-accent resize-none font-sans leading-relaxed hide-scrollbar"
+      ></textarea>
+    </div>
+
+    <!-- Zone d'Aperçu (Preview) -->
+    <div id="previewWrap" class="flex-1 hidden bg-grimoire-card/50 border border-grimoire-border/80 rounded-xl p-4 overflow-y-auto preview-body hide-scrollbar">
+      <!-- Rendu dynamique -->
+    </div>
+  </main>
+
+  <!-- ================= BOTTOM ACTION BAR (STICKY) ================= -->
+  <footer class="glass-header border-t border-grimoire-border px-3 py-2 flex items-center justify-around gap-2 flex-shrink-0 z-20">
+    <!-- Télécharger .md -->
+    <button onclick="downloadMarkdown()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-300 flex items-center justify-center gap-1.5 active:bg-grimoire-surface">
+      <svg class="w-4 h-4 text-grimoire-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+      <span>Fichier .md</span>
+    </button>
+
+    <!-- Partager (Web Share) -->
+    <button onclick="shareNote()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-300 flex items-center justify-center gap-1.5 active:bg-grimoire-surface">
+      <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+      <span>Partager</span>
+    </button>
+
+    <!-- Copier texte -->
+    <button onclick="copyToClipboard()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-300 flex items-center justify-center gap-1.5 active:bg-grimoire-surface">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+      <span>Copier</span>
+    </button>
+  </footer>
+
+  <!-- ================= DRAWER (LISTE DES NOTES) ================= -->
+  <div id="drawerOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+  <aside id="notesDrawer" class="fixed top-0 bottom-0 left-0 w-4/5 max-w-sm bg-grimoire-card border-r border-grimoire-border z-50 transform -translate-x-full transition-transform flex flex-col">
+    <div class="p-4 border-b border-grimoire-border flex items-center justify-between">
+      <h3 class="text-sm font-black tracking-wider text-grimoire-accent">MES NOTES NOMADES</h3>
+      <button id="btnCloseDrawer" class="p-1 rounded-lg text-gray-400 hover:text-white">✕</button>
+    </div>
+    
+    <div class="p-3">
+      <button onclick="createNewNote(); closeDrawer();" class="w-full py-2.5 px-3 rounded-xl bg-grimoire-accent text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-grimoire-accent/20">
+        <span>+</span> <span>Nouvelle Note MJ</span>
+      </button>
+    </div>
+
+    <!-- Liste scrollable -->
+    <div id="drawerNotesList" class="flex-1 overflow-y-auto px-3 pb-6 space-y-2 hide-scrollbar">
+      <!-- Rempli par JavaScript -->
+    </div>
+
+    <div class="p-3 border-t border-grimoire-border/80 text-[11px] text-gray-500 text-center">
+      Grimoire TTRPG Suite © LordMadTrix
+    </div>
+  </aside>
+
+  <!-- ================= MODAL SYNCHRONISATION PC ================= -->
+  <div id="syncModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-grimoire-border/60 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚡</span>
+          <h3 class="font-bold text-sm text-white">Transférer vers Grimoire PC</h3>
+        </div>
+        <button onclick="closeSyncModal()" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+      </div>
+
+      <p class="text-xs text-gray-300 leading-relaxed">
+        Envoyez instantanément cette note dans votre Vault Grimoire PC (dans le dossier <code class="text-grimoire-accent">Notes/Mobile/</code>).
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-400 mb-1">ADRESSE IP & PORT DU PC GRIMOIRE</label>
+          <div class="flex items-center gap-2">
+            <input 
+              type="text" 
+              id="inpServerUrl" 
+              placeholder="ex: http://192.168.1.50:7438" 
+              class="flex-1 bg-grimoire-surface border border-grimoire-border rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-grimoire-accent"
+            >
+          </div>
+          <span class="text-[10px] text-gray-500 mt-1 block">Visible dans Grimoire PC (icône Mobile / QR Code)</span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-400 mb-1">DOSSIER CIBLE DANS LE VAULT</label>
+          <select id="selTargetFolder" class="w-full bg-grimoire-surface border border-grimoire-border rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-grimoire-accent">
+            <option value="Notes/Mobile">Notes/Mobile (Recommandé)</option>
+            <option value="Scénarios">Scénarios</option>
+            <option value="PNJ">PNJ</option>
+            <option value="Journal">Journal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Statut de transfert -->
+      <div id="syncFeedback" class="hidden text-xs rounded-xl p-3"></div>
+
+      <!-- Bouton d'envoi -->
+      <div class="flex items-center gap-2 pt-2">
+        <button onclick="closeSyncModal()" class="flex-1 py-2.5 rounded-xl bg-grimoire-surface border border-grimoire-border text-xs font-semibold text-gray-300">
+          Annuler
+        </button>
+        <button id="btnSendToPc" onclick="sendNoteToGrimoirePC()" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-900/30 active:scale-95 transition-transform">
+          <span>🚀 Transférer</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOAST NOTIFICATION ================= -->
+  <div id="toast" class="fixed bottom-16 left-1/2 -translate-x-1/2 bg-grimoire-surface border border-grimoire-accent/40 text-gray-100 text-xs font-medium px-4 py-2.5 rounded-xl shadow-2xl z-50 pointer-events-none opacity-0 transition-opacity duration-300 flex items-center gap-2">
+    <span id="toastIcon">✨</span>
+    <span id="toastMsg">Action effectuée</span>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    // --- GESTION DU STOCKAGE LOCAL DES NOTES ---
+    const STORAGE_KEY = 'grimoire_mj_notes_v1';
+    const ACTIVE_KEY = 'grimoire_mj_active_id';
+    const SERVER_KEY = 'grimoire_mj_server_url';
+
+    let notes = [];
+    let activeNoteId = null;
+    let autoSaveTimer = null;
+    let recognition = null;
+    let isRecording = false;
+
+    // Éléments DOM
+    const inpTitle = document.getElementById('inpNoteTitle');
+    const txtContent = document.getElementById('txtNoteContent');
+    const txtStatus = document.getElementById('txtSaveStatus');
+    const txtWordCount = document.getElementById('txtWordCount');
+    const tabEdit = document.getElementById('tabEdit');
+    const tabPreview = document.getElementById('tabPreview');
+    const editorWrap = document.getElementById('editorWrap');
+    const previewWrap = document.getElementById('previewWrap');
+    const drawer = document.getElementById('notesDrawer');
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    const drawerNotesList = document.getElementById('drawerNotesList');
+    const syncModal = document.getElementById('syncModal');
+    const inpServerUrl = document.getElementById('inpServerUrl');
+    const selTargetFolder = document.getElementById('selTargetFolder');
+    const syncFeedback = document.getElementById('syncFeedback');
+    const btnSendToPc = document.getElementById('btnSendToPc');
+
+    // Initialisation
+    function init() {
+      // 1. Charger les notes
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        notes = raw ? JSON.parse(raw) : [];
+      } catch(e) { notes = []; }
+
+      // Créer une première note si vide
+      if (notes.length === 0) {
+        notes.push({
+          id: 'note_' + Date.now(),
+          title: 'Idées de Campagne & PNJ',
+          content: `# Session 1 : L'Auberge du Gobelin Boiteux
+
+## 👥 PNJ Présents
+- **Gundren** : Nain marchand, pressé et mystérieux.
+- **Sildar** : Guerrier vétéran de la garde, loyal.
+
+## 🗝️ Secrets & Rumeurs
+> [!SECRET]
+> Une bande de brigands attend le convoi au défilé des pierres grises.
+
+## 💰 Trésor
+- Bourse de 45 couronnes impériales
+- Clé rouillée portant le sceau d'une guilde inconnue`,
+          updatedAt: Date.now()
+        });
+      }
+
+      // 2. Sélectionner la note active
+      const savedActive = localStorage.getItem(ACTIVE_KEY);
+      if (savedActive && notes.some(n => n.id === savedActive)) {
+        activeNoteId = savedActive;
+      } else {
+        activeNoteId = notes[0].id;
+      }
+
+      // 3. Détecter l'adresse du serveur si servi par Grimoire
+      const savedServer = localStorage.getItem(SERVER_KEY);
+      if (savedServer) {
+        inpServerUrl.value = savedServer;
+      } else if (window.location.port === '7438' || window.location.pathname.includes('/mj')) {
+        inpServerUrl.value = window.location.origin;
+      } else {
+        inpServerUrl.value = 'http://192.168.1.X:7438';
+      }
+
+      // Charger la note courante
+      loadActiveNote();
+
+      // Écouteurs de modification
+      inpTitle.addEventListener('input', triggerAutoSave);
+      txtContent.addEventListener('input', triggerAutoSave);
+
+      // Drawer
+      document.getElementById('btnToggleDrawer').addEventListener('click', openDrawer);
+      document.getElementById('btnCloseDrawer').addEventListener('click', closeDrawer);
+      drawerOverlay.addEventListener('click', closeDrawer);
+      document.getElementById('btnNewNote').addEventListener('click', createNewNote);
+
+      // Modal sync
+      document.getElementById('btnOpenSyncModal').addEventListener('click', openSyncModal);
+
+      // Tabs
+      tabEdit.addEventListener('click', () => switchTab('edit'));
+      tabPreview.addEventListener('click', () => switchTab('preview'));
+
+      // Configurer la dictée vocale
+      initSpeechRecognition();
+    }
+
+    function loadActiveNote() {
+      const note = notes.find(n => n.id === activeNoteId) || notes[0];
+      if (!note) return;
+      activeNoteId = note.id;
+      localStorage.setItem(ACTIVE_KEY, activeNoteId);
+
+      inpTitle.value = note.title;
+      txtContent.value = note.content;
+      updateWordCount();
+      renderPreview();
+    }
+
+    function triggerAutoSave() {
+      txtStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Enregistrement…';
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        saveCurrentNote();
+        txtStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Sauvegardé';
+      }, 400);
+      updateWordCount();
+    }
+
+    function saveCurrentNote() {
+      const note = notes.find(n => n.id === activeNoteId);
+      if (!note) return;
+      note.title = inpTitle.value.trim() || 'Note sans titre';
+      note.content = txtContent.value;
+      note.updatedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    }
+
+    function updateWordCount() {
+      const text = txtContent.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      txtWordCount.textContent = `${words} mot${words > 1 ? 's' : ''}`;
+    }
+
+    function switchTab(mode) {
+      if (mode === 'edit') {
+        tabEdit.classList.add('bg-grimoire-accent', 'text-black');
+        tabEdit.classList.remove('text-gray-400');
+        tabPreview.classList.remove('bg-grimoire-accent', 'text-black');
+        tabPreview.classList.add('text-gray-400');
+        editorWrap.classList.remove('hidden');
+        previewWrap.classList.add('hidden');
+      } else {
+        saveCurrentNote();
+        renderPreview();
+        tabPreview.classList.add('bg-grimoire-accent', 'text-black');
+        tabPreview.classList.remove('text-gray-400');
+        tabEdit.classList.remove('bg-grimoire-accent', 'text-black');
+        tabEdit.classList.add('text-gray-400');
+        editorWrap.classList.add('hidden');
+        previewWrap.classList.remove('hidden');
+      }
+    }
+
+    function renderPreview() {
+      const raw = txtContent.value;
+      // Convertisseur simple et robuste pour Markdown
+      let html = raw
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+        .replace(/^> \[!SECRET\]\n([\s\S]*?)(?=\n\n|$)/gim, '<div class="secret-box"><div class="secret-title">🗝️ Secret MJ</div>$1</div>')
+        .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
+        .replace(/^- (.*$)/gim, '<ul><li>$1</li></ul>')
+        .replace(/`([^`]+)`/gim, '<code>$1</code>')
+        .replace(/\n$/gim, '<br />');
+
+      // Corriger les listes imbriquées
+      html = html.replace(/<\/ul>\s?<ul>/gim, '');
+      previewWrap.innerHTML = html || '<p class="text-gray-500 italic">Note vide…</p>';
+    }
+
+    // --- DICTÉE VOCALE (WEB SPEECH API) ---
+    function initSpeechRecognition() {
+      const btn = document.getElementById('btnVoiceRecord');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        btn.onclick = () => showToast('⚠️ La dictée vocale native nécessite Chrome ou Safari.', '⚠️');
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'fr-FR';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        isRecording = true;
+        btn.classList.add('recording-active');
+        document.getElementById('micLabel').textContent = 'Écoute…';
+        showToast('🎙️ Dictée active : parlez naturellement', '🎙️');
+      };
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        let finalTrans = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTrans += event.results[i][0].transcript + ' ';
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+
+        if (finalTrans) {
+          const cur = txtContent.value;
+          const cursorPos = txtContent.selectionStart;
+          const before = cur.substring(0, cursorPos);
+          const after = cur.substring(cursorPos);
+          txtContent.value = before + finalTrans + after;
+          txtContent.selectionStart = txtContent.selectionEnd = cursorPos + finalTrans.length;
+          triggerAutoSave();
+        }
+      };
+
+      recognition.onerror = (e) => {
+        console.error('Speech error:', e);
+        stopRecording();
+      };
+
+      recognition.onend = () => {
+        stopRecording();
+      };
+
+      btn.addEventListener('click', () => {
+        if (!isRecording) {
+          try { recognition.start(); } catch(e) { stopRecording(); }
+        } else {
+          try { recognition.stop(); } catch(e) {}
+          stopRecording();
+        }
+      });
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      const btn = document.getElementById('btnVoiceRecord');
+      btn.classList.remove('recording-active');
+      document.getElementById('micLabel').textContent = 'Dicter';
+    }
+
+    // --- INSERTION D'OUTILS ET TEMPLATES ---
+    function insertMarkdown(prefix, suffix) {
+      const el = txtContent;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const text = el.value;
+      const sel = text.substring(start, end);
+      el.value = text.substring(0, start) + prefix + sel + suffix + text.substring(end);
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + prefix.length + sel.length;
+      triggerAutoSave();
+    }
+
+    function insertTemplate(type) {
+      let tpl = '';
+      if (type === 'scenario') {
+        tpl = `\n\n## ⚔️ Scène : [Nom de la Scène]
+- **Lieu** : 
+- **Objectif** : 
+- **Ambiance** : 
+- **Événement Déclencheur** : 
+`;
+      } else if (type === 'npc') {
+        tpl = `\n\n### 👤 PNJ : [Nom & Titre]
+- **Rôle** : 
+- **Apparence** : 
+- **Motivation** : 
+- **Secret inavouable** : 
+`;
+      } else if (type === 'secret') {
+        tpl = `\n\n> [!SECRET]
+> **Révélation** : [Ce que le MJ sait mais que les PJ ignorent encore]\n`;
+      } else if (type === 'loot') {
+        tpl = `\n\n### 💰 Butin & Objets Trouvés
+- **Monnaies** : 
+- **Objet magique / Relique** : 
+- **Indice / Lettre** : \n`;
+      }
+
+      insertMarkdown('', tpl);
+      showToast('Template inséré !', '✨');
+    }
+
+    function rollRandomDice() {
+      const roll = Math.floor(Math.random() * 100) + 1;
+      insertMarkdown(`\n*(🎲 Jet de Dé d100 : **${roll}**)*\n`, '');
+      showToast(`Résultat dé : ${roll}`, '🎲');
+    }
+
+    // --- GESTIONNAIRE DE NOTES (DRAWER) ---
+    function openDrawer() {
+      renderDrawerNotes();
+      drawer.classList.remove('-translate-x-full');
+      drawerOverlay.classList.remove('hidden');
+    }
+
+    function closeDrawer() {
+      drawer.classList.add('-translate-x-full');
+      drawerOverlay.classList.add('hidden');
+    }
+
+    function renderDrawerNotes() {
+      drawerNotesList.innerHTML = '';
+      notes.sort((a, b) => b.updatedAt - a.updatedAt).forEach(n => {
+        const isCur = n.id === activeNoteId;
+        const item = document.createElement('div');
+        item.className = `p-3 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+          isCur ? 'bg-grimoire-accent/15 border-grimoire-accent text-white' : 'bg-grimoire-surface/60 border-grimoire-border text-gray-300'
+        }`;
+        
+        const dateStr = new Date(n.updatedAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+        item.innerHTML = `
+          <div class="flex-1 min-w-0 cursor-pointer" onclick="selectNote('${n.id}')">
+            <h4 class="text-xs font-bold truncate ${isCur ? 'text-grimoire-accent' : 'text-gray-200'}">${escapeHtml(n.title)}</h4>
+            <span class="text-[10px] text-gray-400 font-mono">${dateStr}</span>
+          </div>
+          ${notes.length > 1 ? `
+            <button onclick="deleteNote('${n.id}', event)" class="p-1.5 text-gray-400 hover:text-red-400 active:scale-95" title="Supprimer">
+              🗑️
+            </button>
+          ` : ''}
+        `;
+        drawerNotesList.appendChild(item);
+      });
+    }
+
+    function selectNote(id) {
+      saveCurrentNote();
+      activeNoteId = id;
+      loadActiveNote();
+      closeDrawer();
+    }
+
+    function createNewNote() {
+      saveCurrentNote();
+      const newNote = {
+        id: 'note_' + Date.now(),
+        title: 'Nouvelle Note MJ',
+        content: '# Nouvelle Note\n\n',
+        updatedAt: Date.now()
+      };
+      notes.unshift(newNote);
+      activeNoteId = newNote.id;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+      loadActiveNote();
+      inpTitle.focus();
+      showToast('Nouvelle note créée', '📝');
+    }
+
+    function deleteNote(id, event) {
+      event.stopPropagation();
+      if (!confirm('Supprimer cette note définitivement ?')) return;
+      notes = notes.filter(n => n.id !== id);
+      if (activeNoteId === id) {
+        activeNoteId = notes[0]?.id || null;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+      if (!activeNoteId) {
+        createNewNote();
+      } else {
+        loadActiveNote();
+      }
+      renderDrawerNotes();
+      showToast('Note supprimée', '🗑️');
+    }
+
+    // --- SYNCHRONISATION DIRECTE VERS LE PC ---
+    function openSyncModal() {
+      saveCurrentNote();
+      syncFeedback.classList.add('hidden');
+      syncModal.classList.remove('hidden');
+    }
+
+    function closeSyncModal() {
+      syncModal.classList.add('hidden');
+    }
+
+    async function sendNoteToGrimoirePC() {
+      const serverUrl = inpServerUrl.value.trim().replace(/\/+$/, '');
+      if (!serverUrl) {
+        alert('Veuillez renseigner l\'URL ou l\'adresse IP de votre PC Grimoire.');
+        return;
+      }
+
+      localStorage.setItem(SERVER_KEY, serverUrl);
+      const targetFolder = selTargetFolder.value;
+      const note = notes.find(n => n.id === activeNoteId);
+      if (!note) return;
+
+      btnSendToPc.disabled = true;
+      btnSendToPc.innerHTML = '<span>⏳ Envoi…</span>';
+      syncFeedback.classList.remove('hidden', 'bg-red-900/40', 'border-red-500', 'bg-emerald-900/40', 'border-emerald-500');
+
+      const payload = {
+        title: note.title,
+        content: note.content,
+        folder: targetFolder,
+        updatedAt: note.updatedAt,
+        author: 'MJ Mobile'
+      };
+
+      try {
+        // Envoi HTTP POST vers l'endpoint REST du serveur Grimoire
+        const res = await fetch(`${serverUrl}/api/mj/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          syncFeedback.className = 'text-xs rounded-xl p-3 bg-emerald-900/40 border border-emerald-500/80 text-emerald-200';
+          syncFeedback.innerHTML = `✅ <strong>Transfert réussi !</strong><br/>La note a été créée dans votre Vault Grimoire PC sous <code>${targetFolder}/${slugify(note.title)}.md</code>.`;
+          showToast('Note transférée vers Grimoire PC !', '🚀');
+          setTimeout(closeSyncModal, 2500);
+        } else {
+          throw new Error(`Erreur serveur (${res.status})`);
+        }
+      } catch (err) {
+        // Fallback tentative via WebSocket si endpoint HTTP restreint
+        tryFallbackWebSocket(serverUrl, payload);
+      } finally {
+        btnSendToPc.disabled = false;
+        btnSendToPc.innerHTML = '<span>🚀 Transférer</span>';
+      }
+    }
+
+    function tryFallbackWebSocket(serverUrl, payload) {
+      try {
+        const wsUrl = serverUrl.replace(/^http/, 'ws') + '/ws';
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ event: 'join', data: { name: 'MJ Mobile' } }));
+          setTimeout(() => {
+            ws.send(JSON.stringify({ event: 'mj_note_push', data: payload }));
+            syncFeedback.className = 'text-xs rounded-xl p-3 bg-emerald-900/40 border border-emerald-500/80 text-emerald-200';
+            syncFeedback.innerHTML = `✅ <strong>Transféré via WebSocket !</strong><br/>Votre PC Grimoire a reçu la note.`;
+            showToast('Note reçue par le PC !', '⚡');
+            setTimeout(() => { ws.close(); closeSyncModal(); }, 2000);
+          }, 300);
+        };
+
+        ws.onerror = () => {
+          syncFeedback.className = 'text-xs rounded-xl p-3 bg-red-900/40 border border-red-500/80 text-red-200';
+          syncFeedback.innerHTML = `❌ <strong>Connexion impossible au PC :</strong><br/>Vérifiez que Grimoire est lancé sur votre PC, que le serveur mobile est actif, et que vous êtes bien sur le même réseau Wi-Fi.<br/><br/><em>Astuce : Vous pouvez aussi cliquer sur « Fichier .md » pour l'exporter directement !</em>`;
+        };
+      } catch(e) {
+        syncFeedback.className = 'text-xs rounded-xl p-3 bg-red-900/40 border border-red-500/80 text-red-200';
+        syncFeedback.innerHTML = `❌ Impossible d'atteindre le serveur. Utilisez le bouton « Fichier .md » pour sauvegarder.`;
+      }
+    }
+
+    // --- EXPORTS LOCAUX & PARTAGE ---
+    function downloadMarkdown() {
+      saveCurrentNote();
+      const note = notes.find(n => n.id === activeNoteId);
+      if (!note) return;
+
+      const blob = new Blob([note.content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${slugify(note.title) || 'note-mj'}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Fichier .md téléchargé !', '💾');
+    }
+
+    async function shareNote() {
+      saveCurrentNote();
+      const note = notes.find(n => n.id === activeNoteId);
+      if (!note) return;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: note.title,
+            text: note.content
+          });
+        } catch(e) {}
+      } else {
+        copyToClipboard();
+      }
+    }
+
+    function copyToClipboard() {
+      saveCurrentNote();
+      const note = notes.find(n => n.id === activeNoteId);
+      if (!note) return;
+      navigator.clipboard.writeText(note.content).then(() => {
+        showToast('Texte Markdown copié !', '📋');
+      }).catch(() => {
+        showToast('Erreur copie', '⚠️');
+      });
+    }
+
+    // --- UTILITAIRES ---
+    function slugify(text) {
+      return text.toString().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9_-]/g, '_')
+        .replace(/_+/g, '_');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg, icon = '✨') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastIcon').textContent = icon;
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('opacity-0');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    // Lancement au chargement
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
