@@ -20,4 +20,38 @@ export default defineConfig({
       ignored: ['**/src-tauri/**'],
     },
   },
+  build: {
+    target: 'esnext',
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('pixi.js')) {
+              return 'vendor-pixi';
+            }
+            if (id.includes('@codemirror') || id.includes('codemirror')) {
+              return 'vendor-codemirror';
+            }
+            if (id.includes('d3')) {
+              return 'vendor-d3';
+            }
+            if (id.includes('pdfjs-dist')) {
+              return 'vendor-pdfjs';
+            }
+            if (id.includes('tesseract.js')) {
+              return 'vendor-ocr';
+            }
+            if (id.includes('@tauri-apps')) {
+              return 'vendor-tauri';
+            }
+            if (id.includes('svelte')) {
+              return 'vendor-svelte';
+            }
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
 })

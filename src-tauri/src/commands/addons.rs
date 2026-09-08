@@ -126,7 +126,7 @@ pub(crate) fn resolve_public_dir(app: &AppHandle, destination: &str) -> Result<P
     // 2. En production, utiliser app_data_dir (dossier utilisateur garanti en écriture sans droit admin)
     if let Ok(app_data) = app.path().app_data_dir() {
         let user_public = app_data.join("public").join(destination);
-        if let Ok(_) = std::fs::create_dir_all(&user_public) {
+        if std::fs::create_dir_all(&user_public).is_ok() {
             return Ok(user_public);
         }
     }
@@ -276,7 +276,8 @@ pub fn addon_check_installed_files(app: AppHandle, destination: String) -> Resul
 }
 
 /// Télécharge un fichier individuel depuis Google Drive et l'enregistre dans son arborescence de sous-dossiers (dans le Vault actif et public/)
-#[command]
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
 pub async fn addon_download_file(
     app: AppHandle,
     file_id: String,

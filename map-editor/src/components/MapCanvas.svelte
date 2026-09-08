@@ -1407,125 +1407,131 @@
     }
 
     // A. Dessiner le FOND (Background) de carte
-    if (mapStore.backgroundType === 'image' && mapStore.backgroundImageUrl) {
-      const img = assetCache.get('bg_user_image');
-      if (img) {
-        bufferCtx.save();
-        bufferCtx.globalAlpha = mapStore.backgroundImageOpacity;
-        const scale = mapStore.backgroundImageScale;
-        
-        // Base scale pour que 100% (1.0) remplisse la carte (cover)
-        const baseScale = Math.max(mW / img.width, mH / img.height);
-        const finalScale = baseScale * scale;
-        
-        const w = img.width * finalScale;
-        const h = img.height * finalScale;
-        
-        // Centrer l'image par défaut, avec offset utilisateur
-        const x = (mW - w) / 2 + mapStore.backgroundImageX;
-        const y = (mH - h) / 2 + mapStore.backgroundImageY;
-        
-        bufferCtx.drawImage(img, x, y, w, h);
-        bufferCtx.restore();
+    if (mapStore.layerVisibility?.background !== false) {
+      if (mapStore.backgroundType === 'image' && mapStore.backgroundImageUrl) {
+        const img = assetCache.get('bg_user_image');
+        if (img) {
+          bufferCtx.save();
+          bufferCtx.globalAlpha = mapStore.backgroundImageOpacity;
+          const scale = mapStore.backgroundImageScale;
+          
+          // Base scale pour que 100% (1.0) remplisse la carte (cover)
+          const baseScale = Math.max(mW / img.width, mH / img.height);
+          const finalScale = baseScale * scale;
+          
+          const w = img.width * finalScale;
+          const h = img.height * finalScale;
+          
+          // Centrer l'image par défaut, avec offset utilisateur
+          const x = (mW - w) / 2 + mapStore.backgroundImageX;
+          const y = (mH - h) / 2 + mapStore.backgroundImageY;
+          
+          bufferCtx.drawImage(img, x, y, w, h);
+          bufferCtx.restore();
+        } else {
+          bufferCtx.fillStyle = '#121824';
+          bufferCtx.fillRect(0, 0, mW, mH);
+        }
+      } else if (mapStore.backgroundType === 'texture') {
+        const texKey = mapStore.backgroundTexture;
+        const cachedTex = getOrLoadTexture(texKey) || assetCache.get(`tex_${texKey}`) || assetCache.get(texKey);
+        if (cachedTex) {
+          const pattern = bufferCtx.createPattern(cachedTex, 'repeat')!;
+          const scale = mapStore.backgroundTextureScale ?? 1.0;
+          
+          // Base scale pour que 100% (1.0) remplisse la carte
+          const baseScale = Math.max(mW / cachedTex.width, mH / cachedTex.height);
+          const finalScale = baseScale * scale;
+          
+          const matrix = new DOMMatrix().scale(finalScale);
+          pattern.setTransform(matrix);
+          
+          bufferCtx.fillStyle = pattern;
+          bufferCtx.fillRect(0, 0, mW, mH);
+        } else {
+          bufferCtx.fillStyle = '#1e3a5f';
+          bufferCtx.fillRect(0, 0, mW, mH);
+        }
       } else {
-        bufferCtx.fillStyle = '#121824';
-        bufferCtx.fillRect(0, 0, mW, mH);
-      }
-    } else if (mapStore.backgroundType === 'texture') {
-      const texKey = mapStore.backgroundTexture;
-      const cachedTex = getOrLoadTexture(texKey) || assetCache.get(`tex_${texKey}`) || assetCache.get(texKey);
-      if (cachedTex) {
-        const pattern = bufferCtx.createPattern(cachedTex, 'repeat')!;
-        const scale = mapStore.backgroundTextureScale ?? 1.0;
-        
-        // Base scale pour que 100% (1.0) remplisse la carte
-        const baseScale = Math.max(mW / cachedTex.width, mH / cachedTex.height);
-        const finalScale = baseScale * scale;
-        
-        const matrix = new DOMMatrix().scale(finalScale);
-        pattern.setTransform(matrix);
-        
-        bufferCtx.fillStyle = pattern;
-        bufferCtx.fillRect(0, 0, mW, mH);
-      } else {
-        bufferCtx.fillStyle = '#1e3a5f';
-        bufferCtx.fillRect(0, 0, mW, mH);
-      }
-    } else {
-      // Option 'water' par défaut
-      const waterKey = 'tex_water';
-      const texWater = assetCache.get(waterKey);
-      if (texWater) {
-        const pattern = bufferCtx.createPattern(texWater, 'repeat')!;
-        bufferCtx.fillStyle = pattern;
-        bufferCtx.fillRect(0, 0, mW, mH);
-      } else {
-        bufferCtx.fillStyle = '#1e3a5f';
-        bufferCtx.fillRect(0, 0, mW, mH);
+        // Option 'water' par défaut
+        const waterKey = 'tex_water';
+        const texWater = assetCache.get(waterKey);
+        if (texWater) {
+          const pattern = bufferCtx.createPattern(texWater, 'repeat')!;
+          bufferCtx.fillStyle = pattern;
+          bufferCtx.fillRect(0, 0, mW, mH);
+        } else {
+          bufferCtx.fillStyle = '#1e3a5f';
+          bufferCtx.fillRect(0, 0, mW, mH);
+        }
       }
     }
 
     // B. Assembler la TERRE masquée
-    // On dessine le masque, puis on applique la texture terre
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = mW;
-    tempCanvas.height = mH;
-    const tempCtx = tempCanvas.getContext('2d')!;
+    if (mapStore.layerVisibility?.terrain !== false) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = mW;
+      tempCanvas.height = mH;
+      const tempCtx = tempCanvas.getContext('2d')!;
 
-    tempCtx.drawImage(maskCanvas, 0, 0);
-    tempCtx.globalCompositeOperation = 'source-in';
-    tempCtx.drawImage(landCanvas, 0, 0);
+      tempCtx.drawImage(maskCanvas, 0, 0);
+      tempCtx.globalCompositeOperation = 'source-in';
+      tempCtx.drawImage(landCanvas, 0, 0);
 
-    // Dessiner la terre assemblée sur le buffer principal avec son opacité et un effet d'ombrage de relief/profondeur
-    bufferCtx.save();
-    bufferCtx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-    bufferCtx.shadowBlur = 24;
-    bufferCtx.shadowOffsetX = 0;
-    bufferCtx.shadowOffsetY = 6;
-    bufferCtx.globalAlpha = mapStore.foregroundOpacity;
-    bufferCtx.drawImage(tempCanvas, 0, 0);
-    bufferCtx.restore();
+      // Dessiner la terre assemblée sur le buffer principal avec son opacité et un effet d'ombrage de relief/profondeur
+      bufferCtx.save();
+      bufferCtx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+      bufferCtx.shadowBlur = 24;
+      bufferCtx.shadowOffsetX = 0;
+      bufferCtx.shadowOffsetY = 6;
+      bufferCtx.globalAlpha = mapStore.foregroundOpacity;
+      bufferCtx.drawImage(tempCanvas, 0, 0);
+      bufferCtx.restore();
+    }
 
     // B2. Dessiner les FORMES GÉOMÉTRIQUES (Shapes)
-    mapStore.shapes.forEach((shape) => {
-      drawGeometricShape(bufferCtx, shape);
-      const isSelected = isElementSelected('shape', shape.id);
-      if (isSelected) {
-        drawShapeSelectionBorder(bufferCtx, shape);
-      }
-    });
+    if (mapStore.layerVisibility?.shapes !== false) {
+      mapStore.shapes.forEach((shape) => {
+        drawGeometricShape(bufferCtx, shape);
+        const isSelected = isElementSelected('shape', shape.id);
+        if (isSelected) {
+          drawShapeSelectionBorder(bufferCtx, shape);
+        }
+      });
 
-    // Dessiner l'aperçu du dessin de forme active
-    if (mapStore.activeTool === 'shape' && drawingShapePoints.length > 0) {
-      let previewPoints = [...drawingShapePoints];
-      if (mapStore.shapeType !== 'polygon' || drawingShapePoints.length === 1) {
-        const snappedCursor = snapCoordinate(cursorMapX, cursorMapY);
-        previewPoints.push(snappedCursor);
+      // Dessiner l'aperçu du dessin de forme active
+      if (mapStore.activeTool === 'shape' && drawingShapePoints.length > 0) {
+        let previewPoints = [...drawingShapePoints];
+        if (mapStore.shapeType !== 'polygon' || drawingShapePoints.length === 1) {
+          const snappedCursor = snapCoordinate(cursorMapX, cursorMapY);
+          previewPoints.push(snappedCursor);
+        }
+        const tempShape: MapShape = {
+          id: 'temp_preview_shape',
+          type: mapStore.shapeType,
+          points: previewPoints,
+          fillColor: mapStore.shapeFillColor,
+          fillOpacity: mapStore.shapeFillOpacity,
+          fillTexture: mapStore.shapeFillTexture,
+          fillTextureScale: mapStore.shapeFillTextureScale,
+          strokeColor: mapStore.shapeStrokeColor,
+          strokeWidth: mapStore.shapeStrokeWidth,
+          strokeDash: mapStore.shapeStrokeDash,
+        };
+        drawGeometricShape(bufferCtx, tempShape);
       }
-      const tempShape: MapShape = {
-        id: 'temp_preview_shape',
-        type: mapStore.shapeType,
-        points: previewPoints,
-        fillColor: mapStore.shapeFillColor,
-        fillOpacity: mapStore.shapeFillOpacity,
-        fillTexture: mapStore.shapeFillTexture,
-        fillTextureScale: mapStore.shapeFillTextureScale,
-        strokeColor: mapStore.shapeStrokeColor,
-        strokeWidth: mapStore.shapeStrokeWidth,
-        strokeDash: mapStore.shapeStrokeDash,
-      };
-      drawGeometricShape(bufferCtx, tempShape);
     }
 
     // C. Dessiner les TAMPONS (Stamps) - Triés par Z-Index et Y pour l'isométrie
-    const sortedStamps = [...mapStore.stamps].sort((a, b) => {
-      const zA = a.zIndex ?? 0;
-      const zB = b.zIndex ?? 0;
-      if (zA !== zB) return zA - zB;
-      return a.y - b.y;
-    });
+    if (mapStore.layerVisibility?.stamps !== false) {
+      const sortedStamps = [...mapStore.stamps].sort((a, b) => {
+        const zA = a.zIndex ?? 0;
+        const zB = b.zIndex ?? 0;
+        if (zA !== zB) return zA - zB;
+        return a.y - b.y;
+      });
 
-    sortedStamps.forEach((stamp) => {
+      sortedStamps.forEach((stamp) => {
       const isProcedural = stamp.type.startsWith('td_');
       const isSelected = isElementSelected('stamp', stamp.id);
       if (isProcedural) {
@@ -1611,129 +1617,135 @@
         }
       }
     });
+    }
 
     // D. Dessiner les TRACÉS (Paths)
-    mapStore.paths.forEach((path) => {
-      if (path.points.length < 2) return;
-      bufferCtx.save();
-      bufferCtx.beginPath();
-      bufferCtx.moveTo(path.points[0].x, path.points[0].y);
-      if (path.smooth !== false && path.points.length > 2) {
-        for (let i = 1; i < path.points.length - 1; i++) {
-          const xc = (path.points[i].x + path.points[i + 1].x) / 2;
-          const yc = (path.points[i].y + path.points[i + 1].y) / 2;
-          bufferCtx.quadraticCurveTo(path.points[i].x, path.points[i].y, xc, yc);
+    if (mapStore.layerVisibility?.paths !== false) {
+      mapStore.paths.forEach((path) => {
+        if (!path.points || path.points.length < 2) return;
+        bufferCtx.save();
+        bufferCtx.beginPath();
+        bufferCtx.moveTo(path.points[0].x, path.points[0].y);
+        
+        if (path.smooth !== false && path.points.length > 2) {
+          for (let i = 1; i < path.points.length - 1; i++) {
+            const xc = (path.points[i].x + path.points[i + 1].x) / 2;
+            const yc = (path.points[i].y + path.points[i + 1].y) / 2;
+            bufferCtx.quadraticCurveTo(path.points[i].x, path.points[i].y, xc, yc);
+          }
+          bufferCtx.lineTo(path.points[path.points.length - 1].x, path.points[path.points.length - 1].y);
+        } else {
+          for (let i = 1; i < path.points.length; i++) {
+            bufferCtx.lineTo(path.points[i].x, path.points[i].y);
+          }
         }
-        bufferCtx.lineTo(path.points[path.points.length - 1].x, path.points[path.points.length - 1].y);
-      } else {
-        for (let i = 1; i < path.points.length; i++) {
-          bufferCtx.lineTo(path.points[i].x, path.points[i].y);
-        }
-      }
-      bufferCtx.strokeStyle = path.color;
-      bufferCtx.lineWidth = path.width;
-      bufferCtx.lineCap = 'round';
-      bufferCtx.lineJoin = 'round';
+        bufferCtx.strokeStyle = path.color;
+        bufferCtx.lineWidth = path.width;
+        bufferCtx.lineCap = 'round';
+        bufferCtx.lineJoin = 'round';
 
-      if (path.dashStyle === 'dashed') {
-        bufferCtx.setLineDash([12, 6]);
-      } else if (path.dashStyle === 'dotted') {
-        bufferCtx.setLineDash([2, 6]);
-      }
-      bufferCtx.stroke();
-      bufferCtx.restore();
-    });
+        if (path.dashStyle === 'dashed') {
+          bufferCtx.setLineDash([12, 6]);
+        } else if (path.dashStyle === 'dotted') {
+          bufferCtx.setLineDash([2, 6]);
+        }
+        bufferCtx.stroke();
+        bufferCtx.restore();
+      });
 
-    // Tracé en cours de création
-    if (mapStore.activeTool === 'path' && currentPathPoints.length > 0) {
-      bufferCtx.save();
-      bufferCtx.beginPath();
-      bufferCtx.moveTo(currentPathPoints[0].x, currentPathPoints[0].y);
-      const allPoints = [...currentPathPoints, { x: cursorMapX, y: cursorMapY }];
-      
-      if (mapStore.pathSmooth !== false && allPoints.length > 2) {
-        for (let i = 1; i < allPoints.length - 1; i++) {
-          const xc = (allPoints[i].x + allPoints[i + 1].x) / 2;
-          const yc = (allPoints[i].y + allPoints[i + 1].y) / 2;
-          bufferCtx.quadraticCurveTo(allPoints[i].x, allPoints[i].y, xc, yc);
+      // Tracé en cours de création
+      if (mapStore.activeTool === 'path' && currentPathPoints.length > 0) {
+        bufferCtx.save();
+        bufferCtx.beginPath();
+        bufferCtx.moveTo(currentPathPoints[0].x, currentPathPoints[0].y);
+        const allPoints = [...currentPathPoints, { x: cursorMapX, y: cursorMapY }];
+        
+        if (mapStore.pathSmooth !== false && allPoints.length > 2) {
+          for (let i = 1; i < allPoints.length - 1; i++) {
+            const xc = (allPoints[i].x + allPoints[i + 1].x) / 2;
+            const yc = (allPoints[i].y + allPoints[i + 1].y) / 2;
+            bufferCtx.quadraticCurveTo(allPoints[i].x, allPoints[i].y, xc, yc);
+          }
+          bufferCtx.lineTo(allPoints[allPoints.length - 1].x, allPoints[allPoints.length - 1].y);
+        } else {
+          for (let i = 1; i < allPoints.length; i++) {
+            bufferCtx.lineTo(allPoints[i].x, allPoints[i].y);
+          }
         }
-        bufferCtx.lineTo(allPoints[allPoints.length - 1].x, allPoints[allPoints.length - 1].y);
-      } else {
-        for (let i = 1; i < allPoints.length; i++) {
-          bufferCtx.lineTo(allPoints[i].x, allPoints[i].y);
-        }
+        bufferCtx.strokeStyle = mapStore.pathColor;
+        bufferCtx.lineWidth = mapStore.pathWidth;
+        bufferCtx.lineCap = 'round';
+        bufferCtx.lineJoin = 'round';
+        if (mapStore.pathDashStyle === 'dashed') bufferCtx.setLineDash([12, 6]);
+        else if (mapStore.pathDashStyle === 'dotted') bufferCtx.setLineDash([2, 6]);
+        bufferCtx.stroke();
+        bufferCtx.restore();
       }
-      bufferCtx.strokeStyle = mapStore.pathColor;
-      bufferCtx.lineWidth = mapStore.pathWidth;
-      bufferCtx.lineCap = 'round';
-      bufferCtx.lineJoin = 'round';
-      if (mapStore.pathDashStyle === 'dashed') bufferCtx.setLineDash([12, 6]);
-      else if (mapStore.pathDashStyle === 'dotted') bufferCtx.setLineDash([2, 6]);
-      bufferCtx.stroke();
-      bufferCtx.restore();
     }
 
     // E. Dessiner les TEXTES
-    mapStore.texts.forEach((text) => {
-      bufferCtx.save();
-      bufferCtx.translate(text.x, text.y);
-      bufferCtx.rotate((text.rotation * Math.PI) / 180);
-      bufferCtx.globalAlpha = text.opacity ?? 1;
-      bufferCtx.font = `${text.size}px "${text.font}", serif`;
-      bufferCtx.textAlign = 'center';
-      bufferCtx.textBaseline = 'middle';
+    if (mapStore.layerVisibility?.texts !== false) {
+      mapStore.texts.forEach((text) => {
+        bufferCtx.save();
+        bufferCtx.translate(text.x, text.y);
+        bufferCtx.rotate((text.rotation * Math.PI) / 180);
+        bufferCtx.globalAlpha = text.opacity ?? 1;
+        bufferCtx.font = `${text.size}px "${text.font}", serif`;
+        bufferCtx.textAlign = 'center';
+        bufferCtx.textBaseline = 'middle';
 
-      // Ombrage/Contour
-      if (text.shadowBlur > 0) {
-        bufferCtx.shadowColor = text.shadowColor;
-        bufferCtx.shadowBlur = text.shadowBlur;
-        bufferCtx.shadowOffsetX = 1;
-        bufferCtx.shadowOffsetY = 1;
-        
-        // Répéter un stroke léger pour épaissir la lisibilité
-        bufferCtx.strokeStyle = text.shadowColor;
-        bufferCtx.lineWidth = 3;
-        bufferCtx.strokeText(text.text, 0, 0);
-      }
-
-      bufferCtx.fillStyle = text.color;
-      bufferCtx.fillText(text.text, 0, 0);
-
-      // Si sélectionné, dessiner un cadre de texte doré
-      if (isElementSelected('text', text.id)) {
-        const textMetrics = bufferCtx.measureText(text.text);
-        const w = textMetrics.width;
-        const h = text.size;
-        const bw = w / 2 + 8;
-        const bh = h / 2 + 4;
-        bufferCtx.strokeStyle = '#d4a84b';
-        bufferCtx.lineWidth = 1.5;
-        bufferCtx.strokeRect(-bw, -bh, bw * 2, bh * 2);
-
-        // Poignées de transformation (outil Sélection)
-        if (mapStore.activeTool === 'grid') {
-          const handleSize = 8 / mapStore.zoom;
-          bufferCtx.fillStyle = '#d4a84b';
-          for (const [cx, cy] of [[-bw, -bh], [bw, -bh], [-bw, bh], [bw, bh]]) {
-            bufferCtx.fillRect(cx - handleSize / 2, cy - handleSize / 2, handleSize, handleSize);
-          }
-          // Poignée de rotation
-          bufferCtx.beginPath();
-          bufferCtx.moveTo(0, -bh);
-          bufferCtx.lineTo(0, -bh - 30 / mapStore.zoom);
-          bufferCtx.stroke();
-          bufferCtx.beginPath();
-          bufferCtx.arc(0, -bh - 30 / mapStore.zoom, 6 / mapStore.zoom, 0, Math.PI * 2);
-          bufferCtx.fill();
-          bufferCtx.stroke();
+        // Ombrage/Contour
+        if (text.shadowBlur > 0) {
+          bufferCtx.shadowColor = text.shadowColor;
+          bufferCtx.shadowBlur = text.shadowBlur;
+          bufferCtx.shadowOffsetX = 1;
+          bufferCtx.shadowOffsetY = 1;
+          
+          // Répéter un stroke léger pour épaissir la lisibilité
+          bufferCtx.strokeStyle = text.shadowColor;
+          bufferCtx.lineWidth = 3;
+          bufferCtx.strokeText(text.text, 0, 0);
         }
-      }
 
-      bufferCtx.restore();
-    });
+        bufferCtx.fillStyle = text.color;
+        bufferCtx.fillText(text.text, 0, 0);
+
+        // Si sélectionné, dessiner un cadre de texte doré
+        if (isElementSelected('text', text.id)) {
+          const textMetrics = bufferCtx.measureText(text.text);
+          const w = textMetrics.width;
+          const h = text.size;
+          const bw = w / 2 + 8;
+          const bh = h / 2 + 4;
+          bufferCtx.strokeStyle = '#d4a84b';
+          bufferCtx.lineWidth = 1.5;
+          bufferCtx.strokeRect(-bw, -bh, bw * 2, bh * 2);
+
+          // Poignées de transformation (outil Sélection)
+          if (mapStore.activeTool === 'grid') {
+            const handleSize = 8 / mapStore.zoom;
+            bufferCtx.fillStyle = '#d4a84b';
+            for (const [cx, cy] of [[-bw, -bh], [bw, -bh], [-bw, bh], [bw, bh]]) {
+              bufferCtx.fillRect(cx - handleSize / 2, cy - handleSize / 2, handleSize, handleSize);
+            }
+            // Poignée de rotation
+            bufferCtx.beginPath();
+            bufferCtx.moveTo(0, -bh);
+            bufferCtx.lineTo(0, -bh - 30 / mapStore.zoom);
+            bufferCtx.stroke();
+            bufferCtx.beginPath();
+            bufferCtx.arc(0, -bh - 30 / mapStore.zoom, 6 / mapStore.zoom, 0, Math.PI * 2);
+            bufferCtx.fill();
+            bufferCtx.stroke();
+          }
+        }
+
+        bufferCtx.restore();
+      });
+    }
 
     // F. Dessiner la GRILLE
-    if (mapStore.showGrid) {
+    if (mapStore.showGrid && mapStore.layerVisibility?.grid !== false) {
       bufferCtx.save();
       bufferCtx.strokeStyle = mapStore.gridColor;
       bufferCtx.lineWidth = 1;
@@ -1807,6 +1819,29 @@
       grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
       grad.addColorStop(1, `rgba(0, 0, 0, ${vOpacity})`);
       bufferCtx.fillStyle = grad;
+      bufferCtx.fillRect(0, 0, mW, mH);
+      bufferCtx.restore();
+    }
+
+    // 2.5 Teinte d'Ambiance & Éclairage Dynamique
+    if (mapStore.atmospherePreset && mapStore.atmospherePreset !== 'day') {
+      bufferCtx.save();
+      if (mapStore.atmospherePreset === 'night') {
+        bufferCtx.fillStyle = 'rgba(12, 28, 64, 0.45)';
+        bufferCtx.globalCompositeOperation = 'multiply';
+      } else if (mapStore.atmospherePreset === 'sunset') {
+        bufferCtx.fillStyle = 'rgba(234, 88, 12, 0.22)';
+        bufferCtx.globalCompositeOperation = 'color-burn';
+      } else if (mapStore.atmospherePreset === 'dungeon') {
+        bufferCtx.fillStyle = 'rgba(25, 12, 4, 0.38)';
+        bufferCtx.globalCompositeOperation = 'multiply';
+      } else if (mapStore.atmospherePreset === 'fog') {
+        bufferCtx.fillStyle = 'rgba(186, 230, 253, 0.25)';
+        bufferCtx.globalCompositeOperation = 'screen';
+      } else if (mapStore.atmospherePreset === 'blood_moon') {
+        bufferCtx.fillStyle = 'rgba(153, 27, 27, 0.35)';
+        bufferCtx.globalCompositeOperation = 'multiply';
+      }
       bufferCtx.fillRect(0, 0, mW, mH);
       bufferCtx.restore();
     }
@@ -2216,90 +2251,96 @@
   // SÉLECTION D'ÉLÉMENT PAR COLLISION
   function findElementAt(x: number, y: number) {
     // 1. Textes d'abord (car ils ont tendance à être au-dessus)
-    for (let i = mapStore.texts.length - 1; i >= 0; i--) {
-      const text = mapStore.texts[i];
-      if (text.locked) continue;
-      const dist = Math.sqrt((text.x - x) ** 2 + (text.y - y) ** 2);
-      // Rayon d'impact approximatif du texte
-      if (dist < 40) return { type: 'text' as const, id: text.id, x: text.x, y: text.y };
+    if (mapStore.layerVisibility?.texts !== false && !mapStore.layerLocked?.texts) {
+      for (let i = mapStore.texts.length - 1; i >= 0; i--) {
+        const text = mapStore.texts[i];
+        if (text.locked) continue;
+        const dist = Math.sqrt((text.x - x) ** 2 + (text.y - y) ** 2);
+        // Rayon d'impact approximatif du texte
+        if (dist < 40) return { type: 'text' as const, id: text.id, x: text.x, y: text.y };
+      }
     }
 
     // 1.5. Formes Géométriques (Shapes)
-    for (let i = mapStore.shapes.length - 1; i >= 0; i--) {
-      const shape = mapStore.shapes[i];
-      if (shape.locked || shape.points.length === 0) continue;
-      
-      let hit = false;
-      if (shape.type === 'rectangle' && shape.points.length > 1) {
-        const p0 = shape.points[0];
-        const p1 = shape.points[1];
-        const minX = Math.min(p0.x, p1.x);
-        const maxX = Math.max(p0.x, p1.x);
-        const minY = Math.min(p0.y, p1.y);
-        const maxY = Math.max(p0.y, p1.y);
-        if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
-          hit = true;
-        }
-      } else if (shape.type === 'circle' && shape.points.length > 1) {
-        const p0 = shape.points[0];
-        const p1 = shape.points[1];
-        const r = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-        const dist = Math.hypot(x - p0.x, y - p0.y);
-        if (dist <= r) {
-          hit = true;
-        }
-      } else if (shape.type === 'polygon') {
-        let isInside = false;
-        const pts = shape.points;
-        for (let idx = 0, jdx = pts.length - 1; idx < pts.length; jdx = idx++) {
-          const xi = pts[idx].x, yi = pts[idx].y;
-          const xj = pts[jdx].x, yj = pts[jdx].y;
-          const intersect = ((yi > y) !== (yj > y))
-              && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-          if (intersect) isInside = !isInside;
-        }
-        if (isInside) {
-          hit = true;
-        }
-      }
-      
-      if (!hit) {
-        for (const p of shape.points) {
-          if (Math.hypot(p.x - x, p.y - y) < 20) {
+    if (mapStore.layerVisibility?.shapes !== false && !mapStore.layerLocked?.shapes) {
+      for (let i = mapStore.shapes.length - 1; i >= 0; i--) {
+        const shape = mapStore.shapes[i];
+        if (shape.locked || shape.points.length === 0) continue;
+        
+        let hit = false;
+        if (shape.type === 'rectangle' && shape.points.length > 1) {
+          const p0 = shape.points[0];
+          const p1 = shape.points[1];
+          const minX = Math.min(p0.x, p1.x);
+          const maxX = Math.max(p0.x, p1.x);
+          const minY = Math.min(p0.y, p1.y);
+          const maxY = Math.max(p0.y, p1.y);
+          if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
             hit = true;
-            break;
+          }
+        } else if (shape.type === 'circle' && shape.points.length > 1) {
+          const p0 = shape.points[0];
+          const p1 = shape.points[1];
+          const r = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          const dist = Math.hypot(x - p0.x, y - p0.y);
+          if (dist <= r) {
+            hit = true;
+          }
+        } else if (shape.type === 'polygon') {
+          let isInside = false;
+          const pts = shape.points;
+          for (let idx = 0, jdx = pts.length - 1; idx < pts.length; jdx = idx++) {
+            const xi = pts[idx].x, yi = pts[idx].y;
+            const xj = pts[jdx].x, yj = pts[jdx].y;
+            const intersect = ((yi > y) !== (yj > y))
+                && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) isInside = !isInside;
+          }
+          if (isInside) {
+            hit = true;
           }
         }
-      }
-      
-      if (hit) {
-        return { type: 'shape' as const, id: shape.id, x: shape.points[0].x, y: shape.points[0].y };
+        
+        if (!hit) {
+          for (const p of shape.points) {
+            if (Math.hypot(p.x - x, p.y - y) < 20) {
+              hit = true;
+              break;
+            }
+          }
+        }
+        
+        if (hit) {
+          return { type: 'shape' as const, id: shape.id, x: shape.points[0].x, y: shape.points[0].y };
+        }
       }
     }
 
     // 2. Tampons (Stamps), par ordre inverse d'affichage (les plus hauts d'abord)
-    const sortedStamps = [...mapStore.stamps].sort((a, b) => b.y - a.y);
-    for (const stamp of sortedStamps) {
-      if (stamp.locked) continue;
-      let w = 80;
-      let h = 80;
-      if (stamp.type.startsWith('td_')) {
-        w = 80 * stamp.scale;
-        h = 80 * stamp.scale;
-      } else {
-        const img = assetCache.get(`stamp_${stamp.type}`);
-        if (img) {
-          w = img.width * stamp.scale;
-          h = img.height * stamp.scale;
+    if (mapStore.layerVisibility?.stamps !== false && !mapStore.layerLocked?.stamps) {
+      const sortedStamps = [...mapStore.stamps].sort((a, b) => b.y - a.y);
+      for (const stamp of sortedStamps) {
+        if (stamp.locked) continue;
+        let w = 80;
+        let h = 80;
+        if (stamp.type.startsWith('td_')) {
+          w = 80 * stamp.scale;
+          h = 80 * stamp.scale;
         } else {
-          continue;
+          const img = assetCache.get(`stamp_${stamp.type}`);
+          if (img) {
+            w = img.width * stamp.scale;
+            h = img.height * stamp.scale;
+          } else {
+            continue;
+          }
         }
-      }
-      const halfW = w / 2;
-      const halfH = h / 2;
-      // Collision AABB orientée (simplifiée)
-      if (x >= stamp.x - halfW && x <= stamp.x + halfW && y >= stamp.y - halfH && y <= stamp.y + halfH) {
-        return { type: 'stamp' as const, id: stamp.id, x: stamp.x, y: stamp.y };
+        const halfW = w / 2;
+        const halfH = h / 2;
+        // Collision AABB orientée (simplifiée)
+        if (x >= stamp.x - halfW && x <= stamp.x + halfW && y >= stamp.y - halfH && y <= stamp.y + halfH) {
+          return { type: 'stamp' as const, id: stamp.id, x: stamp.x, y: stamp.y };
+        }
       }
     }
 
@@ -3221,6 +3262,17 @@
       }
       if (k === 'r') {
         mapStore.showRulers = !mapStore.showRulers;
+        return;
+      }
+      if (k === 'z') {
+        mapStore.zenMode = !mapStore.zenMode;
+        mapStore.showPanel = !mapStore.zenMode;
+        return;
+      }
+      if (k === '?' || e.key === 'F1') {
+        e.preventDefault();
+        mapStore.showShortcutsModal = true;
+        return;
       }
     }
   }

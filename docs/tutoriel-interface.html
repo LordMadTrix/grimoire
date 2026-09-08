@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel Interactif de l'Interface & Éditeur Markdown — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif complet de l'interface de Grimoire : éditeur de notes, barre de raccourcis Markdown, explorateur de coffre et outils MJ.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    /* Hotspots sur image */
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">TUTORIEL INTERFACE</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="tutoriel-graphe.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🕸️ Graphe
+      </a>
+      <a href="tutoriel-timeline.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📜 Timeline
+      </a>
+      <a href="tutoriel-calendrier.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📅 Calendrier
+      </a>
+      <a href="tutorial.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Manuel
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Guide Visuel & Pratique
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        Prise en main de l'Interface & de l'Éditeur
+      </h1>
+      <p class="text-gray-300 text-base md:text-lg max-w-3xl leading-relaxed">
+        Découvrez en détail l'écran de travail de <strong>Grimoire</strong> : comment organiser vos notes de campagne, naviguer dans votre univers, utiliser l'IA locale et exploiter la <strong>toute nouvelle barre de raccourcis Markdown cliquables</strong>.
+      </p>
+    </div>
+
+    <!-- Screenshot Interactif avec Hotspots -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+          <span>🖼️</span> Écran Décrypté (Cliquez sur un numéro)
+        </h2>
+        <span class="text-xs text-gray-400">5 zones interactives identifiées</span>
+      </div>
+
+      <div class="relative rounded-2xl overflow-hidden border border-grimoire-border shadow-2xl bg-black">
+        <img src="interface_editor.png" alt="Interface Grimoire Éditeur Markdown" class="w-full h-auto block select-none">
+
+        <!-- Hotspot 1: Barre Supérieure -->
+        <a href="#zone-1" class="hotspot-btn" style="top: 3.5%; left: 35%;" title="Zone 1 : Barre Supérieure & Navigation">
+          <div class="hotspot-pulse"></div>1
+        </a>
+
+        <!-- Hotspot 2: Explorateur Gauche -->
+        <a href="#zone-2" class="hotspot-btn" style="top: 35%; left: 7%;" title="Zone 2 : Panneau Latéral & Coffre (Vault)">
+          <div class="hotspot-pulse"></div>2
+        </a>
+
+        <!-- Hotspot 3: En-tête de Note & IA -->
+        <a href="#zone-3" class="hotspot-btn" style="top: 14%; left: 91%;" title="Zone 3 : En-tête de Note & IA Ollama">
+          <div class="hotspot-pulse"></div>3
+        </a>
+
+        <!-- Hotspot 4: Barre Markdown cliquable -->
+        <a href="#zone-4" class="hotspot-btn" style="top: 19%; left: 52%;" title="Zone 4 : Barre d'Outils Markdown Cliquable">
+          <div class="hotspot-pulse"></div>4
+        </a>
+
+        <!-- Hotspot 5: Éditeur CodeMirror & Statut -->
+        <a href="#zone-5" class="hotspot-btn" style="top: 60%; left: 55%;" title="Zone 5 : Éditeur Texte & Barre de Statut">
+          <div class="hotspot-pulse"></div>5
+        </a>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+        <a href="#zone-1" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">①</span> Navigation Haute
+        </a>
+        <a href="#zone-2" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">②</span> Panneau Latéral
+        </a>
+        <a href="#zone-3" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">③</span> En-tête & IA
+        </a>
+        <a href="#zone-4" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">④</span> Barre Markdown
+        </a>
+        <a href="#zone-5" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">⑤</span> Éditeur & Mots
+        </a>
+      </div>
+    </section>
+
+    <!-- Zone 1 -->
+    <section id="zone-1" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-6 card-hover">
+      <div class="flex items-center gap-3 border-b border-gray-800 pb-4">
+        <div class="w-8 h-8 rounded-full bg-grimoire-accent text-black font-black flex items-center justify-center text-sm">1</div>
+        <h2 class="text-2xl font-bold text-white">Barre Supérieure : Navigation Globale & Horloge de Campagne</h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 text-sm">
+        <div class="space-y-2">
+          <h3 class="font-semibold text-grimoire-accent flex items-center gap-1.5">
+            <span>🎮</span> Modes Principaux
+          </h3>
+          <ul class="space-y-1.5 text-gray-300">
+            <li><strong>🗺️ Carte & Vue :</strong> Table Virtuelle (VTT) avec grille hexagonale ou carrée, brouillard de guerre et tokens.</li>
+            <li><strong>🎵 Ambiance :</strong> Mixeur audio spatialisé et soundscapes.</li>
+            <li><strong>👥 Joueurs :</strong> Fiches de PJ et passerelle mobile QR Code.</li>
+            <li><strong>🎲 Outils MJ :</strong> Boîte à outils (tables aléatoires, loot, PNJs).</li>
+          </ul>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="font-semibold text-grimoire-accent flex items-center gap-1.5">
+            <span>📚</span> Vues de Campagne
+          </h3>
+          <ul class="space-y-1.5 text-gray-300">
+            <li><strong>📄 Éditeur :</strong> Votre carnet de notes Markdown actif.</li>
+            <li><strong>🕸️ Graphe :</strong> Vue interactive D3.js en toile d'araignée reliant vos PNJ, lieux et intrigues.</li>
+            <li><strong>⏳ Timeline :</strong> Frise chronologique d'événements historiques.</li>
+            <li><strong>📅 Calendrier :</strong> Calendrier d'univers avec gestion du temps.</li>
+          </ul>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="font-semibold text-grimoire-accent flex items-center gap-1.5">
+            <span>⏱️</span> Contrôle Immédiat
+          </h3>
+          <ul class="space-y-1.5 text-gray-300">
+            <li><strong>🎲 Dé 3D :</strong> Lanceur de dés physiques en overlay.</li>
+            <li><strong>🎧 Ambiance :</strong> Piste sonore active et mute instantané.</li>
+            <li><strong>⏰ Horloge interactive :</strong> Boutons <code>+1h</code> et <code>+1j</code> pour incrémenter le temps en direct durant la séance.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zone 2 -->
+    <section id="zone-2" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-6 card-hover">
+      <div class="flex items-center gap-3 border-b border-gray-800 pb-4">
+        <div class="w-8 h-8 rounded-full bg-grimoire-accent text-black font-black flex items-center justify-center text-sm">2</div>
+        <h2 class="text-2xl font-bold text-white">Panneau Latéral Gauche : Coffre (Vault) & Fichiers</h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 text-sm">
+        <div class="space-y-3">
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+            <div class="font-semibold text-white flex items-center gap-2">
+              <span>📁</span> Explorateur de Documents
+            </div>
+            <p class="text-gray-400">
+              Votre campagne réside dans un dossier local sécurisé. Le champ de filtre permet de retrouver n'importe quel fichier instantanément.
+            </p>
+            <ul class="space-y-1 text-gray-300">
+              <li><strong>• RÉCENTS :</strong> Accès direct aux dernières fiches consultées (ex. <em>1er jour</em>, <em>test</em>).</li>
+              <li><strong>• ASSETS :</strong> Vos images de battlemaps, portraits, pistes audio et tokens.</li>
+              <li><strong>• NOTES :</strong> Arborescence de vos fichiers <code>.md</code> de lore et scénarios.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+            <div class="font-semibold text-white flex items-center gap-2">
+              <span>🚀</span> Boutons d'Action Rapide (Bas Gauche)
+            </div>
+            <ul class="space-y-2 text-gray-300">
+              <li><strong>🗺️ Éditeur de Cartes :</strong> Lance l'application autonome pour concevoir vos cartes quadrillées.</li>
+              <li><strong>📺 Lancer Vue Joueurs :</strong> Ouvre une seconde fenêtre propre pour téléviseur ou projecteur.</li>
+              <li><strong>📄 Nouveau / 🔄 Réindexer :</strong> Crée une note ou actualise le moteur FTS5.</li>
+              <li><strong>🌌 Bibliothèque Céleste :</strong> Téléchargez des modules, packs audio et aventures prêtes à jouer.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zone 3 -->
+    <section id="zone-3" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-6 card-hover">
+      <div class="flex items-center gap-3 border-b border-gray-800 pb-4">
+        <div class="w-8 h-8 rounded-full bg-grimoire-accent text-black font-black flex items-center justify-center text-sm">3</div>
+        <h2 class="text-2xl font-bold text-white">En-tête de Note, Assistant IA & Outils d'Export</h2>
+      </div>
+
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-2">
+            <span>🔗</span> Rétroliens (Backlinks)
+          </div>
+          <p class="text-gray-300 text-xs leading-relaxed">
+            Le compteur indique combien d'autres notes citent ce document via des <code>[[liens]]</code>. Un clic ouvre la liste des citations.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-2">
+            <span>🪄</span> Ollama (IA Locale)
+          </div>
+          <p class="text-gray-300 text-xs leading-relaxed">
+            Générez des PNJ, résumez une session ou enrichissez un lieu sans connexion internet ni abonnement cloud (raccourci <code>Ctrl+J</code>).
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-2">
+            <span>🖋️</span> Masquer / Afficher la Barre
+          </div>
+          <p class="text-gray-300 text-xs leading-relaxed">
+            Permet de basculer la visibilité de la barre de raccourcis Markdown selon que vous préférez un mode épuré ou guidé.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-2">
+            <span>👁️</span> Aperçu Rendu
+          </div>
+          <p class="text-gray-300 text-xs leading-relaxed">
+            Bascule en affichage scindé ou plein écran avec mise en page finale : tableaux stylisés, images, callouts et cases cochées.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-2">
+            <span>🖨️</span> Exporter en PDF
+          </div>
+          <p class="text-gray-300 text-xs leading-relaxed">
+            Génère une version imprimable élégante avec typographie soignée, prête à emporter autour d'une vraie table de jeu.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-2">
+            <span>💾</span> Sauvegarde Rapide
+          </div>
+          <p class="text-gray-300 text-xs leading-relaxed">
+            Sauvegarde manuelle immédiate avec <code>Ctrl+S</code> (une auto-sauvegarde transparente opère également toutes les 1,5 secondes).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zone 4 : Barre de formatage Markdown cliquable -->
+    <section id="zone-4" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-8 bg-gradient-to-b from-grimoire-card via-black/40 to-transparent">
+      <div class="flex items-center gap-3 border-b border-gray-800 pb-4">
+        <div class="w-8 h-8 rounded-full bg-grimoire-accent text-black font-black flex items-center justify-center text-sm">4</div>
+        <div>
+          <h2 class="text-2xl font-bold text-white">Barre d'Outils Markdown Cliquable (Guide Exhaustif)</h2>
+          <p class="text-xs text-grimoire-accent font-medium mt-0.5">Cliquez sur n'importe quel bouton ci-dessous pour tester son insertion dans la démo en direct !</p>
+        </div>
+      </div>
+
+      <!-- Table des raccourcis cliquables -->
+      <div class="grid md:grid-cols-2 gap-6 text-sm">
+        
+        <!-- Colonne Gauche -->
+        <div class="space-y-4">
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/5 space-y-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span class="text-grimoire-accent">✏️</span> Formatage & Typographie
+            </h3>
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono font-bold text-white">B (Gras)</span>
+                <span class="text-gray-400">Encapsule avec <code>**texte**</code> (Raccourci <code>Ctrl+B</code>)</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono italic text-white">I (Italique)</span>
+                <span class="text-gray-400">Encapsule avec <code>*texte*</code> (Raccourci <code>Ctrl+I</code>)</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono line-through text-white">S (Barré)</span>
+                <span class="text-gray-400">Encapsule avec <code>~~texte~~</code></span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-grimoire-accent bg-grimoire-accent/20 px-1 rounded">H (Surligné)</span>
+                <span class="text-gray-400">Encapsule avec <code>==texte==</code></span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-sky-400">&lt;/&gt; (Code)</span>
+                <span class="text-gray-400">Formate en <code>`code en ligne`</code></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/5 space-y-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span class="text-grimoire-accent">📑</span> Titres & Listes
+            </h3>
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-grimoire-accent font-bold">H1, H2, H3, H4</span>
+                <span class="text-gray-400">Ajoute ou permute les dièses <code>#</code> de niveau de titre</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-white">☰ Puces</span>
+                <span class="text-gray-400">Insère une puce <code>- élément</code> avec indentation</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-white">🔢 1. 2. 3.</span>
+                <span class="text-gray-400">Numérotation ordonnée séquentielle</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-emerald-400 font-bold">☑ Tâche</span>
+                <span class="text-gray-400">Case à cocher interactive <code>- [ ]</code> cochable d'un clic</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonne Droite -->
+        <div class="space-y-4">
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/5 space-y-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span class="text-grimoire-accent">🎲</span> Outils Spécifiques au Maître du Jeu
+            </h3>
+            <div class="space-y-2 text-xs">
+              <div class="p-2 rounded-lg bg-white/5 space-y-1">
+                <div class="font-bold text-white flex items-center gap-1.5">
+                  <span>🎲</span> Tirage d6 (Table Aléatoire)
+                </div>
+                <p class="text-gray-400">Génère un tableau Markdown prêt pour 6 rencontres, pièges ou péripéties imprévues.</p>
+              </div>
+
+              <div class="p-2 rounded-lg bg-white/5 space-y-1">
+                <div class="font-bold text-white flex items-center gap-1.5">
+                  <span>🗣️</span> Récit MJ (Narration Joueurs)
+                </div>
+                <p class="text-gray-400">Bloc <code>&gt; 🗣️ **À voix haute :**</code> à lire directement aux joueurs lors de leur entrée en scène.</p>
+              </div>
+
+              <div class="p-2 rounded-lg bg-white/5 space-y-1">
+                <div class="font-bold text-white flex items-center gap-1.5">
+                  <span>🔒</span> Secret MJ (Callout Secret)
+                </div>
+                <p class="text-gray-400">Encadré <code>&gt; [!SECRET]</code> contenant les indices cachés et portes dérobées.</p>
+              </div>
+
+              <div class="p-2 rounded-lg bg-white/5 space-y-1">
+                <div class="font-bold text-white flex items-center gap-1.5">
+                  <span>⚔️</span> Stats (Statblock rapide)
+                </div>
+                <p class="text-gray-400">Génère le canevas complet CA, PV, Vitesse, Attributs et Attaque pour une créature.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/5 space-y-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span class="text-grimoire-accent">🔗</span> Liens, Médias & Commentaires
+            </h3>
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-grimoire-accent font-semibold">🔗 [[Note]]</span>
+                <span class="text-gray-400">Rétrolien Grimoire instantané (<code>Ctrl+K</code>)</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-sky-400">🌐 Lien</span>
+                <span class="text-gray-400">Lien externe <code>[Titre](URL)</code></span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-white">🖼️ Image</span>
+                <span class="text-gray-400">Insertion d'image <code>![Alt](assets/...)</code></span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-gray-400">👁️‍🗨️ %% Note MJ</span>
+                <span class="text-gray-400">Texte commentaire invisible dans le rendu final</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bac à Sable Démo Interactive -->
+      <div class="p-6 rounded-2xl bg-black/70 border border-grimoire-accent/40 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="font-bold text-white text-sm flex items-center gap-2">
+            <span>⚡</span> Bac à sable interactif (Essayez les clics ci-dessous) :
+          </div>
+          <button id="resetDemoBtn" class="text-xs text-gray-400 hover:text-grimoire-accent transition-colors">↺ Réinitialiser l'exemple</button>
+        </div>
+
+        <!-- Fausse toolbar interactive -->
+        <div class="flex flex-wrap gap-1.5 p-2 rounded-xl bg-gray-900/80 border border-white/10 text-xs">
+          <button onclick="demoInsert('**Texte en gras**')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black font-bold transition-all">B</button>
+          <button onclick="demoInsert('*Texte en italique*')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black italic transition-all">I</button>
+          <button onclick="demoInsert('==Texte surligné==')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black text-grimoire-accent font-semibold transition-all">H</button>
+          <button onclick="demoInsert('## Nouveau Titre')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black font-mono transition-all">H2</button>
+          <button onclick="demoInsert('- [ ] Objectif de quête')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black transition-all">☑ Tâche</button>
+          <button onclick="demoInsert('\n| d6 | Événement |\n| :-: | --------- |\n| 1 | Piège |\n| 2 | Monstre |\n')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black transition-all">🎲 Tirage d6</button>
+          <button onclick="demoInsert('\n> 🗣️ **À voix haute pour les joueurs :**\n> *Une odeur de souffre emplit le couloir...*\n')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black transition-all">🗣️ Récit MJ</button>
+          <button onclick="demoInsert('[[NomDuLieu]]')" class="px-2.5 py-1 rounded bg-grimoire-accent/10 text-grimoire-accent hover:bg-grimoire-accent hover:text-black font-semibold transition-all">🔗 [[Note]]</button>
+        </div>
+
+        <textarea id="demoEditor" rows="6" class="w-full bg-black/60 border border-white/10 rounded-xl p-3 font-mono text-sm text-gray-200 focus:border-grimoire-accent focus:outline-none focus:ring-1 focus:ring-grimoire-accent transition-all"></textarea>
+      </div>
+
+    </section>
+
+    <!-- Zone 5 -->
+    <section id="zone-5" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-6 card-hover">
+      <div class="flex items-center gap-3 border-b border-gray-800 pb-4">
+        <div class="w-8 h-8 rounded-full bg-grimoire-accent text-black font-black flex items-center justify-center text-sm">5</div>
+        <h2 class="text-2xl font-bold text-white">Zone d'Écriture CodeMirror 6 & Barre d'État</h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 text-sm">
+        <div class="space-y-3">
+          <h3 class="font-semibold text-grimoire-accent">Prise de notes fluide & sans distractions</h3>
+          <p class="text-gray-300 leading-relaxed">
+            Le cœur de l'éditeur repose sur <strong>CodeMirror 6</strong>, garantissant une frappe instantanée sans latence, même sur des documents de plusieurs dizaines de milliers de lignes.
+          </p>
+          <ul class="space-y-1.5 text-gray-300 text-xs">
+            <li>• <strong>Numérotation des lignes :</strong> Repérage immédiat lors de la lecture d'un scénario.</li>
+            <li>• <strong>Cases à cocher interactives :</strong> Les cases <code>- [ ]</code> sont rendues sous forme de boîtes cliquables directement dans le code source.</li>
+            <li>• <strong>Images intégrées :</strong> La syntaxe <code>![[plan.png]]</code> affiche la miniature directement au cœur de vos notes.</li>
+          </ul>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="font-semibold text-grimoire-accent">Statistiques en Temps Réel</h3>
+          <p class="text-gray-300 leading-relaxed">
+            La fine barre d'état située tout en bas de l'écran vous renseigne en continu :
+          </p>
+          <div class="p-3 rounded-xl bg-black/40 border border-white/5 font-mono text-xs text-gray-400 flex items-center gap-3">
+            <span>20 mots</span>
+            <span>·</span>
+            <span>120 caractères</span>
+            <span>·</span>
+            <span class="text-grimoire-accent font-semibold">Bienvenue.md</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Guide Pratique : Première Séance -->
+    <section class="glass p-8 md:p-10 rounded-3xl border border-white/5 space-y-6">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>🧙‍♂️</span> Workflow Recommandé pour Votre Première Session
+      </h2>
+
+      <div class="grid sm:grid-cols-3 gap-6 text-sm">
+        <div class="p-5 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+          <div class="text-grimoire-accent font-black text-xl">ÉTAPE 1</div>
+          <h3 class="font-bold text-white">Créez votre Trame</h3>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Cliquez sur <strong>📄 Nouveau</strong>, nommez votre note <code>Session 1.md</code>. Utilisez les boutons <strong>H2</strong> pour découper vos scènes et <strong>🗣️ Récit MJ</strong> pour vos descriptions immersives.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+          <div class="text-grimoire-accent font-black text-xl">ÉTAPE 2</div>
+          <h3 class="font-bold text-white">Liez vos PNJ & Lieux</h3>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Tapez <code>[[</code> pour relier vos PNJ existants. Pour créer un PNJ à la volée, écrivez simplement <code>[[Gunnar le Forgeron]]</code> et faites <kbd>Ctrl</kbd>+<kbd>Clic</kbd> pour générer sa fiche !
+          </p>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+          <div class="text-grimoire-accent font-black text-xl">ÉTAPE 3</div>
+          <h3 class="font-bold text-white">Animez en Direct</h3>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Basculez entre l'<strong>Éditeur</strong> et la <strong>Carte & Vue</strong> en un clic. Décochez vos objectifs de quête en direct et avancez l'horloge avec <code>+1h</code> !
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer CTA -->
+    <div class="text-center py-8 space-y-4">
+      <div class="text-gray-400 text-sm">Prêt à approfondir chaque système de Grimoire ?</div>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="tutorial.html" class="px-6 py-3 rounded-xl bg-grimoire-accent text-black font-bold hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20">
+          Consulter l'Encyclopédie Complète (A à Z)
+        </a>
+        <a href="index.html" class="px-6 py-3 rounded-xl glass border border-white/10 text-white hover:border-grimoire-accent/40 transition-colors font-medium">
+          Télécharger Grimoire v0.5.0
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="glass border-t border-white/5 py-8 text-center text-xs text-gray-500">
+    <p>Grimoire © 2026 — Conçu avec passion pour les Maîtres du Jeu de Rôle.</p>
+  </footer>
+
+  <script>
+    const demoEditor = document.getElementById('demoEditor');
+    const resetDemoBtn = document.getElementById('resetDemoBtn');
+
+    const defaultContent = `# Bienvenue dans votre nouvelle aventure !
+
+Ceci est votre Grimoire. Utilisez le panneau de gauche pour créer des notes.
+
+## 🎯 Objectifs de la session :
+- [ ] Rencontrer le bourgmestre de [[Karak-Azgal]]
+- [ ] Enquêter sur la disparition des caravanes
+
+> 🗣️ **À voix haute pour les joueurs :**
+> *La porte de la taverne grince alors qu'une silhouette encapuchonnée s'avance...*`;
+
+    demoEditor.value = defaultContent;
+
+    resetDemoBtn.addEventListener('click', () => {
+      demoEditor.value = defaultContent;
+    });
+
+    window.demoInsert = function(text) {
+      const start = demoEditor.selectionStart;
+      const end = demoEditor.selectionEnd;
+      const val = demoEditor.value;
+      demoEditor.value = val.substring(0, start) + text + val.substring(end);
+      demoEditor.focus();
+      demoEditor.selectionStart = demoEditor.selectionEnd = start + text.length;
+    };
+  </script>
+
+</body>
+</html>

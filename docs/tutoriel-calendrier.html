@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel du Calendrier Fantastique — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif du Calendrier Fantastique de Grimoire : gérez le passage des jours, des lunes et des années dans votre univers de jeu de rôle.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">CALENDRIER</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <a href="tutoriel-interface.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🖋️ Éditeur
+      </a>
+      <a href="tutoriel-graphe.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🕸️ Graphe
+      </a>
+      <a href="tutoriel-timeline.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📜 Timeline
+      </a>
+      <a href="tutorial.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Manuel
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Gestion du Temps Fantastique
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        Le Calendrier d'Univers & Cycles Lunaires
+      </h1>
+      <p class="text-gray-300 text-base md:text-lg max-w-3xl leading-relaxed">
+        Gérez le temps en jeu avec précision : faites défiler les <strong>12 Lunes de l'année</strong>, suivez les jours de la semaine, notez les fêtes saintes ou les pleines lunes, et calibrez le temps écoulé entre vos expéditions.
+      </p>
+    </div>
+
+    <!-- Screenshot Interactif avec Hotspots -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+          <span>📅</span> L'Écran Calendrier Décrypté
+        </h2>
+        <span class="text-xs text-gray-400">Cliquez sur un marqueur pour explorer</span>
+      </div>
+
+      <div class="relative rounded-2xl overflow-hidden border border-grimoire-border shadow-2xl bg-black">
+        <img src="interface_calendrier.png" alt="Interface Calendrier Fantastique Grimoire" class="w-full h-auto block select-none">
+
+        <!-- Hotspot 1: Onglet Calendrier actif -->
+        <a href="#cal-tab" class="hotspot-btn" style="top: 7%; left: 66%;" title="Zone 1 : Onglet Calendrier Actif">
+          <div class="hotspot-pulse"></div>1
+        </a>
+
+        <!-- Hotspot 2: Affichage Date & Lune -->
+        <a href="#cal-date" class="hotspot-btn" style="top: 21%; left: 57%;" title="Zone 2 : Date Principale & Cycle Lunaire">
+          <div class="hotspot-pulse"></div>2
+        </a>
+
+        <!-- Hotspot 3: Contrôles Temporels -->
+        <a href="#cal-controls" class="hotspot-btn" style="top: 29%; left: 57%;" title="Zone 3 : Commandes d'Avance / Recul Temporel">
+          <div class="hotspot-pulse"></div>3
+        </a>
+
+        <!-- Hotspot 4: Événements Mensuels -->
+        <a href="#cal-events" class="hotspot-btn" style="top: 34%; left: 57%;" title="Zone 4 : Événements du Mois & Bouton +">
+          <div class="hotspot-pulse"></div>4
+        </a>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        <a href="#cal-tab" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">①</span> Onglet Calendrier
+        </a>
+        <a href="#cal-date" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">②</span> Date & Lunes
+        </a>
+        <a href="#cal-controls" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">③</span> Avance & Recul
+        </a>
+        <a href="#cal-events" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">④</span> Événements du Mois
+        </a>
+      </div>
+    </section>
+
+    <!-- Démonstration Interactive en Direct -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span>✨</span> Simulateur de Calendrier Interactif (Testez en direct)
+          </h2>
+          <p class="text-gray-400 text-xs mt-1">
+            Interagissez directement avec le moteur temporel de Grimoire ci-dessous :
+          </p>
+        </div>
+      </div>
+
+      <!-- Live Calendar Widget -->
+      <div class="p-8 rounded-2xl bg-black/60 border border-white/10 max-w-2xl mx-auto space-y-6 text-center shadow-xl">
+        <div class="space-y-1">
+          <div id="sim-dayname" class="text-xs uppercase tracking-widest text-grimoire-accent font-bold">MER</div>
+          <div class="text-3xl sm:text-4xl font-black text-white flex items-center justify-center gap-2">
+            <span id="sim-day" class="text-grimoire-accent">1</span>
+            <span class="text-gray-600 font-light">/</span>
+            <span id="sim-month" class="italic">Première Lune</span>
+            <span class="text-gray-600 font-light">/</span>
+            <span id="sim-year" class="text-gray-400 text-2xl font-normal">An 1432</span>
+          </div>
+        </div>
+
+        <!-- Boutons de saut -->
+        <div class="flex flex-wrap justify-center gap-2 sm:gap-4 text-xs font-mono">
+          <div class="inline-flex rounded-xl bg-gray-900 border border-white/10 p-1 gap-1">
+            <button onclick="simAdvance(-1)" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 transition-colors" title="-1 jour">◀ J</button>
+            <button onclick="simAdvance(-7)" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 transition-colors" title="-7 jours">◀ S</button>
+            <button onclick="simAdvance(-30)" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 transition-colors" title="-1 mois">◀ M</button>
+          </div>
+          <div class="inline-flex rounded-xl bg-gray-900 border border-white/10 p-1 gap-1">
+            <button onclick="simAdvance(1)" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 transition-colors" title="+1 jour">J ▶</button>
+            <button onclick="simAdvance(7)" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 transition-colors" title="+7 jours">S ▶</button>
+            <button onclick="simAdvance(30)" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 transition-colors" title="+1 mois">M ▶</button>
+          </div>
+        </div>
+
+        <!-- Événements du mois simulé -->
+        <div class="pt-4 border-t border-white/10 text-left space-y-3">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span class="font-bold text-white uppercase tracking-wider">Événements enregistrés pour ce mois :</span>
+            <span id="event-count" class="text-grimoire-accent font-mono">2 événements</span>
+          </div>
+          <div id="sim-events-list" class="space-y-2 text-xs">
+            <!-- Injecté en JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Les 12 Lunes du Grimoire -->
+    <section id="cal-date" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-6 card-hover">
+      <div class="border-b border-gray-800 pb-3">
+        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+          <span>🌙</span> Les 12 Lunes & le Cycle Annuel de Grimoire
+        </h2>
+        <p class="text-gray-400 text-xs mt-1">L'année compte 360 jours divisés en 12 mois lunaires réguliers de 30 jours chacun :</p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-xs">
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">1. Première Lune</div>
+          <div class="text-gray-400">Renouveau, fin de l'hiver</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">2. Lune de Gel</div>
+          <div class="text-gray-400">Grands froids et neige</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">3. Lune de Fonte</div>
+          <div class="text-gray-400">Crues des rivières, dégel</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">4. Lune des Pluies</div>
+          <div class="text-gray-400">Averses printanières</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">5. Lune de Croissance</div>
+          <div class="text-gray-400">Semis et renaissance</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">6. Lune de Feu</div>
+          <div class="text-gray-400">Solstice d'été, chaleur</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">7. Lune de Moisson</div>
+          <div class="text-gray-400">Récoltes et marchés</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">8. Lune des Vents</div>
+          <div class="text-gray-400">Tempêtes d'automne</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">9. Lune d'Ambre</div>
+          <div class="text-gray-400">Chute des feuilles dorées</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">10. Lune de Brume</div>
+          <div class="text-gray-400">Brouillard et mystères</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">11. Lune Froide</div>
+          <div class="text-gray-400">Givre et début d'hiver</div>
+        </div>
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div class="text-grimoire-accent font-bold">12. Lune de Nuit</div>
+          <div class="text-gray-400">Solstice d'hiver, ténèbres</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zone 3 : Commandes & Gestion du Temps -->
+    <section id="cal-controls" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-4 card-hover">
+      <div class="border-b border-gray-800 pb-3">
+        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+          <span>⚡</span> Pourquoi Suivre le Temps en Campagne ?
+        </h2>
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-1.5">
+            <span>🏕️</span> Repos & Ravitaillement
+          </div>
+          <p class="text-gray-300">
+            Savoir exactement combien de rations les aventuriers ont consommées durant leur voyage de 7 jours (<code>S ▶</code>) vers les montagnes.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-1.5">
+            <span>⏳</span> Comptes à Rebours & Échéances
+          </div>
+          <p class="text-gray-300">
+            Le rituel du culte maléfique aura lieu lors de la prochaine <em>Lune de Feu</em>. Les joueurs voient les jours s'égrener inexorablement.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1.5">
+          <div class="font-bold text-grimoire-accent flex items-center gap-1.5">
+            <span>🧙‍♂️</span> Convalescence & Études
+          </div>
+          <p class="text-gray-300">
+            Gestion des temps morts entre les actes : apprentissage d'un sortilège, forge d'une armure ou guérison d'une blessure critique.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation entre guides -->
+    <div class="text-center py-8 space-y-4">
+      <div class="text-gray-400 text-sm">Complétez votre maîtrise de Grimoire avec les 3 autres guides visuels :</div>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="tutoriel-interface.html" class="px-6 py-3 rounded-xl bg-grimoire-accent text-black font-bold hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20">
+          🖋️ Éditeur & Raccourcis Markdown
+        </a>
+        <a href="tutoriel-graphe.html" class="px-6 py-3 rounded-xl glass border border-white/10 text-white hover:border-grimoire-accent/40 transition-colors font-medium">
+          🕸️ Vue Graphe 2D
+        </a>
+        <a href="tutoriel-timeline.html" class="px-6 py-3 rounded-xl glass border border-white/10 text-white hover:border-grimoire-accent/40 transition-colors font-medium">
+          📜 Frise Chronologique
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="glass border-t border-white/5 py-8 text-center text-xs text-gray-500">
+    <p>Grimoire © 2026 — Conçu avec passion pour les Maîtres du Jeu de Rôle.</p>
+  </footer>
+
+  <script>
+    const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    const MONTHS = [
+      'Première Lune', 'Lune de Gel', 'Lune de Fonte',
+      'Lune des Pluies', 'Lune de Croissance', 'Lune de Feu',
+      'Lune de Moisson', 'Lune des Vents', 'Lune d\'Ambre',
+      'Lune de Brume', 'Lune Froide', 'Lune de Nuit'
+    ];
+    const DAYS_PER_MONTH = 30;
+    const MONTHS_PER_YEAR = 12;
+
+    let cal = {
+      day: 1,
+      month: 1,
+      year: 1432,
+      events: [
+        { day: 1, month: 1, year: 1432, title: "Départ de l'auberge", type: "session", icon: "📅" },
+        { day: 15, month: 1, year: 1432, title: "Pleine Lune d'argent", type: "other", icon: "🌕" },
+        { day: 22, month: 2, year: 1432, title: "Bataille du Gué", type: "battle", icon: "⚔️" },
+      ]
+    };
+
+    function updateSimDisplay() {
+      const dayOfWeek = ((cal.day - 1 + (cal.month - 1) * DAYS_PER_MONTH + (cal.year - 1) * DAYS_PER_MONTH * MONTHS_PER_YEAR) % 7 + 7) % 7;
+      document.getElementById('sim-dayname').textContent = DAYS[dayOfWeek];
+      document.getElementById('sim-day').textContent = cal.day;
+      document.getElementById('sim-month').textContent = MONTHS[cal.month - 1];
+      document.getElementById('sim-year').textContent = `An ${cal.year}`;
+
+      const monthEvts = cal.events.filter(e => e.month === cal.month && e.year === cal.year);
+      document.getElementById('event-count').textContent = `${monthEvts.length} événement${monthEvts.length > 1 ? 's' : ''}`;
+
+      const listEl = document.getElementById('sim-events-list');
+      listEl.innerHTML = '';
+
+      if (monthEvts.length === 0) {
+        listEl.innerHTML = '<div class="text-gray-500 italic p-3 rounded-lg bg-white/5">Aucun événement ce mois-ci.</div>';
+      } else {
+        monthEvts.forEach(evt => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/5';
+          item.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span>${evt.icon}</span>
+              <span class="font-bold text-white">Jour ${evt.day} :</span>
+              <span class="text-gray-300">${evt.title}</span>
+            </div>
+            <span class="text-xs font-mono text-gray-500">${MONTHS[evt.month - 1]}</span>
+          `;
+          listEl.appendChild(item);
+        });
+      }
+    }
+
+    function simAdvance(days) {
+      let d = cal.day + days;
+      let m = cal.month;
+      let y = cal.year;
+      while (d > DAYS_PER_MONTH) { d -= DAYS_PER_MONTH; m++; }
+      while (m > MONTHS_PER_YEAR) { m -= MONTHS_PER_YEAR; y++; }
+      while (d < 1) { d += DAYS_PER_MONTH; m--; }
+      while (m < 1) { m += MONTHS_PER_YEAR; y--; }
+      cal.day = d; cal.month = m; cal.year = y;
+      updateSimDisplay();
+    }
+
+    updateSimDisplay();
+  </script>
+
+</body>
+</html>

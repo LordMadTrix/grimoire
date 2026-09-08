@@ -104,7 +104,14 @@ Grimoire offre trois méthodes complémentaires pour créer votre champ de batai
 - Ajustez la grille en appuyant sur la molette ou en utilisant l'outil de calibration rapide 3x3 cases.
 
 ### 2. Le Fantasy Map Editor & Pont Bidirectionnel
-Accessible via la barre d'outils ou un onglet dédié, le Map Editor vous permet de créer des cartes tactiques et régionales de haute qualité :
+Accessible via la barre d'outils ou un onglet dédié, le Map Editor vous permet de créer des cartes tactiques et régionales de haute qualité avec un confort absolu :
+- **🌟 HUD Flottant d'Actions Rapides** : Barre tactile et compacte au bas de l'écran avec accès instantané aux Presets Magiques, Ambiance, Calques, Mesure, Radar et Mode Zen.
+- **✨ Presets Magiques en 1 Clic** : Génération instantanée d'environnements complets (Auberge médiévale avec salle commune et cellier, Catacombes souterraines, Clairière des Druides avec ruisseau, Archipel tropical).
+- **🧭 Radar & Minimap Interactive** : Vue d'ensemble en temps réel en bas à droite avec cadre doré indiquant votre champ de vision (viewport) et téléportation immédiate par clic ou glissement.
+- **☀️ Atmosphère & Éclairage Dynamique** : Cycle Plein Jour, Crépuscule, Nuit de Lune, Donjon aux Torches, Brume Spectrale et Lune de Sang avec vignettage et texture parcheminée en direct.
+- **👁️ Gestionnaire de Calques (Layers)** : Affichez, masquez (👁️) ou verrouillez (🔒) indépendamment l'Arrière-plan, le Terrain, les Formes de salles, les Tampons/Objets, les Tracés, les Textes et la Grille.
+- **📐 Règle de Mesure Tactique** : Affiche en direct la distance en cases, pieds (`ft`), mètres (`m`) et pixels pour les déplacements de combat.
+- **🧘 Mode Zen (<kbd>Z</kbd>)** : Masque temporairement tous les panneaux pour libérer 100% de l'écran et dessiner dans une immersion totale.
 - **🏔️ Sculpture de Terrain & Côtes** : Pinceaux d'ajout/retrait de terre avec algorithme fractal de Perlin pour générer des îles, archipels et continents réalistes.
 - **🏰 Bibliothèque Massive de Tampons (Stamps)** : Des milliers d'assets HD (Arbres, Montagnes, Châteaux, Villes, Mobilier de Donjon, Navires).
 - **🌲 Outil Scatter (Pinceau de dispersion)** : Posez des forêts denses ou massifs rocheux d'un seul glissement sans répétition artificielle.

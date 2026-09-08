@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel de l'Éditeur de Cartes Fantastique — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif de l'Éditeur de Cartes de Grimoire : dessinez des donjons, posez des tampons, peignez des biomes et exportez directement vers la Table Virtuelle.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">MAP EDITOR</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="tutoriel-vtt.html" class="hidden md:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        ⚔️ Table Virtuelle
+      </a>
+      <a href="tutoriel-joueurs-mobile.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📱 Mobile Hub
+      </a>
+      <a href="tutorial.html" class="px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Tous les Tutos
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Cartographie & Donjons Procéduraux
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        L'Éditeur de Cartes Fantastique
+      </h1>
+      <p class="text-gray-400 text-base md:text-lg max-w-3xl leading-relaxed">
+        Concevez des auberges chaleureuses, des cryptes oubliées et des forêts denses grâce au <strong>Map Editor</strong> intégré. Profitez de milliers de tampons texturés, de pinceaux de biome, d'un générateur automatique de pièces et d'un pont bidirectionnel direct pour propulser vos créations sur la Table de Jeu en un éclair.
+      </p>
+    </div>
+
+    <!-- Interactive Screenshot Section -->
+    <section class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+            <span>🎨</span> Visite Guidée de l'Éditeur de Cartes
+          </h2>
+          <p class="text-gray-400 text-sm">Cliquez sur les numéros dorés pour analyser chaque panneau de création.</p>
+        </div>
+        <span class="text-xs text-grimoire-accent bg-grimoire-accent/10 border border-grimoire-accent/20 px-3 py-1 rounded-full hidden sm:inline-block">5 modules clés</span>
+      </div>
+
+      <!-- Screenshot with Hotspots -->
+      <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/80 group select-none">
+        <img src="interface_map_editor.png" alt="Éditeur de cartes fantastique Grimoire" class="w-full h-auto object-cover rounded-2xl block">
+
+        <!-- Hotspot 1: Outils de Peinture & Sculpture de Terrain (Sculpt Tool) -->
+        <button class="hotspot-btn" style="top: 28%; left: 8%;" onclick="highlightFeature(1)">
+          1
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 2: Pont Direct « 🐉 Envoyer vers Grimoire VTT » -->
+        <button class="hotspot-btn" style="top: 2.5%; left: 80%;" onclick="highlightFeature(2)">
+          2
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 3: Canevas de Carte Fantastique Style Parchemin -->
+        <button class="hotspot-btn" style="top: 45%; left: 52%;" onclick="highlightFeature(3)">
+          3
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 4: HUD Flottant (Presets Magiques, Ambiance, Calques, Mode Zen) -->
+        <button class="hotspot-btn" style="top: 96%; left: 50%;" onclick="highlightFeature(4)">
+          4
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 5: Radar & Minimap Interactive -->
+        <button class="hotspot-btn" style="top: 85%; left: 93%;" onclick="highlightFeature(5)">
+          5
+          <span class="hotspot-pulse"></span>
+        </button>
+      </div>
+
+      <!-- Feature Details Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="featureCards">
+        
+        <div id="card-1" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(1)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">1</span>
+            <h3 class="font-bold text-white text-base">Boîte à Outils & Brosses</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Sculpture topographique (élévation, fossés, côtes réalistes), peinture de textures de biomes, formes vectorielles et milliers de tampons texturés.
+          </p>
+        </div>
+
+        <div id="card-2" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(2)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">2</span>
+            <h3 class="font-bold text-white text-base">Pont Direct « Envoyer vers Grimoire VTT »</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            D'un seul clic sur le bouton doré supérieur <code>🐉 Envoyer vers Grimoire VTT</code>, votre monde est rendu en haute définition et injecté sur la Table de Jeu avec notification instantanée !
+          </p>
+        </div>
+
+        <div id="card-3" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(3)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">3</span>
+            <h3 class="font-bold text-white text-base">Canevas Parchemin & Rendu Vivant</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Rendu artistique authentique avec patine de vieux vélin, côtes ombrées, chaînes de montagnes hachurées et grille tactique configurable carrée ou hexagonale.
+          </p>
+        </div>
+
+        <div id="card-4" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(4)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">4</span>
+            <h3 class="font-bold text-white text-base">HUD Flottant & Presets Magiques</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Générez des cartes complètes en 1 clic (Auberge, Catacombes, Forêt, Archipel), modifiez l'ambiance (Jour/Nuit/Donjon/Brume), masquez les calques et passez en Mode Zen immersif.
+          </p>
+        </div>
+
+        <div id="card-5" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer md:col-span-2" onclick="highlightFeature(5)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">5</span>
+            <h3 class="font-bold text-white text-base">Radar & Minimap Tactique</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Naviguez instantanément sur vos cartes géantes grâce au radar miniature en bas à droite : cliquez ou glissez n'importe où sur le radar pour vous téléporter à l'autre bout de votre monde en toute fluidité.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Mini Cartography Sandbox Simulator -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-grimoire-accent/15 text-grimoire-accent text-xs font-bold uppercase tracking-wider mb-1">
+            Atelier Interactif
+          </div>
+          <h2 class="text-2xl font-bold text-white">Générateur de Salle Express</h2>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="btnGenTavern" class="px-3 py-1.5 text-xs rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-all font-semibold">
+            🍺 Salle d'Auberge
+          </button>
+          <button id="btnGenCrypt" class="px-3 py-1.5 text-xs rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition-all font-semibold">
+            💀 Crypte Antique
+          </button>
+          <button id="btnClearCanvas" class="px-3 py-1.5 text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 transition-all">
+            🗑️ Vider
+          </button>
+        </div>
+      </div>
+
+      <!-- Mini Map Canvas Simulation -->
+      <div class="relative w-full h-80 rounded-2xl overflow-hidden border border-white/10 bg-stone-950 select-none flex items-center justify-center" id="mapSimContainer">
+        <!-- Grid Canvas -->
+        <canvas id="simMapCanvas" width="900" height="320" class="w-full h-full block cursor-pointer"></canvas>
+        <div class="absolute bottom-3 right-3 text-[11px] text-gray-400 glass px-2.5 py-1 rounded-lg pointer-events-none">
+          Cliquez sur les boutons pour générer des pièces procédurales !
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Hub Footer -->
+    <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <a href="tutoriel-vtt.html" class="text-sm text-gray-400 hover:text-grimoire-accent flex items-center gap-2">
+        ← Tutoriel : Table Virtuelle (VTT)
+      </a>
+      <a href="tutoriel-joueurs-mobile.html" class="px-6 py-2.5 bg-grimoire-accent text-black font-bold rounded-xl hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20 flex items-center gap-2">
+        Tutoriel Suivant : Hub Joueurs & Mobile →
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    function highlightFeature(id) {
+      for (let i = 1; i <= 5; i++) {
+        const card = document.getElementById('card-' + i);
+        if (i === id) {
+          card.classList.add('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          card.classList.remove('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+        }
+      }
+    }
+
+    // Mini Map Drawing Canvas
+    const canvas = document.getElementById('simMapCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function drawGrid() {
+      ctx.fillStyle = "#12151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+      ctx.lineWidth = 1;
+      const step = 40;
+      for (let x = 0; x < canvas.width; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += step) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+    }
+
+    function drawTavern() {
+      drawGrid();
+      // Wooden floor
+      ctx.fillStyle = "rgba(180, 120, 60, 0.25)";
+      ctx.fillRect(160, 40, 580, 240);
+      
+      // Stone Walls
+      ctx.strokeStyle = "#8b7355";
+      ctx.lineWidth = 8;
+      ctx.strokeRect(160, 40, 580, 240);
+
+      // Bar counter
+      ctx.fillStyle = "#5c3a21";
+      ctx.fillRect(200, 70, 160, 30);
+      ctx.fillRect(330, 100, 30, 80);
+
+      // Tables
+      ctx.fillStyle = "#7a4e28";
+      ctx.beginPath(); ctx.arc(480, 100, 25, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(600, 110, 25, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(480, 210, 25, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(600, 200, 25, 0, Math.PI * 2); ctx.fill();
+
+      // Fireplace
+      ctx.fillStyle = "#e55330";
+      ctx.fillRect(420, 36, 60, 12);
+
+      // Text label
+      ctx.font = "bold 13px Outfit, sans-serif";
+      ctx.fillStyle = "#e5a853";
+      ctx.fillText("Taverne du Dragon Endormi (Générée)", 200, 260);
+    }
+
+    function drawCrypt() {
+      drawGrid();
+      // Stone floor
+      ctx.fillStyle = "rgba(70, 80, 95, 0.35)";
+      ctx.fillRect(200, 50, 500, 220);
+
+      // Dungeon Walls
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = 10;
+      ctx.strokeRect(200, 50, 500, 220);
+
+      // Sarcophagi
+      ctx.fillStyle = "#334155";
+      ctx.strokeStyle = "#64748b";
+      ctx.lineWidth = 2;
+      [260, 420, 580].forEach(x => {
+        ctx.fillRect(x, 130, 60, 100);
+        ctx.strokeRect(x, 130, 60, 100);
+      });
+
+      // Pillars
+      ctx.fillStyle = "#1e293b";
+      [300, 550].forEach(x => {
+        ctx.beginPath(); ctx.arc(x, 80, 15, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // Ambient Glow
+      ctx.font = "bold 13px Outfit, sans-serif";
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillText("Crypte des Anciens Rois (Générée)", 220, 250);
+    }
+
+    document.getElementById('btnGenTavern').onclick = drawTavern;
+    document.getElementById('btnGenCrypt').onclick = drawCrypt;
+    document.getElementById('btnClearCanvas').onclick = drawGrid;
+
+    // Initial draw
+    drawTavern();
+  </script>
+</body>
+</html>

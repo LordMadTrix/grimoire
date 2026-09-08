@@ -113,11 +113,12 @@
                 <span class="text-lg font-bold tracking-widest text-white glow-text">GRIMOIRE</span>
             </div>
             <nav class="hidden lg:flex items-center gap-8 text-sm font-medium text-gray-400">
+                <a href="#tutoriels" class="text-grimoire-accent font-semibold hover:underline">✨ Guides & Tutos</a>
                 <a href="#vtt" class="hover:text-grimoire-accent transition-colors">VTT Tactique</a>
                 <a href="#quests" class="hover:text-grimoire-accent transition-colors">Quêtes</a>
                 <a href="#mapeditor" class="hover:text-grimoire-accent transition-colors">Map Editor</a>
                 <a href="#mobile" class="hover:text-grimoire-accent transition-colors">HUB Mobile</a>
-                <a href="tutorial.html" class="text-grimoire-accent font-semibold hover:underline">📖 Manuel de A à Z</a>
+                <a href="tutorial.html" class="hover:text-white transition-colors">📖 Manuel A-Z</a>
             </nav>
             <div class="flex items-center gap-3">
                 <a href="https://www.patreon.com/cw/LordMad" target="_blank" rel="noopener" class="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass border border-[#FF424D]/40 text-[#FF424D] hover:bg-[#FF424D] hover:text-white text-xs font-bold transition-all shadow-sm">
@@ -158,16 +159,148 @@
             <a id="dl-linux" href="https://github.com/LordMadTrix/grimoire/releases/latest" class="px-8 py-4 rounded-xl glass text-white font-semibold text-lg hover:border-grimoire-accent transition-all">
                 🐧 Télécharger (Linux)
             </a>
-            <a href="tutorial.html" class="px-8 py-4 rounded-xl glass border-grimoire-accent/40 text-grimoire-accent font-bold text-lg hover:bg-grimoire-accent hover:text-black transition-all">
+            <a href="tutorial.html" class="px-6 py-4 rounded-xl glass border-grimoire-accent/40 text-grimoire-accent font-bold text-lg hover:bg-grimoire-accent hover:text-black transition-all">
                 📖 Manuel & Guide
+            </a>
+            <a href="tutoriel-interface.html" class="px-6 py-4 rounded-xl glass border-white/20 text-white font-semibold text-lg hover:border-grimoire-accent hover:text-grimoire-accent transition-all">
+                ✨ Visite de l'Interface
             </a>
         </div>
         <p class="text-gray-500 text-sm mb-16">Gratuit, open source et fièrement local. <a href="https://github.com/LordMadTrix/grimoire/releases" class="text-grimoire-accent/80 hover:text-grimoire-accent underline underline-offset-4">Toutes les versions →</a></p>
 
         <!-- Hero Image -->
-        <div class="hero-img-frame max-w-3xl w-full mb-24 reveal">
+        <div class="hero-img-frame max-w-3xl w-full mb-16 reveal">
             <img src="grimoire_hero.png" alt="Un Maître du Jeu utilise Grimoire : carte holographique tactique, grimoire enchanté et HUB mobile" class="w-full h-auto block" width="1024" height="1024">
         </div>
+
+        <!-- 10 Interactive Tutorials Showcase Section -->
+        <section id="tutoriels" class="w-full max-w-6xl mb-24 text-left scroll-mt-28 reveal">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="h-px flex-grow bg-grimoire-accent/30"></div>
+                <h2 class="text-2xl md:text-3xl font-black text-white uppercase tracking-wider text-center flex items-center gap-3">
+                    <span>✨</span> Centre d'Apprentissage & Tutoriels Visuels
+                </h2>
+                <div class="h-px flex-grow bg-grimoire-accent/30"></div>
+            </div>
+            <p class="text-gray-400 text-sm md:text-base text-center max-w-2xl mx-auto mb-10">
+                Explorez chaque écran et fonctionnalité de Grimoire avec nos guides interactifs illustrés : pastilles dynamiques, simulateurs en direct et astuces de Maître du Jeu.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 1. VTT -->
+                <a href="tutoriel-vtt.html" class="glass p-5 rounded-2xl border border-grimoire-accent/30 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_vtt.png" alt="Table Virtuelle" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-grimoire-accent border border-grimoire-accent/30">SIMULATEUR LIVE</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>⚔️</span> Table Virtuelle (VTT) & Combat
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">Brouillard de guerre, météo & éclairage dynamique, gabarits de sorts, tokens et tracker d'initiative.</p>
+                </a>
+
+                <!-- 2. Map Editor -->
+                <a href="tutoriel-map-editor.html" class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_map_editor.png" alt="Éditeur de Cartes" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-amber-400 border border-amber-400/30">PONT VTT 1-CLIC</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>🗺️</span> Éditeur de Cartes Fantastique
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">Création de donjons procéduraux, sculpture de biomes, tampons HD et export instantané vers Grimoire.</p>
+                </a>
+
+                <!-- 3. Mobile Hub -->
+                <a href="tutoriel-joueurs-mobile.html" class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_joueurs_mobile.png" alt="Hub Joueurs Mobile" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-emerald-400 border border-emerald-400/30">QR CODE PWA</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>📱</span> Hub Joueurs & Compagnon Mobile
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">Connexion instantanée par QR code sur smartphone, dés 3D synchronisés et fiche de personnage réactive.</p>
+                </a>
+
+                <!-- 4. Interface & Editor -->
+                <a href="tutoriel-interface.html" class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_editor.png" alt="Éditeur de notes" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-cyan-400 border border-cyan-400/30">BARRE D'OUTILS</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>🖋️</span> Éditeur Wiki & Markdown Cliquable
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">20+ raccourcis visuels, callouts immersifs, tableaux de dés aléatoires et wikilinks [[Nom]].</p>
+                </a>
+
+                <!-- 5. Audio Studio -->
+                <a href="tutoriel-audio.html" class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_audio_ambiance.png" alt="Studio Audio" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-purple-400 border border-purple-400/30">300+ AMBIANCES</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>🎧</span> Studio Audio & Ambiances 2D
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">Tabletop Audio, mixeur multi-pistes, soundboard d'effets spéciaux et zones sonores spatialisées.</p>
+                </a>
+
+                <!-- 6. Celestial Library -->
+                <a href="tutoriel-bibliotheque-celeste.html" class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_bibliotheque_celeste.png" alt="Bibliothèque Céleste" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-yellow-400 border border-yellow-400/30">ADDONS STORE</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>🌌</span> Bibliothèque Céleste & Addons
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">Téléchargement 1-clic de packs de cartes 4K, bestiaires complets et modules de règles.</p>
+                </a>
+
+                <!-- 7. GM Tools & AI -->
+                <a href="tutoriel-outils-mj.html" class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_outils_mj.png" alt="Outils MJ" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-indigo-400 border border-indigo-400/30">IA OLLAMA</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>🎲</span> Outils MJ, Omnisearch & IA Locale
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">Omnisearch Ctrl+P SQLite FTS5, générateur de PNJ express, tables de butin et assistant narratif.</p>
+                </a>
+
+                <!-- 8. Graph -->
+                <a href="tutoriel-graphe.html" class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block relative overflow-hidden">
+                    <div class="aspect-video w-full rounded-xl overflow-hidden mb-4 border border-white/10 relative">
+                        <img src="interface_graphe.png" alt="Vue Graphe" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold text-emerald-400 border border-emerald-400/30">PHYSIQUE D3</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base group-hover:text-grimoire-accent transition-colors flex items-center gap-2">
+                        <span>🕸️</span> Graphe Relationnel 2D
+                    </h3>
+                    <p class="text-gray-400 text-xs mt-1">Cartographie visuelle de votre univers, factions, connexions et nœuds orphelins.</p>
+                </a>
+
+                <!-- 9. Timeline & 10. Calendar in split or span -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:col-span-2 lg:col-span-1">
+                    <a href="tutoriel-timeline.html" class="glass p-4 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block">
+                        <div class="flex items-center gap-2 font-bold text-white text-sm group-hover:text-grimoire-accent">
+                            <span>📜</span> Timeline
+                        </div>
+                        <p class="text-gray-400 text-xs mt-1">Frise chronologique filtrable par catégories.</p>
+                    </a>
+                    <a href="tutoriel-calendrier.html" class="glass p-4 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover group block">
+                        <div class="flex items-center gap-2 font-bold text-white text-sm group-hover:text-grimoire-accent">
+                            <span>📅</span> Calendrier
+                        </div>
+                        <p class="text-gray-400 text-xs mt-1">Gestion du temps impérial et des 12 lunes.</p>
+                    </a>
+                </div>
+
+            </div>
+        </section>
 
         <!-- Master Feature Sections -->
 

@@ -7,7 +7,23 @@ export default defineConfig({
   base: './',
   build: {
     outDir: '../dist/map-editor',
-    emptyOutDir: true,
+    emptyOutDir: false,
+    chunkSizeWarningLimit: 7000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('imported_stamps.json')) {
+            return 'stamps-catalog';
+          }
+          if (id.includes('imported_textures.json')) {
+            return 'textures-catalog';
+          }
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+      },
+    },
   },
   server: {
     watch: {

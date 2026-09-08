@@ -9,7 +9,7 @@
   import { oneDark } from '@codemirror/theme-one-dark';
   import { searchVault, askOllama, readFile, writeFile, openVault, readFileBase64 } from '$lib/api';
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
-  import { getVaultPath, setActiveFile, setActiveContent, setIsDirty, setVaultTree } from '$lib/stores/vault.svelte';
+  import { getVaultPath, getVaultTree, setActiveFile, setActiveContent, setIsDirty, setVaultTree } from '$lib/stores/vault.svelte';
 
   let { value = '', scrollToLine = null, onInput = () => {}, onSave = () => {} }: {
     value: string;
@@ -126,7 +126,6 @@
         results = await searchVault(query + '*', 15);
       } else {
         // Si vide, on propose les fichiers du vault localement
-        const { getVaultTree } = await import('$lib/stores/vault.svelte');
         const tree = getVaultTree();
         
         const flatten = (entries: any[], parent = ''): any[] => {
@@ -185,6 +184,446 @@
     if (!view || !text) return;
     const pos = view.state.selection.main.head;
     view.dispatch({ changes: { from: pos, insert: text }, selection: { anchor: pos + text.length } });
+  }
+
+  // ── Markdown Formatting Helpers ──────────────────────────────
+  function toggleWrap(marker: string, placeholder: string) {
+    if (!view) return;
+    const { doc, selection } = view.state;
+    const { from, to, empty } = selection.main;
+    const mLen = marker.length;
+
+    if (empty) {
+      // Check if cursor is already directly inside marker pairs: **|**
+      if (from >= mLen && to + mLen <= doc.length) {
+        const before = doc.sliceString(from - mLen, from);
+        const after = doc.sliceString(to, to + mLen);
+        if (before === marker && after === marker) {
+          view.dispatch({
+            changes: { from: from - mLen, to: to + mLen, insert: '' },
+            selection: { anchor: from - mLen }
+          });
+          return;
+        }
+      }
+      const text = marker + placeholder + marker;
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + mLen, head: from + mLen + placeholder.length },
+        scrollIntoView: true
+      });
+      return;
+    }
+
+    const selectedText = doc.sliceString(from, to);
+
+    // Case 1: selection already starts and ends with marker
+    if (selectedText.startsWith(marker) && selectedText.endsWith(marker) && selectedText.length >= mLen * 2) {
+      const unwrapped = selectedText.slice(mLen, -mLen);
+      view.dispatch({
+        changes: { from, to, insert: unwrapped },
+        selection: { anchor: from, head: from + unwrapped.length },
+        scrollIntoView: true
+      });
+      return;
+    }
+
+    // Case 2: outer characters are the marker
+    if (from >= mLen && to + mLen <= doc.length) {
+      const before = doc.sliceString(from - mLen, from);
+      const after = doc.sliceString(to, to + mLen);
+      if (before === marker && after === marker) {
+        view.dispatch({
+          changes: { from: from - mLen, to: to + mLen, insert: selectedText },
+          selection: { anchor: from - mLen, head: to - mLen },
+          scrollIntoView: true
+        });
+        return;
+      }
+    }
+
+    // Case 3: Wrap text cleanly (preserving any leading/trailing whitespace outside markers)
+    const leadSpace = selectedText.match(/^\s*/)?.[0] ?? '';
+    const trailSpace = selectedText.match(/\s*$/)?.[0] ?? '';
+    const core = selectedText.slice(leadSpace.length, selectedText.length - trailSpace.length);
+
+    if (!core) {
+      const text = marker + placeholder + marker;
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + mLen, head: from + mLen + placeholder.length },
+        scrollIntoView: true
+      });
+      return;
+    }
+
+    const wrapped = leadSpace + marker + core + marker + trailSpace;
+    view.dispatch({
+      changes: { from, to, insert: wrapped },
+      selection: {
+        anchor: from + leadSpace.length + mLen,
+        head: from + leadSpace.length + mLen + core.length
+      },
+      scrollIntoView: true
+    });
+  }
+
+  function toggleLinePrefix(prefix: string) {
+    if (!view) return;
+    const { doc, selection } = view.state;
+    const { from, to } = selection.main;
+    const startLine = doc.lineAt(from);
+    const endLine = doc.lineAt(to);
+
+    const changes = [];
+    for (let l = startLine.number; l <= endLine.number; l++) {
+      const line = doc.line(l);
+      const text = line.text;
+      const headingMatch = text.match(/^(#{1,6})\s*/);
+      if (headingMatch) {
+        const currentPrefix = headingMatch[0];
+        if (currentPrefix.trim() === prefix.trim()) {
+          // Toggle off
+          changes.push({ from: line.from, to: line.from + currentPrefix.length, insert: '' });
+        } else {
+          // Change heading level
+          changes.push({ from: line.from, to: line.from + currentPrefix.length, insert: prefix });
+        }
+      } else {
+        changes.push({ from: line.from, to: line.from, insert: prefix });
+      }
+    }
+    view.dispatch({ changes, scrollIntoView: true });
+  }
+
+  function toggleListPrefix(prefix: string) {
+    if (!view) return;
+    const { doc, selection } = view.state;
+    const { from, to } = selection.main;
+    const startLine = doc.lineAt(from);
+    const endLine = doc.lineAt(to);
+
+    const changes = [];
+    for (let l = startLine.number; l <= endLine.number; l++) {
+      const line = doc.line(l);
+      const text = line.text;
+      const listMatch = text.match(/^(\s*)([-*+]\s+(?:\[[ x]\]\s+)?|\d+\.\s+)/);
+      if (listMatch) {
+        const fullMatch = listMatch[0];
+        const indent = listMatch[1];
+        const currentMarker = fullMatch.slice(indent.length);
+        if (currentMarker.trim() === prefix.trim()) {
+          changes.push({ from: line.from + indent.length, to: line.from + fullMatch.length, insert: '' });
+        } else {
+          changes.push({ from: line.from + indent.length, to: line.from + fullMatch.length, insert: prefix });
+        }
+      } else {
+        const indentMatch = text.match(/^(\s*)/);
+        const indent = indentMatch ? indentMatch[1] : '';
+        changes.push({ from: line.from + indent.length, to: line.from + indent.length, insert: prefix });
+      }
+    }
+    view.dispatch({ changes, scrollIntoView: true });
+  }
+
+  function toggleNumberedList() {
+    if (!view) return;
+    const { doc, selection } = view.state;
+    const { from, to } = selection.main;
+    const startLine = doc.lineAt(from);
+    const endLine = doc.lineAt(to);
+
+    let allNumbered = true;
+    for (let l = startLine.number; l <= endLine.number; l++) {
+      if (!/^\s*\d+\.\s+/.test(doc.line(l).text)) {
+        allNumbered = false;
+        break;
+      }
+    }
+
+    const changes = [];
+    let count = 1;
+    for (let l = startLine.number; l <= endLine.number; l++) {
+      const line = doc.line(l);
+      const text = line.text;
+      const listMatch = text.match(/^(\s*)([-*+]\s+(?:\[[ x]\]\s+)?|\d+\.\s+)/);
+      if (allNumbered) {
+        if (listMatch) {
+          changes.push({ from: line.from + listMatch[1].length, to: line.from + listMatch[0].length, insert: '' });
+        }
+      } else {
+        const prefix = `${count}. `;
+        if (listMatch) {
+          changes.push({ from: line.from + listMatch[1].length, to: line.from + listMatch[0].length, insert: prefix });
+        } else {
+          const indentMatch = text.match(/^(\s*)/);
+          const indent = indentMatch ? indentMatch[1] : '';
+          changes.push({ from: line.from + indent.length, to: line.from + indent.length, insert: prefix });
+        }
+        count++;
+      }
+    }
+    view.dispatch({ changes, scrollIntoView: true });
+  }
+
+  function toggleBlockquote() {
+    if (!view) return;
+    const { doc, selection } = view.state;
+    const { from, to } = selection.main;
+    const startLine = doc.lineAt(from);
+    const endLine = doc.lineAt(to);
+
+    let allQuoted = true;
+    for (let l = startLine.number; l <= endLine.number; l++) {
+      if (!/^\s*>\s?/.test(doc.line(l).text)) {
+        allQuoted = false;
+        break;
+      }
+    }
+
+    const changes = [];
+    for (let l = startLine.number; l <= endLine.number; l++) {
+      const line = doc.line(l);
+      const match = line.text.match(/^(\s*)>\s?/);
+      if (allQuoted) {
+        if (match) {
+          changes.push({ from: line.from + match[1].length, to: line.from + match[0].length, insert: '' });
+        }
+      } else {
+        changes.push({ from: line.from, to: line.from, insert: '> ' });
+      }
+    }
+    view.dispatch({ changes, scrollIntoView: true });
+  }
+
+  export function applyFormat(type: string) {
+    if (!view) return;
+    const state = view.state;
+    const { doc, selection } = state;
+    const { from, to, empty } = selection.main;
+    const selectedText = doc.sliceString(from, to);
+
+    switch (type) {
+      case 'bold':
+        toggleWrap('**', 'texte en gras');
+        break;
+      case 'italic':
+        toggleWrap('*', 'texte en italique');
+        break;
+      case 'strike':
+        toggleWrap('~~', 'texte barré');
+        break;
+      case 'highlight':
+        toggleWrap('==', 'texte surligné');
+        break;
+      case 'inline-code':
+        toggleWrap('`', 'code');
+        break;
+      case 'wikilink':
+        if (empty) {
+          const insertText = '[[Nouvelle Note]]';
+          view.dispatch({
+            changes: { from, to, insert: insertText },
+            selection: { anchor: from + 2, head: from + 15 },
+            scrollIntoView: true
+          });
+        } else if (selectedText.startsWith('[[') && selectedText.endsWith(']]')) {
+          const unwrapped = selectedText.slice(2, -2);
+          view.dispatch({
+            changes: { from, to, insert: unwrapped },
+            selection: { anchor: from, head: from + unwrapped.length },
+            scrollIntoView: true
+          });
+        } else {
+          view.dispatch({
+            changes: { from, to, insert: `[[${selectedText}]]` },
+            selection: { anchor: from + 2, head: to + 2 },
+            scrollIntoView: true
+          });
+        }
+        break;
+      case 'link':
+        if (empty) {
+          const insertText = '[texte du lien](https://)';
+          view.dispatch({
+            changes: { from, to, insert: insertText },
+            selection: { anchor: from + 1, head: from + 15 },
+            scrollIntoView: true
+          });
+        } else {
+          const insertText = `[${selectedText}](https://)`;
+          view.dispatch({
+            changes: { from, to, insert: insertText },
+            selection: { anchor: from + selectedText.length + 3, head: from + selectedText.length + 11 },
+            scrollIntoView: true
+          });
+        }
+        break;
+      case 'image':
+        if (empty) {
+          const insertText = '![Description](assets/image.png)';
+          view.dispatch({
+            changes: { from, to, insert: insertText },
+            selection: { anchor: from + 2, head: from + 13 },
+            scrollIntoView: true
+          });
+        } else {
+          const insertText = `![${selectedText}](assets/image.png)`;
+          view.dispatch({
+            changes: { from, to, insert: insertText },
+            selection: { anchor: from + selectedText.length + 4, head: from + selectedText.length + 20 },
+            scrollIntoView: true
+          });
+        }
+        break;
+      case 'h1':
+        toggleLinePrefix('# ');
+        break;
+      case 'h2':
+        toggleLinePrefix('## ');
+        break;
+      case 'h3':
+        toggleLinePrefix('### ');
+        break;
+      case 'bullet-list':
+        toggleListPrefix('- ');
+        break;
+      case 'number-list':
+        toggleNumberedList();
+        break;
+      case 'task-list':
+        toggleListPrefix('- [ ] ');
+        break;
+      case 'quote':
+        toggleBlockquote();
+        break;
+      case 'codeblock':
+        if (empty) {
+          const snippet = "\n```\ncode\n```\n";
+          view.dispatch({
+            changes: { from, to, insert: snippet },
+            selection: { anchor: from + 5, head: from + 9 },
+            scrollIntoView: true
+          });
+        } else {
+          const snippet = `\n\`\`\`\n${selectedText}\n\`\`\`\n`;
+          view.dispatch({
+            changes: { from, to, insert: snippet },
+            selection: { anchor: from + 5, head: from + 5 + selectedText.length },
+            scrollIntoView: true
+          });
+        }
+        break;
+      case 'h4':
+        toggleLinePrefix('#### ');
+        break;
+      case 'table': {
+        const table = "\n| Colonne 1 | Colonne 2 | Colonne 3 |\n| --------- | --------- | --------- |\n| Élément 1 | Donnée A  | Donnée B  |\n| Élément 2 | Donnée C  | Donnée D  |\n\n";
+        view.dispatch({
+          changes: { from, to, insert: table },
+          selection: { anchor: from + 3, head: from + 12 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'rolltable': {
+        const rTable = "\n| d6 | Rencontre / Tirage aléatoire |\n| :-: | ---------------------------- |\n| 1 | Embuscade ou danger immédiat |\n| 2 | Événement ou rencontre neutre |\n| 3 | Indice ou découverte étrange |\n| 4 | Météo ou obstacle de terrain |\n| 5 | Opportunité ou ressource     |\n| 6 | Lieu ou sanctuaire paisible  |\n\n";
+        view.dispatch({
+          changes: { from, to, insert: rTable },
+          selection: { anchor: from + 8, head: from + 36 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'callout': {
+        const callout = "\n> [!NOTE]\n> Note importante ou indice à retenir.\n\n";
+        view.dispatch({
+          changes: { from, to, insert: callout },
+          selection: { anchor: from + 13, head: from + 49 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'readaloud': {
+        const narration = "\n> 🗣️ **À voix haute pour les joueurs :**\n> *La lumière vacillante des flambeaux dévoile une salle voûtée silencieuse...*\n\n";
+        view.dispatch({
+          changes: { from, to, insert: narration },
+          selection: { anchor: from + 46, head: from + 118 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'secret': {
+        const secretBox = "\n> [!SECRET] Secret MJ\n> Indice secret ou piège non révélé aux aventuriers.\n\n";
+        view.dispatch({
+          changes: { from, to, insert: secretBox },
+          selection: { anchor: from + 25, head: from + 74 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'statblock': {
+        const statSnippet = "\n> ### ⚔️ Nom du Monstre\n> *Créature de taille Moyenne, Non-alignée*\n> - **CA :** 14 | **PV :** 32 (5d8 + 10) | **Vitesse :** 9 m\n> - **FOR** 14 (+2) | **DEX** 12 (+1) | **CON** 14 (+2)\n> - **Actions :** **Frappe** +4 au toucher (1d8+2 dégâts)\n\n";
+        view.dispatch({
+          changes: { from, to, insert: statSnippet },
+          selection: { anchor: from + 9, head: from + 25 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'comment': {
+        if (empty) {
+          const insertText = '%% Note cachée du MJ %%';
+          view.dispatch({
+            changes: { from, to, insert: insertText },
+            selection: { anchor: from + 3, head: from + 21 },
+            scrollIntoView: true
+          });
+        } else {
+          toggleWrap('%%', 'note cachée');
+        }
+        break;
+      }
+      case 'hr': {
+        const hr = "\n---\n\n";
+        view.dispatch({
+          changes: { from, to, insert: hr },
+          selection: { anchor: from + hr.length },
+          scrollIntoView: true
+        });
+        break;
+      }
+    }
+    view.focus();
+  }
+
+  const formattingKeymap = keymap.of([
+    {
+      key: 'Mod-b',
+      run: () => {
+        applyFormat('bold');
+        return true;
+      }
+    },
+    {
+      key: 'Mod-i',
+      run: () => {
+        applyFormat('italic');
+        return true;
+      }
+    },
+    {
+      key: 'Mod-k',
+      run: () => {
+        applyFormat('wikilink');
+        return true;
+      }
+    }
+  ]);
+
+  function onEditorFormat(e: Event) {
+    const type = (e as CustomEvent).detail?.type;
+    if (type) applyFormat(type);
   }
 
   function runAI(evt?: Event) {
@@ -361,14 +800,14 @@
       // Si la souris est sur ce lien
       if (posInLine >= start && posInLine <= end) {
         const linkTarget = match[1].split('|')[0].trim();
-        const vaultPath = (await import('$lib/stores/vault.svelte')).getVaultPath();
+        const vaultPath = getVaultPath();
         if (!vaultPath) return null;
         
         try {
           // Essayer de lire le fichier .md correspondant
           let content = '';
           try {
-            content = await (await import('$lib/api')).readFile(vaultPath, linkTarget + '.md');
+            content = await readFile(vaultPath, linkTarget + '.md');
           } catch {
             content = "*Fichier introuvable*";
           }
@@ -399,6 +838,7 @@
   onMount(() => {
     document.addEventListener('trigger-ai', runAI as any);
     document.addEventListener('editor-insert', insertAtCursor);
+    document.addEventListener('editor-format', onEditorFormat);
     const state = EditorState.create({
       doc: value,
       extensions: [
@@ -408,6 +848,7 @@
         keymap.of([...defaultKeymap, ...historyKeymap]),
         saveKeymap,
         aiKeymap,
+        formattingKeymap,
         markdown(),
         oneDark,
         autocompletion({
@@ -469,6 +910,7 @@
   onDestroy(() => {
     document.removeEventListener('trigger-ai', runAI as any);
     document.removeEventListener('editor-insert', insertAtCursor);
+    document.removeEventListener('editor-format', onEditorFormat);
     if (view) {
       view.destroy();
     }

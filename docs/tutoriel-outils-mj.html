@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel des Outils MJ, Générateurs & IA — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif des Outils MJ de Grimoire : omnisearch Ctrl+P, générateurs de PNJ et butin, tables aléatoires et IA locale Ollama.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">OUTILS MJ & IA</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="tutoriel-interface.html" class="hidden md:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🖋️ Éditeur
+      </a>
+      <a href="tutoriel-vtt.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        ⚔️ VTT
+      </a>
+      <a href="tutorial.html" class="px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Tous les Tutos
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Improvisation & Génération Instantanée
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        Les Outils MJ, Générateurs & IA Locale
+      </h1>
+      <p class="text-gray-400 text-base md:text-lg max-w-3xl leading-relaxed">
+        Ne soyez plus jamais pris au dépourvu en cours de partie : retrouvez n'importe quelle note en quelques millisecondes grâce à l'<strong>Omnisearch SQLite FTS5</strong> (<kbd class="text-grimoire-accent">Ctrl+P</kbd>), improvisez des PNJ vivants avec secrets et butins, et demandez conseil à l'assistant narratif propulsé par l'IA locale <strong>Ollama</strong> 100% hors-ligne.
+      </p>
+    </div>
+
+    <!-- Interactive Screenshot Section -->
+    <section class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+            <span>🎲</span> Anatomie de la Boîte à Outils MJ
+          </h2>
+          <p class="text-gray-400 text-sm">Cliquez sur les numéros dorés pour analyser chaque outil d'improvisation.</p>
+        </div>
+        <span class="text-xs text-grimoire-accent bg-grimoire-accent/10 border border-grimoire-accent/20 px-3 py-1 rounded-full hidden sm:inline-block">5 fonctions clés</span>
+      </div>
+
+      <!-- Screenshot with Hotspots -->
+      <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/80 group select-none">
+        <img src="interface_outils_mj.png" alt="Outils MJ et générateurs Grimoire" class="w-full h-auto object-cover rounded-2xl block">
+
+        <!-- Hotspot 1: Nom & Archétype/Carrière -->
+        <button class="hotspot-btn" style="top: 36%; left: 38%;" onclick="highlightFeature(1)">
+          1
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 2: Profil de Caractéristiques (CC, CT, F, E, Bless...) -->
+        <button class="hotspot-btn" style="top: 48%; left: 50%;" onclick="highlightFeature(2)">
+          2
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 3: Case Token Hostile VTT -->
+        <button class="hotspot-btn" style="top: 57%; left: 40%;" onclick="highlightFeature(3)">
+          3
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 4: Boutons Relancer & Confirmer -->
+        <button class="hotspot-btn" style="top: 64%; left: 60%;" onclick="highlightFeature(4)">
+          4
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 5: Intégration Directe sur la Table de Jeu (VTT) -->
+        <button class="hotspot-btn" style="top: 31%; left: 63%;" onclick="highlightFeature(5)">
+          5
+          <span class="hotspot-pulse"></span>
+        </button>
+      </div>
+
+      <!-- Feature Details Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="featureCards">
+        
+        <div id="card-1" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(1)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">1</span>
+            <h3 class="font-bold text-white text-base">Identité & Archétype Express</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Générez instantanément un nom crédible (ex: <em>Liesel Vogel</em>) et sélectionnez ou laissez le hasard choisir sa carrière ou archétype (Garde, Voleur, Erudit, Mercenaire).
+          </p>
+        </div>
+
+        <div id="card-2" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(2)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">2</span>
+            <h3 class="font-bold text-white text-base">Profil de Combat Complet</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Toutes les caractéristiques sont tirées et calibrées selon le système : Capacité de Combat (CC), Tir (CT), Force (F), Endurance (E), Blessures, Initiative (I), Agilité, Intelligence, Force Mentale et Sociabilité.
+          </p>
+        </div>
+
+        <div id="card-3" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(3)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">3</span>
+            <h3 class="font-bold text-white text-base">Option « Token Hostile »</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Cochez la case pour marquer automatiquement le PNJ comme ennemi : son pion apparaîtra cerclé de rouge sur la grille tactique et sera injecté dans la liste d'initiative lors des combats.
+          </p>
+        </div>
+
+        <div id="card-4" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(4)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">4</span>
+            <h3 class="font-bold text-white text-base">🎲 Relancer ou ✓ Confirmer</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Le tirage ne vous convient pas ? Cliquez sur <code>🎲 Relancer</code> pour de nouveaux scores en 10 millisecondes. Cliquez sur <code>✓ Confirmer</code> pour matérialiser le token sur le canevas.
+          </p>
+        </div>
+
+        <div id="card-5" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer md:col-span-2" onclick="highlightFeature(5)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">5</span>
+            <h3 class="font-bold text-white text-base">Intégration Directe VTT & Fiche Tactique</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Le PNJ s'intègre en temps réel sans rechargement au moteur PixiJS v8. Double-cliquez sur son token à tout moment pour consulter ses points de vie restants, ajuster son état ou lancer des dés directement depuis sa fiche.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Mini Generator Live Simulator -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-grimoire-accent/15 text-grimoire-accent text-xs font-bold uppercase tracking-wider mb-1">
+            Simulateur d'Improvisation
+          </div>
+          <h2 class="text-2xl font-bold text-white">Générateur Instantané de PNJ & Butin</h2>
+        </div>
+        <button onclick="generateRandomNpc()" class="px-4 py-2 bg-grimoire-accent text-black font-bold text-xs rounded-xl hover:bg-grimoire-accentHover transition-all flex items-center gap-2 shadow-lg shadow-grimoire-accent/20">
+          <span>🎲</span> Générer un Nouveau PNJ
+        </button>
+      </div>
+
+      <div class="glass p-6 rounded-2xl border border-white/10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        
+        <!-- NPC Card -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-4">
+            <div id="npcAvatar" class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl">
+              🧙‍♂️
+            </div>
+            <div>
+              <h3 id="npcName" class="text-lg font-bold text-white">Eldrin le Vagabond</h3>
+              <p id="npcClass" class="text-xs text-grimoire-accent">Niv. 4 • Roublard Humain</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-6 gap-2 text-center text-xs">
+            <div class="p-2 rounded-lg bg-white/5 border border-white/5"><div class="text-gray-400 text-[10px]">FOR</div><strong id="statFor" class="text-white">10</strong></div>
+            <div class="p-2 rounded-lg bg-white/5 border border-white/5"><div class="text-gray-400 text-[10px]">DEX</div><strong id="statDex" class="text-amber-400">16</strong></div>
+            <div class="p-2 rounded-lg bg-white/5 border border-white/5"><div class="text-gray-400 text-[10px]">CON</div><strong id="statCon" class="text-white">12</strong></div>
+            <div class="p-2 rounded-lg bg-white/5 border border-white/5"><div class="text-gray-400 text-[10px]">INT</div><strong id="statInt" class="text-white">14</strong></div>
+            <div class="p-2 rounded-lg bg-white/5 border border-white/5"><div class="text-gray-400 text-[10px]">SAG</div><strong id="statSag" class="text-white">11</strong></div>
+            <div class="p-2 rounded-lg bg-white/5 border border-white/5"><div class="text-gray-400 text-[10px]">CHA</div><strong id="statCha" class="text-white">13</strong></div>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <p class="text-gray-300"><strong class="text-white">Caractère :</strong> <span id="npcTraits">Sarcastique, observateur, méfiant envers les gardes.</span></p>
+            <p class="text-gray-300"><strong class="text-white">Secret :</strong> <span id="npcSecret" class="text-red-300">A dérobé un médaillon maudit appartenant au bourgmestre.</span></p>
+          </div>
+        </div>
+
+        <!-- Loot Table -->
+        <div class="glass p-4 rounded-xl border border-white/5 space-y-3">
+          <div class="flex justify-between items-center pb-2 border-b border-white/10">
+            <span class="text-xs font-bold uppercase tracking-wider text-white">💰 Butin Trouvé sur lui :</span>
+            <span class="text-[11px] text-grimoire-accent font-mono">D6 Objets</span>
+          </div>
+          <ul id="lootList" class="space-y-2 text-xs">
+            <li class="p-2 rounded bg-white/5 flex items-center justify-between">
+              <span>🧪 Potion d'Invisibilité mineure</span>
+              <span class="text-[10px] text-gray-400">Rare</span>
+            </li>
+            <li class="p-2 rounded bg-white/5 flex items-center justify-between">
+              <span>🪙 45 Pièces d'Or impériales</span>
+              <span class="text-[10px] text-amber-400">Monnaie</span>
+            </li>
+            <li class="p-2 rounded bg-white/5 flex items-center justify-between">
+              <span>🗝️ Passe-partout en os sculpté</span>
+              <span class="text-[10px] text-cyan-300">Outil</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Navigation Hub Footer -->
+    <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <a href="tutoriel-bibliotheque-celeste.html" class="text-sm text-gray-400 hover:text-grimoire-accent flex items-center gap-2">
+        ← Tutoriel : Bibliothèque Céleste
+      </a>
+      <a href="tutorial.html" class="px-6 py-2.5 bg-grimoire-accent text-black font-bold rounded-xl hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20 flex items-center gap-2">
+        Retour au Hub des Tutoriels →
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    function highlightFeature(id) {
+      for (let i = 1; i <= 5; i++) {
+        const card = document.getElementById('card-' + i);
+        if (i === id) {
+          card.classList.add('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          card.classList.remove('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+        }
+      }
+    }
+
+    const npcs = [
+      {
+        name: "Eldrin le Vagabond",
+        cls: "Niv. 4 • Roublard Humain",
+        avatar: "🗡️",
+        stats: [10, 16, 12, 14, 11, 13],
+        traits: "Sarcastique, observateur, méfiant envers les gardes.",
+        secret: "A dérobé un médaillon maudit appartenant au bourgmestre.",
+        loot: [
+          ["🧪 Potion d'Invisibilité", "Rare"],
+          ["🪙 45 Pièces d'Or", "Monnaie"],
+          ["🗝️ Passe-partout en os", "Outil"]
+        ]
+      },
+      {
+        name: "Dame Vivienne Delacroix",
+        cls: "Niv. 6 • Mage Aristocrate",
+        avatar: "🧙‍♀️",
+        stats: [8, 12, 10, 18, 14, 15],
+        traits: "Hautaine, passionnée d'histoire runique, théâtrale.",
+        secret: "Communique en rêve avec une entité sous le lac noir.",
+        loot: [
+          ["📜 Parchemin de Boule de Feu", "Sort Niv. 3"],
+          ["💍 Bague ornée d'un rubis", "Valeur 120 PO"],
+          ["📖 Carnet chiffré en langue elfique", "Quête"]
+        ]
+      },
+      {
+        name: "Grumsh Marteau-de-Fer",
+        cls: "Niv. 5 • Nain Forgeron / Guerrier",
+        avatar: "🔨",
+        stats: [17, 10, 16, 11, 13, 9],
+        traits: "Direct, honnête jusqu'à la brutalité, loyal envers ses clients.",
+        secret: "A forgé en secret la dague de l'assassin royal.",
+        loot: [
+          ["⚔️ Hachette naine équilibrée (+1)", "Arme"],
+          ["🍺 Flasque d'eau-de-vie de braise", "Consommable"],
+          ["🪙 85 Pièces d'Argent", "Monnaie"]
+        ]
+      }
+    ];
+
+    let currentNpcIdx = 0;
+
+    function generateRandomNpc() {
+      currentNpcIdx = (currentNpcIdx + 1) % npcs.length;
+      const n = npcs[currentNpcIdx];
+
+      document.getElementById('npcAvatar').textContent = n.avatar;
+      document.getElementById('npcName').textContent = n.name;
+      document.getElementById('npcClass').textContent = n.cls;
+
+      document.getElementById('statFor').textContent = n.stats[0];
+      document.getElementById('statDex').textContent = n.stats[1];
+      document.getElementById('statCon').textContent = n.stats[2];
+      document.getElementById('statInt').textContent = n.stats[3];
+      document.getElementById('statSag').textContent = n.stats[4];
+      document.getElementById('statCha').textContent = n.stats[5];
+
+      document.getElementById('npcTraits').textContent = n.traits;
+      document.getElementById('npcSecret').textContent = n.secret;
+
+      const listEl = document.getElementById('lootList');
+      listEl.innerHTML = '';
+      n.loot.forEach(item => {
+        const li = document.createElement('li');
+        li.className = "p-2 rounded bg-white/5 flex items-center justify-between";
+        li.innerHTML = `<span>${item[0]}</span><span class="text-[10px] text-grimoire-accent font-bold">${item[1]}</span>`;
+        listEl.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>

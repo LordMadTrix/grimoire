@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel de la Timeline de Campagne — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif de la Timeline de Grimoire : suivez l'ordre chronologique de vos sessions, batailles, intrigues et découvertes de campagne.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">TIMELINE</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="tutoriel-interface.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🖋️ Éditeur
+      </a>
+      <a href="tutoriel-graphe.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🕸️ Graphe
+      </a>
+      <a href="tutoriel-calendrier.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📅 Calendrier
+      </a>
+      <a href="tutorial.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Manuel
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Chronologie Vivante
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        La Frise Chronologique de Campagne (Timeline)
+      </h1>
+      <p class="text-gray-300 text-base md:text-lg max-w-3xl leading-relaxed">
+        Ne perdez plus jamais le fil temporel de vos aventures. La <strong>Timeline</strong> enregistre les grands tournants de votre campagne : dates de sessions, batailles épiques, morts tragiques de PNJ, révélations d'intrigues et découvertes d'artefacts.
+      </p>
+    </div>
+
+    <!-- Screenshot Interactif avec Hotspots -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+          <span>📜</span> L'Écran Timeline Décrypté
+        </h2>
+        <span class="text-xs text-gray-400">Cliquez sur un marqueur pour explorer</span>
+      </div>
+
+      <div class="relative rounded-2xl overflow-hidden border border-grimoire-border shadow-2xl bg-black">
+        <img src="interface_timeline.png" alt="Interface Timeline de Campagne Grimoire" class="w-full h-auto block select-none">
+
+        <!-- Hotspot 1: Onglet Timeline actif -->
+        <a href="#tl-tab" class="hotspot-btn" style="top: 7%; left: 60%;" title="Zone 1 : Onglet Timeline Actif">
+          <div class="hotspot-pulse"></div>1
+        </a>
+
+        <!-- Hotspot 2: Bouton + Événement -->
+        <a href="#tl-add" class="hotspot-btn" style="top: 14%; left: 95.5%;" title="Zone 2 : Bouton + Événement">
+          <div class="hotspot-pulse"></div>2
+        </a>
+
+        <!-- Hotspot 3: Espace Central & Premier Jalon -->
+        <a href="#tl-events" class="hotspot-btn" style="top: 55%; left: 57%;" title="Zone 3 : Frise Temporelle & Événements">
+          <div class="hotspot-pulse"></div>3
+        </a>
+
+        <!-- Hotspot 4: Horloge en Jeu -->
+        <a href="#tl-clock" class="hotspot-btn" style="top: 3.5%; left: 81%;" title="Zone 4 : Synchronisation avec l'Horloge">
+          <div class="hotspot-pulse"></div>4
+        </a>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        <a href="#tl-tab" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">①</span> Onglet Timeline
+        </a>
+        <a href="#tl-add" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">②</span> Bouton + Événement
+        </a>
+        <a href="#tl-events" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">③</span> Frise & Jalons
+        </a>
+        <a href="#tl-clock" class="glass p-2.5 rounded-xl border border-white/5 hover:border-grimoire-accent/50 text-center transition-all">
+          <span class="font-bold text-grimoire-accent mr-1">④</span> Horloge de Jeu
+        </a>
+      </div>
+    </section>
+
+    <!-- Démonstration Interactive en Direct -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <span>✨</span> Démonstration Interactive : La Frise en Action
+          </h2>
+          <p class="text-gray-400 text-xs mt-1">
+            Voici comment s'affiche la frise dès que vous ajoutez vos premiers événements de jeu. <strong>Filtrez par catégorie ci-dessous :</strong>
+          </p>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 text-xs" id="filter-buttons">
+          <button onclick="filterTimeline('all')" class="px-2.5 py-1 rounded bg-grimoire-accent text-black font-bold">Tous</button>
+          <button onclick="filterTimeline('session')" class="px-2.5 py-1 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">📅 Sessions</button>
+          <button onclick="filterTimeline('battle')" class="px-2.5 py-1 rounded bg-red-500/15 border border-red-500/30 text-red-400">⚔️ Combats</button>
+          <button onclick="filterTimeline('discovery')" class="px-2.5 py-1 rounded bg-blue-500/15 border border-blue-500/30 text-blue-400">🔍 Découvertes</button>
+          <button onclick="filterTimeline('plot')" class="px-2.5 py-1 rounded bg-amber-500/15 border border-amber-500/30 text-amber-400">📖 Intrigues</button>
+        </div>
+      </div>
+
+      <!-- Live Timeline Flow -->
+      <div class="relative pl-6 sm:pl-8 space-y-6 before:content-[''] before:absolute before:left-3 sm:before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-grimoire-accent before:via-gray-700 before:to-transparent" id="timeline-list">
+        
+        <!-- Événement 1 -->
+        <div class="relative group tl-item" data-type="session">
+          <div class="absolute -left-6 sm:-left-8 top-1 w-6 h-6 rounded-full bg-emerald-500 text-black font-bold text-xs flex items-center justify-center border-2 border-[#0a0c10] shadow-md shadow-emerald-500/30">
+            📅
+          </div>
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-1.5 group-hover:border-emerald-500/50 transition-all">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">📅 Session</span>
+              <span class="font-mono text-gray-400">1er Nachoxen 2522</span>
+            </div>
+            <h3 class="font-bold text-white text-sm">Départ de l'Aventure : L'Auberge du Sanglier Pendu</h3>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Rencontre des aventuriers avec le mystérieux messager de la Guilde marchande de Karak-Azgal. Première embauche acceptée.
+            </p>
+          </div>
+        </div>
+
+        <!-- Événement 2 -->
+        <div class="relative group tl-item" data-type="battle">
+          <div class="absolute -left-6 sm:-left-8 top-1 w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs flex items-center justify-center border-2 border-[#0a0c10] shadow-md shadow-red-500/30">
+            ⚔️
+          </div>
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-1.5 group-hover:border-red-500/50 transition-all">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span class="px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 font-bold">⚔️ Combat</span>
+              <span class="font-mono text-gray-400">3 Nachoxen 2522</span>
+            </div>
+            <h3 class="font-bold text-white text-sm">Embuscade au Gué des Os</h3>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Assaut de pillards peaux-vertes en pleine tempête. Le chariot de ravitaillement a été renversé mais les PJ ont tenu bon.
+            </p>
+          </div>
+        </div>
+
+        <!-- Événement 3 -->
+        <div class="relative group tl-item" data-type="discovery">
+          <div class="absolute -left-6 sm:-left-8 top-1 w-6 h-6 rounded-full bg-blue-500 text-white font-bold text-xs flex items-center justify-center border-2 border-[#0a0c10] shadow-md shadow-blue-500/30">
+            🔍
+          </div>
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-1.5 group-hover:border-blue-500/50 transition-all">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span class="px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold">🔍 Découverte</span>
+              <span class="font-mono text-gray-400">4 Nachoxen 2522</span>
+            </div>
+            <h3 class="font-bold text-white text-sm">Crypte de l'Archiviste Oublié</h3>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Mise au jour d'un parchemin scellé portant le blason du culte de l'Ombre et de la clef gravée de runes naines.
+            </p>
+          </div>
+        </div>
+
+        <!-- Événement 4 -->
+        <div class="relative group tl-item" data-type="plot">
+          <div class="absolute -left-6 sm:-left-8 top-1 w-6 h-6 rounded-full bg-amber-500 text-black font-bold text-xs flex items-center justify-center border-2 border-[#0a0c10] shadow-md shadow-amber-500/30">
+            📖
+          </div>
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-1.5 group-hover:border-amber-500/50 transition-all">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-bold">📖 Intrigue</span>
+              <span class="font-mono text-gray-400">6 Nachoxen 2522</span>
+            </div>
+            <h3 class="font-bold text-white text-sm">Trahison de l'Intendant Valden</h3>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Les PJ découvrent que l'intendant fournissait les horaires des patrouilles aux contrebandiers. Révélation majeure.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Les 6 Types d'Événements -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-6 card-hover">
+      <div class="border-b border-gray-800 pb-3">
+        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+          <span>🏷️</span> Les 6 Catégories d'Événements Pré-configurées
+        </h2>
+        <p class="text-gray-400 text-xs mt-1">Chaque événement possède une couleur et un emoji dédié pour un repérage visuel immédiat :</p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-black/40 border border-emerald-500/20 space-y-1.5">
+          <div class="text-emerald-400 font-bold text-sm flex items-center gap-2">
+            <span>📅</span> Session (Vert)
+          </div>
+          <p class="text-gray-300">Marque le début ou la fin d'une séance réelle avec le résumé des faits marquants.</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/40 border border-red-500/20 space-y-1.5">
+          <div class="text-red-400 font-bold text-sm flex items-center gap-2">
+            <span>⚔️</span> Combat (Rouge)
+          </div>
+          <p class="text-gray-300">Affrontements majeurs, embuscades, sièges et rencontres de monstres dangereux.</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/40 border border-gray-500/20 space-y-1.5">
+          <div class="text-gray-400 font-bold text-sm flex items-center gap-2">
+            <span>💀</span> Mort (Gris)
+          </div>
+          <p class="text-gray-300">Décès tragique d'un personnage joueur, trépas d'un allié cher ou exécution d'un ennemi juré.</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/40 border border-blue-500/20 space-y-1.5">
+          <div class="text-blue-400 font-bold text-sm flex items-center gap-2">
+            <span>🔍</span> Découverte (Bleu)
+          </div>
+          <p class="text-gray-300">Indices cruciaux, ouverture de passages secrets ou découverte d'artefacts anciens.</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/40 border border-amber-500/20 space-y-1.5">
+          <div class="text-amber-400 font-bold text-sm flex items-center gap-2">
+            <span>📖</span> Intrigue (Or)
+          </div>
+          <p class="text-gray-300">Complots révélés, pactes politiques, revirements d'alliances et prophéties.</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-black/40 border border-purple-500/20 space-y-1.5">
+          <div class="text-purple-400 font-bold text-sm flex items-center gap-2">
+            <span>📌</span> Autre (Violet)
+          </div>
+          <p class="text-gray-300">Voyages prolongés, célébrations, festivals de cité ou météo cataclysmique.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zone 4 : Stockage local & Sécurité -->
+    <section id="tl-clock" class="scroll-mt-24 glass p-6 md:p-8 rounded-3xl border border-white/5 space-y-4 card-hover">
+      <div class="border-b border-gray-800 pb-3">
+        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+          <span>💾</span> Stockage 100% Local & Sans Nuage
+        </h2>
+      </div>
+      <p class="text-gray-300 text-sm leading-relaxed">
+        Comme tout dans <strong>Grimoire</strong>, votre chronologie vous appartient intégralement. Elle est enregistrée automatiquement dans un fichier JSON lisible :
+      </p>
+      <div class="p-3 rounded-xl bg-black/50 border border-white/10 font-mono text-xs text-grimoire-accent">
+        📁 Votre_Vault/.grimoire/timeline.json
+      </div>
+      <p class="text-gray-400 text-xs leading-relaxed">
+        Vous pouvez sauvegarder, dupliquer, versionner avec Git ou déplacer votre campagne d'un ordinateur à un autre sans perdre aucun jalon historique.
+      </p>
+    </section>
+
+    <!-- Navigation entre guides -->
+    <div class="text-center py-8 space-y-4">
+      <div class="text-gray-400 text-sm">Explorez les autres modules de Grimoire :</div>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="tutoriel-interface.html" class="px-6 py-3 rounded-xl bg-grimoire-accent text-black font-bold hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20">
+          🖋️ Découvrir l'Éditeur & les Raccourcis Markdown
+        </a>
+        <a href="tutoriel-graphe.html" class="px-6 py-3 rounded-xl glass border border-white/10 text-white hover:border-grimoire-accent/40 transition-colors font-medium">
+          🕸️ Explorer la Vue Graphe 2D
+        </a>
+        <a href="tutorial.html" class="px-6 py-3 rounded-xl glass border border-white/10 text-white hover:border-grimoire-accent/40 transition-colors font-medium">
+          📖 Manuel Encyclopédique
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="glass border-t border-white/5 py-8 text-center text-xs text-gray-500">
+    <p>Grimoire © 2026 — Conçu avec passion pour les Maîtres du Jeu de Rôle.</p>
+  </footer>
+
+  <script>
+    function filterTimeline(type) {
+      const items = document.querySelectorAll('.tl-item');
+      items.forEach(item => {
+        if (type === 'all' || item.dataset.type === type) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>

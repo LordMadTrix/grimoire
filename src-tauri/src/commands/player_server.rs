@@ -188,8 +188,8 @@ pub async fn apply_damage_to_player(player_id: String, damage: i32) -> Result<()
             data: serde_json::json!({ "target_id": player_id, "damage": damage, "bless": new_val }),
         }).unwrap_or_default()
     };
-    send_to_player(&srv, &player_id, msg).await;
-    broadcast_group_state(&srv).await;
+    send_to_player(srv, &player_id, msg).await;
+    broadcast_group_state(srv).await;
     Ok(())
 }
 
@@ -208,8 +208,8 @@ pub async fn apply_condition_to_player(player_id: String, condition: String) -> 
             data: serde_json::json!({ "target_id": player_id, "condition": condition, "conditions": p.conditions }),
         }).unwrap_or_default()
     };
-    send_to_player(&srv, &player_id, msg).await;
-    broadcast_group_state(&srv).await;
+    send_to_player(srv, &player_id, msg).await;
+    broadcast_group_state(srv).await;
     Ok(())
 }
 
@@ -226,8 +226,8 @@ pub async fn remove_condition_from_player(player_id: String, condition: String) 
             data: serde_json::json!({ "target_id": player_id, "condition": condition, "conditions": p.conditions }),
         }).unwrap_or_default()
     };
-    send_to_player(&srv, &player_id, msg).await;
-    broadcast_group_state(&srv).await;
+    send_to_player(srv, &player_id, msg).await;
+    broadcast_group_state(srv).await;
     Ok(())
 }
 
@@ -246,7 +246,7 @@ pub async fn set_active_turn(player_id: Option<String>) -> Result<(), String> {
             event: "your_turn".into(),
             data: serde_json::json!({ "target_id": pid, "active": true }),
         }).unwrap_or_default();
-        send_to_player(&srv, pid, msg).await;
+        send_to_player(srv, pid, msg).await;
     }
     // Notify all other players their turn ended
     if let Ok(msg) = serde_json::to_string(&WsEnvelope {
@@ -255,7 +255,7 @@ pub async fn set_active_turn(player_id: Option<String>) -> Result<(), String> {
     }) {
         let _ = srv.broadcast_tx.send(msg);
     }
-    broadcast_group_state(&srv).await;
+    broadcast_group_state(srv).await;
     Ok(())
 }
 
@@ -277,7 +277,7 @@ pub async fn approve_xp_request(player_id: String, amount: u32) -> Result<(), St
             data: serde_json::json!({ "target_id": player_id, "amount": amount, "total_xp": new_xp }),
         }).unwrap_or_default()
     };
-    send_to_player(&srv, &player_id, msg).await;
+    send_to_player(srv, &player_id, msg).await;
     Ok(())
 }
 
@@ -313,8 +313,8 @@ pub async fn assign_character(player_id: String, path: String, character: serde_
         data: character,
     }).map_err(|e| e.to_string())?;
     
-    send_to_player(&srv, &player_id, msg).await;
-    broadcast_group_state(&srv).await;
+    send_to_player(srv, &player_id, msg).await;
+    broadcast_group_state(srv).await;
     
     Ok(())
 }
@@ -344,7 +344,7 @@ pub async fn request_roll(player_id: Option<String>, stat: String, modifier: i32
     }).unwrap_or_default();
 
     if let Some(ref pid) = player_id {
-        send_to_player(&srv, pid, msg).await;
+        send_to_player(srv, pid, msg).await;
     } else {
         let _ = srv.broadcast_tx.send(msg);
     }
@@ -533,10 +533,7 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
             }
             // Message privé ciblé pour ce joueur uniquement (send_to_player)
             msg = unicast_rx.recv() => {
-                match msg {
-                    Some(text) => { if socket.send(Message::Text(text)).await.is_err() { break; } }
-                    None => {}
-                }
+                if let Some(text) = msg { if socket.send(Message::Text(text)).await.is_err() { break; } }
             }
             // Message from player → server
             msg = socket.recv() => {

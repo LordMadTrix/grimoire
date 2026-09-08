@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel de la Table Virtuelle (VTT) — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif de la Table Virtuelle (VTT) de Grimoire : brouillard de guerre, éclairage dynamique, météo, tokens, gabarits de sorts et initiative.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">TABLE VIRTUELLE (VTT)</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="tutoriel-interface.html" class="hidden md:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🖋️ Éditeur
+      </a>
+      <a href="tutoriel-map-editor.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🗺️ Map Editor
+      </a>
+      <a href="tutoriel-joueurs-mobile.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📱 Mobile Hub
+      </a>
+      <a href="tutorial.html" class="px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Tous les Tutos
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Tactique & Immersion 60 FPS
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        La Table Virtuelle (VTT) & Combat Tactique
+      </h1>
+      <p class="text-gray-400 text-base md:text-lg max-w-3xl leading-relaxed">
+        Propulsée par le moteur graphique haute performance <strong>PixiJS v8</strong>, la Table Virtuelle de Grimoire vous offre un contrôle absolu sur vos cartes de combat : brouillard de guerre interactif, éclairage d'ambiance et météo, pions animés avec jauges de vie, gabarits de sorts dynamiques et suivi d'initiative en temps réel.
+      </p>
+    </div>
+
+    <!-- Interactive Screenshot Section -->
+    <section class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+            <span>🎯</span> Anatomie de la Table Virtuelle
+          </h2>
+          <p class="text-gray-400 text-sm">Survolez ou cliquez sur les pastilles dorées numérotées pour explorer chaque fonctionnalité clé.</p>
+        </div>
+        <span class="text-xs text-grimoire-accent bg-grimoire-accent/10 border border-grimoire-accent/20 px-3 py-1 rounded-full hidden sm:inline-block">5 zones interactives</span>
+      </div>
+
+      <!-- Screenshot with Hotspots -->
+      <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/80 group select-none">
+        <img src="interface_vtt.png" alt="Table Virtuelle Grimoire VTT Réelle" class="w-full h-auto object-cover rounded-2xl block">
+
+        <!-- Hotspot 1: Top Bar (Carte, Ambiance, Joueurs, Outils) -->
+        <button class="hotspot-btn" style="top: 2%; left: 24%;" onclick="highlightFeature(1)">
+          1
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 2: Initiative & Round HUD (Top Right) -->
+        <button class="hotspot-btn" style="top: 7%; left: 93%;" onclick="highlightFeature(2)">
+          2
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 3: Battlemap Canvas (Center) -->
+        <button class="hotspot-btn" style="top: 45%; left: 52%;" onclick="highlightFeature(3)">
+          3
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 4: MacroBar (Bottom Left) -->
+        <button class="hotspot-btn" style="top: 92%; left: 24%;" onclick="highlightFeature(4)">
+          4
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 5: Map Editor Bridge Notification (Bottom Right) -->
+        <button class="hotspot-btn" style="top: 92%; left: 90%;" onclick="highlightFeature(5)">
+          5
+          <span class="hotspot-pulse"></span>
+        </button>
+      </div>
+
+      <!-- Feature Details Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="featureCards">
+        
+        <div id="card-1" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(1)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">1</span>
+            <h3 class="font-bold text-white text-base">Barre Supérieure Tactique</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Accès immédiat aux menus contextuels de la table : <code>🗺️ Carte & Vue</code>, <code>⚔️ Outils</code>, <code>🎭 Ambiance</code>, <code>👥 Joueurs</code> et <code>🧙‍♂️ Outils MJ</code>.
+          </p>
+        </div>
+
+        <div id="card-2" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(2)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">2</span>
+            <h3 class="font-bold text-white text-base">Compteur de Rounds & Initiative</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Cadran de combat compact affichant le round en cours (<code>R.1</code>), le sablier de session et les flèches de navigation rapide pour faire défiler les tours.
+          </p>
+        </div>
+
+        <div id="card-3" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(3)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">3</span>
+            <h3 class="font-bold text-white text-base">Canevas PixiJS 60 FPS</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Rendu ultra-fluide des cartes de bataille avec grille d'alignement, zoom infini à la molette, panoramique au clic droit et délimitation nette de l'arène de jeu.
+          </p>
+        </div>
+
+        <div id="card-4" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(4)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">4</span>
+            <h3 class="font-bold text-white text-base">MacroBar & Invite de Commande</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Raccourcis de dés (<code>d100</code>, <code>d20</code>), actions rapides (<code>Soin</code>, <code>Attaque</code>, <code>Hit</code>, <code>Lumière</code>) et ligne de commande pour taper <code>/roll 2d10+4</code> à tout moment.
+          </p>
+        </div>
+
+        <div id="card-5" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer md:col-span-2" onclick="highlightFeature(5)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">5</span>
+            <h3 class="font-bold text-white text-base">Pont Bidirectionnel Map Editor</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Notification en direct confirmant la réception et le chargement immédiat des plans créés dans l'Éditeur de Cartes dédié, sans redémarrer la session.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Interactive Live VTT Simulator Sandbox -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-grimoire-accent/15 text-grimoire-accent text-xs font-bold uppercase tracking-wider mb-1">
+            Simulateur Live
+          </div>
+          <h2 class="text-2xl font-bold text-white">Testez la Table Virtuelle dans votre navigateur</h2>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="btnToggleFow" class="px-3 py-1.5 text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-200 transition-all">
+            🌫️ Basculer Brouillard
+          </button>
+          <button id="btnCastSpell" class="px-3 py-1.5 text-xs rounded-lg border border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-all font-semibold">
+            🔥 Lancer Boule de Feu (AoE)
+          </button>
+          <button id="btnNextTurn" class="px-3 py-1.5 text-xs rounded-lg bg-grimoire-accent text-black font-bold hover:bg-grimoire-accentHover transition-all shadow-md shadow-grimoire-accent/20">
+            ⚡ Tour Suivant
+          </button>
+        </div>
+      </div>
+
+      <!-- Mini Canvas Simulation -->
+      <div class="relative w-full h-80 rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-gray-900 via-stone-900 to-black select-none cursor-crosshair" id="simVttContainer">
+        <!-- Grid overlay -->
+        <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px); background-size: 40px 40px;"></div>
+
+        <!-- Simulated Fog Layer -->
+        <div id="simFog" class="absolute inset-0 bg-black/80 transition-opacity duration-500 pointer-events-none flex items-center justify-center">
+          <span class="text-xs text-gray-500 uppercase tracking-widest font-mono">Brouillard de Guerre Actif</span>
+        </div>
+
+        <!-- Simulated Tokens -->
+        <div id="tokenPaladin" class="absolute w-10 h-10 rounded-full border-2 border-cyan-400 bg-cyan-900/80 shadow-lg shadow-cyan-500/50 flex items-center justify-center text-base cursor-grab active:cursor-grabbing transition-transform" style="top: 100px; left: 120px;" title="Paladin (45/45 PV)">
+          🛡️
+        </div>
+
+        <div id="tokenWizard" class="absolute w-10 h-10 rounded-full border-2 border-blue-400 bg-blue-900/80 shadow-lg shadow-blue-500/50 flex items-center justify-center text-base cursor-grab active:cursor-grabbing transition-transform" style="top: 140px; left: 160px;" title="Mage (28/32 PV)">
+          🧙
+        </div>
+
+        <div id="tokenGoblin1" class="absolute w-8 h-8 rounded-full border-2 border-red-500 bg-red-950/80 shadow-lg shadow-red-500/40 flex items-center justify-center text-sm cursor-grab active:cursor-grabbing" style="top: 110px; left: 340px;" title="Gobelin 1 (12/12 PV)">
+          👺
+        </div>
+
+        <div id="tokenGoblin2" class="absolute w-8 h-8 rounded-full border-2 border-red-500 bg-red-950/80 shadow-lg shadow-red-500/40 flex items-center justify-center text-sm cursor-grab active:cursor-grabbing" style="top: 160px; left: 380px;" title="Gobelin 2 (9/12 PV)">
+          👺
+        </div>
+
+        <!-- Spell AoE Circle -->
+        <div id="simSpellAoE" class="hidden absolute w-36 h-36 rounded-full border-2 border-orange-500 bg-orange-500/20 pointer-events-none transform -translate-x-1/2 -translate-y-1/2 animate-pulse shadow-xl shadow-orange-500/40" style="top: 140px; left: 360px;">
+          <div class="absolute inset-0 flex items-center justify-center text-[10px] text-orange-200 font-bold uppercase tracking-wider">
+            Rayon 20 ft
+          </div>
+        </div>
+
+        <!-- Active Turn HUD overlay -->
+        <div class="absolute bottom-3 left-3 glass px-3 py-1.5 rounded-xl border border-white/10 text-xs flex items-center gap-2">
+          <span class="text-gray-400">Combattant actif :</span>
+          <span id="activeCombatantLabel" class="font-bold text-grimoire-accent">1. Paladin (Initiative 18)</span>
+        </div>
+
+        <div class="absolute top-3 right-3 text-[11px] text-gray-400 glass px-2.5 py-1 rounded-lg">
+          Astuce : Déplacez les pions en les faisant glisser !
+        </div>
+      </div>
+    </section>
+
+    <!-- Complete Guide & GM Playbook -->
+    <section class="space-y-8">
+      <h2 class="text-2xl font-bold text-white">Le Guide Tactique du Maître du Jeu</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Workflow 1: Dual Monitor -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="text-2xl">🖥️</div>
+          <h3 class="font-bold text-lg text-white">1. Double Écran & Écran Joueurs</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">
+            Connectez une deuxième TV ou vidéoprojecteur à votre PC. Cliquez sur <code>🖥️ Lancer Vue Joueurs</code> dans la barre latérale. Une fenêtre dédiée en plein écran s'ouvre, masquant automatiquement vos notes secrètes, les pièges cachés et les monstres dissimulés dans le brouillard.
+          </p>
+        </div>
+
+        <!-- Workflow 2: Lighting & Dynamic Weather -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="text-2xl">⚡</div>
+          <h3 class="font-bold text-lg text-white">2. Éclairage d'Ambiance & Météo</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">
+            En un clic sur le sélecteur d'ambiance, plongez la scène dans la pénombre d'une crypte ou les éclairs d'un orage. Déclenchez le bouton <code>⚡ Flash d'Orage</code> pour illuminer violemment la carte pendant un quart de seconde, synchronisé avec le grondement du tonnerre.
+          </p>
+        </div>
+
+        <!-- Workflow 3: Spells & AOE -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="text-2xl">🔮</div>
+          <h3 class="font-bold text-lg text-white">3. Mesures & Gabarits Tactiques</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">
+            Fini les débats de distance à la table : activez l'outil gabarit et tracez un cône de 15 mètres ou un cercle de 6 mètres. La grille calcule automatiquement le nombre de cases touchées et met en surbrillance les pions pris dans l'explosion.
+          </p>
+        </div>
+
+        <!-- Workflow 4: Initiative Tracker -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="text-2xl">⚔️</div>
+          <h3 class="font-bold text-lg text-white">4. Combat & Initiative Fluide</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">
+            Appuyez sur <code>⚔️ Combat</code>. Les scores d'initiative envoyés depuis les smartphones des joueurs s'intègrent automatiquement dans l'ordre du tour. Utilisez la touche <kbd class="px-2 py-0.5 bg-white/10 rounded text-xs text-grimoire-accent">Espace</kbd> pour passer au tour suivant en 1 seconde chrono.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Navigation Hub Footer -->
+    <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <a href="tutoriel-interface.html" class="text-sm text-gray-400 hover:text-grimoire-accent flex items-center gap-2">
+        ← Tutoriel : Éditeur de Notes
+      </a>
+      <a href="tutoriel-map-editor.html" class="px-6 py-2.5 bg-grimoire-accent text-black font-bold rounded-xl hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20 flex items-center gap-2">
+        Tutoriel Suivant : Éditeur de Cartes →
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    // Hotspot Highlighting
+    function highlightFeature(id) {
+      for (let i = 1; i <= 5; i++) {
+        const card = document.getElementById('card-' + i);
+        if (i === id) {
+          card.classList.add('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          card.classList.remove('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+        }
+      }
+    }
+
+    // Mini VTT Simulator Logic
+    let fowActive = true;
+    let spellActive = false;
+    let turnIndex = 0;
+    const combatants = [
+      "1. Paladin (Initiative 18)",
+      "2. Mage (Initiative 15)",
+      "3. Gobelin 1 (Initiative 12)",
+      "4. Gobelin 2 (Initiative 9)"
+    ];
+
+    document.getElementById('btnToggleFow').onclick = () => {
+      fowActive = !fowActive;
+      const fogEl = document.getElementById('simFog');
+      fogEl.style.opacity = fowActive ? "1" : "0.15";
+    };
+
+    document.getElementById('btnCastSpell').onclick = () => {
+      spellActive = !spellActive;
+      const aoeEl = document.getElementById('simSpellAoE');
+      if (spellActive) {
+        aoeEl.classList.remove('hidden');
+      } else {
+        aoeEl.classList.add('hidden');
+      }
+    };
+
+    document.getElementById('btnNextTurn').onclick = () => {
+      turnIndex = (turnIndex + 1) % combatants.length;
+      document.getElementById('activeCombatantLabel').textContent = combatants[turnIndex];
+    };
+
+    // Drag and Drop simulation for tokens
+    ['tokenPaladin', 'tokenWizard', 'tokenGoblin1', 'tokenGoblin2'].forEach(id => {
+      const el = document.getElementById(id);
+      let isDragging = false;
+      let startX, startY;
+
+      el.onmousedown = (e) => {
+        isDragging = true;
+        startX = e.clientX - el.offsetLeft;
+        startY = e.clientY - el.offsetTop;
+        el.style.zIndex = 100;
+      };
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const container = document.getElementById('simVttContainer');
+        const rect = container.getBoundingClientRect();
+        const x = Math.max(0, Math.min(rect.width - 40, e.clientX - rect.left - 20));
+        const y = Math.max(0, Math.min(rect.height - 40, e.clientY - rect.top - 20));
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          el.style.zIndex = 10;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

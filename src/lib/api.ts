@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { emit } from '@tauri-apps/api/event';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -114,10 +115,11 @@ export async function openMapEditorWithMap(mapDataUrl: string, title?: string, p
 
   // 1. Envoyer via Tauri
   try {
-    const { emit } = await import('@tauri-apps/api/event');
     // Petit délai pour laisser la fenêtre map-editor s'initialiser
     setTimeout(async () => {
-      await emit('open-map-in-editor', payload);
+      try {
+        await emit('open-map-in-editor', payload);
+      } catch {}
     }, 500);
   } catch {}
 

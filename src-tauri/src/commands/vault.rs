@@ -160,7 +160,7 @@ fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
         let relative = path.strip_prefix(base)
             .unwrap_or(&path)
             .to_string_lossy()
-            .to_string();
+            .replace('\\', "/");
 
         if path.is_dir() {
             let children = scan_directory(&path, base).ok();

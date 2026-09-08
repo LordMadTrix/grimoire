@@ -30,103 +30,121 @@ pub fn init_db(db: &Connection) -> Result<(), rusqlite::Error> {
         CREATE TABLE IF NOT EXISTS metadata (
             key TEXT PRIMARY KEY,
             value TEXT
-        );"
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_path);"
     )?;
     // Migrate: add label/rel_type columns if they don't exist yet
     let _ = db.execute("ALTER TABLE links ADD COLUMN label TEXT DEFAULT ''", []);
     let _ = db.execute("ALTER TABLE links ADD COLUMN rel_type TEXT DEFAULT ''", []);
+    let _ = db.execute("CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_path)", []);
     Ok(())
 }
 
-/// Ré-indexe tout le vault depuis le système de fichiers
+/// Ré-indexe tout le vault depuis le système de fichiers avec une transaction unique
 pub fn reindex_vault(vault_path: &Path, db: &Connection) -> Result<usize, Box<dyn std::error::Error>> {
-    // Nettoyer les anciennes données
-    db.execute("DELETE FROM entities", [])?;
-    db.execute("DELETE FROM links", [])?;
+    db.execute_batch("BEGIN TRANSACTION;")?;
 
-    let mut count: usize = 0;
+    let result = (|| -> Result<usize, Box<dyn std::error::Error>> {
+        // Nettoyer les anciennes données
+        db.execute("DELETE FROM entities", [])?;
+        db.execute("DELETE FROM links", [])?;
 
-    for entry in WalkDir::new(vault_path)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.path().extension().is_some_and(|ext| ext == "md")
-        })
-        // Skip hidden directories
-        .filter(|e| {
-            !e.path()
-                .components()
-                .any(|c| c.as_os_str().to_string_lossy().starts_with('.'))
-        })
-    {
-        // Un fichier illisible (encodage non-UTF8, verrouillé, permission refusée) ne doit
-        // pas faire échouer toute la ré-indexation : les tables ont déjà été vidées plus haut,
-        // donc propager l'erreur ici laisserait l'index dans un état partiel/vide.
-        let content = match std::fs::read_to_string(entry.path()) {
-            Ok(c) => c,
-            Err(e) => {
-                log::warn!("Skipping unreadable file {}: {}", entry.path().display(), e);
-                continue;
-            }
-        };
-        let rel_path = match entry.path().strip_prefix(vault_path) {
-            Ok(p) => p.to_string_lossy().to_string(),
-            Err(_) => continue,
-        };
-
-        // Extraire le frontmatter YAML
-        let (title, entity_type, tags, body) = parse_frontmatter(&content, &rel_path);
-
-        // Indexer dans FTS5
-        db.execute(
-            "INSERT INTO entities (path, title, entity_type, tags, content) VALUES (?1,?2,?3,?4,?5)",
-            params![rel_path, title, entity_type, tags, body],
+        let mut stmt_entity = db.prepare_cached(
+            "INSERT INTO entities (path, title, entity_type, tags, content) VALUES (?1,?2,?3,?4,?5)"
+        )?;
+        let mut stmt_link = db.prepare_cached(
+            "INSERT OR IGNORE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,?3,'','')"
+        )?;
+        let mut stmt_rel = db.prepare_cached(
+            "INSERT OR REPLACE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,'',?3,?4)"
         )?;
 
-        // Extraire les liens [[...]]
-        for cap in LINK_REGEX.captures_iter(&content) {
-            if let Some(target) = cap.get(1) {
-                let target_str = target.as_str().trim();
-                let context = extract_context(&content, cap.get(0).unwrap().start());
+        let mut count: usize = 0;
 
-                db.execute(
-                    "INSERT OR IGNORE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,?3,'','')",
-                    params![rel_path, target_str, context],
-                )?;
+        for entry in WalkDir::new(vault_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                e.path().extension().is_some_and(|ext| ext == "md")
+            })
+            // Skip hidden directories
+            .filter(|e| {
+                !e.path()
+                    .components()
+                    .any(|c| c.as_os_str().to_string_lossy().starts_with('.'))
+            })
+        {
+            // Un fichier illisible (encodage non-UTF8, verrouillé, permission refusée) ne doit
+            // pas faire échouer toute la ré-indexation
+            let content = match std::fs::read_to_string(entry.path()) {
+                Ok(c) => c,
+                Err(e) => {
+                    log::warn!("Skipping unreadable file {}: {}", entry.path().display(), e);
+                    continue;
+                }
+            };
+            let rel_path = match entry.path().strip_prefix(vault_path) {
+                Ok(p) => p.to_string_lossy().to_string(),
+                Err(_) => continue,
+            };
+
+            // Extraire le frontmatter YAML
+            let (title, entity_type, tags, body) = parse_frontmatter(&content, &rel_path);
+
+            // Indexer dans FTS5
+            stmt_entity.execute(params![rel_path, title, entity_type, tags, body])?;
+
+            // Extraire les liens [[...]]
+            for cap in LINK_REGEX.captures_iter(&content) {
+                if let Some(target) = cap.get(1) {
+                    let target_str = target.as_str().trim();
+                    let context = extract_context(&content, cap.get(0).unwrap().start());
+
+                    stmt_link.execute(params![rel_path, target_str, context])?;
+                }
             }
-        }
 
-        // Extraire les relations nommées du frontmatter (relations: [{target, label, type}])
-        if let Some(caps) = FRONTMATTER_REGEX.captures(&content) {
-            let yaml_str = caps.get(1).unwrap().as_str();
-            if let Ok(yaml) = serde_yaml::from_str::<serde_yaml::Value>(yaml_str) {
-                if let Some(relations) = yaml.get("relations").and_then(|v| v.as_sequence()) {
-                    for rel in relations {
-                        let target = rel.get("target").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-                        let label = rel.get("label").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-                        let rel_type = rel.get("type").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-                        if !target.is_empty() {
-                            let _ = db.execute(
-                                "INSERT OR REPLACE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,'',?3,?4)",
-                                params![rel_path, target, label, rel_type],
-                            );
+            // Extraire les relations nommées du frontmatter (relations: [{target, label, type}])
+            if let Some(caps) = FRONTMATTER_REGEX.captures(&content) {
+                let yaml_str = caps.get(1).unwrap().as_str();
+                if let Ok(yaml) = serde_yaml::from_str::<serde_yaml::Value>(yaml_str) {
+                    if let Some(relations) = yaml.get("relations").and_then(|v| v.as_sequence()) {
+                        for rel in relations {
+                            let target = rel.get("target").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                            let label = rel.get("label").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                            let rel_type = rel.get("type").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                            if !target.is_empty() {
+                                let _ = stmt_rel.execute(params![rel_path, target, label, rel_type]);
+                            }
                         }
                     }
                 }
             }
+
+            count += 1;
         }
 
-        count += 1;
+        // Stocker la date d'indexation
+        db.execute(
+            "INSERT OR REPLACE INTO metadata (key, value) VALUES ('last_index', datetime('now'))",
+            [],
+        )?;
+
+        Ok(count)
+    })();
+
+    match result {
+        Ok(count) => {
+            db.execute_batch("COMMIT;")?;
+            log::info!("Indexed {} markdown files from vault", count);
+            Ok(count)
+        }
+        Err(e) => {
+            let _ = db.execute_batch("ROLLBACK;");
+            Err(e)
+        }
     }
-
-    // Stocker la date d'indexation
-    db.execute(
-        "INSERT OR REPLACE INTO metadata (key, value) VALUES ('last_index', datetime('now'))",
-        [],
-    )?;
-
-    log::info!("Indexed {} markdown files from vault", count);
-    Ok(count)
 }
 
 /// Sanitise une requête utilisateur pour FTS5 — évite les crashes sur caractères spéciaux

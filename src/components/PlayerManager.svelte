@@ -7,7 +7,7 @@
     applyDamageToPlayer, type PlayerInfo,
     readFile, writeFile, createDirectory, type VaultEntry,
     assignCharacter, applyConditionToPlayer, removeConditionFromPlayer,
-    requestRoll
+    requestRoll, pushMapSnapshot, askOllama
   } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import { vttStore } from '$lib/stores/vtt.svelte';
@@ -349,7 +349,6 @@
       const canvas = document.querySelector('canvas');
       if (canvas) {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        const { pushMapSnapshot } = await import('$lib/api');
         await pushMapSnapshot(dataUrl);
         statusMessage = "Carte poussée aux joueurs !";
         setTimeout(() => statusMessage = "", 3000);
@@ -372,7 +371,6 @@
       : "Tu es un assistant expert en règles WFRP. Réponds de manière concise.";
     
     try {
-      const { askOllama } = await import('$lib/api');
       const response = await askOllama(prompt, 'llama3', sys);
       aiMessages = [...aiMessages, { role: 'assistant', content: response }];
       

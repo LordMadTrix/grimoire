@@ -135,7 +135,7 @@ fn extract_zip(reader: impl io::Read + io::Seek, target_dir: &Path) -> Result<()
         } else {
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(&p).map_err(|e| format!("Erreur création dossier parent: {}", e))?;
+                    fs::create_dir_all(p).map_err(|e| format!("Erreur création dossier parent: {}", e))?;
                 }
             }
             let mut outfile = File::create(&outpath).map_err(|e| format!("Erreur création fichier: {}", e))?;
@@ -151,7 +151,7 @@ pub async fn pull_ollama_model(app_handle: tauri::AppHandle, model_name: String)
     let host = "http://localhost:11435";
     
     // Start it if not running
-    if let Err(_) = client.get(format!("{}/api/tags", host)).send().await {
+    if client.get(format!("{}/api/tags", host)).send().await.is_err() {
         let exe_path = std::env::current_exe().unwrap_or_default();
         let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
         let bin_name = if cfg!(windows) { "ollama.exe" } else { "ollama" };
@@ -224,7 +224,7 @@ pub async fn ask_ollama(_app_handle: tauri::AppHandle, prompt: String, model: St
     let client = reqwest::Client::new();
     
     // Check if running
-    if let Err(_) = client.get(format!("{}/api/tags", host)).send().await {
+    if client.get(format!("{}/api/tags", host)).send().await.is_err() {
         // Not running, try to start local binary
         let exe_path = std::env::current_exe().unwrap_or_default();
         let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
@@ -300,7 +300,7 @@ pub async fn get_ollama_models() -> Result<Vec<String>, String> {
     let host = "http://localhost:11435";
     
     // Start it if not running
-    if let Err(_) = client.get(format!("{}/api/tags", host)).send().await {
+    if client.get(format!("{}/api/tags", host)).send().await.is_err() {
         let exe_path = std::env::current_exe().unwrap_or_default();
         let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
         let bin_name = if cfg!(windows) { "ollama.exe" } else { "ollama" };

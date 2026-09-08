@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel de la Bibliothèque Céleste — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif de la Bibliothèque Céleste de Grimoire : téléchargez des packs de cartes HD, bestiaires, règles et modules d'un simple clic.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">BIBLIOTHÈQUE CÉLESTE</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="tutoriel-audio.html" class="hidden md:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🎧 Audio
+      </a>
+      <a href="tutoriel-outils-mj.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🎲 Outils MJ
+      </a>
+      <a href="tutorial.html" class="px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Tous les Tutos
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Extensions & Contenu Communautaire
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        La Bibliothèque Céleste & Gestionnaire d'Addons
+      </h1>
+      <p class="text-gray-400 text-base md:text-lg max-w-3xl leading-relaxed">
+        Enrichissez votre Grimoire sans effort. Accédez à un catalogue en ligne d'extensions créées pour vos parties de jeu de rôle : packs de cartes tactiques en 4K, bestiaires complets avec caractéristiques et attaques, règles de jeux officiels et sagas prêtes à jouer.
+      </p>
+    </div>
+
+    <!-- Interactive Screenshot Section -->
+    <section class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+            <span>🌌</span> Visite de la Bibliothèque Céleste
+          </h2>
+          <p class="text-gray-400 text-sm">Cliquez sur les numéros dorés pour découvrir le fonctionnement du store d'addons.</p>
+        </div>
+        <span class="text-xs text-grimoire-accent bg-grimoire-accent/10 border border-grimoire-accent/20 px-3 py-1 rounded-full hidden sm:inline-block">5 zones essentielles</span>
+      </div>
+
+      <!-- Screenshot with Hotspots -->
+      <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/80 group select-none">
+        <img src="interface_bibliotheque_celeste.png" alt="Bibliothèque Céleste Grimoire" class="w-full h-auto object-cover rounded-2xl block">
+
+        <!-- Hotspot 1: Archives Célestes & Compteur Global de Ressources -->
+        <button class="hotspot-btn" style="top: 14%; left: 30%;" onclick="highlightFeature(1)">
+          1
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 2: Filtres par Catégorie (Maps, Tokens, Audio, Notes) & Recherche -->
+        <button class="hotspot-btn" style="top: 14%; left: 62%;" onclick="highlightFeature(2)">
+          2
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 3: Explorateur de Sous-Dossiers Célestes -->
+        <button class="hotspot-btn" style="top: 40%; left: 24%;" onclick="highlightFeature(3)">
+          3
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 4: Cartes de Ressources & Battlemaps 4K -->
+        <button class="hotspot-btn" style="top: 40%; left: 52%;" onclick="highlightFeature(4)">
+          4
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 5: Téléchargement & Import Direct dans le Coffre -->
+        <button class="hotspot-btn" style="top: 65%; left: 52%;" onclick="highlightFeature(5)">
+          5
+          <span class="hotspot-pulse"></span>
+        </button>
+      </div>
+
+      <!-- Feature Details Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="featureCards">
+        
+        <div id="card-1" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(1)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">1</span>
+            <h3 class="font-bold text-white text-base">Archives Célestes (+30 000 Ressources)</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Accédez à une immense collection de ressources communautaires gratuites et indexées, prêtes pour vos campagnes de jeu de rôle sans quitter Grimoire.
+          </p>
+        </div>
+
+        <div id="card-2" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(2)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">2</span>
+            <h3 class="font-bold text-white text-base">Pills de Catégories & Barre de Recherche</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Basculez d'un clic entre <code>Maps</code>, <code>Tokens</code>, <code>Audio</code>, <code>Notes</code> et <code>Templates</code>, ou cherchez un mot-clé précis pour isoler la ressource voulue.
+          </p>
+        </div>
+
+        <div id="card-3" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(3)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">3</span>
+            <h3 class="font-bold text-white text-base">Arborescence & Dossiers Thématiques</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Naviguez dans les répertoires classés par environnement (Donjons, Forêts, Villes, Sci-Fi, Fantastique) pour parcourir des séries d'assets cohérentes visuellement.
+          </p>
+        </div>
+
+        <div id="card-4" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(4)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">4</span>
+            <h3 class="font-bold text-white text-base">Aperçus Visuels & Informations</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Chaque carte ou token affiche un aperçu miniature haute fidélité, le nom de l'auteur, les dimensions de grille recommandées et le format de fichier.
+          </p>
+        </div>
+
+        <div id="card-5" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer md:col-span-2" onclick="highlightFeature(5)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">5</span>
+            <h3 class="font-bold text-white text-base">Téléchargement & Intégration Immédiate</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Cliquez sur <code>Télécharger</code> : le fichier est rapatrié en local dans votre coffre de campagne et apparaît aussitôt dans votre sélecteur de cartes VTT ou votre gestionnaire d'assets.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Mini Store Simulator Sandbox -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-grimoire-accent/15 text-grimoire-accent text-xs font-bold uppercase tracking-wider mb-1">
+            Boutique Interactive
+          </div>
+          <h2 class="text-2xl font-bold text-white">Testez le Gestionnaire d'Addons</h2>
+        </div>
+        <div class="text-xs text-gray-400">
+          Cliquez sur « Installer » pour simuler l'ajout d'une extension dans le coffre
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Addon Card 1 -->
+        <div class="glass p-5 rounded-2xl border border-white/10 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-2xl">🗺️</span>
+              <span class="px-2 py-0.5 text-[10px] bg-grimoire-accent/20 text-grimoire-accent rounded font-bold">4K BATTLEMAP</span>
+            </div>
+            <h3 class="font-bold text-white text-sm mb-1">Pack Crypte des Morts-Vivants</h3>
+            <p class="text-gray-400 text-xs mb-3">12 cartes de catacombes texturées avec éclairage et grilles pré-configurées.</p>
+          </div>
+          <button id="btnInstall1" onclick="toggleAddon('btnInstall1', 'badge1')" class="w-full py-2 bg-grimoire-accent text-black font-bold text-xs rounded-xl hover:bg-grimoire-accentHover transition-all flex items-center justify-center gap-1">
+            <span>📥</span> <span id="badge1">Installer (18 Mo)</span>
+          </button>
+        </div>
+
+        <!-- Addon Card 2 -->
+        <div class="glass p-5 rounded-2xl border border-white/10 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-2xl">🐉</span>
+              <span class="px-2 py-0.5 text-[10px] bg-red-500/20 text-red-400 rounded font-bold">BESTIAIRE 5E</span>
+            </div>
+            <h3 class="font-bold text-white text-sm mb-1">Bestiaire Fantastique V2</h3>
+            <p class="text-gray-400 text-xs mb-3">Plus de 250 créatures avec stats blocs Markdown, sorts et actions de combat.</p>
+          </div>
+          <button id="btnInstall2" onclick="toggleAddon('btnInstall2', 'badge2')" class="w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-all flex items-center justify-center gap-1 border border-white/10">
+            <span>✅</span> <span id="badge2">Installé</span>
+          </button>
+        </div>
+
+        <!-- Addon Card 3 -->
+        <div class="glass p-5 rounded-2xl border border-white/10 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-2xl">📜</span>
+              <span class="px-2 py-0.5 text-[10px] bg-purple-500/20 text-purple-400 rounded font-bold">SYSTÈME DE JEU</span>
+            </div>
+            <h3 class="font-bold text-white text-sm mb-1">Module Warhammer Fantasy</h3>
+            <p class="text-gray-400 text-xs mb-3">Règles de carrières, tables de blessures critiques et mutations du Chaos.</p>
+          </div>
+          <button id="btnInstall3" onclick="toggleAddon('btnInstall3', 'badge3')" class="w-full py-2 bg-grimoire-accent text-black font-bold text-xs rounded-xl hover:bg-grimoire-accentHover transition-all flex items-center justify-center gap-1">
+            <span>📥</span> <span id="badge3">Installer (4 Mo)</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Navigation Hub Footer -->
+    <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <a href="tutoriel-audio.html" class="text-sm text-gray-400 hover:text-grimoire-accent flex items-center gap-2">
+        ← Tutoriel : Audio & Ambiance
+      </a>
+      <a href="tutoriel-outils-mj.html" class="px-6 py-2.5 bg-grimoire-accent text-black font-bold rounded-xl hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20 flex items-center gap-2">
+        Tutoriel Suivant : Outils MJ & IA →
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    function highlightFeature(id) {
+      for (let i = 1; i <= 5; i++) {
+        const card = document.getElementById('card-' + i);
+        if (i === id) {
+          card.classList.add('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          card.classList.remove('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+        }
+      }
+    }
+
+    function toggleAddon(btnId, badgeId) {
+      const btn = document.getElementById(btnId);
+      const badge = document.getElementById(badgeId);
+      const isInstalled = badge.textContent.includes('Installé');
+
+      if (isInstalled) {
+        badge.textContent = "Installer (Télécharger)";
+        btn.className = "w-full py-2 bg-grimoire-accent text-black font-bold text-xs rounded-xl hover:bg-grimoire-accentHover transition-all flex items-center justify-center gap-1";
+      } else {
+        badge.textContent = "Téléchargement...";
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.disabled = false;
+          badge.textContent = "Installé";
+          btn.className = "w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-all flex items-center justify-center gap-1 border border-white/10";
+        }, 800);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -13,8 +13,13 @@
   let showBacklinks = $state(false);
   let showOutline = $state(false);
   let showPreview = $state(false);
+  let showToolbar = $state(true);
   let scrollToLine = $state<number | null>(null);
   let previewHtml = $state('');
+
+  function applyFormat(type: string) {
+    document.dispatchEvent(new CustomEvent('editor-format', { detail: { type } }));
+  }
 
   // Frontmatter parsé (clés simples uniquement)
   let frontmatter = $derived((() => {
@@ -131,8 +136,20 @@
       if (hm) { html += `<h${hm[1].length}>${esc(hm[2])}</h${hm[1].length}>`; i++; continue; }
       // HR
       if (/^---+$/.test(line.trim())) { html += '<hr>'; i++; continue; }
-      // Blockquote
-      if (line.startsWith('> ')) { html += `<blockquote>${esc(line.slice(2))}</blockquote>`; i++; continue; }
+      // Blockquote & Callouts
+      if (line.startsWith('> ')) {
+        const quoteContent = line.slice(2);
+        const calloutMatch = quoteContent.match(/^\[!([A-Z]+)\]\s*(.*)/i);
+        if (calloutMatch) {
+          const cType = calloutMatch[1].toUpperCase();
+          const cTitle = calloutMatch[2] || cType;
+          html += `<div class="preview-callout callout-${cType.toLowerCase()}"><div class="callout-header"><span class="callout-icon">💡</span><strong>${esc(cTitle)}</strong></div></div>`;
+        } else {
+          html += `<blockquote>${esc(quoteContent)}</blockquote>`;
+        }
+        i++;
+        continue;
+      }
       // Unordered list / checklist
       const ulm = line.match(/^(\s*)[-*]\s+(.*)/);
       if (ulm) {
@@ -159,8 +176,13 @@
       para = para.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       para = para.replace(/\*(.+?)\*/g, '<em>$1</em>');
       para = para.replace(/_(.+?)_/g, '<em>$1</em>');
+      // Strikethrough & Highlight
+      para = para.replace(/~~(.+?)~~/g, '<del>$1</del>');
+      para = para.replace(/==(.+?)==/g, '<mark>$1</mark>');
       // Inline code
       para = para.replace(/`(.+?)`/g, '<code>$1</code>');
+      // Markdown external links [label](url)
+      para = para.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1 ↗</a>');
       // WikiLinks [[note]] → clickable link
       para = para.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, label) => {
         const display = label || target;
@@ -339,6 +361,14 @@
         {#if frontmatterType === 'faction'}
           <button onclick={generateFactionPlot} class="save-btn ctx-btn" title="Générer le plan de la faction">⚜️ Complot</button>
         {/if}
+        <button
+          class="save-btn"
+          class:active={showToolbar}
+          onclick={() => showToolbar = !showToolbar}
+          title={showToolbar ? "Masquer les raccourcis Markdown" : "Afficher les raccourcis Markdown"}
+        >
+          🖋️
+        </button>
         <button class="save-btn" class:active={showPreview} onclick={() => showPreview = !showPreview} title="Aperçu rendu (images + tableaux)">
           👁️
         </button>
@@ -359,6 +389,279 @@
             <span class="fm-val">{field.value}</span>
           </span>
         {/each}
+      </div>
+    {/if}
+
+    {#if showToolbar && !getActiveFile()?.toLowerCase().endsWith('.pdf')}
+      <div class="markdown-toolbar" role="toolbar" aria-label="Raccourcis de formatage Markdown">
+        <!-- Groupe Style Inline -->
+        <div class="toolbar-group">
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('bold')}
+            title="Gras (**texte**) [Ctrl+B]"
+          >
+            <span class="btn-icon bold-icon">B</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('italic')}
+            title="Italique (*texte*) [Ctrl+I]"
+          >
+            <span class="btn-icon italic-icon">I</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('strike')}
+            title="Barré (~~texte~~)"
+          >
+            <span class="btn-icon strike-icon">S</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('highlight')}
+            title="Surligné (==texte==)"
+          >
+            <span class="btn-icon mark-icon">H</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('inline-code')}
+            title="Code en ligne (`code`)"
+          >
+            <span class="btn-icon code-icon">&lt;/&gt;</span>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Groupe Titres -->
+        <div class="toolbar-group">
+          <button
+            type="button"
+            class="tool-btn heading-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('h1')}
+            title="Titre 1 (# Titre)"
+          >
+            H1
+          </button>
+          <button
+            type="button"
+            class="tool-btn heading-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('h2')}
+            title="Titre 2 (## Titre)"
+          >
+            H2
+          </button>
+          <button
+            type="button"
+            class="tool-btn heading-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('h3')}
+            title="Titre 3 (### Titre)"
+          >
+            H3
+          </button>
+          <button
+            type="button"
+            class="tool-btn heading-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('h4')}
+            title="Titre 4 (#### Titre)"
+          >
+            H4
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Groupe Listes -->
+        <div class="toolbar-group">
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('bullet-list')}
+            title="Liste à puces (- élément)"
+          >
+            <span class="btn-icon">☰</span>
+            <span class="btn-label">Puces</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('number-list')}
+            title="Liste numérotée (1. élément)"
+          >
+            <span class="btn-icon">🔢</span>
+            <span class="btn-label">1. 2. 3.</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('task-list')}
+            title="Tâche / Case à cocher (- [ ] élément)"
+          >
+            <span class="btn-icon">☑</span>
+            <span class="btn-label">Tâche</span>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Groupe Blocs & Structures -->
+        <div class="toolbar-group">
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('quote')}
+            title="Citation (> citation)"
+          >
+            <span class="btn-icon">❞</span>
+            <span class="btn-label">Citation</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('codeblock')}
+            title="Bloc de code (```)"
+          >
+            <span class="btn-icon">💻</span>
+            <span class="btn-label">Bloc</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('table')}
+            title="Insérer un tableau Markdown"
+          >
+            <span class="btn-icon">▦</span>
+            <span class="btn-label">Tableau</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('rolltable')}
+            title="Table de tirage aléatoire d6"
+          >
+            <span class="btn-icon">🎲</span>
+            <span class="btn-label">Tirage d6</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('callout')}
+            title="Boîte de note / Callout (> [!NOTE])"
+          >
+            <span class="btn-icon">💡</span>
+            <span class="btn-label">Note</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('secret')}
+            title="Secret / Piège MJ (> [!SECRET])"
+          >
+            <span class="btn-icon">🔒</span>
+            <span class="btn-label">Secret MJ</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('readaloud')}
+            title="Narration MJ à voix haute (> 🗣️ ...)"
+          >
+            <span class="btn-icon">🗣️</span>
+            <span class="btn-label">Récit MJ</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('statblock')}
+            title="Bloc de statistiques Créature / PNJ"
+          >
+            <span class="btn-icon">⚔️</span>
+            <span class="btn-label">Stats</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('hr')}
+            title="Ligne de séparation (---)"
+          >
+            <span class="btn-icon">―</span>
+            <span class="btn-label">Ligne</span>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Groupe Liens & Médias -->
+        <div class="toolbar-group">
+          <button
+            type="button"
+            class="tool-btn highlight-gold"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('wikilink')}
+            title="Rétrolien Grimoire ([[Note]]) [Ctrl+K]"
+          >
+            <span class="btn-icon">🔗</span>
+            <span class="btn-label">[[Note]]</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('link')}
+            title="Lien hypertexte Web ([titre](url))"
+          >
+            <span class="btn-icon">🌐</span>
+            <span class="btn-label">Lien</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('image')}
+            title="Image (![alt](chemin))"
+          >
+            <span class="btn-icon">🖼️</span>
+            <span class="btn-label">Image</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('comment')}
+            title="Commentaire invisible du MJ (%% note %% )"
+          >
+            <span class="btn-icon">👁️‍🗨️</span>
+            <span class="btn-label">%% Note MJ</span>
+          </button>
+        </div>
       </div>
     {/if}
 
@@ -460,6 +763,8 @@
         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>N</kbd> Nouveau fichier</div>
         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>P</kbd> Rechercher</div>
         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>S</kbd> Sauvegarder</div>
+        <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd> Gras / Italique</div>
+        <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>K</kbd> Lien wiki [[ ]]</div>
         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>J</kbd> Générer avec Ollama</div>
         <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>Clic</kbd> Suivre un lien wiki</div>
       </div>
@@ -468,6 +773,180 @@
 </div>
 
 <style>
+  /* ── Markdown Formatting Toolbar ───────────────────────────── */
+
+  .markdown-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 12px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    user-select: none;
+  }
+
+  .markdown-toolbar::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .toolbar-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 3px 6px;
+    min-height: 25px;
+    min-width: 25px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .tool-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent);
+    border-color: rgba(229, 168, 83, 0.3);
+  }
+
+  .tool-btn:active {
+    background: var(--accent-bg);
+    transform: translateY(1px);
+  }
+
+  .btn-icon {
+    font-size: 12px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-label {
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .bold-icon {
+    font-weight: 800;
+    font-family: serif;
+    font-size: 13px;
+  }
+
+  .italic-icon {
+    font-style: italic;
+    font-family: serif;
+    font-size: 13px;
+    padding-right: 1px;
+  }
+
+  .strike-icon {
+    text-decoration: line-through;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .mark-icon {
+    background: rgba(229, 168, 83, 0.35);
+    color: var(--accent);
+    border-radius: 2px;
+    padding: 0 3px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .code-icon {
+    font-family: monospace;
+    font-size: 11px;
+    color: #38bdf8;
+  }
+
+  .heading-btn {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(229, 168, 83, 0.06);
+    border: 1px solid rgba(229, 168, 83, 0.2);
+    padding: 2px 6px;
+  }
+
+  .heading-btn:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+  }
+
+  .highlight-gold {
+    color: var(--accent);
+  }
+
+  /* ── Preview Callouts & Styling ────────────────────────────── */
+
+  .preview-panel :global(.preview-callout) {
+    background: rgba(229, 168, 83, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin: 1em 0;
+  }
+
+  .preview-panel :global(.preview-callout.callout-warning) {
+    background: rgba(239, 68, 68, 0.1);
+    border-left-color: var(--danger);
+  }
+
+  .preview-panel :global(.preview-callout.callout-tip) {
+    background: rgba(34, 197, 94, 0.1);
+    border-left-color: var(--success);
+  }
+
+  .preview-panel :global(.callout-header) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+
+  .preview-panel :global(mark) {
+    background: rgba(229, 168, 83, 0.35);
+    color: inherit;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .preview-panel :global(del) {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  .preview-panel :global(a:not(.wikilink)) {
+    color: #38bdf8;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
   .editor-container {
     display: flex;
     flex-direction: column;

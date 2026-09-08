@@ -8,6 +8,7 @@
   import { readFileBase64, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
   import { updateDynamicLighting } from '$lib/vtt/lighting';
+  import { emit } from '@tauri-apps/api/event';
 
   // Svelte 5 — $props() obligatoire (pas export let)
   let {
@@ -2089,9 +2090,7 @@
     if (vttMode === 'ping') {
       const localPos = worldContainer.toLocal(e.global);
       spawnPing(localPos.x, localPos.y);
-      import('@tauri-apps/api/event').then(({ emit }) => {
-        emit('player_ping', { x: localPos.x, y: localPos.y });
-      });
+      emit('player_ping', { x: localPos.x, y: localPos.y }).catch(() => {});
     } else if (vttMode === 'pin') {
       const localPos = worldContainer.toLocal(e.global);
       onPinPlace(localPos.x, localPos.y);

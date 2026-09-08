@@ -6,6 +6,12 @@
   import RightPanel from './components/RightPanel.svelte';
   import CatalogModal from './components/CatalogModal.svelte';
   import TextureCatalogModal from './components/TextureCatalogModal.svelte';
+  import QuickActionBar from './components/QuickActionBar.svelte';
+  import Minimap from './components/Minimap.svelte';
+  import PresetsModal from './components/PresetsModal.svelte';
+  import AtmosphereModal from './components/AtmosphereModal.svelte';
+  import LayersModal from './components/LayersModal.svelte';
+  import ShortcutsModal from './components/ShortcutsModal.svelte';
   import { mapStore, pushHistory } from './lib/stores/mapStore.svelte';
 
   // Référence locale vers le canevas pour appeler des actions depuis la barre d'outils
@@ -342,25 +348,37 @@
   </div>
 
   <!-- Barre supérieure de navigation rapide (TopPanel) -->
-  <TopPanel 
-    onExport={handleExport}
-    onSave={saveProjectJson}
-    onLoad={loadProjectJson}
-    onClear={handleClear}
-    onSendToGrimoire={sendToGrimoire}
-    onSaveToVault={saveToVault}
-  />
+  {#if !mapStore.zenMode}
+    <TopPanel 
+      onExport={handleExport}
+      onSave={saveProjectJson}
+      onLoad={loadProjectJson}
+      onClear={handleClear}
+      onSendToGrimoire={sendToGrimoire}
+      onSaveToVault={saveToVault}
+    />
 
-  <!-- Barre latérale outils gauche (flottante) -->
-  <LeftToolbar onSave={saveProjectJson} />
+    <!-- Barre latérale outils gauche (flottante) -->
+    <LeftToolbar onSave={saveProjectJson} />
 
-  <!-- Panneau flottant gauche (regroupant les réglages de l'outil actif) -->
-  <RightPanel
-    onFinishPath={handleFinishPath}
-    onDeleteSelected={handleDeleteSelected}
-  />
+    <!-- Panneau flottant gauche (regroupant les réglages de l'outil actif) -->
+    <RightPanel
+      onFinishPath={handleFinishPath}
+      onDeleteSelected={handleDeleteSelected}
+    />
+  {/if}
 
-  <!-- Catalogue d'assets (Modal) -->
+  <!-- HUD d'actions rapides et outils magiques -->
+  <QuickActionBar />
+
+  <!-- Radar / Minimap interactive -->
+  <Minimap />
+
+  <!-- Modales d'outils et catalogues -->
+  <PresetsModal />
+  <AtmosphereModal />
+  <LayersModal />
+  <ShortcutsModal />
   <CatalogModal />
   <TextureCatalogModal />
 

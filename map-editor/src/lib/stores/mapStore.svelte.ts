@@ -135,13 +135,35 @@ export const mapStore = $state({
   backgroundImageOpacity: 1.0,
   foregroundOpacity: 1.0,
 
-  // Filtres globaux de carte
+  // Filtres globaux & Ambiance de carte
   mapFilter: 'none' as 'none' | 'sepia' | 'cold' | 'warm',
   mapFilterIntensity: 0.5,
+  atmospherePreset: 'day' as 'day' | 'sunset' | 'night' | 'dungeon' | 'fog' | 'blood_moon',
+  weatherEffect: 'none' as 'none' | 'rain' | 'snow' | 'fireflies',
+  weatherIntensity: 0.5,
   vignetteEnabled: false,
   vignetteOpacity: 0.4,
   paperOverlayEnabled: false,
   paperOverlayOpacity: 0.3,
+
+  // Visibilité et Verrouillage des Calques (Layers)
+  layerVisibility: {
+    background: true,
+    terrain: true,
+    shapes: true,
+    stamps: true,
+    paths: true,
+    texts: true,
+    grid: true,
+  },
+  layerLocked: {
+    background: false,
+    terrain: false,
+    shapes: false,
+    stamps: false,
+    paths: false,
+    texts: false,
+  },
 
   // Paramètres de formes géométriques (Shape)
   shapeType: 'rectangle' as 'rectangle' | 'circle' | 'polygon',
@@ -172,6 +194,12 @@ export const mapStore = $state({
   showPanel: true,
   showCatalog: false,
   showTextureCatalog: false,
+  showMinimap: true,
+  zenMode: false,
+  showShortcutsModal: false,
+  showLayersModal: false,
+  showAtmosphereModal: false,
+  showPresetsModal: false,
   // Sélection active (selectedElement = élément principal, selectedIds = multi-sélection PAO)
   selectedElement: null as { type: 'stamp' | 'text' | 'shape'; id: string } | null,
   selectedIds: [] as SelectedRef[],

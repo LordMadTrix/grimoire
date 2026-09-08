@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel du Hub Joueurs & Compagnon Mobile — Grimoire</title>
+  <meta name="description" content="Guide visuel et interactif du Hub Joueurs et Compagnon Mobile PWA de Grimoire : connexion par QR code, fiche de personnage mobile et dés 3D synchronisés.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(229, 168, 83, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+    
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background: #e5a853;
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(229, 168, 83, 0.3), 0 0 20px rgba(229, 168, 83, 0.8);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 20;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+      background: #fff;
+    }
+    .hotspot-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 2px solid #e5a853;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-grimoire-accent selection:text-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 bg-grimoire-accent rounded-lg flex items-center justify-center text-black font-black text-xl shadow-lg shadow-grimoire-accent/20 group-hover:scale-105 transition-transform">G</div>
+        <div>
+          <div class="text-sm md:text-base font-bold tracking-widest text-white glow-text flex items-center gap-2">
+            GRIMOIRE <span class="text-xs px-2 py-0.5 rounded bg-grimoire-accent/20 text-grimoire-accent font-normal">HUB JOUEURS & MOBILE</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      <a href="tutoriel-vtt.html" class="hidden md:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        ⚔️ Table Virtuelle
+      </a>
+      <a href="tutoriel-audio.html" class="hidden sm:inline-flex px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        🎧 Audio & Ambiance
+      </a>
+      <a href="tutorial.html" class="px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-grimoire-accent hover:border-grimoire-accent/40 transition-colors">
+        📖 Tous les Tutos
+      </a>
+      <a href="index.html" class="px-3 py-1.5 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent hover:bg-grimoire-accent hover:text-black rounded-lg font-medium transition-all">
+        ← Accueil
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 sm:px-6 py-10 max-w-6xl space-y-12">
+
+    <!-- Hero Title -->
+    <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card via-grimoire-card/70 to-transparent relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-grimoire-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent text-xs font-semibold uppercase tracking-wider mb-4">
+        Zéro Installation • Connexion Immédiate
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+        Le Hub Joueurs & Compagnon Mobile PWA
+      </h1>
+      <p class="text-gray-400 text-base md:text-lg max-w-3xl leading-relaxed">
+        Transformez le smartphone de vos joueurs en véritable feuille de personnage interactive. Grâce au serveur local ultra-léger propulsé par <strong>Axum (Rust)</strong>, vos joueurs scannent un simple QR code pour lancer des dés en direct, consulter leur inventaire et voter aux sondages sans créer de compte ni installer d'application sur les stores.
+      </p>
+    </div>
+
+    <!-- Interactive Screenshot Section -->
+    <section class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+            <span>📱</span> Visite du Hub & Compagnon Mobile
+          </h2>
+          <p class="text-gray-400 text-sm">Survolez ou cliquez sur les pastilles dorées pour découvrir les 5 piliers du Hub Joueurs.</p>
+        </div>
+        <span class="text-xs text-grimoire-accent bg-grimoire-accent/10 border border-grimoire-accent/20 px-3 py-1 rounded-full hidden sm:inline-block">5 points interactifs</span>
+      </div>
+
+      <!-- Screenshot with Hotspots -->
+      <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/80 group select-none">
+        <img src="interface_joueurs_mobile.png" alt="Hub Joueurs et compagnon smartphone Grimoire" class="w-full h-auto object-cover rounded-2xl block">
+
+        <!-- Hotspot 1: QR Code de Connexion Directe -->
+        <button class="hotspot-btn" style="top: 36%; left: 38%;" onclick="highlightFeature(1)">
+          1
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 2: Contrôles du Serveur Local (Port & Arrêt) -->
+        <button class="hotspot-btn" style="top: 25%; left: 70%;" onclick="highlightFeature(2)">
+          2
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 3: Actions Rapides MJ (Combat, Ping, Handout, Sondage) -->
+        <button class="hotspot-btn" style="top: 54%; left: 50%;" onclick="highlightFeature(3)">
+          3
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 4: Liste des Joueurs Connectés en Temps Réel -->
+        <button class="hotspot-btn" style="top: 70%; left: 50%;" onclick="highlightFeature(4)">
+          4
+          <span class="hotspot-pulse"></span>
+        </button>
+
+        <!-- Hotspot 5: Fermeture & Intégration en Arrière-Plan -->
+        <button class="hotspot-btn" style="top: 21%; left: 78%;" onclick="highlightFeature(5)">
+          5
+          <span class="hotspot-pulse"></span>
+        </button>
+      </div>
+
+      <!-- Feature Details Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="featureCards">
+        
+        <div id="card-1" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(1)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">1</span>
+            <h3 class="font-bold text-white text-base">Flash QR Code & Zéro Configuration</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Le QR code génère automatiquement l'URL locale sécurisée du PC du MJ. Vos joueurs scannent avec l'appareil photo de leur téléphone pour accéder instantanément à la PWA compagnon sans compte ni cloud.
+          </p>
+        </div>
+
+        <div id="card-2" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(2)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">2</span>
+            <h3 class="font-bold text-white text-base">Serveur Web Ultra-Rapide (Axum Rust)</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Le serveur intégré en Rust tourne sur votre machine avec une latence inférieure à 2ms. Le bouton d'état permet d'arrêter ou relancer le serveur instantanément d'un simple clic.
+          </p>
+        </div>
+
+        <div id="card-3" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(3)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">3</span>
+            <h3 class="font-bold text-white text-base">Actions Rapides MJ</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Quatre boutons d'action rapide : <code>⚔️ Mode Combat</code> (synchronise le tour), <code>📍 Ping Carte</code> (attire l'attention), <code>📜 Envoyer Handout</code> (distribue un indice secret), et <code>🗳️ Lancer Sondage</code> (vote en direct).
+          </p>
+        </div>
+
+        <div id="card-4" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer" onclick="highlightFeature(4)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">4</span>
+            <h3 class="font-bold text-white text-base">Suivi des Joueurs Connectés</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Surveillez en direct les joueurs présents à la table, l'état de leur connexion WebSocket, leur personnage associé et leurs jets de dés récents transmis en temps réel.
+          </p>
+        </div>
+
+        <div id="card-5" class="glass p-5 rounded-2xl border border-white/5 card-hover cursor-pointer md:col-span-2" onclick="highlightFeature(5)">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="w-7 h-7 rounded-full bg-grimoire-accent text-black font-extrabold flex items-center justify-center text-xs">5</span>
+            <h3 class="font-bold text-white text-base">Fonctionnement Transparent en Arrière-Plan</h3>
+          </div>
+          <p class="text-gray-400 text-xs leading-relaxed">
+            Fermez la fenêtre à tout moment : le serveur mobile continue de tourner silencieusement en tâche de fond. Vous pouvez continuer d'utiliser l'éditeur de notes ou la Table Virtuelle sans interrompre les téléphones de vos joueurs.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Interactive Live Sync Simulator -->
+    <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-grimoire-accent/15 text-grimoire-accent text-xs font-bold uppercase tracking-wider mb-1">
+            Simulateur de Synchronisation
+          </div>
+          <h2 class="text-2xl font-bold text-white">Testez la transmission Mobile → Écran MJ</h2>
+        </div>
+        <div class="text-xs text-gray-400">
+          Cliquez sur un dé pour simuler un jet de joueur
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+        
+        <!-- Simulated Smartphone PWA -->
+        <div class="mx-auto w-72 bg-gray-900 rounded-[36px] p-4 border-4 border-gray-800 shadow-2xl relative overflow-hidden">
+          <div class="w-24 h-4 bg-black rounded-full mx-auto mb-3"></div>
+          
+          <div class="flex items-center gap-3 mb-4 bg-white/5 p-2.5 rounded-xl border border-white/5">
+            <div class="w-10 h-10 rounded-full bg-grimoire-accent/20 border border-grimoire-accent flex items-center justify-center text-lg">🧝‍♀️</div>
+            <div>
+              <div class="text-xs font-bold text-white">Elara Sombrelame</div>
+              <div class="text-[10px] text-gray-400">Rôdeuse Niv. 4</div>
+            </div>
+            <div class="ml-auto text-right">
+              <span id="mobileHpDisplay" class="text-xs font-mono font-bold text-emerald-400">28/32 PV</span>
+            </div>
+          </div>
+
+          <!-- Dice Buttons -->
+          <div class="text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-2">Lancer un dé tactique :</div>
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <button onclick="simulatePlayerRoll('d20', 20)" class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold hover:scale-105 active:scale-95 transition-all text-center">
+              🎲 d20
+            </button>
+            <button onclick="simulatePlayerRoll('d12', 12)" class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 font-bold hover:scale-105 active:scale-95 transition-all text-center">
+              🎲 d12
+            </button>
+            <button onclick="simulatePlayerRoll('d6', 6)" class="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold hover:scale-105 active:scale-95 transition-all text-center">
+              🎲 d6
+            </button>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="flex gap-2">
+            <button onclick="adjustHp(-4)" class="flex-1 py-1.5 text-center text-xs bg-red-500/20 text-red-400 rounded-lg border border-red-500/30 hover:bg-red-500/30">
+              -4 PV (Dégât)
+            </button>
+            <button onclick="adjustHp(4)" class="flex-1 py-1.5 text-center text-xs bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30">
+              +4 PV (Soin)
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulated GM Screen Live Log -->
+        <div class="glass p-5 rounded-2xl border border-white/10 flex flex-col h-72">
+          <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="text-xs font-bold uppercase tracking-wider text-white">Écran MJ — Journal WebSocket Temps Réel</span>
+            </div>
+            <button onclick="clearGmLog()" class="text-[11px] text-gray-400 hover:text-white">Effacer</button>
+          </div>
+
+          <div id="gmLogList" class="flex-1 overflow-y-auto space-y-2 text-xs font-mono">
+            <div class="p-2 rounded bg-white/5 border border-white/5 text-gray-300">
+              <span class="text-emerald-400 font-bold">[CONNECTÉ]</span> Elara Sombrelame a rejoint la session (192.168.1.42).
+            </div>
+            <div class="p-2 rounded bg-white/5 border border-white/5 text-gray-300">
+              <span class="text-grimoire-accent font-bold">[SYNC]</span> Fiche de personnage chargée : 32 PV max.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Navigation Hub Footer -->
+    <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <a href="tutoriel-map-editor.html" class="text-sm text-gray-400 hover:text-grimoire-accent flex items-center gap-2">
+        ← Tutoriel : Éditeur de Cartes
+      </a>
+      <a href="tutoriel-audio.html" class="px-6 py-2.5 bg-grimoire-accent text-black font-bold rounded-xl hover:bg-grimoire-accentHover transition-all shadow-lg shadow-grimoire-accent/20 flex items-center gap-2">
+        Tutoriel Suivant : Ambiance & Audio →
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    function highlightFeature(id) {
+      for (let i = 1; i <= 5; i++) {
+        const card = document.getElementById('card-' + i);
+        if (i === id) {
+          card.classList.add('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          card.classList.remove('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+        }
+      }
+    }
+
+    let hp = 28;
+    const maxHp = 32;
+
+    function adjustHp(amount) {
+      hp = Math.max(0, Math.min(maxHp, hp + amount));
+      document.getElementById('mobileHpDisplay').textContent = `${hp}/${maxHp} PV`;
+      addGmLog(`[PV] Elara est maintenant à ${hp}/${maxHp} PV (${amount > 0 ? '+' : ''}${amount}).`, amount < 0 ? 'text-red-400' : 'text-emerald-400');
+    }
+
+    function simulatePlayerRoll(die, faces) {
+      const res = Math.floor(Math.random() * faces) + 1;
+      const isCrit = (die === 'd20' && res === 20);
+      const isFumble = (die === 'd20' && res === 1);
+      
+      let msg = `[DÉ] Elara lance 1${die} : résultat = ${res}`;
+      if (isCrit) msg += " 🔥 CRITIQUE !";
+      if (isFumble) msg += " 💀 ÉCHEC CRITIQUE !";
+
+      const color = isCrit ? 'text-amber-300 font-bold' : isFumble ? 'text-red-400 font-bold' : 'text-cyan-300';
+      addGmLog(msg, color);
+    }
+
+    function addGmLog(text, colorClass = 'text-gray-300') {
+      const log = document.getElementById('gmLogList');
+      const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const row = document.createElement('div');
+      row.className = `p-2 rounded bg-white/5 border border-white/5 ${colorClass}`;
+      row.innerHTML = `<span class="text-gray-500">[${time}]</span> ${text}`;
+      log.prepend(row);
+    }
+
+    function clearGmLog() {
+      document.getElementById('gmLogList').innerHTML = '<div class="text-gray-500 italic">Journal vidé.</div>';
+    }
+  </script>
+</body>
+</html>
