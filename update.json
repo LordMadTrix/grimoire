@@ -1,6 +1,6 @@
 {
-  "version": "0.6.0",
-  "changelog": "Fantasy Map Editor Pro (HUD rapide flottant, minimap radar temps réel, battlemaps procédurales 1-clic, ambiances d'éclairage dynamique, gestionnaire de calques avec masquage/verrouillage et règle de mesure multi-unités) + Hub de Documentation Interactive & Tutoriels HD pour tous les modules de Grimoire.",
+  "version": "0.6.1",
+  "changelog": "Preset magique 'Temple des Étoiles Antiques', contrôles Grille directe et Plein Écran (F11) dans le HUD du Map Editor, Visite Guidée interactive et Atelier Cartographique en direct avec pose de tampons et export PNG HD.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
   "release_date": "2026-09-08"
 }
