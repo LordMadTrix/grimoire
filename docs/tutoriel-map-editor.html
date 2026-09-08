@@ -123,46 +123,58 @@
 
     <!-- Interactive Screenshot Section -->
     <section class="space-y-6">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
             <span>🎨</span> Visite Guidée de l'Éditeur de Cartes
           </h2>
-          <p class="text-gray-400 text-sm">Cliquez sur les numéros dorés pour analyser chaque panneau de création.</p>
+          <p class="text-gray-400 text-sm">Explorez les commandes clés ou lancez le mode découverte automatisé.</p>
         </div>
-        <span class="text-xs text-grimoire-accent bg-grimoire-accent/10 border border-grimoire-accent/20 px-3 py-1 rounded-full hidden sm:inline-block">5 modules clés</span>
+        <!-- Tour Controls -->
+        <div class="flex items-center gap-2">
+          <button id="btnPrevTour" class="px-3 py-1.5 glass rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-colors" onclick="stepTour(-1)">
+            ⏮ Précédent
+          </button>
+          <button id="btnAutoTour" class="px-4 py-1.5 bg-grimoire-accent text-black rounded-lg text-xs font-bold hover:bg-grimoire-accentHover transition-all flex items-center gap-1.5 shadow-lg shadow-grimoire-accent/20" onclick="toggleAutoTour()">
+            <span id="tourIcon">▶</span> <span id="tourText">Visite Guidée</span>
+          </button>
+          <button id="btnNextTour" class="px-3 py-1.5 glass rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-colors" onclick="stepTour(1)">
+            Suivant ⏭
+          </button>
+          <span id="tourProgress" class="text-xs font-mono text-grimoire-accent px-2 py-1 glass rounded-md">1/5</span>
+        </div>
       </div>
 
       <!-- Screenshot with Hotspots -->
       <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/80 group select-none">
-        <img src="interface_map_editor.png" alt="Éditeur de cartes fantastique Grimoire" class="w-full h-auto object-cover rounded-2xl block">
+        <img id="mainScreenshot" src="interface_map_editor.png" alt="Éditeur de cartes fantastique Grimoire" class="w-full h-auto object-cover rounded-2xl block transition-transform duration-500">
 
-        <!-- Hotspot 1: Outils de Peinture & Sculpture de Terrain (Sculpt Tool) -->
-        <button class="hotspot-btn" style="top: 28%; left: 8%;" onclick="highlightFeature(1)">
+        <!-- Hotspot 1: Outils de Peinture & Sculpture de Terrain -->
+        <button id="hotspot-1" class="hotspot-btn" style="top: 28%; left: 8%;" onclick="highlightFeature(1)">
           1
           <span class="hotspot-pulse"></span>
         </button>
 
         <!-- Hotspot 2: Pont Direct « 🐉 Envoyer vers Grimoire VTT » -->
-        <button class="hotspot-btn" style="top: 2.5%; left: 80%;" onclick="highlightFeature(2)">
+        <button id="hotspot-2" class="hotspot-btn" style="top: 2.5%; left: 80%;" onclick="highlightFeature(2)">
           2
           <span class="hotspot-pulse"></span>
         </button>
 
         <!-- Hotspot 3: Canevas de Carte Fantastique Style Parchemin -->
-        <button class="hotspot-btn" style="top: 45%; left: 52%;" onclick="highlightFeature(3)">
+        <button id="hotspot-3" class="hotspot-btn" style="top: 45%; left: 52%;" onclick="highlightFeature(3)">
           3
           <span class="hotspot-pulse"></span>
         </button>
 
         <!-- Hotspot 4: HUD Flottant (Presets Magiques, Ambiance, Calques, Mode Zen) -->
-        <button class="hotspot-btn" style="top: 96%; left: 50%;" onclick="highlightFeature(4)">
+        <button id="hotspot-4" class="hotspot-btn" style="top: 96%; left: 50%;" onclick="highlightFeature(4)">
           4
           <span class="hotspot-pulse"></span>
         </button>
 
         <!-- Hotspot 5: Radar & Minimap Interactive -->
-        <button class="hotspot-btn" style="top: 85%; left: 93%;" onclick="highlightFeature(5)">
+        <button id="hotspot-5" class="hotspot-btn" style="top: 85%; left: 93%;" onclick="highlightFeature(5)">
           5
           <span class="hotspot-pulse"></span>
         </button>
@@ -177,7 +189,7 @@
             <h3 class="font-bold text-white text-base">Boîte à Outils & Brosses</h3>
           </div>
           <p class="text-gray-400 text-xs leading-relaxed">
-            Sculpture topographique (élévation, fossés, côtes réalistes), peinture de textures de biomes, formes vectorielles et milliers de tampons texturés.
+            Sculpture topographique (élévation, fossés, côtes réalistes), peinture de textures de biomes, formes vectorielles et milliers de tampons texturés avec pinceau de dispersion.
           </p>
         </div>
 
@@ -207,7 +219,7 @@
             <h3 class="font-bold text-white text-base">HUD Flottant & Presets Magiques</h3>
           </div>
           <p class="text-gray-400 text-xs leading-relaxed">
-            Générez des cartes complètes en 1 clic (Auberge, Catacombes, Forêt, Archipel), modifiez l'ambiance (Jour/Nuit/Donjon/Brume), masquez les calques et passez en Mode Zen immersif.
+            Générez des cartes complètes en 1 clic (Auberge, Catacombes, Forêt, Temple des Étoiles, Archipel), réglez l'ambiance lumineuse, masquez les calques et passez en Mode Zen (<kbd class="px-1 py-0.5 bg-gray-800 rounded text-amber-300">Z</kbd>).
           </p>
         </div>
 
@@ -226,32 +238,59 @@
 
     <!-- Mini Cartography Sandbox Simulator -->
     <section class="glass p-6 md:p-8 rounded-3xl border border-grimoire-accent/30 space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-grimoire-accent/15 text-grimoire-accent text-xs font-bold uppercase tracking-wider mb-1">
-            Atelier Interactif
+            Atelier Cartographique Interactif
           </div>
-          <h2 class="text-2xl font-bold text-white">Générateur de Salle Express</h2>
+          <h2 class="text-2xl font-bold text-white">Générateur Procédural & Simulateur en Direct</h2>
+          <p class="text-xs text-gray-400">Générez une carte procédurale ou cliquez directement sur le canevas pour poser vos tampons.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <button id="btnGenTavern" class="px-3 py-1.5 text-xs rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-all font-semibold">
-            🍺 Salle d'Auberge
+            🍺 Auberge
           </button>
           <button id="btnGenCrypt" class="px-3 py-1.5 text-xs rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition-all font-semibold">
-            💀 Crypte Antique
+            💀 Catacombes
           </button>
-          <button id="btnClearCanvas" class="px-3 py-1.5 text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 transition-all">
+          <button id="btnGenForest" class="px-3 py-1.5 text-xs rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all font-semibold">
+            🌲 Clairière
+          </button>
+          <button id="btnGenRuins" class="px-3 py-1.5 text-xs rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-all font-semibold">
+            🏛️ Temple
+          </button>
+          <button id="btnGenArchipelago" class="px-3 py-1.5 text-xs rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 transition-all font-semibold">
+            🏝️ Archipel
+          </button>
+          <button id="btnExportCanvas" class="px-3 py-1.5 text-xs rounded-lg bg-grimoire-accent text-black font-bold hover:bg-grimoire-accentHover transition-all flex items-center gap-1">
+            📸 Sauvegarder PNG
+          </button>
+          <button id="btnClearCanvas" class="px-3 py-1.5 text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-400 transition-all">
             🗑️ Vider
           </button>
         </div>
       </div>
 
+      <!-- Stamp Palette Bar -->
+      <div class="flex items-center gap-2 py-2 px-3 rounded-xl bg-black/40 border border-white/5 text-xs overflow-x-auto">
+        <span class="text-gray-400 font-semibold text-[11px] whitespace-nowrap">Tampon actif :</span>
+        <button class="stamp-pick-btn px-2.5 py-1 rounded-lg bg-white/10 text-white font-medium border border-transparent hover:border-grimoire-accent active" data-stamp="🌲">🌲 Arbre</button>
+        <button class="stamp-pick-btn px-2.5 py-1 rounded-lg bg-white/5 text-gray-300 font-medium border border-transparent hover:border-grimoire-accent" data-stamp="🔥">🔥 Brasero</button>
+        <button class="stamp-pick-btn px-2.5 py-1 rounded-lg bg-white/5 text-gray-300 font-medium border border-transparent hover:border-grimoire-accent" data-stamp="📦">📦 Coffre</button>
+        <button class="stamp-pick-btn px-2.5 py-1 rounded-lg bg-white/5 text-gray-300 font-medium border border-transparent hover:border-grimoire-accent" data-stamp="💀">💀 Squelette</button>
+        <button class="stamp-pick-btn px-2.5 py-1 rounded-lg bg-white/5 text-gray-300 font-medium border border-transparent hover:border-grimoire-accent" data-stamp="🧙‍♂️">🧙‍♂️ Héros</button>
+        <button class="stamp-pick-btn px-2.5 py-1 rounded-lg bg-white/5 text-gray-300 font-medium border border-transparent hover:border-grimoire-accent" data-stamp="🐉">🐉 Dragon</button>
+      </div>
+
       <!-- Mini Map Canvas Simulation -->
-      <div class="relative w-full h-80 rounded-2xl overflow-hidden border border-white/10 bg-stone-950 select-none flex items-center justify-center" id="mapSimContainer">
+      <div class="relative w-full h-84 md:h-96 rounded-2xl overflow-hidden border border-white/10 bg-stone-950 select-none flex items-center justify-center" id="mapSimContainer">
         <!-- Grid Canvas -->
-        <canvas id="simMapCanvas" width="900" height="320" class="w-full h-full block cursor-pointer"></canvas>
-        <div class="absolute bottom-3 right-3 text-[11px] text-gray-400 glass px-2.5 py-1 rounded-lg pointer-events-none">
-          Cliquez sur les boutons pour générer des pièces procédurales !
+        <canvas id="simMapCanvas" width="960" height="380" class="w-full h-full block cursor-crosshair"></canvas>
+        <div class="absolute bottom-3 left-3 text-[11px] text-gray-400 glass px-2.5 py-1 rounded-lg pointer-events-none">
+          💡 Cliquez sur le canevas pour poser le tampon sélectionné !
+        </div>
+        <div id="stampNotice" class="absolute top-3 right-3 text-[11px] text-grimoire-accent glass px-2.5 py-1 rounded-lg opacity-0 transition-opacity duration-300 pointer-events-none">
+          Tampon posé !
         </div>
       </div>
     </section>
@@ -269,24 +308,71 @@
   </main>
 
   <script>
+    let currentFeature = 1;
+    let autoTourTimer = null;
+    let isAutoTourRunning = false;
+
     function highlightFeature(id) {
+      currentFeature = id;
+      document.getElementById('tourProgress').textContent = id + '/5';
+
       for (let i = 1; i <= 5; i++) {
         const card = document.getElementById('card-' + i);
+        const btn = document.getElementById('hotspot-' + i);
         if (i === id) {
           card.classList.add('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
           card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          if (btn) btn.style.transform = 'translate(-50%, -50%) scale(1.3)';
         } else {
           card.classList.remove('border-grimoire-accent', 'bg-grimoire-accent/10', 'scale-105');
+          if (btn) btn.style.transform = 'translate(-50%, -50%) scale(1)';
         }
+      }
+    }
+
+    function stepTour(direction) {
+      let next = currentFeature + direction;
+      if (next > 5) next = 1;
+      if (next < 1) next = 5;
+      highlightFeature(next);
+    }
+
+    function toggleAutoTour() {
+      if (isAutoTourRunning) {
+        clearInterval(autoTourTimer);
+        isAutoTourRunning = false;
+        document.getElementById('tourIcon').textContent = '▶';
+        document.getElementById('tourText').textContent = 'Visite Guidée';
+      } else {
+        isAutoTourRunning = true;
+        document.getElementById('tourIcon').textContent = '⏸';
+        document.getElementById('tourText').textContent = 'Pause';
+        stepTour(1);
+        autoTourTimer = setInterval(() => {
+          stepTour(1);
+        }, 3500);
       }
     }
 
     // Mini Map Drawing Canvas
     const canvas = document.getElementById('simMapCanvas');
     const ctx = canvas.getContext('2d');
+    let placedStamps = [];
+    let activeStamp = '🌲';
 
-    function drawGrid() {
-      ctx.fillStyle = "#12151c";
+    document.querySelectorAll('.stamp-pick-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.stamp-pick-btn').forEach(b => {
+          b.classList.remove('bg-white/10', 'text-white', 'border-grimoire-accent');
+          b.classList.add('bg-white/5', 'text-gray-300');
+        });
+        btn.classList.add('bg-white/10', 'text-white', 'border-grimoire-accent');
+        activeStamp = btn.getAttribute('data-stamp');
+      };
+    });
+
+    function drawGrid(bgStyle = "#12151c") {
+      ctx.fillStyle = bgStyle;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
@@ -300,74 +386,234 @@
       }
     }
 
+    function renderPlacedStamps() {
+      placedStamps.forEach(s => {
+        ctx.font = "28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(s.emoji, s.x, s.y);
+      });
+    }
+
     function drawTavern() {
+      placedStamps = [];
       drawGrid();
       // Wooden floor
-      ctx.fillStyle = "rgba(180, 120, 60, 0.25)";
-      ctx.fillRect(160, 40, 580, 240);
+      ctx.fillStyle = "rgba(180, 120, 60, 0.28)";
+      ctx.fillRect(160, 40, 640, 300);
       
       // Stone Walls
       ctx.strokeStyle = "#8b7355";
       ctx.lineWidth = 8;
-      ctx.strokeRect(160, 40, 580, 240);
+      ctx.strokeRect(160, 40, 640, 300);
 
       // Bar counter
       ctx.fillStyle = "#5c3a21";
-      ctx.fillRect(200, 70, 160, 30);
-      ctx.fillRect(330, 100, 30, 80);
+      ctx.fillRect(200, 70, 180, 30);
+      ctx.fillRect(350, 100, 30, 90);
 
       // Tables
       ctx.fillStyle = "#7a4e28";
-      ctx.beginPath(); ctx.arc(480, 100, 25, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(600, 110, 25, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(480, 210, 25, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(600, 200, 25, 0, Math.PI * 2); ctx.fill();
+      [
+        { x: 500, y: 110 }, { x: 650, y: 110 },
+        { x: 500, y: 230 }, { x: 650, y: 230 }
+      ].forEach(p => {
+        ctx.beginPath(); ctx.arc(p.x, p.y, 28, 0, Math.PI * 2); ctx.fill();
+      });
 
       // Fireplace
       ctx.fillStyle = "#e55330";
-      ctx.fillRect(420, 36, 60, 12);
+      ctx.fillRect(440, 34, 80, 14);
 
       // Text label
-      ctx.font = "bold 13px Outfit, sans-serif";
+      ctx.font = "bold 14px Outfit, sans-serif";
+      ctx.textAlign = "left";
       ctx.fillStyle = "#e5a853";
-      ctx.fillText("Taverne du Dragon Endormi (Générée)", 200, 260);
+      ctx.fillText("🍺 Auberge de la Chope Sanglante", 200, 320);
     }
 
     function drawCrypt() {
-      drawGrid();
+      placedStamps = [];
+      drawGrid("#0c0e14");
       // Stone floor
       ctx.fillStyle = "rgba(70, 80, 95, 0.35)";
-      ctx.fillRect(200, 50, 500, 220);
+      ctx.fillRect(180, 40, 600, 300);
 
       // Dungeon Walls
       ctx.strokeStyle = "#475569";
       ctx.lineWidth = 10;
-      ctx.strokeRect(200, 50, 500, 220);
+      ctx.strokeRect(180, 40, 600, 300);
 
       // Sarcophagi
       ctx.fillStyle = "#334155";
       ctx.strokeStyle = "#64748b";
       ctx.lineWidth = 2;
-      [260, 420, 580].forEach(x => {
-        ctx.fillRect(x, 130, 60, 100);
-        ctx.strokeRect(x, 130, 60, 100);
+      [240, 440, 640].forEach(x => {
+        ctx.fillRect(x, 140, 60, 110);
+        ctx.strokeRect(x, 140, 60, 110);
       });
 
       // Pillars
       ctx.fillStyle = "#1e293b";
-      [300, 550].forEach(x => {
-        ctx.beginPath(); ctx.arc(x, 80, 15, 0, Math.PI * 2); ctx.fill();
+      [320, 580].forEach(x => {
+        ctx.beginPath(); ctx.arc(x, 90, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x, 280, 16, 0, Math.PI * 2); ctx.fill();
       });
 
-      // Ambient Glow
-      ctx.font = "bold 13px Outfit, sans-serif";
+      // Text label
+      ctx.font = "bold 14px Outfit, sans-serif";
+      ctx.textAlign = "left";
       ctx.fillStyle = "#38bdf8";
-      ctx.fillText("Crypte des Anciens Rois (Générée)", 220, 250);
+      ctx.fillText("💀 Catacombes Oubliées & Sarcophages", 220, 320);
     }
+
+    function drawForest() {
+      placedStamps = [];
+      drawGrid("#08120a");
+      // Green clearing
+      ctx.fillStyle = "rgba(46, 117, 89, 0.4)";
+      ctx.beginPath();
+      ctx.ellipse(480, 190, 360, 150, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Menhirs
+      ctx.fillStyle = "#64748b";
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const px = 480 + Math.cos(angle) * 140;
+        const py = 190 + Math.sin(angle) * 70;
+        ctx.beginPath();
+        ctx.arc(px, py, 14, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Sacred fire
+      ctx.fillStyle = "#f59e0b";
+      ctx.beginPath();
+      ctx.arc(480, 190, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Trees
+      [
+        { x: 160, y: 80 }, { x: 220, y: 140 }, { x: 180, y: 260 }, { x: 260, y: 320 },
+        { x: 780, y: 80 }, { x: 720, y: 150 }, { x: 790, y: 250 }, { x: 710, y: 310 }
+      ].forEach(p => {
+        ctx.font = "32px sans-serif";
+        ctx.fillText("🌲", p.x, p.y);
+      });
+
+      // Text label
+      ctx.font = "bold 14px Outfit, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#34d399";
+      ctx.fillText("🌲 La Clairière des Druides & Cercle de Menhirs", 200, 350);
+    }
+
+    function drawRuins() {
+      placedStamps = [];
+      drawGrid("#0d1117");
+      // Marble floor
+      ctx.fillStyle = "rgba(100, 116, 139, 0.25)";
+      ctx.fillRect(180, 50, 600, 280);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(180, 50, 600, 280);
+
+      // Arcane Sanctuary
+      ctx.beginPath();
+      ctx.arc(480, 190, 80, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(14, 165, 233, 0.25)";
+      ctx.fill();
+      ctx.strokeStyle = "#38bdf8";
+      ctx.stroke();
+
+      // Columns
+      ctx.fillStyle = "#94a3b8";
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(480 + Math.cos(a) * 120, 190 + Math.sin(a) * 60, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Text
+      ctx.font = "bold 14px Outfit, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#7dd3fc";
+      ctx.fillText("🏛️ Temple des Étoiles & Bassin Arcanique", 200, 310);
+    }
+
+    function drawArchipelago() {
+      placedStamps = [];
+      drawGrid("#0c2438");
+      // Water body
+      ctx.fillStyle = "rgba(14, 116, 144, 0.4)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Islands
+      ctx.fillStyle = "#d97706";
+      [
+        { x: 300, y: 160, rx: 110, ry: 70 },
+        { x: 620, y: 220, rx: 140, ry: 80 },
+        { x: 500, y: 80, rx: 60, ry: 40 }
+      ].forEach(isle => {
+        ctx.beginPath();
+        ctx.ellipse(isle.x, isle.y, isle.rx, isle.ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Ships & Palms
+      ctx.font = "28px sans-serif";
+      ctx.fillText("⛵", 440, 260);
+      ctx.fillText("🏝️", 300, 160);
+      ctx.fillText("🏝️", 620, 220);
+
+      // Text
+      ctx.font = "bold 14px Outfit, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillText("🏝️ Archipel Céleste & Voiliers", 200, 350);
+    }
+
+    // Place stamp on click
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      placedStamps.push({ emoji: activeStamp, x, y });
+
+      ctx.font = "28px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(activeStamp, x, y);
+
+      // Flash notification
+      const notice = document.getElementById('stampNotice');
+      notice.textContent = `Tampon ${activeStamp} placé !`;
+      notice.style.opacity = '1';
+      setTimeout(() => notice.style.opacity = '0', 1200);
+    });
 
     document.getElementById('btnGenTavern').onclick = drawTavern;
     document.getElementById('btnGenCrypt').onclick = drawCrypt;
-    document.getElementById('btnClearCanvas').onclick = drawGrid;
+    document.getElementById('btnGenForest').onclick = drawForest;
+    document.getElementById('btnGenRuins').onclick = drawRuins;
+    document.getElementById('btnGenArchipelago').onclick = drawArchipelago;
+
+    document.getElementById('btnClearCanvas').onclick = () => {
+      placedStamps = [];
+      drawGrid();
+    };
+
+    document.getElementById('btnExportCanvas').onclick = () => {
+      const link = document.createElement('a');
+      link.download = 'carte-grimoire-interactive.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
 
     // Initial draw
     drawTavern();

@@ -15,6 +15,14 @@
       mapStore.showPanel = true;
     }
   }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
 </script>
 
 <div class="quick-bar-wrapper" class:zen-active={mapStore.zenMode}>
@@ -23,7 +31,7 @@
     <button
       class="qb-btn highlight"
       onclick={() => mapStore.showPresetsModal = true}
-      title="Générer une carte complète en 1 clic (Auberge, Donjon, Forêt, Archipel)"
+      title="Générer une carte complète en 1 clic (Auberge, Donjon, Forêt, Temple, Archipel)"
     >
       <span class="qb-icon">✨</span>
       <span class="qb-label">Presets Magiques</span>
@@ -71,6 +79,17 @@
       <span class="qb-label">Mesure</span>
     </button>
 
+    <!-- Grille Tactique (G) -->
+    <button
+      class="qb-btn"
+      class:active={mapStore.showGrid}
+      onclick={() => mapStore.showGrid = !mapStore.showGrid}
+      title="Afficher / Masquer la grille tactique (G)"
+    >
+      <span class="qb-icon">▦</span>
+      <span class="qb-label">Grille</span>
+    </button>
+
     <!-- Radar / Minimap -->
     <button
       class="qb-btn"
@@ -106,7 +125,16 @@
     <button
       class="qb-btn-icon"
       onclick={resetView}
-      title="Recadrer la vue au centre (100%)"
+      title="Recentrer la vue sur le canevas"
+    >
+      🎯
+    </button>
+
+    <!-- Plein Écran (F11) -->
+    <button
+      class="qb-btn-icon"
+      onclick={toggleFullscreen}
+      title="Basculer en Plein Écran (F11)"
     >
       ⛶
     </button>

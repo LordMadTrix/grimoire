@@ -849,6 +849,247 @@ export function generateArchipelagoPreset() {
 }
 
 /**
+ * Génère un Temple Oublié & Ruines Antiques
+ */
+export function generateRuinsPreset() {
+  pushHistory(true);
+  mapStore.mapTitle = 'Le Temple des Étoiles Antiques';
+  mapStore.canvasWidth = 2200;
+  mapStore.canvasHeight = 1600;
+  mapStore.showGrid = true;
+  mapStore.gridType = 'square';
+  mapStore.gridSize = 70;
+  mapStore.gridColor = 'rgba(120, 200, 255, 0.2)';
+  mapStore.backgroundType = 'texture';
+  mapStore.backgroundTexture = 'parchment';
+  mapStore.atmospherePreset = 'night';
+  mapStore.vignetteEnabled = true;
+  mapStore.vignetteOpacity = 0.55;
+  mapStore.paperOverlayEnabled = true;
+
+  mapStore.stamps = [];
+  mapStore.paths = [];
+  mapStore.texts = [];
+  mapStore.shapes = [];
+
+  const cx = 1100;
+  const cy = 800;
+
+  // 1. Dalle de marbre antique centrale
+  const floor: MapShape = {
+    id: uid('shape_ruins_floor'),
+    type: 'rectangle',
+    points: [
+      { x: cx - 650, y: cy - 450 },
+      { x: cx + 650, y: cy + 450 }
+    ],
+    fillColor: '#3d4452',
+    fillOpacity: 0.88,
+    fillTexture: 'paving',
+    fillTextureScale: 0.7,
+    strokeColor: '#6e7f99',
+    strokeWidth: 6,
+    strokeDash: 'solid'
+  };
+
+  // 2. Sanctuaire circulaire central
+  const innerSanctuary: MapShape = {
+    id: uid('shape_sanctuary'),
+    type: 'circle',
+    points: [
+      { x: cx, y: cy },
+      { x: cx + 280, y: cy }
+    ],
+    fillColor: '#252b36',
+    fillOpacity: 0.95,
+    strokeColor: '#38bdf8',
+    strokeWidth: 4,
+    strokeDash: 'dashed'
+  };
+
+  // 3. Bassin d'eau arcanique étincelante
+  const pool: MapShape = {
+    id: uid('shape_pool'),
+    type: 'circle',
+    points: [
+      { x: cx, y: cy },
+      { x: cx + 110, y: cy }
+    ],
+    fillColor: '#0ea5e9',
+    fillOpacity: 0.7,
+    strokeColor: '#7dd3fc',
+    strokeWidth: 3,
+    strokeDash: 'solid'
+  };
+
+  mapStore.shapes = [floor, innerSanctuary, pool];
+
+  // 4. Colonnes corinthiennes et autels
+  const ruinsStamps: MapStamp[] = [];
+
+  // Cercle de colonnes autour du bassin
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const px = cx + Math.cos(angle) * 380;
+    const py = cy + Math.sin(angle) * 380;
+    ruinsStamps.push({
+      id: uid(`col_${i}`),
+      type: 'stone_pillar',
+      x: px,
+      y: py,
+      scale: 1.05,
+      rotation: Math.round(angle * (180 / Math.PI)),
+      opacity: 1,
+      zIndex: 1,
+      shadowEnabled: true,
+      shadowColor: '#000000',
+      shadowBlur: 14,
+      shadowOffsetX: 4,
+      shadowOffsetY: 8
+    });
+  }
+
+  // Braseros mystiques aux 4 points cardinaux
+  const cardinal = [
+    { x: cx, y: cy - 220 },
+    { x: cx, y: cy + 220 },
+    { x: cx - 220, y: cy },
+    { x: cx + 220, y: cy }
+  ];
+  cardinal.forEach((pos, idx) => {
+    ruinsStamps.push({
+      id: uid(`brazier_${idx}`),
+      type: 'torch_wall',
+      x: pos.x,
+      y: pos.y,
+      scale: 1.2,
+      rotation: 0,
+      opacity: 1,
+      zIndex: 2,
+      shadowEnabled: true,
+      shadowColor: '#38bdf8',
+      shadowBlur: 20,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0
+    });
+  });
+
+  // Arbres et végétation envahissante sur les pourtours du temple
+  const naturePositions = [
+    { x: cx - 750, y: cy - 500, scale: 1.4 },
+    { x: cx - 700, y: cy + 480, scale: 1.3 },
+    { x: cx + 720, y: cy - 480, scale: 1.5 },
+    { x: cx + 750, y: cy + 470, scale: 1.4 },
+    { x: cx - 500, y: cy - 520, scale: 1.1 },
+    { x: cx + 480, y: cy + 500, scale: 1.2 }
+  ];
+  naturePositions.forEach((pos, idx) => {
+    ruinsStamps.push({
+      id: uid(`tree_${idx}`),
+      type: 'tree_pine',
+      x: pos.x,
+      y: pos.y,
+      scale: pos.scale,
+      rotation: (idx * 45) % 360,
+      opacity: 0.95,
+      zIndex: 3,
+      shadowEnabled: true,
+      shadowColor: '#000000',
+      shadowBlur: 12,
+      shadowOffsetX: 6,
+      shadowOffsetY: 8
+    });
+  });
+
+  // Coffre antique scellé
+  ruinsStamps.push({
+    id: uid('ancient_chest'),
+    type: 'chest',
+    x: cx,
+    y: cy - 350,
+    scale: 1.1,
+    rotation: 0,
+    opacity: 1,
+    zIndex: 2,
+    shadowEnabled: true,
+    shadowColor: '#000000',
+    shadowBlur: 8,
+    shadowOffsetX: 2,
+    shadowOffsetY: 4
+  });
+
+  mapStore.stamps = ruinsStamps;
+
+  // Tracés des fissures au sol
+  mapStore.paths = [
+    {
+      id: uid('crack_1'),
+      points: [
+        { x: cx - 180, y: cy - 100 },
+        { x: cx - 90, y: cy - 50 },
+        { x: cx - 140, y: cy + 80 }
+      ],
+      color: '#1e2530',
+      width: 4,
+      dashStyle: 'solid',
+      smooth: true
+    },
+    {
+      id: uid('crack_2'),
+      points: [
+        { x: cx + 120, y: cy + 80 },
+        { x: cx + 220, y: cy + 140 },
+        { x: cx + 300, y: cy + 110 }
+      ],
+      color: '#1e2530',
+      width: 3,
+      dashStyle: 'solid',
+      smooth: true
+    }
+  ];
+
+  // Textes & Inscriptions
+  mapStore.texts = [
+    {
+      id: uid('txt_temple'),
+      text: '🏛️ LE SANCTUAIRE DU COSMOS OUBLIÉ',
+      x: cx - 320,
+      y: cy - 400,
+      size: 26,
+      color: '#e2e8f0',
+      fontFamily: 'Outfit',
+      isBold: true,
+      isItalic: false,
+      rotation: 0,
+      shadowEnabled: true,
+      shadowColor: '#000000',
+      shadowBlur: 10,
+      opacity: 0.95
+    },
+    {
+      id: uid('txt_pool'),
+      text: '✦ Bassin des Vœux Stellaires ✦',
+      x: cx - 130,
+      y: cy + 130,
+      size: 15,
+      color: '#38bdf8',
+      fontFamily: 'Outfit',
+      isBold: false,
+      isItalic: true,
+      rotation: 0,
+      shadowEnabled: true,
+      shadowColor: '#0284c7',
+      shadowBlur: 8,
+      opacity: 0.9
+    }
+  ];
+
+  mapStore.zoom = 0.55;
+  mapStore.panX = 50;
+  mapStore.panY = 40;
+}
+
+/**
  * Liste de tous les presets prêts à l'emploi
  */
 export const ALL_MAP_PRESETS: MapPreset[] = [
@@ -875,6 +1116,14 @@ export const ALL_MAP_PRESETS: MapPreset[] = [
     icon: '🌲',
     description: 'Forêt dense avec clairière circulaire, menhirs de pierre, ruisseau et feu sacré.',
     apply: generateForestPreset
+  },
+  {
+    id: 'ruins',
+    name: 'Temple des Étoiles',
+    category: 'battlemap',
+    icon: '🏛️',
+    description: 'Ruines antiques avec colonnes, bassin arcanique étincelant, fissures et végétation envahissante.',
+    apply: generateRuinsPreset
   },
   {
     id: 'archipelago',
