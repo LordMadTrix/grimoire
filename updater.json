@@ -1,0 +1,10 @@
+{
+  "version": "0.6.0",
+  "notes": "Fantasy Map Editor Pro (HUD rapide flottant, minimap radar temps réel, battlemaps procédurales 1-clic, ambiances d'éclairage dynamique, gestionnaire de calques avec masquage/verrouillage et règle de mesure multi-unités) + Hub de Documentation Interactive & Tutoriels HD pour tous les modules de Grimoire.",
+  "pub_date": "2026-09-08T19:45:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/LordMadTrix/grimoire/releases/latest"
+    }
+  }
+}

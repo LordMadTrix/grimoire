@@ -1,6 +1,6 @@
 {
-  "version": "0.5.0",
-  "changelog": "Bibliothèque Céleste Audio & Studio Soundscape (+800 pistes studio, streaming player, diffusion VTT 1-clic), Éclairage & Météo Réelle avec flashs d'orages et voix neuronales IA, Liseuse PDF 2.0 multi-colonnes avec extraction de carte VTT, projection de handouts et lancer de dés interactif, et pont bidirectionnel Grimoire VTT <-> Fantasy Map Editor.",
+  "version": "0.6.0",
+  "changelog": "Fantasy Map Editor Pro (HUD rapide flottant, minimap radar temps réel, battlemaps procédurales 1-clic, ambiances d'éclairage dynamique, gestionnaire de calques avec masquage/verrouillage et règle de mesure multi-unités) + Hub de Documentation Interactive & Tutoriels HD pour tous les modules de Grimoire.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-08-28"
+  "release_date": "2026-09-08"
 }
