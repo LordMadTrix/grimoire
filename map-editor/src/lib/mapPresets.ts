@@ -902,6 +902,8 @@ export function generateRuinsPreset() {
     ],
     fillColor: '#252b36',
     fillOpacity: 0.95,
+    fillTexture: null,
+    fillTextureScale: 1,
     strokeColor: '#38bdf8',
     strokeWidth: 4,
     strokeDash: 'dashed'
@@ -917,6 +919,8 @@ export function generateRuinsPreset() {
     ],
     fillColor: '#0ea5e9',
     fillOpacity: 0.7,
+    fillTexture: null,
+    fillTextureScale: 1,
     strokeColor: '#7dd3fc',
     strokeWidth: 3,
     strokeDash: 'solid'
@@ -1057,11 +1061,8 @@ export function generateRuinsPreset() {
       y: cy - 400,
       size: 26,
       color: '#e2e8f0',
-      fontFamily: 'Outfit',
-      isBold: true,
-      isItalic: false,
+      font: 'Outfit',
       rotation: 0,
-      shadowEnabled: true,
       shadowColor: '#000000',
       shadowBlur: 10,
       opacity: 0.95
@@ -1073,11 +1074,8 @@ export function generateRuinsPreset() {
       y: cy + 130,
       size: 15,
       color: '#38bdf8',
-      fontFamily: 'Outfit',
-      isBold: false,
-      isItalic: true,
+      font: 'Outfit',
       rotation: 0,
-      shadowEnabled: true,
       shadowColor: '#0284c7',
       shadowBlur: 8,
       opacity: 0.9

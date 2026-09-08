@@ -1482,11 +1482,13 @@
         terrainCompositeCanvas.height = mH;
         terrainCompositeCtx = terrainCompositeCanvas.getContext('2d')!;
       }
-      terrainCompositeCtx.clearRect(0, 0, mW, mH);
-      terrainCompositeCtx.drawImage(maskCanvas, 0, 0);
-      terrainCompositeCtx.globalCompositeOperation = 'source-in';
-      terrainCompositeCtx.drawImage(landCanvas, 0, 0);
-      terrainCompositeCtx.globalCompositeOperation = 'source-over';
+      if (terrainCompositeCtx) {
+        terrainCompositeCtx.clearRect(0, 0, mW, mH);
+        terrainCompositeCtx.drawImage(maskCanvas, 0, 0);
+        terrainCompositeCtx.globalCompositeOperation = 'source-in';
+        terrainCompositeCtx.drawImage(landCanvas, 0, 0);
+        terrainCompositeCtx.globalCompositeOperation = 'source-over';
+      }
 
       // Dessiner la terre assemblée sur le buffer principal avec son opacité et un effet d'ombrage de relief/profondeur
       bufferCtx.save();
@@ -3186,7 +3188,7 @@
     } else if (mapStore.selectedIds.length > 0) {
       pushHistory();
       mapStore.stamps = mapStore.stamps.map((s) =>
-        mapStore.selectedIds.includes(s.id) ? { ...s, flipH: !s.flipH } : s
+        mapStore.selectedIds.some((sel) => sel.id === s.id) ? { ...s, flipH: !s.flipH } : s
       );
     }
   }
@@ -3200,7 +3202,7 @@
     } else if (mapStore.selectedIds.length > 0) {
       pushHistory();
       mapStore.stamps = mapStore.stamps.map((s) =>
-        mapStore.selectedIds.includes(s.id) ? { ...s, flipV: !s.flipV } : s
+        mapStore.selectedIds.some((sel) => sel.id === s.id) ? { ...s, flipV: !s.flipV } : s
       );
     }
   }
@@ -3214,7 +3216,7 @@
     } else if (mapStore.selectedIds.length > 0) {
       pushHistory();
       mapStore.stamps = mapStore.stamps.map((s) =>
-        mapStore.selectedIds.includes(s.id) ? { ...s, rotation: (s.rotation + delta + 360) % 360 } : s
+        mapStore.selectedIds.some((sel) => sel.id === s.id) ? { ...s, rotation: (s.rotation + delta + 360) % 360 } : s
       );
     }
   }

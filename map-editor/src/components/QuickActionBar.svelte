@@ -30,7 +30,7 @@
       mapStore.stamps = mapStore.stamps.map(s => s.id === mapStore.selectedElement!.id ? { ...s, flipH: !s.flipH } : s);
     } else if (mapStore.selectedIds.length > 0) {
       pushHistory();
-      mapStore.stamps = mapStore.stamps.map(s => mapStore.selectedIds.includes(s.id) ? { ...s, flipH: !s.flipH } : s);
+      mapStore.stamps = mapStore.stamps.map(s => mapStore.selectedIds.some(sel => sel.id === s.id) ? { ...s, flipH: !s.flipH } : s);
     }
   }
 
@@ -40,7 +40,7 @@
       mapStore.stamps = mapStore.stamps.map(s => s.id === mapStore.selectedElement!.id ? { ...s, flipV: !s.flipV } : s);
     } else if (mapStore.selectedIds.length > 0) {
       pushHistory();
-      mapStore.stamps = mapStore.stamps.map(s => mapStore.selectedIds.includes(s.id) ? { ...s, flipV: !s.flipV } : s);
+      mapStore.stamps = mapStore.stamps.map(s => mapStore.selectedIds.some(sel => sel.id === s.id) ? { ...s, flipV: !s.flipV } : s);
     }
   }
 </script>
@@ -121,7 +121,7 @@
       <span class="qb-label">Radar</span>
     </button>
 
-    {#if mapStore.selectedElement?.type === 'stamp' || (mapStore.selectedIds.length > 0 && mapStore.stamps.some(s => mapStore.selectedIds.includes(s.id)))}
+    {#if mapStore.selectedElement?.type === 'stamp' || (mapStore.selectedIds.length > 0 && mapStore.stamps.some(s => mapStore.selectedIds.some(sel => sel.id === s.id)))}
       <div class="qb-divider"></div>
       <button
         class="qb-btn-icon"
