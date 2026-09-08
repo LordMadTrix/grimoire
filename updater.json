@@ -1,6 +1,6 @@
 {
-  "version": "0.6.1",
-  "notes": "Preset magique 'Temple des Étoiles Antiques', contrôles Grille directe et Plein Écran (F11) dans le HUD du Map Editor, Visite Guidée interactive et Atelier Cartographique en direct avec pose de tampons et export PNG HD.",
+  "version": "0.6.2",
+  "notes": "Optimisation majeure du moteur de rendu Map Editor (suppression des allocations GC du compositeur de terrain), boutons et raccourcis Miroir horizontal (H) et vertical (J), rotation pas-à-pas ([ / ]), export instantané (Ctrl+S) et mise à jour du cheat sheet des raccourcis.",
   "pub_date": "2026-09-08T19:45:00Z",
   "platforms": {
     "windows-x86_64": {

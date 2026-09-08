@@ -33,6 +33,8 @@
   let landCtx: CanvasRenderingContext2D;
   let bufferCanvas: HTMLCanvasElement;
   let bufferCtx: CanvasRenderingContext2D;
+  let terrainCompositeCanvas: HTMLCanvasElement | null = null;
+  let terrainCompositeCtx: CanvasRenderingContext2D | null = null;
 
   // Cache d'images traitées
   const assetCache = new Map<string, HTMLCanvasElement | HTMLImageElement>();
@@ -963,6 +965,11 @@
     bufferCanvas.height = H;
     bufferCtx = bufferCanvas.getContext('2d')!;
 
+    terrainCompositeCanvas = document.createElement('canvas');
+    terrainCompositeCanvas.width = W;
+    terrainCompositeCanvas.height = H;
+    terrainCompositeCtx = terrainCompositeCanvas.getContext('2d')!;
+
     // Initialiser la brosse de peinture et de sculpe par défaut
     resetCanvasData();
 
@@ -1467,16 +1474,19 @@
       }
     }
 
-    // B. Assembler la TERRE masquée
+    // B. Assembler la TERRE masquée (Buffer persistant réutilisé sans allocation GC)
     if (mapStore.layerVisibility?.terrain !== false) {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = mW;
-      tempCanvas.height = mH;
-      const tempCtx = tempCanvas.getContext('2d')!;
-
-      tempCtx.drawImage(maskCanvas, 0, 0);
-      tempCtx.globalCompositeOperation = 'source-in';
-      tempCtx.drawImage(landCanvas, 0, 0);
+      if (!terrainCompositeCanvas || terrainCompositeCanvas.width !== mW || terrainCompositeCanvas.height !== mH) {
+        terrainCompositeCanvas = document.createElement('canvas');
+        terrainCompositeCanvas.width = mW;
+        terrainCompositeCanvas.height = mH;
+        terrainCompositeCtx = terrainCompositeCanvas.getContext('2d')!;
+      }
+      terrainCompositeCtx.clearRect(0, 0, mW, mH);
+      terrainCompositeCtx.drawImage(maskCanvas, 0, 0);
+      terrainCompositeCtx.globalCompositeOperation = 'source-in';
+      terrainCompositeCtx.drawImage(landCanvas, 0, 0);
+      terrainCompositeCtx.globalCompositeOperation = 'source-over';
 
       // Dessiner la terre assemblée sur le buffer principal avec son opacité et un effet d'ombrage de relief/profondeur
       bufferCtx.save();
@@ -1485,7 +1495,7 @@
       bufferCtx.shadowOffsetX = 0;
       bufferCtx.shadowOffsetY = 6;
       bufferCtx.globalAlpha = mapStore.foregroundOpacity;
-      bufferCtx.drawImage(tempCanvas, 0, 0);
+      bufferCtx.drawImage(terrainCompositeCanvas, 0, 0);
       bufferCtx.restore();
     }
 
@@ -3166,7 +3176,50 @@
     mapStore.selectedElement = null;
   }
 
-  // Raccourcis clavier PAO (Esc, Entrée, Suppr, Ctrl+A/D/Z/Y, flèches)
+  // Fonctions de transformation rapide pour les tampons
+  function flipSelectedHorizontal() {
+    if (mapStore.selectedElement?.type === 'stamp') {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        s.id === mapStore.selectedElement!.id ? { ...s, flipH: !s.flipH } : s
+      );
+    } else if (mapStore.selectedIds.length > 0) {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        mapStore.selectedIds.includes(s.id) ? { ...s, flipH: !s.flipH } : s
+      );
+    }
+  }
+
+  function flipSelectedVertical() {
+    if (mapStore.selectedElement?.type === 'stamp') {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        s.id === mapStore.selectedElement!.id ? { ...s, flipV: !s.flipV } : s
+      );
+    } else if (mapStore.selectedIds.length > 0) {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        mapStore.selectedIds.includes(s.id) ? { ...s, flipV: !s.flipV } : s
+      );
+    }
+  }
+
+  function rotateSelectedBy(delta: number) {
+    if (mapStore.selectedElement?.type === 'stamp') {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        s.id === mapStore.selectedElement!.id ? { ...s, rotation: (s.rotation + delta + 360) % 360 } : s
+      );
+    } else if (mapStore.selectedIds.length > 0) {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map((s) =>
+        mapStore.selectedIds.includes(s.id) ? { ...s, rotation: (s.rotation + delta + 360) % 360 } : s
+      );
+    }
+  }
+
+  // Raccourcis clavier PAO (Esc, Entrée, Suppr, Ctrl+A/D/Z/Y/S, flèches, H, J, [ ])
   function handleKeyDown(e: KeyboardEvent) {
     const inInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
 
@@ -3195,6 +3248,11 @@
 
     if (e.ctrlKey || e.metaKey) {
       const k = e.key.toLowerCase();
+      if (k === 's') {
+        e.preventDefault();
+        exportMapPng();
+        return;
+      }
       if (k === 'a') {
         e.preventDefault();
         mapStore.activeTool = 'grid';
@@ -3258,6 +3316,18 @@
       }
       if (k === 'g') {
         mapStore.showGrid = !mapStore.showGrid;
+        return;
+      }
+      if (k === 'h') {
+        flipSelectedHorizontal();
+        return;
+      }
+      if (k === 'j') {
+        flipSelectedVertical();
+        return;
+      }
+      if (e.key === '[' || e.key === ']') {
+        rotateSelectedBy(e.key === ']' ? 15 : -15);
         return;
       }
       if (k === 'r') {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mapStore, undo, redo, canUndo, canRedo } from '../lib/stores/mapStore.svelte';
+  import { mapStore, pushHistory, undo, redo, canUndo, canRedo } from '../lib/stores/mapStore.svelte';
 
   function resetView() {
     mapStore.zoom = 0.6;
@@ -21,6 +21,26 @@
       document.documentElement.requestFullscreen().catch(() => {});
     } else {
       document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  function flipSelectedH() {
+    if (mapStore.selectedElement?.type === 'stamp') {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map(s => s.id === mapStore.selectedElement!.id ? { ...s, flipH: !s.flipH } : s);
+    } else if (mapStore.selectedIds.length > 0) {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map(s => mapStore.selectedIds.includes(s.id) ? { ...s, flipH: !s.flipH } : s);
+    }
+  }
+
+  function flipSelectedV() {
+    if (mapStore.selectedElement?.type === 'stamp') {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map(s => s.id === mapStore.selectedElement!.id ? { ...s, flipV: !s.flipV } : s);
+    } else if (mapStore.selectedIds.length > 0) {
+      pushHistory();
+      mapStore.stamps = mapStore.stamps.map(s => mapStore.selectedIds.includes(s.id) ? { ...s, flipV: !s.flipV } : s);
     }
   }
 </script>
@@ -100,6 +120,24 @@
       <span class="qb-icon">🧭</span>
       <span class="qb-label">Radar</span>
     </button>
+
+    {#if mapStore.selectedElement?.type === 'stamp' || (mapStore.selectedIds.length > 0 && mapStore.stamps.some(s => mapStore.selectedIds.includes(s.id)))}
+      <div class="qb-divider"></div>
+      <button
+        class="qb-btn-icon"
+        onclick={flipSelectedH}
+        title="Miroir Horizontal : inverser gauche/droite (H)"
+      >
+        ⇋
+      </button>
+      <button
+        class="qb-btn-icon"
+        onclick={flipSelectedV}
+        title="Miroir Vertical : inverser haut/bas (J)"
+      >
+        ⇅
+      </button>
+    {/if}
 
     <div class="qb-divider"></div>
 

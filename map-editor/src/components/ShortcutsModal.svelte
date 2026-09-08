@@ -36,6 +36,9 @@
         { key: 'Ctrl + D', desc: 'Dupliquer instantanément la sélection' },
         { key: 'Ctrl + A', desc: 'Sélectionner tous les éléments' },
         { key: 'Suppr / Backspace', desc: 'Supprimer les éléments sélectionnés' },
+        { key: 'H', desc: 'Miroir horizontal (inverser gauche/droite)' },
+        { key: 'J', desc: 'Miroir vertical (inverser haut/bas)' },
+        { key: '[ / ]', desc: 'Pivoter la sélection par pas de 15°' },
         { key: 'Ctrl + L', desc: 'Verrouiller / Déverrouiller la sélection' },
         { key: 'Flèches Directionnelles', desc: 'Déplacer de 1 pixel (Maj = 1 case de grille)' },
       ]
