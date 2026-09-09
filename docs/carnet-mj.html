@@ -107,6 +107,9 @@
 
     <!-- Actions Rapides Header -->
     <div class="flex items-center gap-1.5">
+      <button onclick="openInstallModal()" class="w-8 h-8 rounded-lg bg-grimoire-card border border-amber-500/40 text-amber-300 text-sm flex items-center justify-center active:scale-95 transition-all shadow-sm" title="Installer sur iPhone ou Android / QR Code">
+        📲
+      </button>
       <button onclick="openGeneratorModal()" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
         <span>🎲</span> <span class="hidden xs:inline">Générateur</span>
       </button>
@@ -277,6 +280,49 @@
       Grimoire TTRPG Suite © LordMadTrix — Synchro v2
     </div>
   </aside>
+
+  <!-- ================= MODAL INSTALLATION GSM / QR CODE ================= -->
+  <div id="installModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 text-center">
+      <div class="flex items-center justify-between border-b border-grimoire-border/60 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📱</span>
+          <h3 class="font-bold text-sm text-white">Installer sur Mobile (PWA)</h3>
+        </div>
+        <button onclick="closeInstallModal()" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+      </div>
+
+      <!-- Vignette QR Code -->
+      <div class="p-3 bg-white rounded-2xl border-2 border-amber-400 shadow-xl shadow-amber-900/30 mx-auto w-fit">
+        <img src="qr-carnet-mj.svg" alt="QR Code Carnet MJ" class="w-48 h-48 object-contain">
+      </div>
+
+      <p class="text-xs text-gray-300">
+        Flashez ce code avec l'appareil photo de votre smartphone pour ouvrir l'application.
+      </p>
+
+      <div class="text-left space-y-2.5 bg-grimoire-surface/60 border border-grimoire-border/80 rounded-xl p-3 text-[11px] text-gray-300">
+        <div class="flex items-start gap-2">
+          <span class="text-sm">🍏</span>
+          <div>
+            <strong class="text-white block">iPhone (Safari) :</strong>
+            Touchez <strong>Partager</strong> <span class="text-gray-400">(carré avec flèche)</span> puis <strong>« Sur l'écran d'accueil »</strong>.
+          </div>
+        </div>
+        <div class="flex items-start gap-2 pt-1 border-t border-grimoire-border/40">
+          <span class="text-sm">🤖</span>
+          <div>
+            <strong class="text-white block">Android (Chrome) :</strong>
+            Touchez le menu <strong>⋮</strong> puis <strong>« Installer l'application »</strong>.
+          </div>
+        </div>
+      </div>
+
+      <button onclick="copyAppUrl()" class="w-full py-2 rounded-xl bg-grimoire-surface border border-grimoire-border text-xs font-semibold text-gray-200 hover:border-grimoire-accent active:scale-95">
+        📋 Copier le lien de l'application
+      </button>
+    </div>
+  </div>
 
   <!-- ================= MODAL GENERATEUR ALEATOIRE NOMADE ================= -->
   <div id="genModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
@@ -998,6 +1044,26 @@
 
     let activeGenCategory = 'npc';
     let currentGenMarkdown = '';
+
+    // --- MODAL INSTALLATION & QR CODE ---
+    function openInstallModal() {
+      triggerHaptic([20]);
+      document.getElementById('installModal').classList.remove('hidden');
+    }
+
+    function closeInstallModal() {
+      document.getElementById('installModal').classList.add('hidden');
+    }
+
+    function copyAppUrl() {
+      triggerHaptic([25]);
+      const url = window.location.href.split('#')[0].split('?')[0];
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Lien de l\'application copié !', '📋');
+      }).catch(() => {
+        showToast('Erreur lors de la copie', '⚠️');
+      });
+    }
 
     function openGeneratorModal() {
       triggerHaptic([20]);

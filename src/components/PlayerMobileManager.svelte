@@ -369,11 +369,24 @@
           </p>
 
           {#if !serverInfo}
-            <div style="background: rgba(229,168,83,0.1); border: 1px dashed var(--accent); border-radius: 8px; padding: 12px; margin: 10px 0; text-align: center;">
-              <p style="font-size: 12px; color: var(--accent); margin-bottom: 8px;">Le serveur doit être démarré pour transférer directement via Wi-Fi.</p>
-              <button class="pm-btn-start" onclick={handleStart} disabled={starting}>
-                {starting ? '⏳ Démarrage…' : '🚀 Démarrer le Serveur'}
-              </button>
+            <div style="background: rgba(229,168,83,0.06); border: 1px solid var(--accent); border-radius: 12px; padding: 14px; margin: 10px 0; text-align: center;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">
+                📲 Installer sur iPhone ou Android
+              </div>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">
+                Flashez ce QR Code avec l'appareil photo de votre smartphone pour ouvrir et installer l'application autonome (fonctionne 100% hors-ligne) :
+              </p>
+              <div class="pm-qr" title="QR Code Carnet MJ" style="border: 2px solid var(--accent); border-radius: 12px; padding: 8px; background: #fff; width: fit-content; margin: 8px auto;">
+                <img src="/qr-carnet-mj.svg" alt="QR Code Carnet MJ" style="width: 150px; height: 150px; display: block;" />
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(229,168,83,0.3);">
+                <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
+                  Pour synchroniser vos notes en direct via Wi-Fi avec ce PC :
+                </p>
+                <button class="pm-btn-start" onclick={handleStart} disabled={starting}>
+                  {starting ? '⏳ Démarrage…' : '🚀 Démarrer le Serveur Local Wi-Fi'}
+                </button>
+              </div>
             </div>
           {:else}
             <div class="pm-url-row">
