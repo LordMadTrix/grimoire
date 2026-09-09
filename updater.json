@@ -1,7 +1,7 @@
 {
-  "version": "0.6.3",
-  "notes": "Ajout du Carnet Nomade MJ Mobile (GSM) avec dictée vocale, modèles scénarios/PNJ/secrets, synchronisation Wi-Fi 1-clic vers le Vault Grimoire PC, QR code dédié et tutoriel interactif complet.",
-  "pub_date": "2026-09-09T04:15:00Z",
+  "version": "0.6.4",
+  "notes": "Mise à niveau majeure Carnet MJ Mobile : Synchronisation bidirectionnelle PC/GSM (explorateur de notes Vault), transfert 1-clic groupé, générateur aléatoire nomade offline (PNJ, lieux, rumeurs, trésors), retours haptiques et QR Codes iPhone/Android.",
+  "pub_date": "2026-09-09T04:45:00Z",
   "platforms": {
     "windows-x86_64": {
       "url": "https://github.com/LordMadTrix/grimoire/releases/latest"
