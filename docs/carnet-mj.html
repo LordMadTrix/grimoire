@@ -47,18 +47,43 @@
   </script>
 
   <style>
-    * { -webkit-tap-highlight-color: transparent; }
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     body {
       background-color: #0a0c10;
       color: #e2e8f0;
       font-family: 'Outfit', sans-serif;
       touch-action: manipulation;
+      overflow-x: auto;
+      overflow-y: auto;
     }
     .glass-header {
       background: rgba(10, 12, 16, 0.94);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
     }
+    
+    /* Scrollbars ergonomiques et visibles */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(10, 12, 16, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(229, 168, 83, 0.35);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(229, 168, 83, 0.75);
+    }
+
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
@@ -86,46 +111,47 @@
     .preview-body .secret-title { font-weight: 700; color: #e5a853; font-size: 0.85em; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
   </style>
 </head>
-<body class="h-full flex flex-col selection:bg-grimoire-accent selection:text-black overflow-hidden">
+<body class="h-full min-h-[100dvh] flex flex-col selection:bg-grimoire-accent selection:text-black overflow-x-auto overflow-y-auto">
 
   <!-- ================= TOP BAR (STATIONARY) ================= -->
-  <header class="glass-header border-b border-grimoire-border/80 px-4 py-2.5 flex items-center justify-between z-30 flex-shrink-0">
-    <div class="flex items-center gap-2.5">
-      <button id="btnToggleDrawer" class="w-9 h-9 rounded-lg bg-grimoire-card border border-grimoire-border flex items-center justify-center text-grimoire-accent active:scale-95 transition-transform" title="Toutes les notes & Vault PC">
+  <header class="glass-header border-b border-grimoire-border/80 px-2.5 sm:px-4 py-2 flex items-center justify-between z-30 flex-shrink-0 gap-1.5 min-w-0">
+    <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink-0">
+      <button id="btnToggleDrawer" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-grimoire-card border border-grimoire-border flex items-center justify-center text-grimoire-accent active:scale-95 transition-transform flex-shrink-0" title="Toutes les notes & Vault PC">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
       </button>
-      <div class="flex flex-col">
-        <div class="flex items-center gap-1.5">
-          <span class="font-black text-xs tracking-widest text-grimoire-accent">GRIMOIRE</span>
-          <span class="text-[10px] px-1.5 py-0.2 rounded bg-grimoire-accent/15 text-grimoire-accent border border-grimoire-accent/30 font-semibold">MJ GSM</span>
+      <div class="flex flex-col min-w-0">
+        <div class="flex items-center gap-1">
+          <span class="font-black text-[11px] sm:text-xs tracking-widest text-grimoire-accent">GRIMOIRE</span>
+          <span class="text-[9px] sm:text-[10px] px-1 py-0.2 rounded bg-grimoire-accent/15 text-grimoire-accent border border-grimoire-accent/30 font-semibold whitespace-nowrap">MJ GSM</span>
         </div>
-        <span id="txtSaveStatus" class="text-[11px] text-gray-400 flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Sauvegardé
+        <span id="txtSaveStatus" class="text-[10px] sm:text-[11px] text-gray-400 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> <span class="hidden sm:inline">Sauvegardé</span>
         </span>
       </div>
     </div>
 
     <!-- Actions Rapides Header -->
-    <div class="flex items-center gap-1.5">
-      <button onclick="openInstallModal()" class="w-8 h-8 rounded-lg bg-grimoire-card border border-amber-500/40 text-amber-300 text-sm flex items-center justify-center active:scale-95 transition-all shadow-sm" title="Installer sur iPhone ou Android / QR Code">
+    <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+      <button onclick="openInstallModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-grimoire-card border border-amber-500/40 text-amber-300 text-xs sm:text-sm flex items-center justify-center active:scale-95 transition-all shadow-sm flex-shrink-0" title="Installer sur iPhone ou Android / QR Code">
         📲
       </button>
-      <button onclick="openGeneratorModal()" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
-        <span>🎲</span> <span class="hidden xs:inline">Générateur</span>
+      <button onclick="openGeneratorModal()" class="px-2 sm:px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all flex-shrink-0" title="Générateur Aléatoire">
+        <span>🎲</span> <span class="hidden md:inline">Générateur</span>
       </button>
-      <button id="btnNewNote" class="px-2.5 py-1.5 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-200 flex items-center gap-1 active:bg-grimoire-surface">
-        <span>+</span> <span>Nouvelle</span>
+      <button id="btnNewNote" class="px-2 sm:px-2.5 py-1.5 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-200 flex items-center gap-1 active:bg-grimoire-surface flex-shrink-0" title="Nouvelle Note">
+        <span>+</span> <span class="hidden sm:inline">Nouvelle</span>
       </button>
-      <button id="btnOpenSyncModal" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-900/30 active:scale-95 transition-transform">
-        <span>⚡</span> <span>Vers PC</span>
+      <button id="btnOpenSyncModal" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-xs flex items-center gap-1 sm:gap-1.5 shadow-md shadow-amber-900/30 active:scale-95 transition-transform flex-shrink-0" title="Transférer vers PC">
+        <span id="headerPcDot" class="w-2 h-2 rounded-full bg-gray-500" title="Grimoire PC non connecté"></span>
+        <span>⚡</span> <span class="hidden sm:inline">Vers PC</span><span class="sm:hidden">PC</span>
       </button>
     </div>
   </header>
 
   <!-- ================= HORIZONTAL QUICK TOOLBAR ================= -->
-  <div class="bg-grimoire-card/90 border-b border-grimoire-border/60 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto hide-scrollbar z-20 flex-shrink-0">
+  <div class="bg-grimoire-card/90 border-b border-grimoire-border/60 px-2 sm:px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto z-20 flex-shrink-0">
     <!-- Dictée Vocale -->
-    <button id="btnVoiceRecord" class="px-3 py-1 rounded-md bg-grimoire-surface border border-grimoire-border text-xs font-medium text-gray-200 flex items-center gap-1.5 flex-shrink-0 active:scale-95 transition-all" title="Dicter à la voix (Web Speech)">
+    <button id="btnVoiceRecord" class="px-2.5 sm:px-3 py-1 rounded-md bg-grimoire-surface border border-grimoire-border text-xs font-medium text-gray-200 flex items-center gap-1.5 flex-shrink-0 active:scale-95 transition-all" title="Dicter à la voix (Web Speech)">
       <span id="micIcon" class="text-sm">🎙️</span>
       <span id="micLabel">Dicter</span>
     </button>
@@ -158,9 +184,9 @@
   </div>
 
   <!-- ================= MAIN EDITOR CONTAINER ================= -->
-  <main class="flex-1 flex flex-col p-3 overflow-hidden">
+  <main class="flex-1 flex flex-col p-2.5 sm:p-3 overflow-y-auto overflow-x-auto min-h-[300px]">
     <!-- Onglets Mode Édition / Mode Lecture -->
-    <div class="flex items-center justify-between mb-2">
+    <div class="flex items-center justify-between mb-2 flex-shrink-0">
       <div class="flex bg-grimoire-card rounded-lg p-0.5 border border-grimoire-border">
         <button id="tabEdit" class="px-3 py-1 rounded-md text-xs font-semibold bg-grimoire-accent text-black transition-all">Éditer</button>
         <button id="tabPreview" class="px-3 py-1 rounded-md text-xs font-semibold text-gray-400 transition-all">Aperçu</button>
@@ -175,42 +201,42 @@
       type="text" 
       id="inpNoteTitle" 
       placeholder="Titre du scénario ou de la note…" 
-      class="w-full bg-grimoire-card/70 border border-grimoire-border rounded-xl px-3.5 py-2.5 text-base font-bold text-grimoire-accent placeholder-gray-500 focus:outline-none focus:border-grimoire-accent transition-colors mb-2"
+      class="w-full bg-grimoire-card/70 border border-grimoire-border rounded-xl px-3.5 py-2.5 text-base font-bold text-grimoire-accent placeholder-gray-500 focus:outline-none focus:border-grimoire-accent transition-colors mb-2 flex-shrink-0"
     >
 
     <!-- Zone d'Édition (Textarea) -->
-    <div id="editorWrap" class="flex-1 flex flex-col min-h-0">
+    <div id="editorWrap" class="flex-1 flex flex-col min-h-[180px]">
       <textarea 
         id="txtNoteContent" 
         placeholder="Rédigez ou dictez vos idées de jeu de rôle ici…&#10;Markdown supporté :&#10;# Titres&#10;**Gras**, *Italique*&#10;- Listes&#10;> Citations&#10;🗝️ Secrets et intrigues"
-        class="flex-1 w-full bg-grimoire-card/50 border border-grimoire-border/80 rounded-xl p-3.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-grimoire-accent resize-none font-sans leading-relaxed hide-scrollbar"
+        class="flex-1 w-full min-h-[180px] bg-grimoire-card/50 border border-grimoire-border/80 rounded-xl p-3.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-grimoire-accent resize-none font-sans leading-relaxed overflow-y-auto"
       ></textarea>
     </div>
 
     <!-- Zone d'Aperçu (Preview) -->
-    <div id="previewWrap" class="flex-1 hidden bg-grimoire-card/50 border border-grimoire-border/80 rounded-xl p-4 overflow-y-auto preview-body hide-scrollbar">
+    <div id="previewWrap" class="flex-1 hidden bg-grimoire-card/50 border border-grimoire-border/80 rounded-xl p-4 overflow-y-auto preview-body min-h-[180px]">
       <!-- Rendu dynamique -->
     </div>
   </main>
 
   <!-- ================= BOTTOM ACTION BAR (STICKY) ================= -->
-  <footer class="glass-header border-t border-grimoire-border px-3 py-2 flex items-center justify-around gap-2 flex-shrink-0 z-20">
+  <footer class="glass-header border-t border-grimoire-border px-2.5 sm:px-3 py-2 flex items-center justify-around gap-2 flex-shrink-0 z-20">
     <!-- Télécharger .md -->
-    <button onclick="downloadMarkdown()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-300 flex items-center justify-center gap-1.5 active:bg-grimoire-surface">
-      <svg class="w-4 h-4 text-grimoire-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-      <span>Fichier .md</span>
+    <button onclick="downloadMarkdown()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-[11px] sm:text-xs font-semibold text-gray-300 flex items-center justify-center gap-1 sm:gap-1.5 active:bg-grimoire-surface" title="Télécharger le fichier Markdown">
+      <svg class="w-4 h-4 text-grimoire-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+      <span class="truncate">Fichier .md</span>
     </button>
 
     <!-- Partager (Web Share) -->
-    <button onclick="shareNote()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-300 flex items-center justify-center gap-1.5 active:bg-grimoire-surface">
-      <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-      <span>Partager</span>
+    <button onclick="shareNote()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-[11px] sm:text-xs font-semibold text-gray-300 flex items-center justify-center gap-1 sm:gap-1.5 active:bg-grimoire-surface" title="Partager la note">
+      <svg class="w-4 h-4 text-sky-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+      <span class="truncate">Partager</span>
     </button>
 
     <!-- Copier texte -->
-    <button onclick="copyToClipboard()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-300 flex items-center justify-center gap-1.5 active:bg-grimoire-surface">
-      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-      <span>Copier</span>
+    <button onclick="copyToClipboard()" class="flex-1 py-2 rounded-lg bg-grimoire-card border border-grimoire-border text-[11px] sm:text-xs font-semibold text-gray-300 flex items-center justify-center gap-1.5 active:bg-grimoire-surface" title="Copier le texte">
+      <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+      <span class="truncate">Copier</span>
     </button>
   </footer>
 
@@ -282,8 +308,8 @@
   </aside>
 
   <!-- ================= MODAL INSTALLATION GSM / QR CODE ================= -->
-  <div id="installModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 text-center">
+  <div id="installModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-auto">
+    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-sm p-4 sm:p-5 shadow-2xl flex flex-col gap-4 text-center my-auto max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-grimoire-border/60 pb-3">
         <div class="flex items-center gap-2">
           <span class="text-xl">📱</span>
@@ -294,7 +320,7 @@
 
       <!-- Vignette QR Code -->
       <div class="p-3 bg-white rounded-2xl border-2 border-amber-400 shadow-xl shadow-amber-900/30 mx-auto w-fit">
-        <img src="qr-carnet-mj.svg" alt="QR Code Carnet MJ" class="w-48 h-48 object-contain">
+        <img src="qr-carnet-mj.svg" alt="QR Code Carnet MJ" class="w-44 h-44 sm:w-48 sm:h-48 object-contain">
       </div>
 
       <p class="text-xs text-gray-300">
@@ -325,8 +351,8 @@
   </div>
 
   <!-- ================= MODAL GENERATEUR ALEATOIRE NOMADE ================= -->
-  <div id="genModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-md p-4 shadow-2xl flex flex-col max-h-[90vh]">
+  <div id="genModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-auto">
+    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-md p-4 shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto my-auto">
       <!-- Header Générateur -->
       <div class="flex items-center justify-between border-b border-grimoire-border/60 pb-3">
         <div class="flex items-center gap-2">
@@ -353,7 +379,7 @@
       </div>
 
       <!-- Zone Résultat Généré -->
-      <div class="flex-1 overflow-y-auto my-2 p-3 bg-grimoire-surface/60 border border-grimoire-border rounded-xl min-h-[140px] flex flex-col justify-center hide-scrollbar">
+      <div class="flex-1 overflow-y-auto my-2 p-3 bg-grimoire-surface/60 border border-grimoire-border rounded-xl min-h-[140px] flex flex-col justify-center">
         <div id="genResultBox" class="text-xs text-gray-200 leading-relaxed space-y-1.5">
           <!-- Rempli dynamiquement -->
         </div>
@@ -372,8 +398,8 @@
   </div>
 
   <!-- ================= MODAL SYNCHRONISATION PC ================= -->
-  <div id="syncModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4">
+  <div id="syncModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-auto">
+    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-md p-4 sm:p-5 shadow-2xl flex flex-col gap-4 my-auto max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-grimoire-border/60 pb-3">
         <div class="flex items-center gap-2">
           <span class="text-xl">⚡</span>
@@ -382,22 +408,37 @@
         <button onclick="closeSyncModal()" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
       </div>
 
+      <!-- Statut de connexion automatique PC -->
+      <div id="pcConnStatus" class="p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all bg-grimoire-surface/70 border-grimoire-border">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="pcConnDot" class="w-2.5 h-2.5 rounded-full bg-gray-500 flex-shrink-0"></span>
+          <span id="pcConnText" class="text-gray-300 truncate text-[11px]">Vérification de Grimoire PC…</span>
+        </div>
+        <button id="btnAutoScan" onclick="detectGrimoireServer(true)" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold hover:bg-amber-500/30 active:scale-95 transition-all flex-shrink-0 flex items-center gap-1" title="Détecter automatiquement sur le Wi-Fi local">
+          <span>🔍</span> <span>Détecter</span>
+        </button>
+      </div>
+
       <p class="text-xs text-gray-300 leading-relaxed">
         Envoyez instantanément cette note dans votre Vault Grimoire PC (dans le dossier <code class="text-grimoire-accent">Notes/Mobile/</code>).
       </p>
 
       <div class="space-y-3">
         <div>
-          <label class="block text-[11px] font-semibold text-gray-400 mb-1">ADRESSE IP & PORT DU PC GRIMOIRE</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[11px] font-semibold text-gray-400">ADRESSE IP & PORT DU PC GRIMOIRE</label>
+            <span id="txtAutoDetectedBadge" class="hidden text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">Auto-détecté ✨</span>
+          </div>
           <div class="flex items-center gap-2">
             <input 
               type="text" 
               id="inpServerUrl" 
               placeholder="ex: http://192.168.1.50:7438" 
               class="flex-1 bg-grimoire-surface border border-grimoire-border rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-grimoire-accent"
+              onchange="localStorage.setItem(SERVER_KEY, this.value); checkServerAlive(this.value);"
             >
           </div>
-          <span class="text-[10px] text-gray-500 mt-1 block">Visible dans Grimoire PC (icône Mobile / QR Code)</span>
+          <span class="text-[10px] text-gray-500 mt-1 block">Détecté automatiquement sur le même réseau Wi-Fi ou saisie manuelle.</span>
         </div>
 
         <div>
@@ -512,13 +553,21 @@
         activeNoteId = notes[0].id;
       }
 
-      const savedServer = localStorage.getItem(SERVER_KEY);
-      if (savedServer) {
-        inpServerUrl.value = savedServer;
-      } else if (window.location.port === '7438' || window.location.pathname.includes('/mj') || window.location.pathname.includes('/carnet')) {
-        inpServerUrl.value = window.location.origin;
+      // Détection de paramètre URL (?server= ou ?pc=)
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramServer = urlParams.get('server') || urlParams.get('pc');
+      if (paramServer) {
+        inpServerUrl.value = paramServer;
+        localStorage.setItem(SERVER_KEY, paramServer);
       } else {
-        inpServerUrl.value = 'http://192.168.1.X:7438';
+        const savedServer = localStorage.getItem(SERVER_KEY);
+        if (savedServer) {
+          inpServerUrl.value = savedServer;
+        } else if (!window.location.hostname.includes('github.io') && (window.location.port === '7438' || window.location.pathname.includes('/mj') || window.location.pathname.includes('/carnet'))) {
+          inpServerUrl.value = window.location.origin;
+        } else {
+          inpServerUrl.value = '';
+        }
       }
 
       loadActiveNote();
@@ -536,6 +585,9 @@
       tabPreview.addEventListener('click', () => switchTab('preview'));
 
       initSpeechRecognition();
+
+      // Détection automatique discrète en arrière-plan
+      setTimeout(() => detectGrimoireServer(false), 800);
     }
 
     function loadActiveNote() {
@@ -1169,6 +1221,174 @@
       showToast('Génération insérée dans votre note !', '📥');
     }
 
+    // --- DÉTECTION ET AUTO-DISCOVERY DE GRIMOIRE PC SUR LE RÉSEAU LOCAL ---
+    let isScanningNetwork = false;
+    let pcServerDetected = null;
+
+    async function checkServerAlive(url) {
+      if (!url) return false;
+      const cleanUrl = url.trim().replace(/\/+$/, '');
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1200);
+        const res = await fetch(`${cleanUrl}/api/status`, {
+          method: 'GET',
+          mode: 'cors',
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.app === 'grimoire' || data.status === 'ok')) {
+            return cleanUrl;
+          }
+        }
+      } catch(e) {}
+
+      // Fallback check sur /api/mj/vault_notes
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1200);
+        const res = await fetch(`${cleanUrl}/api/mj/vault_notes`, {
+          method: 'GET',
+          mode: 'cors',
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+        if (res.ok) return cleanUrl;
+      } catch(e) {}
+
+      return false;
+    }
+
+    async function detectGrimoireServer(userInitiated = false) {
+      if (isScanningNetwork) return;
+      isScanningNetwork = true;
+      updateConnStatusUI('searching', 'Recherche de Grimoire PC sur le Wi-Fi…');
+
+      // 1. Vérifier si un paramètre d'URL existe (?server= ou ?pc=)
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramServer = urlParams.get('server') || urlParams.get('pc');
+      if (paramServer) {
+        const alive = await checkServerAlive(paramServer);
+        if (alive) {
+          applyDetectedServer(alive);
+          isScanningNetwork = false;
+          if (userInitiated) showToast('Grimoire PC connecté !', '🟢');
+          return;
+        }
+      }
+
+      // 2. Vérifier l'adresse sauvegardée en local
+      const saved = (inpServerUrl.value || localStorage.getItem(SERVER_KEY) || '').trim().replace(/\/+$/, '');
+      if (saved && !saved.includes('192.168.1.X')) {
+        const alive = await checkServerAlive(saved);
+        if (alive) {
+          applyDetectedServer(alive);
+          isScanningNetwork = false;
+          if (userInitiated) showToast('Grimoire PC connecté !', '🟢');
+          return;
+        }
+      }
+
+      // 3. Vérifier l'origine courante (si ce n'est pas GitHub Pages)
+      if (!window.location.hostname.includes('github.io')) {
+        const originUrl = `${window.location.protocol}//${window.location.hostname}:7438`;
+        const alive = await checkServerAlive(originUrl);
+        if (alive) {
+          applyDetectedServer(alive);
+          isScanningNetwork = false;
+          if (userInitiated) showToast('Grimoire PC connecté !', '🟢');
+          return;
+        }
+      }
+
+      // 4. Balayage rapide du réseau local
+      const candidateIps = ['http://127.0.0.1:7438', 'http://localhost:7438'];
+
+      let lastSubnet = '192.168.1';
+      if (saved) {
+        const match = saved.match(/(\d+\.\d+\.\d+)\.\d+/);
+        if (match) lastSubnet = match[1];
+      }
+
+      // Scanner les 60 premières IPs du sous-réseau en priorité
+      for (let i = 1; i <= 60; i++) {
+        candidateIps.push(`http://${lastSubnet}.${i}:7438`);
+      }
+
+      // Sous-réseaux alternatifs courants
+      if (lastSubnet !== '192.168.0') {
+        for (let i = 1; i <= 35; i++) {
+          candidateIps.push(`http://192.168.0.${i}:7438`);
+        }
+      }
+      if (lastSubnet !== '10.0.0') {
+        for (let i = 1; i <= 20; i++) {
+          candidateIps.push(`http://10.0.0.${i}:7438`);
+        }
+      }
+
+      let foundUrl = null;
+      const batchSize = 12;
+      for (let i = 0; i < candidateIps.length; i += batchSize) {
+        const batch = candidateIps.slice(i, i + batchSize);
+        updateConnStatusUI('searching', `Scan Wi-Fi (${Math.min(i + batchSize, candidateIps.length)}/${candidateIps.length})…`);
+        const results = await Promise.all(batch.map(url => checkServerAlive(url)));
+        foundUrl = results.find(Boolean);
+        if (foundUrl) break;
+      }
+
+      if (foundUrl) {
+        applyDetectedServer(foundUrl);
+        if (userInitiated) showToast('Grimoire PC détecté !', '🟢');
+      } else {
+        updateConnStatusUI('offline', 'PC non détecté (vérifiez Grimoire PC)');
+        if (userInitiated) {
+          alert("Grimoire PC n'a pas été détecté sur le réseau local.\n\nAssurez-vous que :\n1. Grimoire est bien ouvert sur votre PC.\n2. Le serveur mobile est actif (icône 📱 Mobile dans Grimoire).\n3. Votre smartphone est connecté au même réseau Wi-Fi que le PC.");
+        }
+      }
+      isScanningNetwork = false;
+    }
+
+    function applyDetectedServer(url) {
+      pcServerDetected = url;
+      inpServerUrl.value = url;
+      localStorage.setItem(SERVER_KEY, url);
+      updateConnStatusUI('online', `Grimoire PC connecté (${url.replace(/^http:\/\//, '')})`);
+      const badge = document.getElementById('txtAutoDetectedBadge');
+      if (badge) badge.classList.remove('hidden');
+    }
+
+    function updateConnStatusUI(state, msg) {
+      const dot = document.getElementById('pcConnDot');
+      const text = document.getElementById('pcConnText');
+      const hDot = document.getElementById('headerPcDot');
+      if (!dot || !text) return;
+
+      if (state === 'online') {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0';
+        text.className = 'text-emerald-300 font-semibold truncate text-[11px]';
+        text.textContent = msg;
+        if (hDot) {
+          hDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+          hDot.title = msg;
+        }
+      } else if (state === 'searching') {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping flex-shrink-0';
+        text.className = 'text-amber-300 text-[11px] truncate';
+        text.textContent = msg;
+      } else {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-gray-500 flex-shrink-0';
+        text.className = 'text-gray-400 text-[11px] truncate';
+        text.textContent = msg;
+        if (hDot) {
+          hDot.className = 'w-2 h-2 rounded-full bg-gray-500';
+          hDot.title = 'Grimoire PC hors ligne';
+        }
+      }
+    }
+
     // --- SYNCHRONISATION DIRECTE VERS LE PC ---
     function openSyncModal() {
       triggerHaptic([20]);
@@ -1177,6 +1397,15 @@
       const cntEl = document.getElementById('txtCountAllNotes');
       if (cntEl) cntEl.textContent = notes.length;
       syncModal.classList.remove('hidden');
+
+      if (!pcServerDetected && (!inpServerUrl.value || inpServerUrl.value.includes('192.168.1.X'))) {
+        detectGrimoireServer(false);
+      } else if (inpServerUrl.value) {
+        checkServerAlive(inpServerUrl.value).then(alive => {
+          if (alive) applyDetectedServer(alive);
+          else updateConnStatusUI('offline', 'PC hors ligne (cliquez sur Détecter)');
+        });
+      }
     }
 
     function closeSyncModal() {

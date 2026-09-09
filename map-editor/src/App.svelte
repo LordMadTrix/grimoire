@@ -12,6 +12,7 @@
   import AtmosphereModal from './components/AtmosphereModal.svelte';
   import LayersModal from './components/LayersModal.svelte';
   import ShortcutsModal from './components/ShortcutsModal.svelte';
+  import CelestialModal from './components/CelestialModal.svelte';
   import { mapStore, pushHistory } from './lib/stores/mapStore.svelte';
 
   // Référence locale vers le canevas pour appeler des actions depuis la barre d'outils
@@ -331,10 +332,17 @@
 
     const autosaveTimer = setInterval(saveAutosave, 60_000);
     window.addEventListener('beforeunload', saveAutosave);
+
+    const onToastEvent = (e: any) => {
+      if (e?.detail) showToast(e.detail);
+    };
+    window.addEventListener('map-editor-toast', onToastEvent);
+
     return () => {
       if (unlisten) unlisten();
       clearInterval(autosaveTimer);
       window.removeEventListener('beforeunload', saveAutosave);
+      window.removeEventListener('map-editor-toast', onToastEvent);
     };
   });
 </script>
@@ -381,6 +389,7 @@
   <ShortcutsModal />
   <CatalogModal />
   <TextureCatalogModal />
+  <CelestialModal />
 
   <!-- Toast de confirmation d'action Grimoire -->
   {#if toastMessage}

@@ -205,6 +205,17 @@
     const importedGroup = (importedStamps as any[]).find((s: any) => s.id === mapStore.activeStamp || s.variants?.includes(mapStore.activeStamp));
     if (importedGroup) return importedGroup;
 
+    if (mapStore.activeStamp && (mapStore.activeStamp.startsWith('http') || mapStore.activeStamp.startsWith('/') || mapStore.activeStamp.startsWith('data:'))) {
+      return {
+        id: mapStore.activeStamp,
+        name: 'Tampon Céleste',
+        category: 'isometric',
+        type: 'imported',
+        file: mapStore.activeStamp,
+        variants: [mapStore.activeStamp]
+      };
+    }
+
     return DEFAULT_STAMPS_ISO[0];
   });
 

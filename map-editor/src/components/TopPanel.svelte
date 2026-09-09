@@ -209,6 +209,9 @@
   <!-- Séparateur flexible -->
   <!-- Boutons d'intégration Grimoire -->
   <div class="tp-grimoire-actions">
+    <button type="button" class="tp-btn-grimoire-celestial" onclick={() => mapStore.showCelestialModal = true} title="Ouvrir la Bibliothèque Céleste (Cartes, Tampons, Textures, Musiques)">
+      🌌 Bibliothèque Céleste
+    </button>
     <button type="button" class="tp-btn-grimoire-send" onclick={onSendToGrimoire} title="Envoyer directement la carte sur la Table Virtuelle Grimoire active">
       🐉 Envoyer vers Grimoire VTT
     </button>
@@ -508,5 +511,29 @@
     background: rgba(255, 255, 255, 0.1);
     border-color: #38bdf8;
     color: #38bdf8;
+  }
+
+  .tp-btn-grimoire-celestial {
+    background: linear-gradient(135deg, rgba(88, 28, 135, 0.6), rgba(126, 34, 206, 0.6));
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    border-radius: 5px;
+    color: #f3e8ff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+    box-shadow: 0 2px 8px rgba(147, 51, 234, 0.25);
+  }
+
+  .tp-btn-grimoire-celestial:hover {
+    background: linear-gradient(135deg, rgba(126, 34, 206, 0.8), rgba(147, 51, 234, 0.8));
+    border-color: #c084fc;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+    transform: translateY(-1px);
   }
 </style>

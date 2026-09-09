@@ -339,6 +339,15 @@
         </div>
         
         <div class="header-right">
+          <button 
+            type="button"
+            class="switch-celestial-btn" 
+            onclick={() => { mapStore.showCatalog = false; mapStore.showCelestialModal = true; }} 
+            title="Accéder aux milliers d'assets de la Bibliothèque Céleste"
+          >
+            🌌 Biblio Céleste
+          </button>
+
           <!-- Champ de recherche de stamps -->
           <div class="search-wrapper">
             <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -603,6 +612,25 @@
   }
 
   /* Barre de recherche */
+  .switch-celestial-btn {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.25), rgba(126, 34, 206, 0.35));
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    color: #e9d5ff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .switch-celestial-btn:hover {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.5), rgba(126, 34, 206, 0.6));
+    border-color: #c084fc;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+  }
+
   .search-wrapper {
     position: relative;
     display: flex;

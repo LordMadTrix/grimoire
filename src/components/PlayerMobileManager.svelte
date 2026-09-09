@@ -170,7 +170,12 @@
 
   // ── Server lifecycle ─────────────────────────────────────────────────────────
 
-  export function toggle() { visible = !visible; }
+  export function toggle() {
+    visible = !visible;
+    if (visible && !serverInfo && !starting) {
+      handleStart();
+    }
+  }
 
   async function handleStart() {
     starting = true;
@@ -231,8 +236,13 @@
         startPolling();
         const vp = getVaultPath();
         if (vp) try { await setServerVaultPath(vp); } catch {}
+      } else {
+        // Auto-démarrage pour être immédiatement détectable par le carnet mobile GSM sur le réseau Wi-Fi
+        handleStart();
       }
-    } catch {}
+    } catch {
+      handleStart();
+    }
 
     unlistens.push(await listen<any>('player_joined', ({ payload }) => {
       addLog(payload.name, '🟢 a rejoint la table');
@@ -683,19 +693,40 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 12px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: auto;
   }
 
   .pm-panel {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
-    width: 460px;
-    max-width: calc(100vw - 24px);
-    max-height: 85vh;
+    width: 480px;
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+    margin: auto;
     overflow-y: auto;
+    overflow-x: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,.6);
     animation: slideDown .15s ease-out;
   }
+
+  .pm-panel::-webkit-scrollbar {
+    width: 6px;
+  }
+  .pm-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  .pm-panel::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+  .pm-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+
   @keyframes slideDown {
     from { opacity: 0; transform: translateY(-10px); }
     to   { opacity: 1; transform: translateY(0); }

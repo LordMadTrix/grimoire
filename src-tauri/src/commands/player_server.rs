@@ -117,6 +117,8 @@ pub async fn start_player_server(
         .route("/", get(serve_player_app))
         .route("/mj", get(serve_carnet_mj))
         .route("/carnet", get(serve_carnet_mj))
+        .route("/api/status", get(handle_status))
+        .route("/api/mj/ping", get(handle_status))
         .route("/api/mj/notes", post(handle_mj_note_post))
         .route("/api/mj/vault_notes", get(handle_mj_vault_notes))
         .route("/api/mj/read_note", get(handle_mj_read_note))
@@ -429,6 +431,21 @@ async fn serve_player_app() -> impl IntoResponse {
 
 async fn serve_carnet_mj() -> impl IntoResponse {
     Html(CARNET_MJ_HTML)
+}
+
+async fn handle_status(
+    State(state): State<std::sync::Arc<ServerInner>>,
+) -> impl IntoResponse {
+    let vp = state.current_vault_path.lock().await.is_some();
+    let port = state.port.lock().await.unwrap_or(7438);
+    axum::Json(serde_json::json!({
+        "status": "ok",
+        "app": "grimoire",
+        "service": "grimoire_desktop",
+        "version": env!("CARGO_PKG_VERSION"),
+        "port": port,
+        "has_vault": vp,
+    }))
 }
 
 #[derive(Deserialize)]

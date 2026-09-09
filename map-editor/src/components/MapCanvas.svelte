@@ -145,45 +145,53 @@
 
     if (dynamicLoadingAssets.has(cacheKey)) return null;
 
-    // Chercher le chemin de l'image dans les tampons importés
-    const stampMeta = importedStamps.find((s: any) => s.id === type);
-    if (stampMeta) {
+    // Chercher le chemin de l'image dans les tampons importés ou URL directe (ex: Bibliothèque Céleste)
+    const stampMeta = (importedStamps as any[]).find((s: any) => s.id === type);
+    const fileSrc = stampMeta ? stampMeta.file : (type.startsWith('http') || type.startsWith('/') || type.startsWith('data:') || type.startsWith('blob:')) ? type : null;
+
+    if (fileSrc) {
       dynamicLoadingAssets.add(cacheKey);
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
-        // Supprimer le fond blanc (Chroma Keying) pour le canevas
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imgData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            if (r > 230 && g > 230 && b > 230) {
-              data[i + 3] = 0;
+        // Supprimer le fond blanc (Chroma Keying) pour le canevas si possible
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              if (r > 240 && g > 240 && b > 240) {
+                data[i + 3] = 0;
+              }
             }
+            ctx.putImageData(imgData, 0, 0);
+            assetCache.set(cacheKey, canvas);
+          } else {
+            assetCache.set(cacheKey, img);
           }
-          ctx.putImageData(imgData, 0, 0);
-          assetCache.set(cacheKey, canvas);
-        } else {
+        } catch {
+          // Fallback direct si canvas cross-origin taint
           assetCache.set(cacheKey, img);
         }
         dynamicLoadingAssets.delete(cacheKey);
       };
       img.onerror = () => {
-        console.error(`Erreur chargement asset dynamique: ${stampMeta.file}`);
+        console.error(`Erreur chargement asset dynamique: ${fileSrc}`);
         // Enregistrer un canevas vide pour éviter de tenter de charger indéfiniment
         const canvas = document.createElement('canvas');
         canvas.width = 1; canvas.height = 1;
         assetCache.set(cacheKey, canvas);
         dynamicLoadingAssets.delete(cacheKey);
       };
-      img.src = stampMeta.file;
+      img.src = fileSrc;
     }
     return null;
   }
@@ -191,7 +199,7 @@
   // Ensemble pour suivre les textures en cours de chargement dynamique
   const dynamicLoadingTextures = new Set<string>();
 
-  // Récupère une texture depuis le cache ou la charge à la volée s'il s'agit d'une texture importée
+  // Récupère une texture depuis le cache ou la charge à la volée s'il s'agit d'une texture importée ou céleste
   function getOrLoadTexture(type: string): HTMLCanvasElement | HTMLImageElement | undefined {
     const cacheKey = `tex_${type}`;
     const cached = assetCache.get(cacheKey);
@@ -199,24 +207,27 @@
 
     if (dynamicLoadingTextures.has(cacheKey)) return undefined;
 
-    // Chercher la texture dans les textures importées
+    // Chercher la texture dans les textures importées ou URL directe (Bibliothèque Céleste)
     const texMeta = (importedTextures as any[]).find((t: any) => t.id === type);
-    if (texMeta) {
+    const fileSrc = texMeta ? `/assets/textures/${texMeta.file}` : (type.startsWith('http') || type.startsWith('/') || type.startsWith('data:') || type.startsWith('blob:')) ? type : null;
+
+    if (fileSrc) {
       dynamicLoadingTextures.add(cacheKey);
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
         assetCache.set(cacheKey, img);
         dynamicLoadingTextures.delete(cacheKey);
       };
       img.onerror = () => {
-        console.error(`Erreur chargement texture dynamique: ${texMeta.file}`);
+        console.error(`Erreur chargement texture dynamique: ${fileSrc}`);
         // Enregistrer un canevas vide pour éviter de tenter de charger indéfiniment
         const canvas = document.createElement('canvas');
         canvas.width = 1; canvas.height = 1;
         assetCache.set(cacheKey, canvas);
         dynamicLoadingTextures.delete(cacheKey);
       };
-      img.src = `/assets/textures/${texMeta.file}`;
+      img.src = fileSrc;
     }
     return undefined;
   }

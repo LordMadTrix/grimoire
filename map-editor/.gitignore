@@ -27,6 +27,7 @@ dist-ssr
 public/assets/stamps/*/
 public/assets/textures/*/
 !public/assets/textures/*.png
+public/drive-catalog.json
 
 # Scripts de scraping et fichiers extraits (outils de dev locaux, non versionnés)
 inkarnate-extracted/

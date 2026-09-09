@@ -47,6 +47,19 @@
 
 <div class="quick-bar-wrapper" class:zen-active={mapStore.zenMode}>
   <div class="quick-bar">
+    <!-- Bibliothèque Céleste -->
+    <button
+      class="qb-btn celestial"
+      class:active={mapStore.showCelestialModal}
+      onclick={() => mapStore.showCelestialModal = true}
+      title="Bibliothèque Céleste (Cartes, Tampons, Textures, Musiques)"
+    >
+      <span class="qb-icon">🌌</span>
+      <span class="qb-label">Biblio Céleste</span>
+    </button>
+
+    <div class="qb-divider"></div>
+
     <!-- Presets de Cartes Instantanés -->
     <button
       class="qb-btn highlight"
@@ -259,6 +272,18 @@
   .qb-btn.highlight:hover {
     background: linear-gradient(135deg, rgba(229, 168, 83, 0.4), rgba(180, 83, 9, 0.35));
     box-shadow: 0 0 12px rgba(229, 168, 83, 0.3);
+  }
+
+  .qb-btn.celestial {
+    background: rgba(147, 51, 234, 0.15);
+    border-color: rgba(168, 85, 247, 0.35);
+    color: #e9d5ff;
+  }
+  .qb-btn.celestial:hover, .qb-btn.celestial.active {
+    background: rgba(147, 51, 234, 0.35);
+    border-color: #c084fc;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
   }
 
   .qb-btn.zen-btn.zen {

@@ -194,6 +194,7 @@ export const mapStore = $state({
   showPanel: true,
   showCatalog: false,
   showTextureCatalog: false,
+  showCelestialModal: false,
   showMinimap: true,
   zenMode: false,
   showShortcutsModal: false,
