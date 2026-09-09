@@ -62,6 +62,7 @@ pub fn run() {
             commands::player_server::get_player_connections,
             commands::player_server::get_server_status,
             commands::player_server::set_game_config,
+            commands::player_server::set_server_vault_path,
             commands::player_server::apply_damage_to_player,
             commands::player_server::apply_condition_to_player,
             commands::player_server::remove_condition_from_player,

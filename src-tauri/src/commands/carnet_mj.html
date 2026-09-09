@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Grimoire Carnet MJ — Mobile</title>
-  <meta name="description" content="Carnet nomade pour Maître du Jeu TTRPG : écrivez vos scénarios, PNJ et loots sur smartphone et synchronisez-les en 1 clic sur Grimoire PC.">
+  <meta name="description" content="Carnet nomade pour Maître du Jeu TTRPG : écrivez vos scénarios, PNJ et loots sur smartphone et synchronisez-les en 1 clic avec Grimoire PC.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
   <!-- PWA & Mobile Capabilities -->
@@ -55,14 +55,13 @@
       touch-action: manipulation;
     }
     .glass-header {
-      background: rgba(10, 12, 16, 0.92);
+      background: rgba(10, 12, 16, 0.94);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
     }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    /* Animation pulsation pour micro d'enregistrement */
     @keyframes pulse-mic {
       0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
       70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
@@ -92,7 +91,7 @@
   <!-- ================= TOP BAR (STATIONARY) ================= -->
   <header class="glass-header border-b border-grimoire-border/80 px-4 py-2.5 flex items-center justify-between z-30 flex-shrink-0">
     <div class="flex items-center gap-2.5">
-      <button id="btnToggleDrawer" class="w-9 h-9 rounded-lg bg-grimoire-card border border-grimoire-border flex items-center justify-center text-grimoire-accent active:scale-95 transition-transform" title="Toutes les notes">
+      <button id="btnToggleDrawer" class="w-9 h-9 rounded-lg bg-grimoire-card border border-grimoire-border flex items-center justify-center text-grimoire-accent active:scale-95 transition-transform" title="Toutes les notes & Vault PC">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
       </button>
       <div class="flex flex-col">
@@ -108,6 +107,9 @@
 
     <!-- Actions Rapides Header -->
     <div class="flex items-center gap-1.5">
+      <button onclick="openGeneratorModal()" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
+        <span>🎲</span> <span class="hidden xs:inline">Générateur</span>
+      </button>
       <button id="btnNewNote" class="px-2.5 py-1.5 rounded-lg bg-grimoire-card border border-grimoire-border text-xs font-semibold text-gray-200 flex items-center gap-1 active:bg-grimoire-surface">
         <span>+</span> <span>Nouvelle</span>
       </button>
@@ -127,7 +129,7 @@
     
     <div class="h-4 w-px bg-grimoire-border flex-shrink-0 mx-0.5"></div>
 
-    <!-- Modèles Rapides (Dropdown / Clics) -->
+    <!-- Modèles Rapides -->
     <button onclick="insertTemplate('scenario')" class="px-2.5 py-1 rounded-md bg-grimoire-surface/80 border border-grimoire-border text-[11px] text-gray-300 flex-shrink-0 whitespace-nowrap active:border-grimoire-accent">
       📜 Scénario
     </button>
@@ -177,13 +179,7 @@
     <div id="editorWrap" class="flex-1 flex flex-col min-h-0">
       <textarea 
         id="txtNoteContent" 
-        placeholder="Rédigez ou dictez vos idées de jeu de rôle ici…
-Markdown supporté :
-# Titres
-**Gras**, *Italique*
-- Listes
-> Citations
-🗝️ Secrets et intrigues"
+        placeholder="Rédigez ou dictez vos idées de jeu de rôle ici…&#10;Markdown supporté :&#10;# Titres&#10;**Gras**, *Italique*&#10;- Listes&#10;> Citations&#10;🗝️ Secrets et intrigues"
         class="flex-1 w-full bg-grimoire-card/50 border border-grimoire-border/80 rounded-xl p-3.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-grimoire-accent resize-none font-sans leading-relaxed hide-scrollbar"
       ></textarea>
     </div>
@@ -215,29 +211,119 @@ Markdown supporté :
     </button>
   </footer>
 
-  <!-- ================= DRAWER (LISTE DES NOTES) ================= -->
-  <div id="drawerOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden transition-opacity"></div>
-  <aside id="notesDrawer" class="fixed top-0 bottom-0 left-0 w-4/5 max-w-sm bg-grimoire-card border-r border-grimoire-border z-50 transform -translate-x-full transition-transform flex flex-col">
-    <div class="p-4 border-b border-grimoire-border flex items-center justify-between">
-      <h3 class="text-sm font-black tracking-wider text-grimoire-accent">MES NOTES NOMADES</h3>
+  <!-- ================= DRAWER (GESTIONNAIRE & VAULT PC) ================= -->
+  <div id="drawerOverlay" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+  <aside id="notesDrawer" class="fixed top-0 bottom-0 left-0 w-5/6 max-w-sm bg-grimoire-card border-r border-grimoire-border z-50 transform -translate-x-full transition-transform flex flex-col">
+    <!-- En-tête Drawer -->
+    <div class="p-3 border-b border-grimoire-border flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-base">📚</span>
+        <h3 class="text-xs font-black tracking-wider text-grimoire-accent uppercase">Explorateur de Notes</h3>
+      </div>
       <button id="btnCloseDrawer" class="p-1 rounded-lg text-gray-400 hover:text-white">✕</button>
     </div>
-    
-    <div class="p-3">
-      <button onclick="createNewNote(); closeDrawer();" class="w-full py-2.5 px-3 rounded-xl bg-grimoire-accent text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-grimoire-accent/20">
-        <span>+</span> <span>Nouvelle Note MJ</span>
+
+    <!-- Onglets Drawer : Notes Locales vs Notes PC Grimoire -->
+    <div class="p-2 border-b border-grimoire-border/60 flex gap-1 bg-grimoire-surface/40">
+      <button id="drawerTabLocal" onclick="switchDrawerTab('local')" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-grimoire-accent text-black transition-all">
+        📱 Sur ce GSM (<span id="countLocalNotes">1</span>)
+      </button>
+      <button id="drawerTabPc" onclick="switchDrawerTab('pc')" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all">
+        💻 Sur mon PC
       </button>
     </div>
-
-    <!-- Liste scrollable -->
-    <div id="drawerNotesList" class="flex-1 overflow-y-auto px-3 pb-6 space-y-2 hide-scrollbar">
-      <!-- Rempli par JavaScript -->
+    
+    <!-- Contenu Onglet 1 : Notes Locales -->
+    <div id="drawerLocalSection" class="flex-1 flex flex-col overflow-hidden">
+      <div class="p-3 pb-2">
+        <button onclick="createNewNote(); closeDrawer();" class="w-full py-2.5 px-3 rounded-xl bg-grimoire-accent text-black font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-grimoire-accent/20 active:scale-95 transition-transform">
+          <span>+</span> <span>Nouvelle Note Nomade</span>
+        </button>
+      </div>
+      <div id="drawerNotesList" class="flex-1 overflow-y-auto px-3 pb-6 space-y-2 hide-scrollbar">
+        <!-- Rempli dynamiquement -->
+      </div>
     </div>
 
-    <div class="p-3 border-t border-grimoire-border/80 text-[11px] text-gray-500 text-center">
-      Grimoire TTRPG Suite © LordMadTrix
+    <!-- Contenu Onglet 2 : Notes PC Grimoire (Vault Bidirectionnel) -->
+    <div id="drawerPcSection" class="flex-1 flex flex-col overflow-hidden hidden">
+      <div class="p-3 pb-2 flex flex-col gap-2">
+        <div class="flex items-center gap-1.5">
+          <input 
+            type="text" 
+            id="inpSearchPcVault" 
+            placeholder="Rechercher sur le PC…" 
+            class="flex-1 bg-grimoire-surface border border-grimoire-border rounded-lg px-2.5 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-grimoire-accent"
+            oninput="filterPcVaultNotes()"
+          >
+          <button onclick="fetchPcVaultNotes()" class="p-2 rounded-lg bg-grimoire-surface border border-grimoire-border text-xs text-grimoire-accent active:scale-95" title="Actualiser la liste PC">
+            🔄
+          </button>
+        </div>
+        <p class="text-[10px] text-gray-400">
+          Touchez une note du PC pour la télécharger et la modifier directement sur votre GSM.
+        </p>
+      </div>
+
+      <div id="drawerPcVaultList" class="flex-1 overflow-y-auto px-3 pb-6 space-y-2 hide-scrollbar">
+        <div class="text-center py-8 text-gray-500 text-xs">
+          <span class="text-2xl block mb-2">📡</span>
+          Appuyez sur <strong>🔄</strong> pour explorer les notes de votre Vault PC.
+        </div>
+      </div>
+    </div>
+
+    <div class="p-2.5 border-t border-grimoire-border/80 text-[10px] text-gray-500 text-center bg-black/30">
+      Grimoire TTRPG Suite © LordMadTrix — Synchro v2
     </div>
   </aside>
+
+  <!-- ================= MODAL GENERATEUR ALEATOIRE NOMADE ================= -->
+  <div id="genModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-grimoire-card border border-grimoire-border rounded-2xl w-full max-w-md p-4 shadow-2xl flex flex-col max-h-[90vh]">
+      <!-- Header Générateur -->
+      <div class="flex items-center justify-between border-b border-grimoire-border/60 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🎲</span>
+          <h3 class="font-bold text-sm text-white">Générateur Aléatoire Nomade</h3>
+        </div>
+        <button onclick="closeGeneratorModal()" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+      </div>
+
+      <!-- Onglets Catégories du Générateur -->
+      <div class="grid grid-cols-4 gap-1 pt-3 pb-2">
+        <button id="genTabNpc" onclick="switchGenCategory('npc')" class="py-1.5 text-[11px] font-bold rounded-lg bg-grimoire-accent text-black transition-all">
+          👤 PNJ
+        </button>
+        <button id="genTabPlace" onclick="switchGenCategory('place')" class="py-1.5 text-[11px] font-bold rounded-lg text-gray-400 hover:text-white transition-all">
+          🏰 Lieu
+        </button>
+        <button id="genTabRumor" onclick="switchGenCategory('rumor')" class="py-1.5 text-[11px] font-bold rounded-lg text-gray-400 hover:text-white transition-all">
+          👂 Rumeur
+        </button>
+        <button id="genTabLoot" onclick="switchGenCategory('loot')" class="py-1.5 text-[11px] font-bold rounded-lg text-gray-400 hover:text-white transition-all">
+          💰 Trésor
+        </button>
+      </div>
+
+      <!-- Zone Résultat Généré -->
+      <div class="flex-1 overflow-y-auto my-2 p-3 bg-grimoire-surface/60 border border-grimoire-border rounded-xl min-h-[140px] flex flex-col justify-center hide-scrollbar">
+        <div id="genResultBox" class="text-xs text-gray-200 leading-relaxed space-y-1.5">
+          <!-- Rempli dynamiquement -->
+        </div>
+      </div>
+
+      <!-- Actions Générateur -->
+      <div class="flex items-center gap-2 pt-2 border-t border-grimoire-border/60">
+        <button onclick="rollRandomGeneration()" class="flex-1 py-2.5 rounded-xl bg-grimoire-surface border border-grimoire-border text-xs font-bold text-amber-400 flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+          <span>🎲</span> <span>Relancer</span>
+        </button>
+        <button onclick="insertGenResultIntoNote()" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-900/30 active:scale-95 transition-transform">
+          <span>📥</span> <span>Insérer dans la note</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= MODAL SYNCHRONISATION PC ================= -->
   <div id="syncModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
@@ -302,6 +388,13 @@ Markdown supporté :
 
   <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
+    // --- VIBRATION HAPTIQUE ---
+    function triggerHaptic(pattern = [25]) {
+      if ('vibrate' in navigator) {
+        try { navigator.vibrate(pattern); } catch(e) {}
+      }
+    }
+
     // --- GESTION DU STOCKAGE LOCAL DES NOTES ---
     const STORAGE_KEY = 'grimoire_mj_notes_v1';
     const ACTIVE_KEY = 'grimoire_mj_active_id';
@@ -312,6 +405,9 @@ Markdown supporté :
     let autoSaveTimer = null;
     let recognition = null;
     let isRecording = false;
+
+    // Cache pour les notes du PC
+    let pcVaultNotesCache = [];
 
     // Éléments DOM
     const inpTitle = document.getElementById('inpNoteTitle');
@@ -325,6 +421,7 @@ Markdown supporté :
     const drawer = document.getElementById('notesDrawer');
     const drawerOverlay = document.getElementById('drawerOverlay');
     const drawerNotesList = document.getElementById('drawerNotesList');
+    const countLocalNotes = document.getElementById('countLocalNotes');
     const syncModal = document.getElementById('syncModal');
     const inpServerUrl = document.getElementById('inpServerUrl');
     const selTargetFolder = document.getElementById('selTargetFolder');
@@ -333,13 +430,11 @@ Markdown supporté :
 
     // Initialisation
     function init() {
-      // 1. Charger les notes
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         notes = raw ? JSON.parse(raw) : [];
       } catch(e) { notes = []; }
 
-      // Créer une première note si vide
       if (notes.length === 0) {
         notes.push({
           id: 'note_' + Date.now(),
@@ -361,7 +456,6 @@ Markdown supporté :
         });
       }
 
-      // 2. Sélectionner la note active
       const savedActive = localStorage.getItem(ACTIVE_KEY);
       if (savedActive && notes.some(n => n.id === savedActive)) {
         activeNoteId = savedActive;
@@ -369,37 +463,29 @@ Markdown supporté :
         activeNoteId = notes[0].id;
       }
 
-      // 3. Détecter l'adresse du serveur si servi par Grimoire
       const savedServer = localStorage.getItem(SERVER_KEY);
       if (savedServer) {
         inpServerUrl.value = savedServer;
-      } else if (window.location.port === '7438' || window.location.pathname.includes('/mj')) {
+      } else if (window.location.port === '7438' || window.location.pathname.includes('/mj') || window.location.pathname.includes('/carnet')) {
         inpServerUrl.value = window.location.origin;
       } else {
         inpServerUrl.value = 'http://192.168.1.X:7438';
       }
 
-      // Charger la note courante
       loadActiveNote();
 
-      // Écouteurs de modification
       inpTitle.addEventListener('input', triggerAutoSave);
       txtContent.addEventListener('input', triggerAutoSave);
 
-      // Drawer
       document.getElementById('btnToggleDrawer').addEventListener('click', openDrawer);
       document.getElementById('btnCloseDrawer').addEventListener('click', closeDrawer);
       drawerOverlay.addEventListener('click', closeDrawer);
       document.getElementById('btnNewNote').addEventListener('click', createNewNote);
-
-      // Modal sync
       document.getElementById('btnOpenSyncModal').addEventListener('click', openSyncModal);
 
-      // Tabs
       tabEdit.addEventListener('click', () => switchTab('edit'));
       tabPreview.addEventListener('click', () => switchTab('preview'));
 
-      // Configurer la dictée vocale
       initSpeechRecognition();
     }
 
@@ -441,6 +527,7 @@ Markdown supporté :
     }
 
     function switchTab(mode) {
+      triggerHaptic([15]);
       if (mode === 'edit') {
         tabEdit.classList.add('bg-grimoire-accent', 'text-black');
         tabEdit.classList.remove('text-gray-400');
@@ -462,7 +549,6 @@ Markdown supporté :
 
     function renderPreview() {
       const raw = txtContent.value;
-      // Convertisseur simple et robuste pour Markdown
       let html = raw
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/^# (.*$)/gim, '<h1>$1</h1>')
@@ -476,7 +562,6 @@ Markdown supporté :
         .replace(/`([^`]+)`/gim, '<code>$1</code>')
         .replace(/\n$/gim, '<br />');
 
-      // Corriger les listes imbriquées
       html = html.replace(/<\/ul>\s?<ul>/gim, '');
       previewWrap.innerHTML = html || '<p class="text-gray-500 italic">Note vide…</p>';
     }
@@ -487,7 +572,7 @@ Markdown supporté :
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (!SpeechRecognition) {
-        btn.onclick = () => showToast('⚠️ La dictée vocale native nécessite Chrome ou Safari.', '⚠️');
+        btn.onclick = () => showToast('⚠️ La dictée vocale native nécessite Chrome ou Safari mobile.', '⚠️');
         return;
       }
 
@@ -498,6 +583,7 @@ Markdown supporté :
 
       recognition.onstart = () => {
         isRecording = true;
+        triggerHaptic([30, 40]);
         btn.classList.add('recording-active');
         document.getElementById('micLabel').textContent = 'Écoute…';
         showToast('🎙️ Dictée active : parlez naturellement', '🎙️');
@@ -554,6 +640,7 @@ Markdown supporté :
 
     // --- INSERTION D'OUTILS ET TEMPLATES ---
     function insertMarkdown(prefix, suffix) {
+      triggerHaptic([20]);
       const el = txtContent;
       const start = el.selectionStart;
       const end = el.selectionEnd;
@@ -566,6 +653,7 @@ Markdown supporté :
     }
 
     function insertTemplate(type) {
+      triggerHaptic([30]);
       let tpl = '';
       if (type === 'scenario') {
         tpl = `\n\n## ⚔️ Scène : [Nom de la Scène]
@@ -596,13 +684,15 @@ Markdown supporté :
     }
 
     function rollRandomDice() {
+      triggerHaptic([20, 30]);
       const roll = Math.floor(Math.random() * 100) + 1;
       insertMarkdown(`\n*(🎲 Jet de Dé d100 : **${roll}**)*\n`, '');
       showToast(`Résultat dé : ${roll}`, '🎲');
     }
 
-    // --- GESTIONNAIRE DE NOTES (DRAWER) ---
+    // --- GESTIONNAIRE DE NOTES (DRAWER) & VAULT PC ---
     function openDrawer() {
+      triggerHaptic([20]);
       renderDrawerNotes();
       drawer.classList.remove('-translate-x-full');
       drawerOverlay.classList.remove('hidden');
@@ -613,8 +703,33 @@ Markdown supporté :
       drawerOverlay.classList.add('hidden');
     }
 
+    function switchDrawerTab(tab) {
+      triggerHaptic([15]);
+      const tabLocal = document.getElementById('drawerTabLocal');
+      const tabPc = document.getElementById('drawerTabPc');
+      const secLocal = document.getElementById('drawerLocalSection');
+      const secPc = document.getElementById('drawerPcSection');
+
+      if (tab === 'local') {
+        tabLocal.className = 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-grimoire-accent text-black transition-all';
+        tabPc.className = 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all';
+        secLocal.classList.remove('hidden');
+        secPc.classList.add('hidden');
+      } else {
+        tabPc.className = 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-grimoire-accent text-black transition-all';
+        tabLocal.className = 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white transition-all';
+        secPc.classList.remove('hidden');
+        secLocal.classList.add('hidden');
+        // Si vide, lancer la récupération automatique
+        if (pcVaultNotesCache.length === 0) {
+          fetchPcVaultNotes();
+        }
+      }
+    }
+
     function renderDrawerNotes() {
       drawerNotesList.innerHTML = '';
+      countLocalNotes.textContent = notes.length;
       notes.sort((a, b) => b.updatedAt - a.updatedAt).forEach(n => {
         const isCur = n.id === activeNoteId;
         const item = document.createElement('div');
@@ -640,6 +755,7 @@ Markdown supporté :
     }
 
     function selectNote(id) {
+      triggerHaptic([20]);
       saveCurrentNote();
       activeNoteId = id;
       loadActiveNote();
@@ -647,6 +763,7 @@ Markdown supporté :
     }
 
     function createNewNote() {
+      triggerHaptic([30]);
       saveCurrentNote();
       const newNote = {
         id: 'note_' + Date.now(),
@@ -664,7 +781,8 @@ Markdown supporté :
 
     function deleteNote(id, event) {
       event.stopPropagation();
-      if (!confirm('Supprimer cette note définitivement ?')) return;
+      triggerHaptic([40]);
+      if (!confirm('Supprimer cette note définitivement du GSM ?')) return;
       notes = notes.filter(n => n.id !== id);
       if (activeNoteId === id) {
         activeNoteId = notes[0]?.id || null;
@@ -679,8 +797,312 @@ Markdown supporté :
       showToast('Note supprimée', '🗑️');
     }
 
+    // --- SYNCHRONISATION BIDIRECTIONNELLE : EXPLORATEUR PC ---
+    async function fetchPcVaultNotes() {
+      triggerHaptic([20]);
+      const listContainer = document.getElementById('drawerPcVaultList');
+      const serverUrl = (inpServerUrl.value || '').trim().replace(/\/+$/, '');
+      if (!serverUrl) {
+        listContainer.innerHTML = '<div class="p-3 text-xs text-amber-400">Renseignez l\'URL du PC dans l\'onglet "Vers PC".</div>';
+        return;
+      }
+
+      listContainer.innerHTML = '<div class="text-center py-6 text-xs text-gray-400 animate-pulse">📡 Connexion au Vault Grimoire PC…</div>';
+
+      try {
+        const res = await fetch(`${serverUrl}/api/mj/vault_notes`);
+        if (!res.ok) throw new Error(`Code erreur HTTP: ${res.status}`);
+        const data = await res.json();
+        pcVaultNotesCache = data.notes || [];
+
+        if (pcVaultNotesCache.length === 0) {
+          listContainer.innerHTML = '<div class="text-center py-6 text-xs text-gray-500">Aucune note Markdown trouvée dans le Vault PC.</div>';
+          return;
+        }
+
+        renderPcVaultList(pcVaultNotesCache);
+        showToast(`${pcVaultNotesCache.length} notes PC trouvées`, '💻');
+      } catch (err) {
+        listContainer.innerHTML = `
+          <div class="p-3 rounded-xl bg-red-900/30 border border-red-500/50 text-xs text-red-200">
+            ❌ <strong>Échec de connexion :</strong><br/>
+            Impossible de joindre le PC (${escapeHtml(serverUrl)}).<br/>
+            Vérifiez que Grimoire PC est ouvert avec le serveur mobile activé.
+          </div>
+        `;
+      }
+    }
+
+    function filterPcVaultNotes() {
+      const q = (document.getElementById('inpSearchPcVault').value || '').toLowerCase().trim();
+      if (!q) {
+        renderPcVaultList(pcVaultNotesCache);
+      } else {
+        const filtered = pcVaultNotesCache.filter(n => 
+          (n.title && n.title.toLowerCase().includes(q)) || 
+          (n.path && n.path.toLowerCase().includes(q)) ||
+          (n.snippet && n.snippet.toLowerCase().includes(q))
+        );
+        renderPcVaultList(filtered);
+      }
+    }
+
+    function renderPcVaultList(items) {
+      const listContainer = document.getElementById('drawerPcVaultList');
+      listContainer.innerHTML = '';
+
+      if (items.length === 0) {
+        listContainer.innerHTML = '<div class="text-center py-4 text-xs text-gray-500">Aucun résultat.</div>';
+        return;
+      }
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-xl bg-grimoire-surface/80 border border-grimoire-border hover:border-grimoire-accent transition-colors flex flex-col gap-1.5 cursor-pointer active:scale-[0.98]';
+        
+        const dateStr = item.updated ? new Date(item.updated).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+        const sizeKb = item.size ? `${(item.size / 1024).toFixed(1)} Ko` : '';
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <h4 class="text-xs font-bold text-grimoire-accent truncate">${escapeHtml(item.title || item.path)}</h4>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/40 text-gray-400 font-mono flex-shrink-0">PC</span>
+          </div>
+          <p class="text-[11px] text-gray-400 font-mono truncate">${escapeHtml(item.path)}</p>
+          ${item.snippet ? `<p class="text-[11px] text-gray-300 line-clamp-2 italic">${escapeHtml(item.snippet)}</p>` : ''}
+          <div class="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-grimoire-border/50">
+            <span>${dateStr}</span>
+            <span>${sizeKb}</span>
+          </div>
+        `;
+
+        card.onclick = () => downloadNoteFromPC(item.path, item.title);
+        listContainer.appendChild(card);
+      });
+    }
+
+    async function downloadNoteFromPC(relPath, fallbackTitle) {
+      triggerHaptic([30]);
+      if (!confirm(`Télécharger et ouvrir "${fallbackTitle || relPath}" sur votre GSM ?`)) return;
+
+      const serverUrl = (inpServerUrl.value || '').trim().replace(/\/+$/, '');
+      try {
+        const res = await fetch(`${serverUrl}/api/mj/read_note?path=${encodeURIComponent(relPath)}`);
+        const data = await res.json();
+        if (data.success && data.content !== undefined) {
+          saveCurrentNote();
+
+          // Chercher si la note existe déjà localement
+          let existing = notes.find(n => n.title === data.title || n.pcPath === relPath);
+          if (existing) {
+            existing.content = data.content;
+            existing.title = data.title;
+            existing.updatedAt = Date.now();
+            activeNoteId = existing.id;
+          } else {
+            const newNote = {
+              id: 'note_' + Date.now(),
+              title: data.title || fallbackTitle || 'Note PC',
+              content: data.content,
+              pcPath: relPath,
+              updatedAt: Date.now()
+            };
+            notes.unshift(newNote);
+            activeNoteId = newNote.id;
+          }
+
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+          loadActiveNote();
+          closeDrawer();
+          showToast(`Note PC "${data.title}" chargée sur le mobile !`, '📥');
+          triggerHaptic([20, 50]);
+        } else {
+          alert('Impossible de lire la note sur le PC : ' + (data.error || 'Erreur inconnue'));
+        }
+      } catch (err) {
+        alert('Erreur réseau lors de la récupération de la note PC : ' + err.message);
+      }
+    }
+
+    // --- GÉNÉRATEUR ALÉATOIRE NOMADE ---
+    const GEN_DATA = {
+      firstnames: ['Alden', 'Valéria', 'Grimli', 'Sylas', 'Elion', 'Maelis', 'Dame Vivienne', 'Boran', 'Kaelen', 'Thalor', 'Morrigan', 'Zephyr', 'Isolde', 'Garrick', 'Vespera', 'Darian'],
+      lastnames: ['Vance', 'Noiresang', 'Poing-de-Fer', 'Sombrelune', 'Vent-d\'Hiver', 'Feu-d\'Épine', 'Rochedragon', 'Marche-Ombre', 'Couronne-d\'Or', 'Brise-Chaîne', 'des Cendres', 'Mortepierre'],
+      races: ['Humain(e)', 'Elfe sylvain', 'Nain(e) des collines', 'Demi-orc', 'Tieffelin(e)', 'Drakéide', 'Halfelin(e)', 'Gnome des forêts', 'Aasimar'],
+      roles: [
+        'Aubergiste jovial mais calculateur',
+        'Apothicaire herboriste soupçonneux',
+        'Capitaine de la garde corrompu',
+        'Barde ambulant et espion discret',
+        'Érudit ermite obsédé par les astres',
+        'Forgeron d\'armes runiques',
+        'Mercenaire taciturne en quête de rachat',
+        'Contrebandier des souterrains',
+        'Prêtre déchu d\'une divinité oubliée',
+        'Chasseur de primes impassible'
+      ],
+      traits: [
+        'Méfiance instinctive envers les étrangers',
+        'Rire tonitruant et gestes amples',
+        'Parle à voix basse en surveillant chaque ombre',
+        'Regard perçant et glacial, ne sourit jamais',
+        'Geste nerveux avec une pièce en argent',
+        'Maniaque de l\'ordre et de la propreté',
+        'Curiosité débordante pour la magie arcanique',
+        'Ponctue ses phrases de proverbes maritimes'
+      ],
+      secrets: [
+        'Détient la moitié d\'une carte au trésor cryptée',
+        'A empoisonné son rival pour obtenir sa position',
+        'A contracté une dette colossale envers la guilde des voleurs',
+        'Cache un proche infecté par la lycanthropie',
+        'Est en réalité un agent double au service de la faction adverse',
+        'Garde une relique maudite dissimulée sous son plancher'
+      ],
+      places: [
+        'L\'Auberge du Sanglier Borgne',
+        'Le Pont du Gouffre Sans Fond',
+        'La Tour de Guet Oubliée des Rois',
+        'Les Catacombes des Pénitents',
+        'Le Sanctuaire des Murmures Sylvestres',
+        'Le Bastion de la Flamme Noire',
+        'La Clairière du Menhir Brisée',
+        'Les Bas-Fonds de la Cité Haute',
+        'Le Moulin Hanté des Marais'
+      ],
+      ambiances: [
+        'Odeur âcre de suie, crépitement de torches vacillantes et murmures feutrés.',
+        'Brume glaciale rampant au sol, silence lourd interrompu par des gouttes d\'eau régulières.',
+        'Vent violent sifflant à travers les meurtrières, odeur de pluie et d\'ozone.',
+        'Parfum envoûtant d\'encens ancien masquant une odeur de moisissure souterraine.',
+        'Chaleur étouffante, odeur de fer chauffé à blanc et grondements lointains.'
+      ],
+      rumors: [
+        'Une étrange créature ailée a été vue rôdant au-dessus des collines chaque nuit de lune noire.',
+        'Le seigneur local a doublé la garnison après avoir reçu une mystérieuse missive scellée de cire rouge.',
+        'La vieille mine abandonnée produit à nouveau d\'inquiétants bruits métalliques rythmés.',
+        'Des voyageurs ont disparu sur la route du nord sans laisser la moindre trace de caravane.',
+        'Une relique volée au temple réapparaîtrait lors d\'une vente aux enchères clandestine ce soir.',
+        'L\'eau du puits central a pris un goût métallique et certains villageois font les mêmes cauchemars.'
+      ],
+      loots: [
+        'Bourse en cuir contenant 35 couronnes d\'or et un rubis étoilé de 50 po.',
+        'Amulette d\'œil de faucon conférant un bonus aux tests de perception.',
+        'Dague cérémonielle en obsidienne dont la lame ne retient jamais le sang.',
+        'Flacon d\'élixir de vif-argent pulsant d\'une douce lueur azurée.',
+        'Parchemin jauni scellé contenant une promesse de dette signée par un noble.',
+        'Anneau en argent ciselé gravé d\'un mot de passe secret dans une langue morte.',
+        'Fiole de poison d\'araignée spectrale à effet paralysant immédiat.'
+      ]
+    };
+
+    let activeGenCategory = 'npc';
+    let currentGenMarkdown = '';
+
+    function openGeneratorModal() {
+      triggerHaptic([20]);
+      document.getElementById('genModal').classList.remove('hidden');
+      rollRandomGeneration();
+    }
+
+    function closeGeneratorModal() {
+      document.getElementById('genModal').classList.add('hidden');
+    }
+
+    function switchGenCategory(cat) {
+      triggerHaptic([15]);
+      activeGenCategory = cat;
+      const tabs = {
+        npc: document.getElementById('genTabNpc'),
+        place: document.getElementById('genTabPlace'),
+        rumor: document.getElementById('genTabRumor'),
+        loot: document.getElementById('genTabLoot')
+      };
+
+      Object.keys(tabs).forEach(k => {
+        if (k === cat) {
+          tabs[k].className = 'py-1.5 text-[11px] font-bold rounded-lg bg-grimoire-accent text-black transition-all';
+        } else {
+          tabs[k].className = 'py-1.5 text-[11px] font-bold rounded-lg text-gray-400 hover:text-white transition-all';
+        }
+      });
+
+      rollRandomGeneration();
+    }
+
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function rollRandomGeneration() {
+      triggerHaptic([25]);
+      const resBox = document.getElementById('genResultBox');
+
+      if (activeGenCategory === 'npc') {
+        const name = `${pickRandom(GEN_DATA.firstnames)} ${pickRandom(GEN_DATA.lastnames)}`;
+        const race = pickRandom(GEN_DATA.races);
+        const role = pickRandom(GEN_DATA.roles);
+        const trait = pickRandom(GEN_DATA.traits);
+        const secret = pickRandom(GEN_DATA.secrets);
+
+        currentGenMarkdown = `\n### 👤 PNJ : ${name}\n- **Ascendance & Rôle** : ${race}, ${role}\n- **Personnalité** : ${trait}\n- **Secret MJ** : ${secret}\n`;
+        resBox.innerHTML = `
+          <div class="font-bold text-sm text-grimoire-accent flex items-center gap-1">
+            <span>👤</span> <span>${escapeHtml(name)}</span>
+          </div>
+          <div><strong class="text-amber-200/80">Rôle :</strong> ${escapeHtml(race)} — ${escapeHtml(role)}</div>
+          <div><strong class="text-amber-200/80">Trait :</strong> ${escapeHtml(trait)}</div>
+          <div class="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] mt-1">
+            <strong>🗝️ Secret :</strong> ${escapeHtml(secret)}
+          </div>
+        `;
+      } else if (activeGenCategory === 'place') {
+        const place = pickRandom(GEN_DATA.places);
+        const amb = pickRandom(GEN_DATA.ambiances);
+
+        currentGenMarkdown = `\n### 🏰 Lieu : ${place}\n- **Ambiance & Décor** : ${amb}\n`;
+        resBox.innerHTML = `
+          <div class="font-bold text-sm text-grimoire-accent flex items-center gap-1">
+            <span>🏰</span> <span>${escapeHtml(place)}</span>
+          </div>
+          <div class="pt-1"><strong class="text-amber-200/80">Ambiance sensorielle :</strong><br/>${escapeHtml(amb)}</div>
+        `;
+      } else if (activeGenCategory === 'rumor') {
+        const rumor = pickRandom(GEN_DATA.rumors);
+
+        currentGenMarkdown = `\n> [!SECRET]\n> **👂 Rumeur de Taverne** : ${rumor}\n`;
+        resBox.innerHTML = `
+          <div class="font-bold text-sm text-grimoire-accent flex items-center gap-1">
+            <span>👂</span> <span>Rumeur de Taverne</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-black/40 border border-grimoire-border text-gray-200 italic mt-1">
+            « ${escapeHtml(rumor)} »
+          </div>
+        `;
+      } else if (activeGenCategory === 'loot') {
+        const loot = pickRandom(GEN_DATA.loots);
+
+        currentGenMarkdown = `\n### 💰 Butin Découvert\n- ${loot}\n`;
+        resBox.innerHTML = `
+          <div class="font-bold text-sm text-grimoire-accent flex items-center gap-1">
+            <span>💰</span> <span>Trésor / Relique</span>
+          </div>
+          <div class="pt-1"><strong class="text-amber-200/80">Description :</strong><br/>${escapeHtml(loot)}</div>
+        `;
+      }
+    }
+
+    function insertGenResultIntoNote() {
+      if (!currentGenMarkdown) return;
+      triggerHaptic([30, 20]);
+      insertMarkdown('', currentGenMarkdown);
+      closeGeneratorModal();
+      showToast('Génération insérée dans votre note !', '📥');
+    }
+
     // --- SYNCHRONISATION DIRECTE VERS LE PC ---
     function openSyncModal() {
+      triggerHaptic([20]);
       saveCurrentNote();
       syncFeedback.classList.add('hidden');
       syncModal.classList.remove('hidden');
@@ -691,6 +1113,7 @@ Markdown supporté :
     }
 
     async function sendNoteToGrimoirePC() {
+      triggerHaptic([30]);
       const serverUrl = inpServerUrl.value.trim().replace(/\/+$/, '');
       if (!serverUrl) {
         alert('Veuillez renseigner l\'URL ou l\'adresse IP de votre PC Grimoire.');
@@ -715,7 +1138,6 @@ Markdown supporté :
       };
 
       try {
-        // Envoi HTTP POST vers l'endpoint REST du serveur Grimoire
         const res = await fetch(`${serverUrl}/api/mj/notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -723,6 +1145,7 @@ Markdown supporté :
         });
 
         if (res.ok) {
+          triggerHaptic([20, 50]);
           syncFeedback.className = 'text-xs rounded-xl p-3 bg-emerald-900/40 border border-emerald-500/80 text-emerald-200';
           syncFeedback.innerHTML = `✅ <strong>Transfert réussi !</strong><br/>La note a été créée dans votre Vault Grimoire PC sous <code>${targetFolder}/${slugify(note.title)}.md</code>.`;
           showToast('Note transférée vers Grimoire PC !', '🚀');
@@ -731,7 +1154,6 @@ Markdown supporté :
           throw new Error(`Erreur serveur (${res.status})`);
         }
       } catch (err) {
-        // Fallback tentative via WebSocket si endpoint HTTP restreint
         tryFallbackWebSocket(serverUrl, payload);
       } finally {
         btnSendToPc.disabled = false;
@@ -748,6 +1170,7 @@ Markdown supporté :
           ws.send(JSON.stringify({ event: 'join', data: { name: 'MJ Mobile' } }));
           setTimeout(() => {
             ws.send(JSON.stringify({ event: 'mj_note_push', data: payload }));
+            triggerHaptic([20, 50]);
             syncFeedback.className = 'text-xs rounded-xl p-3 bg-emerald-900/40 border border-emerald-500/80 text-emerald-200';
             syncFeedback.innerHTML = `✅ <strong>Transféré via WebSocket !</strong><br/>Votre PC Grimoire a reçu la note.`;
             showToast('Note reçue par le PC !', '⚡');
@@ -767,6 +1190,7 @@ Markdown supporté :
 
     // --- EXPORTS LOCAUX & PARTAGE ---
     function downloadMarkdown() {
+      triggerHaptic([20]);
       saveCurrentNote();
       const note = notes.find(n => n.id === activeNoteId);
       if (!note) return;
@@ -784,6 +1208,7 @@ Markdown supporté :
     }
 
     async function shareNote() {
+      triggerHaptic([20]);
       saveCurrentNote();
       const note = notes.find(n => n.id === activeNoteId);
       if (!note) return;
@@ -801,6 +1226,7 @@ Markdown supporté :
     }
 
     function copyToClipboard() {
+      triggerHaptic([20]);
       saveCurrentNote();
       const note = notes.find(n => n.id === activeNoteId);
       if (!note) return;

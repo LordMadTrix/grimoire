@@ -22,7 +22,7 @@
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
-  import { openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus } from '$lib/api';
+  import { openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath } from '$lib/api';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
   import {
@@ -307,6 +307,8 @@
     await loadGmSession(vaultPath);
     // Charger la config du système de jeu (addon)
     await loadGameConfig(vaultPath);
+    // Pousser le chemin du vault vers le serveur mobile (carnet MJ)
+    setServerVaultPath(vaultPath).catch(() => {});
   }
 
   async function handleOpenVault() {

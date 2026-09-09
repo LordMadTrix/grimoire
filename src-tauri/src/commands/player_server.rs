@@ -1,12 +1,14 @@
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        State,
+        Query, State,
     },
     response::{Html, IntoResponse},
     routing::{get, post},
     Router,
 };
+use tower_http::cors::CorsLayer;
+use walkdir::WalkDir;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, net::SocketAddr, sync::OnceLock};
 use tauri::{AppHandle, Emitter};
@@ -20,6 +22,7 @@ pub struct ServerInner {
     pub shutdown_tx: Mutex<Option<tokio::sync::oneshot::Sender<()>>>,
     pub port: Mutex<Option<u16>>,
     pub app_handle: Mutex<Option<AppHandle>>,
+    pub current_vault_path: Mutex<Option<String>>,
     /// Config du système de jeu (races, carrières…) lue depuis le vault
     pub game_config: Mutex<Option<serde_json::Value>>,
     /// Personnages sauvegardés par nom de joueur (persistance entre reconnexions)
@@ -47,6 +50,7 @@ fn get_server() -> &'static std::sync::Arc<ServerInner> {
             shutdown_tx: Mutex::new(None),
             port: Mutex::new(None),
             app_handle: Mutex::new(None),
+            current_vault_path: Mutex::new(None),
             game_config: Mutex::new(None),
             saved_characters: Mutex::new(HashMap::new()),
             unicast_tx: Mutex::new(HashMap::new()),
@@ -114,7 +118,10 @@ pub async fn start_player_server(
         .route("/mj", get(serve_carnet_mj))
         .route("/carnet", get(serve_carnet_mj))
         .route("/api/mj/notes", post(handle_mj_note_post))
+        .route("/api/mj/vault_notes", get(handle_mj_vault_notes))
+        .route("/api/mj/read_note", get(handle_mj_read_note))
         .route("/ws", get(ws_handler))
+        .layer(CorsLayer::permissive())
         .with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind(&addr)
@@ -175,6 +182,13 @@ pub async fn get_player_connections() -> Result<Vec<PlayerInfo>, String> {
 #[tauri::command]
 pub async fn set_game_config(config: serde_json::Value) -> Result<(), String> {
     *get_server().game_config.lock().await = Some(config);
+    Ok(())
+}
+
+/// Pousse le chemin du coffre actif vers le serveur mobile pour le carnet MJ
+#[tauri::command]
+pub async fn set_server_vault_path(vault_path: String) -> Result<(), String> {
+    *get_server().current_vault_path.lock().await = Some(vault_path);
     Ok(())
 }
 
@@ -417,14 +431,126 @@ async fn serve_carnet_mj() -> impl IntoResponse {
     Html(CARNET_MJ_HTML)
 }
 
+#[derive(Deserialize)]
+pub struct ReadNoteQuery {
+    pub path: String,
+}
+
 async fn handle_mj_note_post(
     State(state): State<std::sync::Arc<ServerInner>>,
     axum::extract::Json(payload): axum::extract::Json<serde_json::Value>,
 ) -> impl IntoResponse {
     let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Note Sans Titre");
+    let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
+    let folder = payload.get("folder").and_then(|v| v.as_str()).unwrap_or("Notes/Mobile");
+
+    let vp_opt = state.current_vault_path.lock().await.clone();
+    if let Some(vault_path) = vp_opt {
+        let slug = title.to_lowercase()
+            .chars()
+            .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+            .collect::<String>();
+        let rel_folder = crate::commands::addons::sanitize_relative_path(folder);
+        let target_dir = std::path::Path::new(&vault_path).join(&rel_folder);
+        let _ = std::fs::create_dir_all(&target_dir);
+        let filename = format!("{}.md", slug.trim_matches('_'));
+        let target_file = target_dir.join(&filename);
+        let _ = std::fs::write(&target_file, content);
+    }
+
     notify_os(&state, "📝 Note MJ reçue", title).await;
     emit_to_gm(&state, "mj_note_received", payload).await;
-    axum::Json(serde_json::json!({ "success": true, "message": "Note reçue sur le PC" }))
+    axum::Json(serde_json::json!({ "success": true, "message": "Note enregistrée sur le PC" }))
+}
+
+async fn handle_mj_vault_notes(
+    State(state): State<std::sync::Arc<ServerInner>>,
+) -> impl IntoResponse {
+    let vp_opt = state.current_vault_path.lock().await.clone();
+    let mut notes_list: Vec<serde_json::Value> = Vec::new();
+
+    if let Some(vault_path) = vp_opt {
+        let v_base = std::path::Path::new(&vault_path);
+        if v_base.is_dir() {
+            for entry in WalkDir::new(v_base)
+                .into_iter()
+                .filter_entry(|e| {
+                    let name = e.file_name().to_string_lossy();
+                    !name.starts_with('.') && name != "node_modules" && name != "target"
+                })
+                .filter_map(|e| e.ok())
+            {
+                if entry.file_type().is_file() {
+                    let p = entry.path();
+                    if p.extension().and_then(|ext| ext.to_str()) == Some("md") {
+                        if let Ok(rel) = p.strip_prefix(v_base) {
+                            let rel_str = rel.to_string_lossy().replace('\\', "/");
+                            let file_size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                            let mod_time = entry.metadata().ok().and_then(|m| m.modified().ok())
+                                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                                .map(|d| d.as_millis() as u64)
+                                .unwrap_or(0);
+
+                            let mut title = p.file_stem().and_then(|s| s.to_str()).unwrap_or("Sans titre").to_string();
+                            let mut snippet = String::new();
+
+                            if let Ok(content) = std::fs::read_to_string(p) {
+                                for line in content.lines() {
+                                    let trimmed = line.trim();
+                                    if trimmed.starts_with("# ") && title == p.file_stem().and_then(|s| s.to_str()).unwrap_or("") {
+                                        title = trimmed.trim_start_matches("# ").trim().to_string();
+                                    } else if !trimmed.is_empty() && !trimmed.starts_with('#') && !trimmed.starts_with("---") && snippet.is_empty() {
+                                        snippet = trimmed.chars().take(100).collect();
+                                    }
+                                    if !snippet.is_empty() && title != p.file_stem().and_then(|s| s.to_str()).unwrap_or("") {
+                                        break;
+                                    }
+                                }
+                            }
+
+                            notes_list.push(serde_json::json!({
+                                "path": rel_str,
+                                "title": title,
+                                "snippet": snippet,
+                                "size": file_size,
+                                "updated": mod_time,
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    notes_list.sort_by(|a, b| {
+        let ta = a.get("updated").and_then(|v| v.as_u64()).unwrap_or(0);
+        let tb = b.get("updated").and_then(|v| v.as_u64()).unwrap_or(0);
+        tb.cmp(&ta)
+    });
+
+    axum::Json(serde_json::json!({ "notes": notes_list }))
+}
+
+async fn handle_mj_read_note(
+    State(state): State<std::sync::Arc<ServerInner>>,
+    Query(query): Query<ReadNoteQuery>,
+) -> impl IntoResponse {
+    let vp_opt = state.current_vault_path.lock().await.clone();
+    if let Some(vault_path) = vp_opt {
+        let sanitized = crate::commands::addons::sanitize_relative_path(&query.path);
+        let full_path = std::path::Path::new(&vault_path).join(sanitized);
+
+        if let Ok(content) = std::fs::read_to_string(&full_path) {
+            let title = full_path.file_stem().and_then(|s| s.to_str()).unwrap_or("Note").to_string();
+            return axum::Json(serde_json::json!({
+                "success": true,
+                "path": query.path,
+                "title": title,
+                "content": content
+            }));
+        }
+    }
+    axum::Json(serde_json::json!({ "success": false, "error": "Fichier introuvable ou vault non configuré" }))
 }
 
 async fn ws_handler(

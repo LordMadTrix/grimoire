@@ -3,7 +3,7 @@
   import { listen } from '@tauri-apps/api/event';
   import {
     startPlayerServer, stopPlayerServer, broadcastToPlayers,
-    getPlayerConnections, getServerStatus,
+    getPlayerConnections, getServerStatus, setServerVaultPath,
     applyDamageToPlayer, applyConditionToPlayer, removeConditionFromPlayer,
     setActiveTurn, approveXpRequest,
     sendPrivateMessage, startPoll, endPoll,
@@ -178,6 +178,8 @@
       serverInfo = await startPlayerServer();
       const cfg = getGameConfig();
       if (cfg) try { await invoke('set_game_config', { config: cfg }); } catch {}
+      const vp = getVaultPath();
+      if (vp) try { await setServerVaultPath(vp); } catch {}
       startPolling();
       addLog('Système', `🚀 Serveur démarré — ${serverInfo.ip}:${serverInfo.port}`);
     } catch (e) {
@@ -225,7 +227,11 @@
   onMount(async () => {
     try {
       serverInfo = await getServerStatus();
-      if (serverInfo) startPolling();
+      if (serverInfo) {
+        startPolling();
+        const vp = getVaultPath();
+        if (vp) try { await setServerVaultPath(vp); } catch {}
+      }
     } catch {}
 
     unlistens.push(await listen<any>('player_joined', ({ payload }) => {

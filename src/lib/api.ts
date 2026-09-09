@@ -201,6 +201,10 @@ export async function getServerStatus(): Promise<ServerInfo | null> {
   return invoke('get_server_status');
 }
 
+export async function setServerVaultPath(vaultPath: string): Promise<void> {
+  return invoke('set_server_vault_path', { vaultPath });
+}
+
 export async function applyDamageToPlayer(playerId: string, damage: number): Promise<void> {
   return invoke('apply_damage_to_player', { playerId, damage });
 }

@@ -327,15 +327,21 @@ Pour le Maître du Jeu qui souhaite préparer ses parties en déplacement (trans
 
 ### 📱 Les Atouts du Carnet Nomade :
 1. **🎙️ Dictée Vocale Immédiate** : Touchez l'icône micro pour dicter vos idées de scènes, descriptions de lieux et dialogues de PNJ. Vos paroles sont transcrites en texte Markdown structuré sans fautes.
-2. **⚡ Synchronisation 1-Clic vers le PC** : Cliquez sur le bouton **« Vers PC »**. La note est envoyée via Wi-Fi à votre application Grimoire qui l'enregistre immédiatement dans votre Vault sous `Notes/Mobile/[titre].md` avec une notification sur votre ordinateur !
-3. **💾 100% Autonome & Hors-Ligne** : Toutes vos notes sont persistées dans votre téléphone (`localStorage`). Vous pouvez écrire sans aucune connexion internet ni serveur actif.
-4. **✨ Modèles JDR Intégrés** :
+2. **🔄 Synchronisation Bidirectionnelle PC <-> GSM** :
+   - **Envoi (Mobile -> PC)** : Cliquez sur le bouton **« ⚡ Vers PC »** pour injecter directement votre note dans `Notes/Mobile/[titre].md` avec notification de bureau sur votre ordinateur.
+   - **Réception (PC -> Mobile)** : Ouvrez le tiroir latéral et cliquez sur l'onglet **« 💻 Sur mon PC »** : parcourez tout votre Vault Grimoire en direct, filtrez vos scénarios et téléchargez n'importe quelle note en 1 clic pour la lire et l'éditer sur votre smartphone !
+3. **🎲 Générateur Aléatoire Nomade & Haptique** :
+   - En panne d'inspiration en pleine session ? Cliquez sur **« 🎲 Générateur »** pour tirer instantanément un PNJ complet (avec ascendance, rôle, trait et secret inavouable), un lieu avec ambiance sensorielle, une rumeur de taverne ou un trésor/relique.
+   - Cliquez sur **« 📥 Insérer dans la note »** pour coller le résultat sous le curseur.
+   - Retours haptiques : Chaque jet de dé ou génération déclenche une vibration tactile sur votre téléphone.
+4. **💾 100% Autonome & Hors-Ligne** : Toutes vos notes sont persistées dans votre téléphone (`localStorage`). Vous pouvez écrire sans aucune connexion internet ni serveur actif.
+5. **✨ Modèles JDR Intégrés** :
    - `📜 Scène` : Squelette rapide (Lieu, Objectif, Ambiance, Événement déclencheur).
    - `👤 PNJ` : Fiche PNJ express (Rôle, Caractère, Secret inavouable).
    - `🗝️ Secret MJ` : Encadré masqué avec callout `> [!SECRET]`.
    - `💰 Trésor` : Liste de monnaies, reliques et parchemins.
    - `🎲 1d100` : Jet de dé aléatoire tactile pour trancher un imprévu.
-5. **📲 Export & Partage Universel** : Téléchargement en 1 clic du fichier `.md` sur le smartphone, ou partage natif vers WhatsApp, AirDrop, Google Drive ou e-mail.
+6. **📲 Export & Partage Universel** : Téléchargement en 1 clic du fichier `.md` sur le smartphone, ou partage natif vers WhatsApp, AirDrop, Google Drive ou e-mail.
 
 ### 🚀 Guide Rapide d'Installation PWA sur GSM :
 - **Sur iPhone (Safari)** : Ouvrez la page, touchez l'icône de partage (carré avec flèche) > sélectionnez **« Sur l'écran d'accueil »**.
