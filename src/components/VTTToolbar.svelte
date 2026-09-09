@@ -695,6 +695,11 @@
       title="Mixeur d'Ambiances Sonores">
       🌧️ Ambiance {#if soundscape.activeTracksCount > 0}<span class="sound-badge">{soundscape.activeTracksCount}</span>{/if}
     </button>
+    <button class="mobile-quick-btn"
+      onclick={() => onTogglePlayerMobileManager?.()}
+      title="Ouvrir le Hub Mobile & Carnet MJ (QR Code)">
+      📱 Mobile
+    </button>
     <div class="separator"></div>
     <div class="time-widget" style="display:flex; align-items:center; gap:4px; font-size:11px; background:var(--bg-secondary); padding:2px 8px; border-radius:4px; border:1px solid var(--border);">
       <span style="color:var(--text-secondary)">🕒 {$timeStore ? formatImperialDate($timeStore) : ''}</span>
@@ -1168,6 +1173,25 @@
     color: #38bdf8;
     border-color: #38bdf8;
     box-shadow: 0 0 8px rgba(56,189,248,0.4);
+  }
+  .mobile-quick-btn {
+    background: rgba(229,168,83,0.12);
+    border: 1px solid rgba(229,168,83,0.35);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .mobile-quick-btn:hover {
+    background: rgba(229,168,83,0.25);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(229,168,83,0.35);
   }
   .sound-badge {
     background: #38bdf8;

@@ -559,6 +559,9 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button onclick={() => playerMobileManagerRef?.toggle()} class="footer-btn vtt-btn" style="background: rgba(229,168,83,0.15); border: 1px solid var(--accent); color: var(--accent); font-weight: 700;" title="Ouvrir le Hub Mobile & Carnet MJ Nomade (QR Code)">
+          📱 Hub Mobile & Carnet MJ
+        </button>
         <button onclick={handleOpenMapEditor} class="footer-btn vtt-btn" title="Ouvrir l'éditeur de cartes dédié">
           🗺️ Éditeur de Cartes
         </button>
