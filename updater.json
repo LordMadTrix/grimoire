@@ -1,6 +1,6 @@
 {
-  "version": "0.6.4",
-  "notes": "Mise à niveau majeure Carnet MJ Mobile : Synchronisation bidirectionnelle PC/GSM (explorateur de notes Vault), transfert 1-clic groupé, générateur aléatoire nomade offline (PNJ, lieux, rumeurs, trésors), retours haptiques et QR Codes iPhone/Android.",
+  "version": "0.6.5",
+  "notes": "Bibliothèque Céleste intégrée dans l'Éditeur de Cartes Fantasy (Cartes de bataille, Tampons HD, Textures de sol, Musiques & SFX avec lecteur audio) & Auto-découverte locale du PC sur Wi-Fi pour le Carnet Mobile MJ.",
   "pub_date": "2026-09-09T04:45:00Z",
   "platforms": {
     "windows-x86_64": {
