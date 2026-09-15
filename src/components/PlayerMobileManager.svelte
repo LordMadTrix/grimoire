@@ -306,18 +306,23 @@
       const title = payload?.title || 'Note Sans Titre';
       const content = payload?.content || '';
       const folder = payload?.folder || 'Notes/Mobile';
+      const alreadySaved = !!payload?.already_saved;
+      const savedPath = typeof payload?.path === 'string' ? payload.path : '';
       addLog('MJ Mobile', `📝 Note reçue : "${title}"`);
 
       const vp = getVaultPath();
       if (!vp) return;
 
       const slug = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_');
-      const filename = `${folder}/${slug}.md`;
+      const safeSlug = slug.replace(/^_+|_+$/g, '') || 'note_mobile';
+      const filename = savedPath || `${folder}/${safeSlug}.md`;
       lastNote = { title, filename };
 
       try {
-        await createDirectory(vp, folder).catch(() => {});
-        await writeFile(vp, filename, content);
+        if (!alreadySaved) {
+          await createDirectory(vp, folder).catch(() => {});
+          await writeFile(vp, filename, content);
+        }
         const tree = await openVault(vp);
         setVaultTree(tree);
       } catch (err) {

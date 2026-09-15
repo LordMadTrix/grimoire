@@ -194,19 +194,36 @@ pub fn search(db: &Connection, query: &str, limit: usize) -> Result<Vec<SearchRe
 
 /// Récupère les backlinks (liens entrants) pour un fichier
 pub fn get_backlinks(db: &Connection, target_path: &str) -> Result<Vec<BacklinkResult>, rusqlite::Error> {
+    let normalized = target_path.replace('\\', "/");
+    let target_no_ext = normalized.trim_end_matches(".md").to_string();
+    let target_with_ext = format!("{target_no_ext}.md");
+    let base_no_ext = Path::new(&target_no_ext)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let base_with_ext = format!("{base_no_ext}.md");
+
     let mut stmt = db.prepare(
         "SELECT l.source_path, e.title, l.context
          FROM links l
          LEFT JOIN entities e ON e.path = l.source_path
-         WHERE l.target_path LIKE ?1 OR l.target_path LIKE ?2"
+         WHERE l.target_path = ?1
+            OR l.target_path = ?2
+            OR l.target_path = ?3
+            OR l.target_path = ?4
+            OR l.target_path = ?5
+            OR l.target_path = ?6"
     )?;
 
-    // Chercher avec et sans extension .md
-    let target_no_ext = target_path.trim_end_matches(".md");
     let results = stmt.query_map(
         params![
-            format!("%{}", target_path),
-            format!("%{}", target_no_ext)
+            normalized,
+            target_no_ext,
+            target_with_ext,
+            base_no_ext,
+            base_with_ext,
+            target_path
         ],
         |row| {
             Ok(BacklinkResult {

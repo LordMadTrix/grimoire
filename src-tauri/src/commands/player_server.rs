@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, net::SocketAddr, sync::OnceLock};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{broadcast, Mutex};
+use tokio::time::{timeout, Duration};
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
@@ -40,6 +41,21 @@ pub struct SavedCharacter {
 }
 
 static SERVER: OnceLock<std::sync::Arc<ServerInner>> = OnceLock::new();
+const JOIN_HANDSHAKE_TIMEOUT_SECS: u64 = 20;
+
+fn normalize_player_name(raw: &str) -> String {
+    let cleaned = raw
+        .trim()
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(32)
+        .collect::<String>();
+    if cleaned.is_empty() {
+        "Joueur".to_string()
+    } else {
+        cleaned
+    }
+}
 
 fn get_server() -> &'static std::sync::Arc<ServerInner> {
     SERVER.get_or_init(|| {
@@ -462,6 +478,7 @@ async fn handle_mj_note_post(
     let folder = payload.get("folder").and_then(|v| v.as_str()).unwrap_or("Notes/Mobile");
 
     let vp_opt = state.current_vault_path.lock().await.clone();
+    let mut saved_rel_path: Option<String> = None;
     if let Some(vault_path) = vp_opt {
         let slug = title.to_lowercase()
             .chars()
@@ -470,14 +487,29 @@ async fn handle_mj_note_post(
         let rel_folder = crate::commands::addons::sanitize_relative_path(folder);
         let target_dir = std::path::Path::new(&vault_path).join(&rel_folder);
         let _ = std::fs::create_dir_all(&target_dir);
-        let filename = format!("{}.md", slug.trim_matches('_'));
+        let cleaned_slug = slug.trim_matches('_');
+        let safe_name = if cleaned_slug.is_empty() { "note_mobile" } else { cleaned_slug };
+        let filename = format!("{safe_name}.md");
         let target_file = target_dir.join(&filename);
         let _ = std::fs::write(&target_file, content);
+        let rel_folder_str = rel_folder.to_string_lossy().replace('\\', "/");
+        saved_rel_path = Some(format!("{rel_folder_str}/{filename}"));
     }
 
     notify_os(&state, "📝 Note MJ reçue", title).await;
-    emit_to_gm(&state, "mj_note_received", payload).await;
-    axum::Json(serde_json::json!({ "success": true, "message": "Note enregistrée sur le PC" }))
+    let forwarded_payload = serde_json::json!({
+        "title": title,
+        "content": content,
+        "folder": folder,
+        "already_saved": saved_rel_path.is_some(),
+        "path": saved_rel_path,
+    });
+    emit_to_gm(&state, "mj_note_received", forwarded_payload).await;
+    axum::Json(serde_json::json!({
+        "success": true,
+        "message": "Note enregistrée sur le PC",
+        "path": saved_rel_path
+    }))
 }
 
 async fn handle_mj_vault_notes(
@@ -582,20 +614,24 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     let mut rx = state.broadcast_tx.subscribe();
     let (unicast_sender, mut unicast_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
-    // Wait for join message
-    let (name, password) = if let Some(Ok(Message::Text(raw))) = socket.recv().await {
+    // Wait for join message with timeout
+    let (name, password) = if let Ok(Some(Ok(Message::Text(raw)))) =
+        timeout(Duration::from_secs(JOIN_HANDSHAKE_TIMEOUT_SECS), socket.recv()).await
+    {
         if let Ok(env) = serde_json::from_str::<WsEnvelope>(&raw) {
             if env.event == "join" {
-                let n = env.data.get("name")
+                let n = normalize_player_name(
+                    env.data.get("name")
                     .and_then(|v| v.as_str())
                     .unwrap_or("Joueur")
-                    .to_string();
+                );
                 let p = env.data.get("password")
                     .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty());
                 (n, p)
-            } else { ("Joueur".to_string(), None) }
-        } else { ("Joueur".to_string(), None) }
+            } else { return; }
+        } else { return; }
     } else { return; };
 
     // Vérification du mot de passe si un compte existe

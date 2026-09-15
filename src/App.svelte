@@ -148,9 +148,6 @@
     vttStore.activeMapId;
     vttStore.drawPaths;
 
-    // Sync combat state to player view automatically
-    syncCombatantsToPlayerView();
-
     const vp = getVaultPath();
     if (!vp) return;
     if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
@@ -158,6 +155,15 @@
       saveGmSession(vp);
       sessionSaveTimer = null;
     }, 2000);
+  });
+
+  // Sync combat state to player view uniquement quand l'état combat change
+  $effect(() => {
+    vttStore.combatants;
+    vttStore.combatActive;
+    vttStore.currentTurn;
+    vttStore.combatRound;
+    syncCombatantsToPlayerView();
   });
 
   const _unlistenApp: (() => void)[] = [];
@@ -298,17 +304,32 @@
   });
 
   async function loadVault(vaultPath: string) {
+    const previousVaultPath = getVaultPath();
+    const previousTree = getVaultTree();
+    const previousFile = getActiveFile();
+    const previousContent = getActiveContent();
+    const previousDirty = getIsDirty();
+
     setVaultPath(vaultPath);
-    const tree = await openVault(vaultPath);
-    setVaultTree(tree);
-    await reindex(vaultPath);
-    localStorage.setItem('last_vault_path', vaultPath);
-    await emitToPlayerView('sync_vault_path', { path: vaultPath });
-    await loadGmSession(vaultPath);
-    // Charger la config du système de jeu (addon)
-    await loadGameConfig(vaultPath);
-    // Pousser le chemin du vault vers le serveur mobile (carnet MJ)
-    setServerVaultPath(vaultPath).catch(() => {});
+    try {
+      const tree = await openVault(vaultPath);
+      setVaultTree(tree);
+      await reindex(vaultPath);
+      localStorage.setItem('last_vault_path', vaultPath);
+      await emitToPlayerView('sync_vault_path', { path: vaultPath });
+      await loadGmSession(vaultPath);
+      // Charger la config du système de jeu (addon)
+      await loadGameConfig(vaultPath);
+      // Pousser le chemin du vault vers le serveur mobile (carnet MJ)
+      setServerVaultPath(vaultPath).catch(() => {});
+    } catch (err) {
+      setVaultPath(previousVaultPath);
+      setVaultTree(previousTree);
+      setActiveFile(previousFile);
+      setActiveContent(previousContent);
+      setIsDirty(previousDirty);
+      throw err;
+    }
   }
 
   async function handleOpenVault() {

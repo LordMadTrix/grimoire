@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::Emitter;
+
+const OLLAMA_HOST: &str = "http://localhost:11435";
 
 #[derive(Serialize, Deserialize)]
 pub struct OllamaRequest {
@@ -35,20 +37,80 @@ pub struct OllamaStatus {
     pub models: Vec<String>,
 }
 
-#[tauri::command]
-pub async fn check_ollama_status() -> Result<OllamaStatus, String> {
+fn local_ollama_paths() -> (PathBuf, PathBuf, PathBuf) {
     let exe_path = std::env::current_exe().unwrap_or_default();
     let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
     let bin_name = if cfg!(windows) { "ollama.exe" } else { "ollama" };
     let local_bin = base_dir.join("bin").join(bin_name);
+    let models_dir = base_dir.join("models");
+    let config_dir = base_dir.join("config");
+    (local_bin, models_dir, config_dir)
+}
+
+async fn wait_server_ready(client: &reqwest::Client, attempts: usize, delay_ms: u64) -> bool {
+    for _ in 0..attempts {
+        if let Ok(response) = client.get(format!("{}/api/tags", OLLAMA_HOST)).send().await {
+            if response.status().is_success() {
+                return true;
+            }
+        }
+        tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+    }
+    false
+}
+
+async fn is_ollama_ready(client: &reqwest::Client) -> bool {
+    if let Ok(response) = client.get(format!("{}/api/tags", OLLAMA_HOST)).send().await {
+        if response.status().is_success() {
+            return true;
+        }
+    }
+    false
+}
+
+async fn ensure_ollama_running(client: &reqwest::Client) -> Result<(), String> {
+    if is_ollama_ready(client).await {
+        return Ok(());
+    }
+
+    let (local_bin, models_dir, config_dir) = local_ollama_paths();
+    if !local_bin.exists() {
+        return Err("Binaire Ollama introuvable. Veuillez le télécharger en premier.".to_string());
+    }
+
+    let _ = std::fs::create_dir_all(&models_dir);
+    let _ = std::fs::create_dir_all(&config_dir);
+
+    let mut child = std::process::Command::new(&local_bin);
+    child.arg("serve");
+    child.env("OLLAMA_MODELS", &models_dir);
+    child.env("OLLAMA_HOST", "127.0.0.1:11435");
+    if cfg!(windows) {
+        child.env("USERPROFILE", &config_dir);
+    } else {
+        child.env("HOME", &config_dir);
+    }
+    child
+        .spawn()
+        .map_err(|e| format!("Impossible de démarrer le binaire Ollama local: {e}"))?;
+
+    if wait_server_ready(client, 12, 500).await {
+        Ok(())
+    } else {
+        Err("Ollama n'a pas démarré à temps sur le port 11435.".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn check_ollama_status() -> Result<OllamaStatus, String> {
+    let (local_bin, _, _) = local_ollama_paths();
     
     let binary_exists = local_bin.exists();
     
     let client = reqwest::Client::new();
-    let host = "http://localhost:11435";
     
-    let (server_running, models) = match client.get(format!("{}/api/tags", host)).send().await {
-        Ok(res) => {
+    let (server_running, models) = match client.get(format!("{}/api/tags", OLLAMA_HOST)).send().await {
+        Ok(res) if res.status().is_success() => {
             if let Ok(parsed) = res.json::<OllamaTagsResponse>().await {
                 let mut names = Vec::new();
                 for m in parsed.models {
@@ -59,7 +121,7 @@ pub async fn check_ollama_status() -> Result<OllamaStatus, String> {
                 (true, Vec::new())
             }
         }
-        Err(_) => (false, Vec::new()),
+        _ => (false, Vec::new()),
     };
     
     Ok(OllamaStatus {
@@ -148,38 +210,9 @@ fn extract_zip(reader: impl io::Read + io::Seek, target_dir: &Path) -> Result<()
 #[tauri::command]
 pub async fn pull_ollama_model(app_handle: tauri::AppHandle, model_name: String) -> Result<(), String> {
     let client = reqwest::Client::new();
-    let host = "http://localhost:11435";
-    
-    // Start it if not running
-    if client.get(format!("{}/api/tags", host)).send().await.is_err() {
-        let exe_path = std::env::current_exe().unwrap_or_default();
-        let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
-        let bin_name = if cfg!(windows) { "ollama.exe" } else { "ollama" };
-        let local_bin = base_dir.join("bin").join(bin_name);
-        
-        if local_bin.exists() {
-            let models_dir = base_dir.join("models");
-            let config_dir = base_dir.join("config");
-            let _ = std::fs::create_dir_all(&models_dir);
-            let _ = std::fs::create_dir_all(&config_dir);
+    ensure_ollama_running(&client).await?;
 
-            let mut child = std::process::Command::new(&local_bin);
-            child.arg("serve");
-            child.env("OLLAMA_MODELS", &models_dir);
-            child.env("OLLAMA_HOST", "127.0.0.1:11435");
-            if cfg!(windows) {
-                child.env("USERPROFILE", &config_dir);
-            } else {
-                child.env("HOME", &config_dir);
-            }
-            let _ = child.spawn();
-            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-        } else {
-            return Err("Binaire Ollama introuvable. Veuillez le télécharger en premier.".to_string());
-        }
-    }
-
-    let url = format!("{}/api/pull", host);
+    let url = format!("{}/api/pull", OLLAMA_HOST);
     let payload = serde_json::json!({
         "name": model_name,
         "stream": true
@@ -191,7 +224,19 @@ pub async fn pull_ollama_model(app_handle: tauri::AppHandle, model_name: String)
         .await
         .map_err(|e| format!("Impossible de lancer le téléchargement du modèle: {}", e))?;
 
+    if !res.status().is_success() {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        let suffix = if body.trim().is_empty() {
+            String::new()
+        } else {
+            format!(" - {}", body)
+        };
+        return Err(format!("Ollama a refusé le téléchargement du modèle ({}{})", status, suffix));
+    }
+
     let mut buffer = Vec::new();
+    let mut pull_confirmed = false;
     while let Some(chunk) = res.chunk().await.map_err(|e| format!("Erreur de téléchargement: {}", e))? {
         buffer.extend_from_slice(&chunk);
         
@@ -206,56 +251,33 @@ pub async fn pull_ollama_model(app_handle: tauri::AppHandle, model_name: String)
                         let is_success = val.get("status").and_then(|s| s.as_str()) == Some("success");
                         let _ = app_handle.emit("ollama-pull-progress", &val);
                         if is_success {
-                            return Ok(());
+                            pull_confirmed = true;
+                            break;
                         }
                     }
                 }
             }
         }
+        if pull_confirmed {
+            break;
+        }
     }
-    
-    Ok(())
+
+    if pull_confirmed {
+        Ok(())
+    } else {
+        Err("Téléchargement du modèle interrompu avant confirmation de succès.".to_string())
+    }
 }
 
 #[tauri::command]
 pub async fn ask_ollama(_app_handle: tauri::AppHandle, prompt: String, model: String, system_prompt: String) -> Result<String, String> {
-    let host = "http://localhost:11435";
-    
     let client = reqwest::Client::new();
-    
-    // Check if running
-    if client.get(format!("{}/api/tags", host)).send().await.is_err() {
-        // Not running, try to start local binary
-        let exe_path = std::env::current_exe().unwrap_or_default();
-        let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
-        let bin_name = if cfg!(windows) { "ollama.exe" } else { "ollama" };
-        let local_bin = base_dir.join("bin").join(bin_name);
-        
-        if local_bin.exists() {
-            let models_dir = base_dir.join("models");
-            let config_dir = base_dir.join("config");
-            let _ = std::fs::create_dir_all(&models_dir);
-            let _ = std::fs::create_dir_all(&config_dir);
-
-            let mut child = std::process::Command::new(&local_bin);
-            child.arg("serve");
-            
-            child.env("OLLAMA_MODELS", &models_dir);
-            child.env("OLLAMA_HOST", "127.0.0.1:11435");
-            if cfg!(windows) {
-                child.env("USERPROFILE", &config_dir);
-            } else {
-                child.env("HOME", &config_dir);
-            }
-
-            let _ = child.spawn();
-            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-        }
-    }
+    ensure_ollama_running(&client).await?;
 
     // Trouver le meilleur modèle disponible si le modèle demandé n'existe pas
     let mut target_model = model;
-    if let Ok(tags_res) = client.get(format!("{}/api/tags", host)).send().await {
+    if let Ok(tags_res) = client.get(format!("{}/api/tags", OLLAMA_HOST)).send().await {
         if let Ok(parsed_tags) = tags_res.json::<OllamaTagsResponse>().await {
             let model_exists = parsed_tags.models.iter().any(|m| m.name == target_model || m.name.starts_with(&target_model));
             if !model_exists && !parsed_tags.models.is_empty() {
@@ -271,9 +293,8 @@ pub async fn ask_ollama(_app_handle: tauri::AppHandle, prompt: String, model: St
         stream: false,
     };
 
-    let client = reqwest::Client::new();
     let res = client
-        .post(format!("{}/api/generate", host))
+        .post(format!("{}/api/generate", OLLAMA_HOST))
         .json(&req)
         .send()
         .await
@@ -297,40 +318,24 @@ pub async fn ask_ollama(_app_handle: tauri::AppHandle, prompt: String, model: St
 #[tauri::command]
 pub async fn get_ollama_models() -> Result<Vec<String>, String> {
     let client = reqwest::Client::new();
-    let host = "http://localhost:11435";
-    
-    // Start it if not running
-    if client.get(format!("{}/api/tags", host)).send().await.is_err() {
-        let exe_path = std::env::current_exe().unwrap_or_default();
-        let base_dir = exe_path.parent().unwrap_or(&std::path::PathBuf::new()).to_path_buf();
-        let bin_name = if cfg!(windows) { "ollama.exe" } else { "ollama" };
-        let local_bin = base_dir.join("bin").join(bin_name);
-        
-        if local_bin.exists() {
-            let models_dir = base_dir.join("models");
-            let config_dir = base_dir.join("config");
-            let _ = std::fs::create_dir_all(&models_dir);
-            let _ = std::fs::create_dir_all(&config_dir);
-
-            let mut child = std::process::Command::new(&local_bin);
-            child.arg("serve");
-            child.env("OLLAMA_MODELS", &models_dir);
-            child.env("OLLAMA_HOST", "127.0.0.1:11435");
-            if cfg!(windows) {
-                child.env("USERPROFILE", &config_dir);
-            } else {
-                child.env("HOME", &config_dir);
-            }
-            let _ = child.spawn();
-            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-        }
-    }
+    ensure_ollama_running(&client).await?;
 
     let res = client
-        .get(format!("{}/api/tags", host))
+        .get(format!("{}/api/tags", OLLAMA_HOST))
         .send()
         .await
         .map_err(|e| format!("Impossible de joindre Ollama : {}", e))?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        let suffix = if body.trim().is_empty() {
+            String::new()
+        } else {
+            format!(" - {}", body)
+        };
+        return Err(format!("Ollama a renvoyé une erreur HTTP ({}{})", status, suffix));
+    }
 
     let parsed: OllamaTagsResponse = res
         .json()
