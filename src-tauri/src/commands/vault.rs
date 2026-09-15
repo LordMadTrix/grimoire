@@ -59,7 +59,23 @@ use base64::{Engine as _, engine::general_purpose};
 /// Lit un fichier binaire et le retourne en base64
 #[tauri::command]
 pub fn read_file_base64(path: String) -> Result<String, String> {
-    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+    let p = Path::new(&path);
+    if !p.exists() {
+        return Err(format!("File not found: {}", path));
+    }
+    if !p.is_file() {
+        return Err(format!("Path is not a file: {}", path));
+    }
+    let metadata = std::fs::metadata(p).map_err(|e| e.to_string())?;
+    const MAX_BASE64_READ_BYTES: u64 = 100 * 1024 * 1024; // 100 MiB
+    if metadata.len() > MAX_BASE64_READ_BYTES {
+        return Err(format!(
+            "File too large for base64 read ({} bytes, max {} bytes)",
+            metadata.len(),
+            MAX_BASE64_READ_BYTES
+        ));
+    }
+    let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
     Ok(general_purpose::STANDARD.encode(bytes))
 }
 
@@ -203,5 +219,10 @@ fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
 /// Ouvre une URL dans le navigateur par défaut du système (cross-platform)
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
+    let parsed = url::Url::parse(&url).map_err(|e| format!("Invalid URL: {e}"))?;
+    match parsed.scheme() {
+        "http" | "https" => {}
+        _ => return Err("Only http/https URLs are allowed".to_string()),
+    }
     opener::open_browser(&url).map_err(|e| e.to_string())
 }
