@@ -470,7 +470,9 @@ async fn handle_mj_note_post(
         let rel_folder = crate::commands::addons::sanitize_relative_path(folder);
         let target_dir = std::path::Path::new(&vault_path).join(&rel_folder);
         let _ = std::fs::create_dir_all(&target_dir);
-        let filename = format!("{}.md", slug.trim_matches('_'));
+        let cleaned_slug = slug.trim_matches('_');
+        let safe_name = if cleaned_slug.is_empty() { "note_mobile" } else { cleaned_slug };
+        let filename = format!("{safe_name}.md");
         let target_file = target_dir.join(&filename);
         let _ = std::fs::write(&target_file, content);
     }

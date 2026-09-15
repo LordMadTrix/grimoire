@@ -148,9 +148,6 @@
     vttStore.activeMapId;
     vttStore.drawPaths;
 
-    // Sync combat state to player view automatically
-    syncCombatantsToPlayerView();
-
     const vp = getVaultPath();
     if (!vp) return;
     if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
@@ -158,6 +155,15 @@
       saveGmSession(vp);
       sessionSaveTimer = null;
     }, 2000);
+  });
+
+  // Sync combat state to player view uniquement quand l'état combat change
+  $effect(() => {
+    vttStore.combatants;
+    vttStore.combatActive;
+    vttStore.currentTurn;
+    vttStore.combatRound;
+    syncCombatantsToPlayerView();
   });
 
   const _unlistenApp: (() => void)[] = [];

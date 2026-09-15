@@ -89,7 +89,9 @@ async fn ensure_ollama_running(client: &reqwest::Client) -> Result<(), String> {
     } else {
         child.env("HOME", &config_dir);
     }
-    let _ = child.spawn();
+    child
+        .spawn()
+        .map_err(|e| format!("Impossible de démarrer le binaire Ollama local: {e}"))?;
 
     if wait_server_ready(client, 12, 500).await {
         Ok(())
