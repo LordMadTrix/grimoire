@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::path::Path;
-
-use crate::commands::addons::sanitize_relative_path;
+use std::path::{Component, Path, PathBuf};
 
 /// Entrée dans l'arbre de fichiers du vault
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -30,9 +28,12 @@ pub fn open_vault(path: String) -> Result<Vec<VaultEntry>, String> {
 
 /// Liste le contenu d'un répertoire du vault
 #[tauri::command]
-pub fn list_directory(vault_path: String, relative_path: String) -> Result<Vec<VaultEntry>, String> {
-    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
-    if !full_path.exists() || !full_path.is_dir() {
+pub fn list_directory(
+    vault_path: String,
+    relative_path: String,
+) -> Result<Vec<VaultEntry>, String> {
+    let full_path = resolve_vault_path(&vault_path, &relative_path, true)?;
+    if !full_path.is_dir() {
         return Err(format!("Directory not found: {}", relative_path));
     }
     let base = Path::new(&vault_path);
@@ -42,19 +43,12 @@ pub fn list_directory(vault_path: String, relative_path: String) -> Result<Vec<V
 /// Lit le contenu d'un fichier du vault
 #[tauri::command]
 pub fn read_file(vault_path: String, relative_path: String) -> Result<String, String> {
-    let full_path = Path::new(&vault_path).join(&relative_path);
-
-    // Sécurité : vérifier que le chemin est bien dans le vault
-    let canonical = full_path.canonicalize().map_err(|e| e.to_string())?;
-    let vault_canonical = Path::new(&vault_path).canonicalize().map_err(|e| e.to_string())?;
-    if !canonical.starts_with(&vault_canonical) {
-        return Err("Path traversal detected".to_string());
-    }
+    let full_path = resolve_vault_path(&vault_path, &relative_path, true)?;
 
     std::fs::read_to_string(&full_path).map_err(|e| e.to_string())
 }
 
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 
 /// Lit un fichier binaire et le retourne en base64
 #[tauri::command]
@@ -65,8 +59,12 @@ pub fn read_file_base64(path: String) -> Result<String, String> {
 
 /// Écrit des données base64 (ex: image PNG générée par le Map Editor) dans un fichier du vault
 #[tauri::command]
-pub fn write_file_base64(vault_path: String, relative_path: String, base64_content: String) -> Result<(), String> {
-    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
+pub fn write_file_base64(
+    vault_path: String,
+    relative_path: String,
+    base64_content: String,
+) -> Result<(), String> {
+    let full_path = resolve_vault_path(&vault_path, &relative_path, false)?;
 
     let clean_b64 = if let Some(idx) = base64_content.find(',') {
         &base64_content[idx + 1..]
@@ -74,7 +72,9 @@ pub fn write_file_base64(vault_path: String, relative_path: String, base64_conte
         &base64_content
     };
 
-    let bytes = general_purpose::STANDARD.decode(clean_b64).map_err(|e| format!("Invalid base64: {}", e))?;
+    let bytes = general_purpose::STANDARD
+        .decode(clean_b64)
+        .map_err(|e| format!("Invalid base64: {}", e))?;
 
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -85,13 +85,12 @@ pub fn write_file_base64(vault_path: String, relative_path: String, base64_conte
 
 /// Écrit du contenu dans un fichier du vault
 #[tauri::command]
-pub fn write_file(vault_path: String, relative_path: String, content: String) -> Result<(), String> {
-    // Sécurité : nettoyer le chemin AVANT de le résoudre. canonicalize() échoue
-    // systématiquement quand le fichier n'existe pas encore (cas de toute création
-    // de nouveau fichier), donc un check basé sur canonicalize() après coup est
-    // silencieusement contourné pour ce cas — sanitize_relative_path retire toute
-    // composante '..' avant même de construire le chemin.
-    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
+pub fn write_file(
+    vault_path: String,
+    relative_path: String,
+    content: String,
+) -> Result<(), String> {
+    let full_path = resolve_vault_path(&vault_path, &relative_path, false)?;
 
     // Créer les dossiers parents si nécessaire
     if let Some(parent) = full_path.parent() {
@@ -104,20 +103,14 @@ pub fn write_file(vault_path: String, relative_path: String, content: String) ->
 /// Crée un nouveau dossier dans le vault
 #[tauri::command]
 pub fn create_directory(vault_path: String, relative_path: String) -> Result<(), String> {
-    let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
+    let full_path = resolve_vault_path(&vault_path, &relative_path, false)?;
     std::fs::create_dir_all(&full_path).map_err(|e| e.to_string())
 }
 
 /// Supprime un fichier du vault
 #[tauri::command]
 pub fn delete_file(vault_path: String, relative_path: String) -> Result<(), String> {
-    let full_path = Path::new(&vault_path).join(&relative_path);
-
-    let vault_canonical = Path::new(&vault_path).canonicalize().map_err(|e| e.to_string())?;
-    let canonical = full_path.canonicalize().map_err(|e| e.to_string())?;
-    if !canonical.starts_with(&vault_canonical) {
-        return Err("Path traversal detected".to_string());
-    }
+    let full_path = resolve_vault_path(&vault_path, &relative_path, true)?;
 
     if full_path.is_dir() {
         std::fs::remove_dir_all(&full_path).map_err(|e| e.to_string())
@@ -129,8 +122,8 @@ pub fn delete_file(vault_path: String, relative_path: String) -> Result<(), Stri
 /// Renomme un fichier ou dossier
 #[tauri::command]
 pub fn rename_entry(vault_path: String, old_path: String, new_path: String) -> Result<(), String> {
-    let old_full = Path::new(&vault_path).join(sanitize_relative_path(&old_path));
-    let new_full = Path::new(&vault_path).join(sanitize_relative_path(&new_path));
+    let old_full = resolve_vault_path(&vault_path, &old_path, true)?;
+    let new_full = resolve_vault_path(&vault_path, &new_path, false)?;
 
     // Créer les dossiers parents du nouveau chemin
     if let Some(parent) = new_full.parent() {
@@ -141,6 +134,53 @@ pub fn rename_entry(vault_path: String, old_path: String, new_path: String) -> R
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
+
+fn resolve_vault_path(
+    vault_path: &str,
+    relative_path: &str,
+    require_existing: bool,
+) -> Result<PathBuf, String> {
+    let vault = Path::new(vault_path)
+        .canonicalize()
+        .map_err(|e| format!("Invalid vault path: {e}"))?;
+    if !vault.is_dir() {
+        return Err("Vault path is not a directory".to_string());
+    }
+
+    let relative = Path::new(relative_path);
+    if relative.is_absolute()
+        || relative.components().any(|component| {
+            matches!(
+                component,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        })
+    {
+        return Err("Path must stay inside the vault".to_string());
+    }
+
+    let candidate = vault.join(relative);
+    if require_existing || candidate.exists() {
+        let canonical = candidate.canonicalize().map_err(|e| e.to_string())?;
+        if !canonical.starts_with(&vault) {
+            return Err("Path traversal detected".to_string());
+        }
+        return Ok(canonical);
+    }
+
+    let parent = candidate
+        .parent()
+        .ok_or_else(|| "Invalid file name".to_string())?;
+    let canonical_parent = parent.canonicalize().map_err(|e| e.to_string())?;
+    if !canonical_parent.starts_with(&vault) {
+        return Err("Path traversal detected".to_string());
+    }
+    Ok(canonical_parent.join(
+        candidate
+            .file_name()
+            .ok_or_else(|| "Invalid file name".to_string())?,
+    ))
+}
 
 fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
     let mut entries = Vec::new();
@@ -157,7 +197,8 @@ fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
             continue;
         }
 
-        let relative = path.strip_prefix(base)
+        let relative = path
+            .strip_prefix(base)
             .unwrap_or(&path)
             .to_string_lossy()
             .replace('\\', "/");
@@ -173,8 +214,7 @@ fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
                 size: None,
             });
         } else {
-            let ext = path.extension()
-                .map(|e| e.to_string_lossy().to_string());
+            let ext = path.extension().map(|e| e.to_string_lossy().to_string());
             let size = std::fs::metadata(&path).ok().map(|m| m.len());
 
             entries.push(VaultEntry {
@@ -189,12 +229,10 @@ fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
     }
 
     // Dossiers d'abord, puis fichiers, triés par nom
-    entries.sort_by(|a, b| {
-        match (a.is_dir, b.is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-        }
+    entries.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
     });
 
     Ok(entries)
@@ -204,4 +242,46 @@ fn scan_directory(dir: &Path, base: &Path) -> Result<Vec<VaultEntry>, String> {
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
     opener::open_browser(&url).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_vault_path;
+    use std::fs;
+
+    fn test_root() -> std::path::PathBuf {
+        let root = std::env::temp_dir().join(format!(
+            "grimoire-vault-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("notes")).unwrap();
+        root
+    }
+
+    #[test]
+    fn rejects_parent_and_absolute_paths() {
+        let root = test_root();
+
+        assert!(resolve_vault_path(root.to_str().unwrap(), "../outside.md", false).is_err());
+        assert!(resolve_vault_path(root.to_str().unwrap(), root.to_str().unwrap(), false).is_err());
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn allows_new_files_inside_vault() {
+        let root = test_root();
+        let resolved = resolve_vault_path(root.to_str().unwrap(), "notes/new.md", false).unwrap();
+
+        assert_eq!(
+            resolved,
+            root.canonicalize().unwrap().join("notes").join("new.md")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
 }
