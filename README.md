@@ -163,6 +163,8 @@ npm install
 npm run tauri dev
 ```
 
+> Prérequis : **Node.js 22.13.0+**.
+
 ### 🔐 Mise à jour sécurité (Septembre 2026)
 - Audit npm appliqué sur l'application principale et `map-editor` (`npm audit fix`) : **0 vulnérabilité détectée**.
 - Dépendances frontend clés remises à jour dans les plages compatibles (`Svelte`, `Vite`, `@tauri-apps/*`).
