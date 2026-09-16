@@ -170,7 +170,7 @@ npm run tauri dev
 - Dépendances frontend clés remises à jour dans les plages compatibles (`Svelte`, `Vite`, `@tauri-apps/*`).
 - Dépendances Rust/Tauri revérifiées via `cargo audit` après mise à jour du lockfile (`src-tauri/Cargo.lock`) :
   - vulnérabilités bloquantes corrigées ;
-  - avertissements restants liés à des crates transitive tierces marquées *unmaintained/unsound* dans l'écosystème GTK/Tauri.
+  - avertissements restants liés à des crates transitives tierces marquées *unmaintained/unsound* dans l'écosystème GTK/Tauri.
 
 ---
 
