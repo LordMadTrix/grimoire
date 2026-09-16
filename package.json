@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.6.5",
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "vite-dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"vite map-editor --port 5174 --strictPort\"",
     "dev": "npm run tauri dev",
