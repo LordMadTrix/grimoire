@@ -5,6 +5,12 @@
     getAiModel, setAiModel,
     getAiSystemPrompt, setAiSystemPrompt
   } from '$lib/stores/settings.svelte';
+  import {
+    getSpellcheckEnabled, setSpellcheckEnabled,
+    getSpellcheckLang, setSpellcheckLang,
+    getCustomWords, addCustomWord, removeCustomWord
+  } from '$lib/spellcheck/spellcheckStore.svelte';
+  import type { SpellcheckLang } from '$lib/spellcheck/spellcheckStore.svelte';
 
   let { onClose = () => {}, onTriggerOnboarding = () => {} }: { onClose: () => void, onTriggerOnboarding: () => void } = $props();
 
@@ -14,6 +20,25 @@
 
   let currentModel = $state(getAiModel());
   let currentPrompt = $state(getAiSystemPrompt());
+
+  let currentSpellEnabled = $state(getSpellcheckEnabled());
+  let currentSpellLang = $state<SpellcheckLang>(getSpellcheckLang());
+  let customWordsList = $state<string[]>(getCustomWords());
+  let newCustomWord = $state('');
+
+  function handleAddWord() {
+    const trimmed = newCustomWord.trim();
+    if (trimmed) {
+      addCustomWord(trimmed);
+      customWordsList = getCustomWords();
+      newCustomWord = '';
+    }
+  }
+
+  function handleRemoveWord(w: string) {
+    removeCustomWord(w);
+    customWordsList = getCustomWords();
+  }
 
   onMount(async () => {
     try {
@@ -32,6 +57,8 @@
   function saveAndClose() {
     setAiModel(currentModel);
     setAiSystemPrompt(currentPrompt);
+    setSpellcheckEnabled(currentSpellEnabled);
+    setSpellcheckLang(currentSpellLang);
     onClose();
   }
 </script>
@@ -80,6 +107,57 @@
         ></textarea>
         <small>Donnez la tonalité de l'IA. Elle l'utilisera comme contexte avant chaque génération.</small>
       </div>
+    </section>
+
+    <section class="settings-section">
+      <h3>🔤 Correcteur d'orthographe</h3>
+
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label" for="spell-enable-check">
+          <input type="checkbox" id="spell-enable-check" bind:checked={currentSpellEnabled} />
+          <span>Activer le correcteur dans l'éditeur</span>
+        </label>
+        <small>Détecte les fautes et propose des suggestions sans ralentir la frappe.</small>
+      </div>
+
+      {#if currentSpellEnabled}
+        <div class="form-group">
+          <label for="spell-lang">Langue du dictionnaire</label>
+          <select id="spell-lang" bind:value={currentSpellLang}>
+            <option value="fr">🇫🇷 Français (Grammalecte)</option>
+            <option value="en">🇬🇧 English</option>
+          </select>
+          <small>Dictionnaire utilisé pour vérifier les mots et suggérer des corrections.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="new-custom-word">Dictionnaire personnalisé & Termes JdR ({customWordsList.length} mot{customWordsList.length !== 1 ? 's' : ''})</label>
+          <div class="custom-word-row">
+            <input
+              type="text"
+              id="new-custom-word"
+              bind:value={newCustomWord}
+              placeholder="ex: Gobelin, Tarrasque, Phandaline..."
+              onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddWord(); } }}
+            />
+            <button type="button" class="btn-add-word" onclick={handleAddWord} disabled={!newCustomWord.trim()}>
+              ➕ Ajouter
+            </button>
+          </div>
+          <small>Ces termes ne seront plus signalés comme des erreurs dans vos notes.</small>
+
+          {#if customWordsList.length > 0}
+            <div class="custom-words-list">
+              {#each customWordsList as w}
+                <span class="word-chip">
+                  <span>{w}</span>
+                  <button type="button" class="chip-delete" onclick={() => handleRemoveWord(w)} title="Supprimer du dictionnaire">×</button>
+                </span>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
     </section>
 
     <div class="modal-actions">
@@ -206,4 +284,94 @@
     color: white;
   }
   .btn-save:hover { background: var(--accent-secondary); }
+
+  .checkbox-group {
+    margin-bottom: 14px;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--accent);
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
+
+  .custom-word-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .custom-word-row input {
+    flex: 1;
+    margin: 0;
+  }
+
+  .btn-add-word {
+    background: rgba(229, 168, 83, 0.12);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+    border-radius: 4px;
+  }
+  .btn-add-word:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+  .btn-add-word:not(:disabled):hover {
+    background: rgba(229, 168, 83, 0.25);
+  }
+
+  .custom-words-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 8px;
+  }
+
+  .word-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(229, 168, 83, 0.3);
+    color: var(--text-primary);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+
+  .chip-delete {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .chip-delete:hover {
+    color: #ef4444;
+  }
 </style>

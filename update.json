@@ -1,6 +1,6 @@
 {
-  "version": "0.6.5",
-  "changelog": "Bibliothèque Céleste intégrée dans l'Éditeur de Cartes Fantasy (Cartes de bataille, Tampons HD, Textures de sol, Musiques & SFX avec lecteur audio) & Auto-découverte locale du PC sur Wi-Fi pour le Carnet Mobile MJ.",
+  "version": "0.6.6",
+  "changelog": "Correcteur d'orthographe intelligent intégré (Hunspell en Web Worker), support Français & Anglais, dictionnaire personnalisé pour termes JdR/fantasy, infobulles de remplacement rapide et contrôles dans l'éditeur.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-09-09"
+  "release_date": "2026-09-17"
 }

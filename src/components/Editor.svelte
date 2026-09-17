@@ -7,6 +7,13 @@
   } from '$lib/stores/vault.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
   import PdfReaderModal from './PdfReaderModal.svelte';
+  import {
+    getSpellcheckEnabled,
+    toggleSpellcheck,
+    getSpellcheckLang,
+    setSpellcheckLang,
+    setSpellcheckEnabled
+  } from '$lib/spellcheck/spellcheckStore.svelte';
 
   let saveTimeout: ReturnType<typeof setTimeout>;
   let backlinks = $state<BacklinkResult[]>([]);
@@ -16,6 +23,38 @@
   let showToolbar = $state(true);
   let scrollToLine = $state<number | null>(null);
   let previewHtml = $state('');
+
+  let spellEnabled = $state(getSpellcheckEnabled());
+  let spellLang = $state(getSpellcheckLang());
+
+  function refreshSpellState() {
+    spellEnabled = getSpellcheckEnabled();
+    spellLang = getSpellcheckLang();
+  }
+
+  $effect(() => {
+    document.addEventListener('spellcheck-settings-changed', refreshSpellState);
+    return () => {
+      document.removeEventListener('spellcheck-settings-changed', refreshSpellState);
+    };
+  });
+
+  function handleToggleSpellcheck() {
+    toggleSpellcheck();
+    refreshSpellState();
+  }
+
+  function cycleSpellcheck() {
+    if (!spellEnabled) {
+      setSpellcheckEnabled(true);
+      setSpellcheckLang('fr');
+    } else if (spellLang === 'fr') {
+      setSpellcheckLang('en');
+    } else {
+      setSpellcheckEnabled(false);
+    }
+    refreshSpellState();
+  }
 
   function applyFormat(type: string) {
     document.dispatchEvent(new CustomEvent('editor-format', { detail: { type } }));
@@ -361,6 +400,14 @@
         {#if frontmatterType === 'faction'}
           <button onclick={generateFactionPlot} class="save-btn ctx-btn" title="Générer le plan de la faction">⚜️ Complot</button>
         {/if}
+        <button
+          class="save-btn spell-btn"
+          class:active={spellEnabled}
+          onclick={handleToggleSpellcheck}
+          title={spellEnabled ? `Correcteur d'orthographe actif [${spellLang.toUpperCase()}]. Cliquer pour désactiver.` : "Activer le correcteur d'orthographe"}
+        >
+          🔤
+        </button>
         <button
           class="save-btn"
           class:active={showToolbar}
@@ -723,6 +770,17 @@
       <span>{wordCount} mots</span>
       <span class="status-sep">·</span>
       <span>{charCount} caractères</span>
+      <span class="status-sep">·</span>
+      <button
+        type="button"
+        class="status-spell-btn"
+        class:active={spellEnabled}
+        onclick={cycleSpellcheck}
+        title={spellEnabled ? `Correcteur actif (${spellLang === 'fr' ? 'Français' : 'Anglais'}). Cliquer pour alterner (FR → EN → Désactivé).` : "Correcteur désactivé. Cliquer pour activer."}
+      >
+        <span class="spell-dot" class:dot-active={spellEnabled}>●</span>
+        <span>{spellEnabled ? `Orthographe ${spellLang.toUpperCase()}` : 'Orthographe off'}</span>
+      </button>
       {#if getActiveFile()}
         <span class="status-sep">·</span>
         <span class="status-path">{getActiveFile()?.split('/').pop()}</span>
@@ -1138,6 +1196,38 @@
 
   .status-sep { opacity: 0.4; }
   .status-path { color: var(--text-secondary); font-style: italic; }
+
+  .status-spell-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--text-muted);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .status-spell-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  .status-spell-btn.active {
+    color: var(--accent);
+    border-color: rgba(229, 168, 83, 0.3);
+    background: rgba(229, 168, 83, 0.08);
+  }
+
+  .spell-dot {
+    font-size: 8px;
+    color: var(--text-muted);
+    transition: color 0.15s;
+  }
+  .spell-dot.dot-active {
+    color: #22c55e;
+  }
 
   /* ── Backlinks panel ───────────────────────────────────────── */
 

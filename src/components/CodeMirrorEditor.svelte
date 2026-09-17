@@ -10,6 +10,8 @@
   import { searchVault, askOllama, readFile, writeFile, openVault, readFileBase64 } from '$lib/api';
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
   import { getVaultPath, getVaultTree, setActiveFile, setActiveContent, setIsDirty, setVaultTree } from '$lib/stores/vault.svelte';
+  import { spellcheckLinter, spellcheckTheme, getSpellcheckContentAttributes, spellcheckCompartment } from '$lib/spellcheck/codemirrorSpellcheck';
+  import { forceLinting } from '@codemirror/lint';
 
   let { value = '', scrollToLine = null, onInput = () => {}, onSave = () => {} }: {
     value: string;
@@ -835,10 +837,24 @@
     return null;
   });
 
+  function onSpellcheckChanged() {
+    if (view) {
+      view.dispatch({
+        effects: spellcheckCompartment.reconfigure([
+          spellcheckLinter,
+          spellcheckTheme,
+          getSpellcheckContentAttributes()
+        ])
+      });
+      forceLinting(view);
+    }
+  }
+
   onMount(() => {
     document.addEventListener('trigger-ai', runAI as any);
     document.addEventListener('editor-insert', insertAtCursor);
     document.addEventListener('editor-format', onEditorFormat);
+    document.addEventListener('spellcheck-settings-changed', onSpellcheckChanged);
     const state = EditorState.create({
       doc: value,
       extensions: [
@@ -859,6 +875,11 @@
         wikiLinkClickHandler,
         inlineImagesPlugin,
         checkboxPlugin,
+        spellcheckCompartment.of([
+          spellcheckLinter,
+          spellcheckTheme,
+          getSpellcheckContentAttributes()
+        ]),
         // Theme custom overrides
         EditorView.theme({
           "&": {
@@ -911,6 +932,7 @@
     document.removeEventListener('trigger-ai', runAI as any);
     document.removeEventListener('editor-insert', insertAtCursor);
     document.removeEventListener('editor-format', onEditorFormat);
+    document.removeEventListener('spellcheck-settings-changed', onSpellcheckChanged);
     if (view) {
       view.destroy();
     }
