@@ -28,8 +28,17 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 
 ## ✨ Fonctionnalités Exhaustives du Grimoire
 
-### 1. 📝 Éditeur Markdown & Gestion de Notes (Style Obsidian)
+### 1. 📝 Éditeur Markdown Rôliste Ultime (Style Obsidian & Outils MJ)
 - **Éditeur Markdown moderne (CodeMirror 6)** : Coloration syntaxique complète, formatage de texte, titres, listes, citations et tableaux.
+- **🎲 Inline Dice Roller (Lancer Cliquable)** : Détection temps réel des formules (`1d20+5`, `2d6`, `d100`), badge orné d'un dé doré, son procédural de dés (Web Audio) et popup critique avec insertion en 1 clic.
+- **🛡️ Styled Callouts Rôlistes** : Rendu en direct des encadrés `[!NOTE]`, `[!SECRET]` (pièges et notes MJ dorées), `[!WARNING]` (dangers mortels), `[!LOOT]` (trésors émeraude) et `[!READALOUD]` (récits pour les joueurs).
+- **☑️ Checkboxes Interactives en Direct** : Les listes de quêtes `- [ ]` et `- [x]` sont directement cliquables dans le code source avec sauvegarde instantanée.
+- **🧘 Mode Zen & Machine à Écrire** : Plein écran épuré sans distraction (<kbd>F11</kbd> / <kbd>Échap</kbd>) et défilement centré Typewriter Scrolling.
+- **🪄 Menu IA Contextuel Flottant** : Sélection de texte avec menu instantané pour Décrire, dialoguer avec un PNJ, générer des indices sensoriels ou esquisser un profil de statistiques via Ollama.
+- **🗺️ Passerelle Note ⟷ VTT Map** : Liens `[[map:NomDeScene]]` basculant directement sur la scène de la Table Virtuelle.
+- **🎵 Lecteur d'Ambiance Frontmatter** : Champ `ambiance: piste.mp3` déclenchant la bande-son du lieu sur le Soundscape VTT en 1 clic.
+- **✍️ Correcteur Hunspell Bilingue & Fantasy** : Correcteur orthographique en tâche de fond (Web Worker) FR & EN avec dictionnaire rôliste et ligatures françaises.
+- **↩️ Annuler / Rétablir** : Boutons d'historique `↩️` et `↪️` dans l'en-tête, la barre d'outils et les infobulles.
 - **WikiLinks interactifs (`[[Nom de Page]]`)** : Liez instantanément vos PNJ, lieux, factions et objets magiques avec autocomplétion intelligente.
 - **Système de Rétroliens (Backlinks)** : Retrouvez en bas de chaque note toutes les autres pages du coffre qui la mentionnent.
 - **Moteur de Recherche Instantané (SQLite FTS5)** : Palette de recherche globale (`Ctrl+K` ou `Ctrl+P`) avec recherche textuelle ultra-rapide et extraits en contexte.
@@ -137,11 +146,13 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 | Raccourci | Contexte | Action |
 |-----------|----------|--------|
 | `Ctrl+K` ou `Ctrl+P` | Global | Palette de recherche rapide (FTS5) |
-| `Ctrl+J` | Éditeur | Génération / Assistant IA sur la sélection |
+| `F11` | Éditeur | Activer / Quitter le Mode Zen (Plein écran épuré) |
+| `Échap` | Éditeur (Mode Zen) | Quitter le Mode Zen |
 | `Ctrl+Z` / `Ctrl+Y` | Éditeur & Map Editor | Annuler / Rétablir |
+| `Ctrl+J` | Éditeur | Génération / Assistant IA sur la sélection |
 | `Alt` + Molette | VTT | Redimensionner le pion survolé |
-| Poignée ⬤ | VTT | Redimensionner un pion ou une zone de sélection |
-| Clic droit sur Token | VTT | Ouvrir la roue des conditions (ConditionWheel) |
+| `Poignée ⬤` | VTT | Redimensionner un pion ou une zone de sélection |
+| `Clic droit sur Token` | VTT | Ouvrir la roue des conditions (ConditionWheel) |
 | `Espace` + Glisser | VTT & Map Editor | Déplacer la vue (Pan) |
 
 ---
@@ -156,10 +167,12 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 ### Pour les Développeurs
 
 ```bash
-# Installer les dépendances
-npm install
+# 🚀 Launcher Intelligent (Vérifie toutes les dépendances système, Rust, Ollama et lance Grimoire) :
+./launch.sh
+# ou
+npm run launch
 
-# Lancer en mode développement (Tauri + Svelte 5 + Map Editor)
+# Lancement standard (Tauri + Svelte 5 + Map Editor) :
 npm run tauri dev
 ```
 

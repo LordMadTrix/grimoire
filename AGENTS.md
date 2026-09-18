@@ -12,6 +12,7 @@ Ce fichier sert de référence pour tous les assistants IA (Antigravity, Gemini,
 ---
 
 ## 🛠 Commandes Clés
+- **Launcher intelligent (Vérification + Lancement)** : `./launch.sh` (ou `npm run launch`)
 - **Lancement Dev (Tauri + Svelte)** : `npm run tauri dev`
 - **Lancement Dev Web (Vite seul)** : `npm run vite-dev`
 - **Build complet** : `npm run build`

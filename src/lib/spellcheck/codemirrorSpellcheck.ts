@@ -3,6 +3,7 @@ import { linter, forceLinting } from '@codemirror/lint';
 import type { Diagnostic } from '@codemirror/lint';
 import { EditorView } from '@codemirror/view';
 import { Compartment } from '@codemirror/state';
+import { undo } from '@codemirror/commands';
 import {
   getSpellcheckEnabled,
   getSpellcheckLang,
@@ -121,8 +122,8 @@ export const spellcheckLinter = linter(
 
     const skipRanges = computeSkipRanges(docText);
 
-    // Regex to extract words (including accented letters, apostrophes and hyphens inside words)
-    const wordRegex = /[a-zA-ZÀ-ÖØ-öø-ÿ]+(?:['’\-][a-zA-ZÀ-ÖØ-öø-ÿ]+)*/g;
+    // Regex to extract words (including accented letters, ligatures like œ/æ, apostrophes and hyphens inside words)
+    const wordRegex = /[\p{L}]+(?:['’\-][\p{L}]+)*/gu;
 
     const wordsToCheck: Array<{ word: string; from: number; to: number }> = [];
     let m;
@@ -181,6 +182,15 @@ export const spellcheckLinter = linter(
         name: `👁️ Ignorer « ${typo.word} »`,
         apply(v: EditorView) {
           ignoreSessionWord(typo.word);
+          setTimeout(() => forceLinting(v), 50);
+        }
+      });
+
+      // Annuler / Retour en arrière en cas d'erreur
+      actions.push({
+        name: `↩️ Retour en arrière (Ctrl+Z)`,
+        apply(v: EditorView) {
+          undo(v);
           setTimeout(() => forceLinting(v), 50);
         }
       });

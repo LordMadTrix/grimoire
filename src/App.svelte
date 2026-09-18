@@ -108,6 +108,7 @@
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
   let viewMode = $state<'editor' | 'graph' | 'timeline' | 'calendar'>('editor');
+  let isZenMode = $state(false);
   let rollTablesRef = $state<any>(null);
   let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let mapRoll = $state<{ text: string; seq: number } | null>(null);
@@ -293,6 +294,28 @@
           notifStore.add('🌌', 'Archives Célestes', `✨ ${result.newFiles} nouvelles ressources détectées (${result.total} au total) !`, 'success', 6000);
         }
       }).catch(() => {});
+      // Listeners pour l'éditeur enrichi : Mode Zen et Liens VTT
+      const onToggleZenMode = (e: any) => {
+        isZenMode = !!e.detail?.isZenMode;
+      };
+      const onOpenVttMap = (e: any) => {
+        const { mapName } = e.detail || {};
+        if (!mapName) return;
+        const targetLower = mapName.toLowerCase();
+        const scene = vttStore.maps.find(m => m.name.toLowerCase() === targetLower || m.id === mapName);
+        if (scene) {
+          switchMapScene(scene.id);
+          notifStore.add('🗺️', 'Table Virtuelle', `Scène active : ${scene.name}`, 'info', 3000);
+        } else {
+          notifStore.add('🗺️', 'Table Virtuelle', `Carte "${mapName}" demandée. Vérifiez vos scènes VTT.`, 'warn', 4000);
+        }
+      };
+      window.addEventListener('toggle-zen-mode', onToggleZenMode);
+      window.addEventListener('open-vtt-map', onOpenVttMap);
+      _unlistenApp.push(() => {
+        window.removeEventListener('toggle-zen-mode', onToggleZenMode);
+        window.removeEventListener('open-vtt-map', onOpenVttMap);
+      });
     })();
     return () => _unlistenApp.forEach(fn => fn());
   });
@@ -534,7 +557,7 @@
   <AddonStore onclose={() => showAddonStore = false} />
 {/if}
 
-<div class="app-layout">
+<div class="app-layout" class:zen-mode={isZenMode}>
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
@@ -1132,4 +1155,12 @@
 
   .monitor-info strong { font-size: 14px; }
   .monitor-info small { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Mode Zen App-level ────────────────────────────────────── */
+  :global(.app-layout.zen-mode) .sidebar {
+    display: none !important;
+  }
+  :global(.app-layout.zen-mode) main.main-content {
+    width: 100vw !important;
+  }
 </style>

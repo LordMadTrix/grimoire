@@ -403,42 +403,49 @@
         <div class="space-y-4">
           <div class="p-4 rounded-2xl bg-black/50 border border-white/5 space-y-3">
             <h3 class="font-bold text-white text-base flex items-center gap-2">
-              <span class="text-grimoire-accent">🎲</span> Outils Spécifiques au Maître du Jeu
+              <span class="text-grimoire-accent">🎲</span> Outils MJ & Nouveautés Rôlistes v0.6.7
             </h3>
             <div class="space-y-2 text-xs">
               <div class="p-2 rounded-lg bg-white/5 space-y-1">
-                <div class="font-bold text-white flex items-center gap-1.5">
-                  <span>🎲</span> Tirage d6 (Table Aléatoire)
+                <div class="font-bold text-grimoire-accent flex items-center gap-1.5">
+                  <span>🎲</span> Inline Dice Roller (Lancer Cliquable)
                 </div>
-                <p class="text-gray-400">Génère un tableau Markdown prêt pour 6 rencontres, pièges ou péripéties imprévues.</p>
+                <p class="text-gray-400">Écrivez <code>1d20+5</code>, <code>2d6</code> ou <code>d100</code> : un badge interactif apparaît avec bruitage réel WebAudio et popup critique.</p>
               </div>
 
               <div class="p-2 rounded-lg bg-white/5 space-y-1">
-                <div class="font-bold text-white flex items-center gap-1.5">
-                  <span>🗣️</span> Récit MJ (Narration Joueurs)
+                <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                  <span>🔒</span> Styled Callouts (Secret, Loot, Alerte)
                 </div>
-                <p class="text-gray-400">Bloc <code>&gt; 🗣️ **À voix haute :**</code> à lire directement aux joueurs lors de leur entrée en scène.</p>
+                <p class="text-gray-400">Encadrés immersifs rendus en direct : <code>&gt; [!SECRET]</code> (pièges dorés), <code>&gt; [!LOOT]</code> (trésors émeraude), <code>&gt; [!WARNING]</code> (danger).</p>
               </div>
 
               <div class="p-2 rounded-lg bg-white/5 space-y-1">
-                <div class="font-bold text-white flex items-center gap-1.5">
-                  <span>🔒</span> Secret MJ (Callout Secret)
+                <div class="font-bold text-purple-400 flex items-center gap-1.5">
+                  <span>🗺️</span> Passerelle VTT & Ambiance
                 </div>
-                <p class="text-gray-400">Encadré <code>&gt; [!SECRET]</code> contenant les indices cachés et portes dérobées.</p>
+                <p class="text-gray-400">Liens <code>[[map:NomDeScene]]</code> ouvrant la scène VTT d'un clic, et en-tête <code>ambiance: piste.mp3</code> pour la musique.</p>
               </div>
 
               <div class="p-2 rounded-lg bg-white/5 space-y-1">
-                <div class="font-bold text-white flex items-center gap-1.5">
-                  <span>⚔️</span> Stats (Statblock rapide)
+                <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span>🧘</span> Mode Zen (<kbd>F11</kbd>) & Machine à Écrire
                 </div>
-                <p class="text-gray-400">Génère le canevas complet CA, PV, Vitesse, Attributs et Attaque pour une créature.</p>
+                <p class="text-gray-400">Plein écran immersif épuré sans distraction et défilement avec ligne active centrée à l'écran.</p>
+              </div>
+
+              <div class="p-2 rounded-lg bg-white/5 space-y-1">
+                <div class="font-bold text-sky-400 flex items-center gap-1.5">
+                  <span>✍️</span> Correcteur Hunspell & Annuler/Rétablir
+                </div>
+                <p class="text-gray-400">Vérification orthographique FR/EN en tâche de fond avec dictionnaire Fantasy, et boutons <code>↩️ Annuler (Ctrl+Z)</code> / <code>↪️ Rétablir</code>.</p>
               </div>
             </div>
           </div>
 
           <div class="p-4 rounded-2xl bg-black/50 border border-white/5 space-y-3">
             <h3 class="font-bold text-white text-base flex items-center gap-2">
-              <span class="text-grimoire-accent">🔗</span> Liens, Médias & Commentaires
+              <span class="text-grimoire-accent">🔗</span> Liens, Médias & Formatage Rapide
             </h3>
             <div class="space-y-2 text-xs">
               <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
@@ -446,16 +453,20 @@
                 <span class="text-gray-400">Rétrolien Grimoire instantané (<code>Ctrl+K</code>)</span>
               </div>
               <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                <span class="font-mono text-purple-400 font-semibold">🗺️ [[map:Scène]]</span>
+                <span class="text-gray-400">Bascule vers la Table Virtuelle VTT</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
                 <span class="font-mono text-sky-400">🌐 Lien</span>
                 <span class="text-gray-400">Lien externe <code>[Titre](URL)</code></span>
               </div>
               <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
                 <span class="font-mono text-white">🖼️ Image</span>
-                <span class="text-gray-400">Insertion d'image <code>![Alt](assets/...)</code></span>
+                <span class="text-gray-400">Insertion d'image <code>![Alt](chemin)</code></span>
               </div>
               <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
                 <span class="font-mono text-gray-400">👁️‍🗨️ %% Note MJ</span>
-                <span class="text-gray-400">Texte commentaire invisible dans le rendu final</span>
+                <span class="text-gray-400">Commentaire secret masqué au rendu</span>
               </div>
             </div>
           </div>
@@ -467,24 +478,26 @@
       <div class="p-6 rounded-2xl bg-black/70 border border-grimoire-accent/40 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="font-bold text-white text-sm flex items-center gap-2">
-            <span>⚡</span> Bac à sable interactif (Essayez les clics ci-dessous) :
+            <span>⚡</span> Bac à sable interactif (Essayez les nouveautés v0.6.7 en direct) :
           </div>
           <button id="resetDemoBtn" class="text-xs text-gray-400 hover:text-grimoire-accent transition-colors">↺ Réinitialiser l'exemple</button>
         </div>
 
-        <!-- Fausse toolbar interactive -->
+        <!-- Fausse toolbar interactive enrichie -->
         <div class="flex flex-wrap gap-1.5 p-2 rounded-xl bg-gray-900/80 border border-white/10 text-xs">
           <button onclick="demoInsert('**Texte en gras**')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black font-bold transition-all">B</button>
           <button onclick="demoInsert('*Texte en italique*')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black italic transition-all">I</button>
           <button onclick="demoInsert('==Texte surligné==')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black text-grimoire-accent font-semibold transition-all">H</button>
           <button onclick="demoInsert('## Nouveau Titre')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black font-mono transition-all">H2</button>
-          <button onclick="demoInsert('- [ ] Objectif de quête')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black transition-all">☑ Tâche</button>
-          <button onclick="demoInsert('\n| d6 | Événement |\n| :-: | --------- |\n| 1 | Piège |\n| 2 | Monstre |\n')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black transition-all">🎲 Tirage d6</button>
-          <button onclick="demoInsert('\n> 🗣️ **À voix haute pour les joueurs :**\n> *Une odeur de souffre emplit le couloir...*\n')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black transition-all">🗣️ Récit MJ</button>
-          <button onclick="demoInsert('[[NomDuLieu]]')" class="px-2.5 py-1 rounded bg-grimoire-accent/10 text-grimoire-accent hover:bg-grimoire-accent hover:text-black font-semibold transition-all">🔗 [[Note]]</button>
+          <button onclick="demoInsert('- [ ] Quête à accomplir\n')" class="px-2.5 py-1 rounded bg-white/5 hover:bg-grimoire-accent hover:text-black transition-all">☑ Tâche</button>
+          <button onclick="demoInsert(' 1d20+5 ')" class="px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-400 hover:text-black font-bold transition-all border border-amber-500/30">🎲 Dé 1d20+5</button>
+          <button onclick="demoInsert('\n> [!SECRET] Piège secret du MJ\n> Le pavé dissimule une trappe vers les douves.\n')" class="px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 hover:bg-amber-400 hover:text-black transition-all">🔒 Secret</button>
+          <button onclick="demoInsert('\n> [!LOOT] Trésor des Catacombes\n> - 50 pièces d\'or\n> - Dague elfique enchantée\n')" class="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-300 hover:bg-emerald-400 hover:text-black transition-all">💎 Loot</button>
+          <button onclick="demoInsert('[[map:Donjon Niveau 1]]')" class="px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-400 hover:text-black font-semibold transition-all">🗺️ Pont VTT</button>
+          <button onclick="demoInsert('[[NomDeLaNote]]')" class="px-2.5 py-1 rounded bg-grimoire-accent/10 text-grimoire-accent hover:bg-grimoire-accent hover:text-black font-semibold transition-all">🔗 [[Note]]</button>
         </div>
 
-        <textarea id="demoEditor" rows="6" class="w-full bg-black/60 border border-white/10 rounded-xl p-3 font-mono text-sm text-gray-200 focus:border-grimoire-accent focus:outline-none focus:ring-1 focus:ring-grimoire-accent transition-all"></textarea>
+        <textarea id="demoEditor" rows="7" class="w-full bg-black/60 border border-white/10 rounded-xl p-3 font-mono text-sm text-gray-200 focus:border-grimoire-accent focus:outline-none focus:ring-1 focus:ring-grimoire-accent transition-all"></textarea>
       </div>
 
     </section>
@@ -500,26 +513,29 @@
         <div class="space-y-3">
           <h3 class="font-semibold text-grimoire-accent">Prise de notes fluide & sans distractions</h3>
           <p class="text-gray-300 leading-relaxed">
-            Le cœur de l'éditeur repose sur <strong>CodeMirror 6</strong>, garantissant une frappe instantanée sans latence, même sur des documents de plusieurs dizaines de milliers de lignes.
+            Le cœur de l'éditeur repose sur <strong>CodeMirror 6</strong>, enrichi de plugins spécialisés pour le jeu de rôle :
           </p>
           <ul class="space-y-1.5 text-gray-300 text-xs">
-            <li>• <strong>Numérotation des lignes :</strong> Repérage immédiat lors de la lecture d'un scénario.</li>
+            <li>• <strong>Inline Dice Roller :</strong> Cliquez directement sur n'importe quel dé dans le texte pour le lancer avec effet sonore instantané.</li>
             <li>• <strong>Cases à cocher interactives :</strong> Les cases <code>- [ ]</code> sont rendues sous forme de boîtes cliquables directement dans le code source.</li>
-            <li>• <strong>Images intégrées :</strong> La syntaxe <code>![[plan.png]]</code> affiche la miniature directement au cœur de vos notes.</li>
+            <li>• <strong>Styled Callouts :</strong> Encadrés Secrets, Loot, Alertes et Citations stylisés en direct.</li>
+            <li>• <strong>Mode Zen & Typewriter :</strong> Plein écran épuré et défilement avec ligne active centrée.</li>
           </ul>
         </div>
 
         <div class="space-y-3">
-          <h3 class="font-semibold text-grimoire-accent">Statistiques en Temps Réel</h3>
+          <h3 class="font-semibold text-grimoire-accent">Statistiques & Correcteur en Temps Réel</h3>
           <p class="text-gray-300 leading-relaxed">
             La fine barre d'état située tout en bas de l'écran vous renseigne en continu :
           </p>
-          <div class="p-3 rounded-xl bg-black/40 border border-white/5 font-mono text-xs text-gray-400 flex items-center gap-3">
+          <div class="p-3 rounded-xl bg-black/40 border border-white/5 font-mono text-xs text-gray-400 flex flex-wrap items-center gap-3">
             <span>20 mots</span>
             <span>·</span>
             <span>120 caractères</span>
             <span>·</span>
-            <span class="text-grimoire-accent font-semibold">Bienvenue.md</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">● Orthographe FR</span>
+            <span>·</span>
+            <span class="text-grimoire-accent font-semibold">Campagne.md</span>
           </div>
         </div>
       </div>
@@ -566,7 +582,7 @@
           Consulter l'Encyclopédie Complète (A à Z)
         </a>
         <a href="index.html" class="px-6 py-3 rounded-xl glass border border-white/10 text-white hover:border-grimoire-accent/40 transition-colors font-medium">
-          Télécharger Grimoire v0.6.2
+          Télécharger Grimoire v0.6.7
         </a>
       </div>
     </div>
@@ -581,16 +597,29 @@
     const demoEditor = document.getElementById('demoEditor');
     const resetDemoBtn = document.getElementById('resetDemoBtn');
 
-    const defaultContent = `# Bienvenue dans votre nouvelle aventure !
+    const defaultContent = `---
+title: Le Sanctuaire Oublié
+ambiance: dungeon_theme.mp3
+---
 
-Ceci est votre Grimoire. Utilisez le panneau de gauche pour créer des notes.
+# ⚔️ Le Sanctuaire Oublié
+
+Scène tactique liée à la carte : [[map:Sanctuaire Niveau 1]]
 
 ## 🎯 Objectifs de la session :
 - [ ] Rencontrer le bourgmestre de [[Karak-Azgal]]
-- [ ] Enquêter sur la disparition des caravanes
+- [ ] Désamorcer le piège de la grille (Jet : 1d20+5 contre Difficulté 15)
+- [x] Fouiller le coffre en fer forgé
+
+> [!SECRET] Piège de la Dalle Dorée
+> Si les joueurs marchent sur la troisième dalle, un jet de 2d6 dégâts de feu se déclenche automatiquement !
+
+> [!LOOT] Récompenses du Coffre
+> - 150 pièces d'argent
+> - Anneau de vision nocturne
 
 > 🗣️ **À voix haute pour les joueurs :**
-> *La porte de la taverne grince alors qu'une silhouette encapuchonnée s'avance...*`;
+> *La porte scellée de runes s'ouvre avec un grondement sourd. Une lueur violette pulse au fond de la nef...*`;
 
     demoEditor.value = defaultContent;
 

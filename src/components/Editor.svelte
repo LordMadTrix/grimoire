@@ -14,6 +14,7 @@
     setSpellcheckLang,
     setSpellcheckEnabled
   } from '$lib/spellcheck/spellcheckStore.svelte';
+  import { vttStore, updateGmAudio } from '$lib/stores/vtt.svelte';
 
   let saveTimeout: ReturnType<typeof setTimeout>;
   let backlinks = $state<BacklinkResult[]>([]);
@@ -56,6 +57,29 @@
     refreshSpellState();
   }
 
+  let isZenMode = $state(false);
+  let isTypewriter = $state(false);
+
+  function toggleZenMode() {
+    isZenMode = !isZenMode;
+    document.dispatchEvent(new CustomEvent('toggle-zen-mode', { detail: { isZenMode } }));
+  }
+
+  function toggleTypewriter() {
+    isTypewriter = !isTypewriter;
+    document.dispatchEvent(new CustomEvent('toggle-typewriter', { detail: { enabled: isTypewriter } }));
+  }
+
+  function handleEditorKeydown(e: KeyboardEvent) {
+    if (e.key === 'F11') {
+      e.preventDefault();
+      toggleZenMode();
+    } else if (e.key === 'Escape' && isZenMode) {
+      e.preventDefault();
+      toggleZenMode();
+    }
+  }
+
   function applyFormat(type: string) {
     document.dispatchEvent(new CustomEvent('editor-format', { detail: { type } }));
   }
@@ -77,6 +101,24 @@
   })());
 
   let frontmatterType = $derived(frontmatter?.find(f => f.key === 'type')?.value ?? '');
+
+  // Piste audio / ambiance liée à la note
+  let ambianceTrack = $derived((() => {
+    if (!frontmatter) return null;
+    const item = frontmatter.find(f => ['ambiance', 'audio', 'soundtrack', 'musique'].includes(f.key.toLowerCase()));
+    return item ? item.value.replace(/^["']|["']$/g, '').trim() : null;
+  })());
+
+  let isAmbiancePlaying = $derived(!!ambianceTrack && vttStore.audioSrc === ambianceTrack);
+
+  function toggleAmbiance() {
+    if (!ambianceTrack) return;
+    if (isAmbiancePlaying) {
+      updateGmAudio(null);
+    } else {
+      updateGmAudio(ambianceTrack);
+    }
+  }
 
   function triggerContextualAI(prompt: string) {
     document.dispatchEvent(new CustomEvent('trigger-ai', { detail: { prompt } }));
@@ -353,7 +395,14 @@
   }
 </script>
 
-<div class="editor-container">
+<svelte:window onkeydown={handleEditorKeydown} />
+
+<div class="editor-container" class:zen-mode={isZenMode}>
+  {#if isZenMode}
+    <button type="button" class="zen-exit-btn" onclick={toggleZenMode} title="Quitter le mode Zen (Échap ou F11)">
+      ✕ Quitter Zen
+    </button>
+  {/if}
   {#if getActiveFile()}
     <div class="editor-header">
       <div class="file-path">
@@ -409,6 +458,40 @@
           🔤
         </button>
         <button
+          type="button"
+          class="save-btn"
+          onclick={() => applyFormat('undo')}
+          title="Retour en arrière / Annuler en cas d'erreur (Ctrl+Z)"
+        >
+          ↩️
+        </button>
+        <button
+          type="button"
+          class="save-btn"
+          onclick={() => applyFormat('redo')}
+          title="Rétablir l'action annulée (Ctrl+Y)"
+        >
+          ↪️
+        </button>
+        <button
+          type="button"
+          class="save-btn"
+          class:active={isTypewriter}
+          onclick={toggleTypewriter}
+          title={isTypewriter ? "Mode Machine à écrire actif (centre la ligne active). Cliquer pour désactiver." : "Activer le mode Machine à écrire (centre la ligne active)"}
+        >
+          📜
+        </button>
+        <button
+          type="button"
+          class="save-btn zen-btn"
+          class:active={isZenMode}
+          onclick={toggleZenMode}
+          title={isZenMode ? "Quitter le mode Zen (Échap ou F11)" : "Mode Zen : Plein écran sans distraction (F11)"}
+        >
+          🧘
+        </button>
+        <button
           class="save-btn"
           class:active={showToolbar}
           onclick={() => showToolbar = !showToolbar}
@@ -430,6 +513,19 @@
 
     {#if frontmatter}
       <div class="frontmatter-bar">
+        {#if ambianceTrack}
+          <button
+            type="button"
+            class="ambiance-pill"
+            class:playing={isAmbiancePlaying}
+            onclick={toggleAmbiance}
+            title={isAmbiancePlaying ? "Musique en cours de diffusion. Cliquer pour mettre en pause." : "Lancer cette musique d'ambiance sur la table virtuelle et les écrans joueurs"}
+          >
+            <span class="ambiance-icon">{isAmbiancePlaying ? '🔊' : '🎵'}</span>
+            <span class="ambiance-title">{ambianceTrack.split('/').pop()}</span>
+            <span class="ambiance-badge">{isAmbiancePlaying ? 'Pause ⏸' : 'Lire ▶'}</span>
+          </button>
+        {/if}
         {#each frontmatter as field}
           <span class="fm-pill">
             <span class="fm-key">{field.key}</span>
@@ -441,6 +537,30 @@
 
     {#if showToolbar && !getActiveFile()?.toLowerCase().endsWith('.pdf')}
       <div class="markdown-toolbar" role="toolbar" aria-label="Raccourcis de formatage Markdown">
+        <!-- Groupe Historique (Annuler / Rétablir en cas d'erreur) -->
+        <div class="toolbar-group">
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('undo')}
+            title="Retour en arrière / Annuler en cas d'erreur [Ctrl+Z]"
+          >
+            <span class="btn-icon">↩️</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={() => applyFormat('redo')}
+            title="Rétablir l'action annulée [Ctrl+Y]"
+          >
+            <span class="btn-icon">↪️</span>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
         <!-- Groupe Style Inline -->
         <div class="toolbar-group">
           <button
@@ -1344,5 +1464,173 @@
     padding: 2px 6px;
     font-size: 11px;
     font-family: inherit;
+  }
+
+  /* ── Zen Mode ──────────────────────────────────────────────── */
+  .editor-container.zen-mode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1200;
+    background: var(--bg-primary, #0f1117);
+  }
+
+  .editor-container.zen-mode .editor-header {
+    padding: 10px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(15, 17, 23, 0.95);
+  }
+
+  .zen-exit-btn {
+    position: fixed;
+    top: 12px;
+    right: 18px;
+    z-index: 1300;
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    color: var(--accent, #e5a853);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all 0.15s ease;
+  }
+
+  .zen-exit-btn:hover {
+    background: rgba(229, 168, 83, 0.3);
+    border-color: var(--accent, #e5a853);
+    transform: translateY(-1px);
+  }
+
+  /* ── Ambiance Pill ─────────────────────────────────────────── */
+  .ambiance-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #38bdf8;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .ambiance-pill:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
+    transform: translateY(-1px);
+  }
+
+  .ambiance-pill.playing {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: #22c55e;
+    color: #4ade80;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+  }
+
+  .ambiance-badge {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+
+  /* ── Global Dice Popup Tooltip ─────────────────────────────── */
+  :global(.cm-dice-popup) {
+    position: fixed;
+    z-index: 2500;
+    background: #141720;
+    border: 1px solid rgba(229, 168, 83, 0.5);
+    border-radius: 8px;
+    padding: 8px 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 15px rgba(229, 168, 83, 0.2);
+    min-width: 170px;
+    animation: cmDicePop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+    pointer-events: auto;
+  }
+
+  :global(.dice-popup-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  :global(.dice-popup-title) {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted, #8899b7);
+    text-transform: uppercase;
+  }
+
+  :global(.dice-popup-total) {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fbbf24;
+  }
+
+  :global(.dice-popup-details) {
+    font-size: 11px;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 8px;
+  }
+
+  :global(.dice-popup-actions) {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  :global(.dice-btn-insert) {
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.35);
+    color: #fbbf24;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  :global(.dice-btn-insert:hover) {
+    background: rgba(229, 168, 83, 0.3);
+    border-color: #fbbf24;
+  }
+
+  :global(.dice-btn-close) {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+
+  :global(.dice-crit) {
+    color: #4ade80 !important;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  :global(.dice-fumble) {
+    color: #f87171 !important;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  @keyframes cmDicePop {
+    from { opacity: 0; transform: scale(0.92) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
   }
 </style>

@@ -3,7 +3,7 @@
   import { EditorState } from '@codemirror/state';
   import { EditorView, keymap, highlightActiveLine, lineNumbers, hoverTooltip, WidgetType, MatchDecorator, ViewPlugin, Decoration } from '@codemirror/view';
   import type { DecorationSet, ViewUpdate } from '@codemirror/view';
-  import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+  import { defaultKeymap, history, historyKeymap, undo, redo } from '@codemirror/commands';
   import { markdown } from '@codemirror/lang-markdown';
   import { autocompletion, CompletionContext, startCompletion } from '@codemirror/autocomplete';
   import { oneDark } from '@codemirror/theme-one-dark';
@@ -11,6 +11,10 @@
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
   import { getVaultPath, getVaultTree, setActiveFile, setActiveContent, setIsDirty, setVaultTree } from '$lib/stores/vault.svelte';
   import { spellcheckLinter, spellcheckTheme, getSpellcheckContentAttributes, spellcheckCompartment } from '$lib/spellcheck/codemirrorSpellcheck';
+  import { dicePlugin, diceTheme } from '$lib/editor/dicePlugin';
+  import { calloutPlugin, calloutTheme } from '$lib/editor/calloutPlugin';
+  import { quickAiPlugin, quickAiTheme } from '$lib/editor/quickAiPlugin';
+  import { typewriterCompartment, getTypewriterExtension } from '$lib/editor/typewriterPlugin';
   import { forceLinting } from '@codemirror/lint';
 
   let { value = '', scrollToLine = null, onInput = () => {}, onSave = () => {} }: {
@@ -406,6 +410,14 @@
     const selectedText = doc.sliceString(from, to);
 
     switch (type) {
+      case 'undo':
+        undo(view);
+        view.focus();
+        return;
+      case 'redo':
+        redo(view);
+        view.focus();
+        return;
       case 'bold':
         toggleWrap('**', 'texte en gras');
         break;
@@ -732,8 +744,14 @@
     }
   });
 
-  // Ctrl+Clic sur [[wikilink]] → ouvre le fichier lié (ou propose de le créer)
+  // Ctrl+Clic sur [[wikilink]] → ouvre le fichier lié (ou la carte VTT)
   async function openWikiLink(linkTarget: string) {
+    if (linkTarget.toLowerCase().startsWith('map:')) {
+      const target = linkTarget.slice(4).trim();
+      const [mapName, pinTarget] = target.split('#');
+      window.dispatchEvent(new CustomEvent('open-vtt-map', { detail: { mapName, pinTarget } }));
+      return;
+    }
     const vaultPath = getVaultPath();
     if (!vaultPath) return;
     const filePath = linkTarget + '.md';
@@ -802,6 +820,20 @@
       // Si la souris est sur ce lien
       if (posInLine >= start && posInLine <= end) {
         const linkTarget = match[1].split('|')[0].trim();
+        if (linkTarget.toLowerCase().startsWith('map:')) {
+          const mapInfo = linkTarget.slice(4).trim();
+          return {
+            pos: line.from + start,
+            end: line.from + end,
+            above: true,
+            create() {
+              const dom = document.createElement('div');
+              dom.className = 'cm-hover-preview';
+              dom.innerHTML = `<strong style="color:var(--accent);">🗺️ Scène VTT : ${mapInfo}</strong><br><span style="font-size:11px;color:var(--text-muted);">(Ctrl+Clic pour ouvrir dans la table virtuelle)</span>`;
+              return { dom };
+            }
+          };
+        }
         const vaultPath = getVaultPath();
         if (!vaultPath) return null;
         
@@ -850,11 +882,22 @@
     }
   }
 
+  let isTypewriter = $state(false);
+  function onToggleTypewriter(e: any) {
+    isTypewriter = e.detail?.enabled ?? !isTypewriter;
+    if (view) {
+      view.dispatch({
+        effects: typewriterCompartment.reconfigure(getTypewriterExtension(isTypewriter))
+      });
+    }
+  }
+
   onMount(() => {
     document.addEventListener('trigger-ai', runAI as any);
     document.addEventListener('editor-insert', insertAtCursor);
     document.addEventListener('editor-format', onEditorFormat);
     document.addEventListener('spellcheck-settings-changed', onSpellcheckChanged);
+    document.addEventListener('toggle-typewriter', onToggleTypewriter);
     const state = EditorState.create({
       doc: value,
       extensions: [
@@ -875,6 +918,13 @@
         wikiLinkClickHandler,
         inlineImagesPlugin,
         checkboxPlugin,
+        dicePlugin,
+        diceTheme,
+        calloutPlugin,
+        calloutTheme,
+        quickAiPlugin,
+        quickAiTheme,
+        typewriterCompartment.of(getTypewriterExtension(false)),
         spellcheckCompartment.of([
           spellcheckLinter,
           spellcheckTheme,
@@ -933,6 +983,7 @@
     document.removeEventListener('editor-insert', insertAtCursor);
     document.removeEventListener('editor-format', onEditorFormat);
     document.removeEventListener('spellcheck-settings-changed', onSpellcheckChanged);
+    document.removeEventListener('toggle-typewriter', onToggleTypewriter);
     if (view) {
       view.destroy();
     }

@@ -20,6 +20,15 @@ let worker: Worker | null = null;
 let reqId = 0;
 const pendingRequests = new Map<number, (val: any) => void>();
 
+let readyPromise: Promise<boolean> | null = null;
+let readyResolver: ((val: boolean) => void) | null = null;
+
+function resetReadyPromise() {
+  readyPromise = new Promise((resolve) => {
+    readyResolver = resolve;
+  });
+}
+
 // Load from localStorage
 if (typeof window !== 'undefined') {
   const savedEnabled = localStorage.getItem('grimoire_spellcheck_enabled');
@@ -40,6 +49,10 @@ if (typeof window !== 'undefined') {
 function initWorker() {
   if (worker || typeof window === 'undefined') return;
 
+  status = 'loading';
+  errorMessage = null;
+  resetReadyPromise();
+
   try {
     worker = new Worker(new URL('./spellcheck.worker.ts', import.meta.url), { type: 'module' });
 
@@ -51,6 +64,14 @@ function initWorker() {
         case 'STATUS':
           status = data.status;
           if (data.error) errorMessage = data.error;
+          if (data.status === 'ready') {
+            readyResolver?.(true);
+            if (typeof window !== 'undefined') {
+              document.dispatchEvent(new CustomEvent('spellcheck-settings-changed'));
+            }
+          } else if (data.status === 'error') {
+            readyResolver?.(false);
+          }
           break;
 
         case 'CHECK_WORDS_RESULT':
@@ -75,17 +96,26 @@ function initWorker() {
       console.error('[SpellcheckStore] Worker error:', err);
       status = 'error';
       errorMessage = err.message || 'Worker failure';
+      readyResolver?.(false);
     };
+
+    // Safe snapshot of reactive Svelte 5 state to avoid DataCloneError in worker postMessage
+    const safeCustomWords = $state.snapshot(customWords);
 
     worker.postMessage({
       type: 'INIT',
       lang,
-      customWords
+      customWords: safeCustomWords
     });
   } catch (err: any) {
     console.error('[SpellcheckStore] Worker initialization failed:', err);
+    if (worker) {
+      try { worker.terminate(); } catch (e) {}
+      worker = null;
+    }
     status = 'error';
     errorMessage = err?.message || String(err);
+    readyResolver?.(false);
   }
 }
 
@@ -120,6 +150,8 @@ export function setSpellcheckLang(newLang: SpellcheckLang) {
     localStorage.setItem('grimoire_spellcheck_lang', newLang);
   }
   if (worker) {
+    status = 'loading';
+    resetReadyPromise();
     worker.postMessage({ type: 'SET_LANG', lang: newLang });
   } else if (enabled) {
     initWorker();
@@ -184,17 +216,29 @@ export async function checkWordsInWorker(words: Array<{ word: string; from: numb
   if (!worker) {
     initWorker();
   }
-  if (!worker || status === 'loading' || status === 'error') {
+  if (!worker || status === 'error') {
     return [];
+  }
+
+  // Si le dictionnaire est en cours de chargement, attendre un court instant qu'il soit prêt
+  if (status === 'loading' || status === 'idle') {
+    if (readyPromise) {
+      const isReady = await Promise.race([
+        readyPromise,
+        new Promise<boolean>((res) => setTimeout(() => res(false), 2000))
+      ]);
+      if (!isReady || getSpellcheckStatus() !== 'ready' || !worker) return [];
+    }
   }
 
   const id = ++reqId;
   return new Promise((resolve) => {
     pendingRequests.set(id, resolve);
+    const safeWords = $state.snapshot(words);
     worker!.postMessage({
       type: 'CHECK_WORDS',
       id,
-      words
+      words: safeWords
     });
 
     // Timeout safety (2s max)

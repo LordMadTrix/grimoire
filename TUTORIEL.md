@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.6.3)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.6.7)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Table Virtuelle PixiJS v8 · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio & Studio Soundscape · Wiki Markdown & FTS5 · Compagnon Mobile PWA · IA Locale Ollama*
+> *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Inline Dice, Callouts, Mode Zen) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA · IA Locale Ollama*
 
 ---
 
@@ -46,6 +46,8 @@
 ### Téléchargement
 - **Windows** : Téléchargez le programme d'installation `.msi` ou le setup `.exe` depuis la page [Releases GitHub](https://github.com/LordMadTrix/grimoire/releases).
 - **Linux** : Téléchargez le paquet `.AppImage` ou `.deb`. Rendez le fichier exécutable (`chmod +x Grimoire.AppImage`) et lancez-le.
+- **Lanceur Intelligent pour Développeurs & Linux (`launch.sh`)** :
+  Le projet intègre désormais un script de démarrage intelligent `launch.sh` (`./launch.sh` ou `npm run launch`). Il vérifie automatiquement la présence de Node, npm, Rust/Cargo, les dépendances système Linux (WebKit2GTK, OpenSSL, GTK3), le démon Ollama, libère les ports 5173/5174 occupés et lance Grimoire sans friction.
 
 > 🛡️ **Note sur la sécurité (Windows / Chrome)** :  
 > Grimoire étant un projet open-source en développement actif, Chrome ou Windows SmartScreen peut afficher une alerte de précaution (*« Windows a protégé votre ordinateur »*).  
@@ -65,18 +67,15 @@ Au premier démarrage, Grimoire vous propose :
 Un coffre Grimoire est un simple dossier sur votre ordinateur. Voici l'organisation recommandée pour une campagne fluide :
 
 ```text
-📁 Mon_Univers_WFRP/
-├── 📄 Index.md                    ← Tableau de bord principal de votre campagne
-├── 📄 game.config.md              ← Règles personnalisées, tables de races et carrières
-├── 📁 .grimoire/                  ← Fichiers de configuration internes (quêtes, timeline)
-├── 📁 assets/
-│   ├── 📁 maps/                   ← Vos plans, cartes de villes et de donjons (JPG, PNG, WebP)
-│   ├── 📁 audio/                  ← Musiques d'ambiance et effets sonores (MP3, OGG, WAV)
-│   ├── 📁 handouts/               ← Lettres, parchemins et indices à montrer aux joueurs
-│   └── 📁 tokens/                 ← Portraits et pions découpés (PJ, PNJ, Monstres)
-├── 📁 scenarios/                  ← Vos actes de scénarios et intrigues
-├── 📁 world/                      ← Encyclopédie : cités, dieux, factions, cultes
-├── 📁 npcs/                       ← Fiches des PNJ importants et de leurs relations
+mon-univers/
+├── 📁 notes/                      ← Vos fiches de lore, PNJ, lieux, quêtes
+│   ├── 📁 pnj/
+│   ├── 📁 lieux/
+│   └── 📁 factions/
+├── 📁 assets/                     ← Images, battlemaps, musiques
+│   ├── 📁 maps/
+│   ├── 📁 tokens/
+│   └── 📁 audio/
 └── 📁 journal/                    ← Compte-rendus de chaque session jouée
 ```
 
@@ -84,14 +83,66 @@ Un coffre Grimoire est un simple dossier sur votre ordinateur. Voici l'organisat
 
 ## 4. L'Éditeur Markdown & Wiki Intelligent (CodeMirror 6 + FTS5)
 
-L'éditeur de Grimoire allie la simplicité du texte brut à la puissance d'un wiki interconnecté.
+L'éditeur de Grimoire réinvente la prise de notes pour Maître du Jeu en mariant la légèreté du Markdown brut avec une suite complète d'outils interactifs conçus pour la table.
 
-### Fonctionnalités Clés :
-- **WikiLinks `[[NomDeLaNote]]`** : Tapez `[[` n'importe où dans votre texte pour ouvrir l'autocomplétion instantanée vers une autre note de votre coffre.
-- **Rétroliens Automatiques (Backlinks)** : En bas de chaque note, Grimoire liste toutes les autres pages qui mentionnent cette note. Idéal pour retrouver qui est lié à quel PNJ !
-- **Recherche Instantanée (FTS5)** : Appuyez sur `Ctrl+K` pour ouvrir la palette de commande et rechercher n'importe quel mot ou extrait parmi des milliers de notes en moins de 5 millisecondes.
-- **Vue Graphique 2D (Graph View)** : Visualisation interactive des connexions entre vos notes avec simulation de forces physiques (D3.js).
-- **Mise en page riche** : Titres `#`, listes à puces `-`, tableaux markdown, citations `>` et cases à cocher `- [ ]`.
+### 🎲 1. Inline Dice Roller (Lancer de dés interactif au clic)
+- **Détection temps réel** : Toute formule de dés présente dans vos notes (`1d20+5`, `2d6`, `d100`, `4d6k3`, `1d12+2`, `8d6`) se transforme automatiquement en badge interactif orné d'un dé doré 🎲.
+- **Audio procédural** : Chaque clic déclenche un bruitage immersif de dés qui s'entrechoquent (synthétisé en temps réel via la Web Audio API sans aucun fichier sonore externe lourd).
+- **Popup de jet immersif** : Affiche le total, le détail des dés tirés, les **Succès Critiques** (surlignés en vert émeraude) et **Échecs Critiques** (en rouge).
+- **Boutons rapides** : Copiez le résultat dans le presse-papiers ou insérez-le directement dans votre note d'un seul clic !
+
+### 🛡️ 2. Styled Callouts (Encadrés thématiques rôlistes & Obsidian)
+Grimoire affiche directement dans l'éditeur les blocs de citation typés avec une identité visuelle marquée :
+- `> [!NOTE]` ou `> [!INFO]` : Encadré bleu classique d'information générale.
+- `> [!SECRET]` : Cadre ambré doré discret avec cadenas 🔒 pour vos pièges cachés, énigmes et notes secrètes du MJ.
+- `> [!WARNING]` ou `> [!DANGER]` : Alerte rouge intense avec tête de mort 💀 pour dangers mortels.
+- `> [!LOOT]` : Encadré vert émeraude avec gemme 💎 pour récompenses, trésors et objets magiques.
+- `> [!TIP]` : Conseil tactique avec ampoule 💡.
+- `> [!READALOUD]` ou `> [!QUOTE]` : Cadre violet élégant avec parchemin 📜 pour les récits et descriptions à lire à voix haute aux joueurs.
+
+### ☑️ 3. Cases à cocher interactives (Checklists de Quête en Direct)
+- Les listes à puces Markdown `- [ ]` et `- [x]` sont transformées en cases à cocher personnalisées cliquables directement dans l'éditeur.
+- Cliquez sur la case : elle se coche ou se décoche instantanément dans le fichier source et déclenche la sauvegarde automatique transparente.
+
+### 🧘 4. Mode Zen & Typewriter Scrolling (Immersion Totale)
+- **Mode Zen (<kbd>F11</kbd> ou bouton `🧘`)** : Plongez dans un écran d'écriture pleine page sans aucune distraction. La barre latérale et les bordures s'effacent pour laisser place à vos mots. Pressez <kbd>Échap</kbd> ou <kbd>F11</kbd> pour revenir au mode standard.
+- **Typewriter Scrolling (bouton `📜`)** : Inspiré des machines à écrire mécaniques, ce mode maintient la ligne active exactement au centre vertical de l'écran, vous évitant de fixer le bas de votre écran pendant la rédaction.
+
+### 🪄 5. Menu IA Flottant Rapide (Quick AI Assistant)
+- Sélectionnez n'importe quel mot ou paragraphe dans vos notes pour faire apparaître une bulle contextuelle magique :
+  - 🎭 **Décrire** : Génère une description évocatrice et sensorielle du lieu ou de l'objet.
+  - 💬 **Dialogue** : Fournit des citations, tics de langage et attitudes pour un PNJ.
+  - 👁️ **Sensoriel** : Liste des indices d'ambiance (sons étouffés, odeurs, ombres).
+  - ⚔️ **Stats** : Esquisse un profil chiffré de créature ou de piège.
+- Propulsé par votre moteur d'IA locale Ollama (100% privé et hors-ligne).
+
+### 🗺️ 6. Passerelle Note ⟷ Scènes VTT (`[[map:NomDeScene]]`)
+- Tapez par exemple `[[map:Catacombes Niveau 1]]` dans votre note.
+- Le lien s'affiche avec un badge violet et une boussole de cartographe 🗺️.
+- En cliquant dessus (ou <kbd>Ctrl</kbd>+Clic), Grimoire bascule automatiquement sur l'onglet **Table Virtuelle (VTT)** et charge immédiatement la scène demandée. Idéal pour relier un scénario écrit à vos cartes de jeu !
+
+### 🎵 7. Lecteur d'Ambiance Frontmatter
+- Spécifiez l'ambiance sonore de votre lieu directement dans l'en-tête YAML de la note :
+  ```yaml
+  ---
+  title: La Crypte des Maudits
+  ambiance: dark_dungeon_loop.mp3
+  ---
+  ```
+- Un badge audio interactif apparaît en tête de note. Un simple clic dessus lance la piste dans le Soundscape du VTT sans avoir à chercher le fichier manuellement.
+
+### ✍️ 8. Correcteur Orthographique Bilingue & Fantasy
+- Correcteur Hunspell intégré fonctionnant en tâche de fond (Web Worker) sans aucun ralentissement de frappe.
+- **Français & Anglais** : Dictionnaires complets avec prise en charge avancée des ligatures (`œ`, `æ`), apostrophes courbes et majuscules accentuées.
+- **Dictionnaire Fantasy MJ** : Reconnaît le vocabulaire rôliste (Points de Vie, CA, Gobelours, Tieffelin, Battlemap, Rôliste...).
+- **Contrôle facile** : Indicateur dans la barre d'état permettant de basculer en un clic entre `FR`, `EN` ou de le désactiver.
+
+### ↩️ 9. Annuler / Rétablir & Outils d'Édition
+- Boutons dédiés **↩️ Annuler (<kbd>Ctrl+Z</kbd>)** et **↪️ Rétablir (<kbd>Ctrl+Y</kbd>)** accessibles dans l'en-tête de note, la barre d'outils et directement au sein des infobulles du correcteur d'orthographe.
+- **WikiLinks `[[NomDeLaNote]]`** : Tapez `[[` pour l'autocomplétion instantanée vers n'importe quelle note.
+- **Rétroliens Automatiques (Backlinks)** : Visualisez en bas de page toutes les fiches qui pointent vers la note active.
+- **Recherche Instantanée (FTS5)** : Pressez <kbd>Ctrl+K</kbd> ou <kbd>Ctrl+P</kbd> pour retrouver n'importe quel terme dans tout le coffre en moins de 5 millisecondes.
+- **Vue Graphique 2D** : Cartographie relationnelle D3.js avec simulation physique.
 
 ---
 
@@ -408,7 +459,11 @@ Voici la check-list idéale pour préparer et mener votre première partie sur G
 | Raccourci | Contexte | Action |
 | :--- | :--- | :--- |
 | `Ctrl + K` / `Ctrl + P` | Partout | Palette de commande & recherche instantanée (FTS5) |
+| `F11` | Éditeur Markdown | Activer / Désactiver le Mode Zen (Plein écran épuré) |
+| `Échap` | Éditeur (Mode Zen) | Quitter le Mode Zen |
+| `Ctrl + Z` / `Ctrl + Y` | Éditeur / VTT / Map Editor | Annuler / Rétablir la dernière action |
 | `Ctrl + J` | Éditeur Markdown | Génération de texte IA sur la sélection |
+| `Ctrl + B` / `Ctrl + I` | Éditeur Markdown | Mettre le texte en Gras / Italique |
 | `Alt + Molette` | VTT (Token survolé) | Redimensionnement rapide du token |
 | `Poignée ⬤` | VTT (Token survolé) | Redimensionner manuellement le token |
 | `Clic Droit Token` | VTT | Ouvre la ConditionWheel (8 statuts) |
@@ -416,7 +471,6 @@ Voici la check-list idéale pour préparer et mener votre première partie sur G
 | `Molette` | VTT / Map Editor | Zoom avant / arrière |
 | `Espace` | VTT | Recentrer la caméra sur le groupe de tokens |
 | `1` à `9` | Mode Murs | Sélectionner un outil de tracé |
-| `Ctrl + Z` / `Ctrl + Y` | VTT / Map Editor | Annuler / Rétablir la dernière action |
 
 ---
 

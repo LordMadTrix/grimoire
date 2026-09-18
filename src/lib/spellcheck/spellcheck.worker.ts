@@ -81,7 +81,7 @@ function isWordValid(rawWord: string): boolean {
   let correct = spellInstance.correct(word);
 
   // If false and word starts with capital letter, check lowercased
-  if (!correct && /^[A-ZÀ-ÖØ-ß]/.test(word)) {
+  if (!correct && /^\p{Lu}/u.test(word)) {
     correct = spellInstance.correct(lower);
   }
 
