@@ -22,6 +22,7 @@
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
+  import { getAiModel, setAiModel } from '$lib/stores/settings.svelte';
   import { openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath } from '$lib/api';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
@@ -171,18 +172,54 @@
       }
       setTimeout(() => updateModalRef?.runCheck(), 8000);
       
-      // Vérification initiale du statut d'Ollama pour l'onboarding
+      // Synchronisation automatique du modèle Ollama installé
+      const syncOllamaModel = async () => {
+        try {
+          const status = await checkOllamaStatus();
+          if (status.models && status.models.length > 0) {
+            const cur = getAiModel();
+            const match = status.models.find(m => m === cur || m.startsWith(cur) || cur.startsWith(m));
+            if (match) {
+              setAiModel(match);
+            } else {
+              // Le modèle configuré n'existe pas dans Ollama, synchroniser avec le premier modèle disponible
+              setAiModel(status.models[0]);
+            }
+          }
+        } catch (err) {
+          console.warn("Échec de la synchronisation d'état Ollama :", err);
+        }
+      };
+
       try {
         const status = await checkOllamaStatus();
-        const dismissed = localStorage.getItem('grimoire_ollama_onboard_dismissed');
-        if (!status.binary_exists || status.models.length === 0) {
-          if (!dismissed) {
-            showOllamaOnboarding = true;
+        if (status.models && status.models.length > 0) {
+          const cur = getAiModel();
+          const match = status.models.find(m => m === cur || m.startsWith(cur) || cur.startsWith(m));
+          if (match) {
+            setAiModel(match);
+          } else {
+            setAiModel(status.models[0]);
+          }
+        } else {
+          const dismissed = localStorage.getItem('grimoire_ollama_onboard_dismissed');
+          if (!status.binary_exists || status.models.length === 0) {
+            if (!dismissed) {
+              showOllamaOnboarding = true;
+            }
           }
         }
       } catch (err) {
         console.error("Échec de la vérification initiale d'Ollama :", err);
       }
+
+      window.addEventListener('focus', syncOllamaModel);
+
+      _unlistenApp.push(await listen<string>('ollama-model-active', (event) => {
+        if (event.payload) {
+          setAiModel(event.payload);
+        }
+      }));
       _unlistenApp.push(await listen('visual_dice_roll', (event: any) => {
         const { name, roll } = event.payload;
         handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);

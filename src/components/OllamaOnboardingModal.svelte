@@ -97,14 +97,27 @@
     if (unlistenPull) unlistenPull();
   });
 
+  function isModelInstalled(id: string): boolean {
+    return existingModels.some(m => m === id || m.startsWith(id) || id.startsWith(m) || m.split(':')[0] === id.split(':')[0]);
+  }
+
   async function refreshStatus() {
     try {
       const status = await checkOllamaStatus();
       binaryExists = status.binary_exists;
       serverRunning = status.server_running;
       existingModels = status.models;
+      if (existingModels && existingModels.length > 0) {
+        const match = existingModels.find(m => m === selectedModel || m.startsWith(selectedModel) || selectedModel.startsWith(m) || m.split(':')[0] === selectedModel.split(':')[0]);
+        if (match) {
+          selectedModel = match;
+        } else {
+          selectedModel = existingModels[0];
+        }
+        setAiModel(selectedModel);
+      }
       if (binaryExists && step === 'intro') {
-        step = 'download_model';
+        step = (existingModels && existingModels.length > 0) ? 'complete' : 'download_model';
       }
     } catch (e: any) {
       console.warn("Échec du rafraîchissement d'état Ollama :", e);
@@ -140,6 +153,15 @@
   }
 
   async function installModel() {
+    if (isModelInstalled(selectedModel)) {
+      const match = existingModels.find(m => m === selectedModel || m.startsWith(selectedModel) || selectedModel.startsWith(m) || m.split(':')[0] === selectedModel.split(':')[0]);
+      const finalModel = match || selectedModel;
+      setAiModel(finalModel);
+      selectedModel = finalModel;
+      step = 'complete';
+      return;
+    }
+
     isInstallingModel = true;
     pullPercent = 0;
     pullStatus = "Connexion au moteur Ollama...";
@@ -316,27 +338,51 @@
 
               <div class="model-cards">
                 {#each modelsOptions as opt}
+                  {@const installed = isModelInstalled(opt.id)}
                   <button 
                     type="button"
                     class="model-card" 
-                    class:selected={selectedModel === opt.id}
+                    class:selected={selectedModel === opt.id || (installed && (selectedModel === opt.id || !modelsOptions.some(o => o.id === selectedModel)))}
                     onclick={() => selectedModel = opt.id}
                   >
                     <div class="model-card-header">
                       <strong class="model-name">{opt.name}</strong>
-                      <span class="model-size">{opt.size}</span>
+                      {#if installed}
+                        <span style="background: rgba(46, 125, 50, 0.2); border: 1px solid #4caf50; color: #81c784; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">✓ Installé</span>
+                      {:else}
+                        <span class="model-size">{opt.size}</span>
+                      {/if}
                     </div>
                     <p class="model-desc">{opt.desc}</p>
                   </button>
                 {/each}
               </div>
 
+              {#if existingModels.length > 0}
+                <div style="margin-top: 15px; padding: 12px; background: rgba(46, 125, 50, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 8px;">
+                  <strong style="color: #81c784; font-size: 13px;">💡 Modèle{existingModels.length > 1 ? 's' : ''} détecté{existingModels.length > 1 ? 's' : ''} sur votre machine :</strong>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                    {#each existingModels as em}
+                      <button 
+                        type="button" 
+                        class="btn-secondary" 
+                        class:btn-primary={selectedModel === em}
+                        style="padding: 6px 12px; font-size: 12px;"
+                        onclick={() => { selectedModel = em; setAiModel(em); step = 'complete'; }}
+                      >
+                        ✓ Activer {em}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
               <div class="actions">
                 <button class="btn-secondary" onclick={() => { errorMsg = ''; pullStatus = ''; pullPercent = 0; step = 'intro'; }}>
                   Retour
                 </button>
                 <button class="btn-primary" onclick={installModel}>
-                  {errorMsg ? 'Réessayer le téléchargement' : 'Télécharger et Configurer'}
+                  {isModelInstalled(selectedModel) ? 'Utiliser ce modèle' : (errorMsg ? 'Réessayer le téléchargement' : 'Télécharger et Configurer')}
                 </button>
               </div>
             </div>

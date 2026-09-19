@@ -415,10 +415,27 @@ pub async fn ask_ollama(app_handle: tauri::AppHandle, prompt: String, model: Str
     let mut target_model = model;
     if let Ok(tags_res) = client.get(format!("{}/api/tags", host)).send().await {
         if let Ok(parsed_tags) = tags_res.json::<OllamaTagsResponse>().await {
-            let model_exists = parsed_tags.models.iter().any(|m| m.name == target_model || m.name.starts_with(&target_model));
-            if !model_exists && !parsed_tags.models.is_empty() {
+            if parsed_tags.models.is_empty() {
+                return Err("Aucun modèle n'est installé sur Ollama. Rendez-vous dans les Paramètres ⚙️ → IA Locale pour installer un modèle (ex: Llama 3.2 ou Gemma 2).".to_string());
+            }
+
+            // Chercher une correspondance exacte ou partielle (ex: "llama3.2" -> "llama3.2:1b" ou "gemma2:2b" -> "gemma2:2b")
+            let matched = parsed_tags.models.iter().find(|m| {
+                m.name.eq_ignore_ascii_case(&target_model)
+                    || m.name.starts_with(&target_model)
+                    || target_model.starts_with(&m.name)
+                    || m.name.split(':').next() == target_model.split(':').next()
+            });
+
+            if let Some(m) = matched {
+                target_model = m.name.clone();
+            } else {
+                // Modèle demandé non trouvé : repli automatique vers le premier modèle installé
                 target_model = parsed_tags.models[0].name.clone();
             }
+
+            // Notifier le frontend du modèle réellement actif pour mettre à jour l'interface
+            let _ = app_handle.emit("ollama-model-active", &target_model);
         }
     }
 
@@ -526,5 +543,31 @@ mod tests {
         }
 
         assert!(error_found, "Ollama should send an error object for non-existent models");
+    }
+
+    #[tokio::test]
+    async fn test_ask_ollama_fallback_to_installed_model() {
+        let client = reqwest::Client::new();
+        let host = get_active_ollama_host(&client).await.expect("Ollama must be running");
+
+        let tags_res = client.get(format!("{}/api/tags", host)).send().await.unwrap();
+        let tags = tags_res.json::<OllamaTagsResponse>().await.unwrap();
+        assert!(!tags.models.is_empty(), "Should have at least 1 installed model");
+
+        let mut target_model = "gemma2:2b".to_string();
+        let model_exists = tags.models.iter().any(|m| m.name == target_model || m.name.starts_with(&target_model));
+        if !model_exists {
+            target_model = tags.models[0].name.clone();
+        }
+        assert_eq!(target_model, "llama3.2:1b");
+
+        let req = OllamaRequest {
+            model: target_model,
+            prompt: "Bonjour".to_string(),
+            system: "Tu es un assistant.".to_string(),
+            stream: false,
+        };
+        let gen_res = client.post(format!("{}/api/generate", host)).json(&req).send().await.unwrap();
+        assert!(gen_res.status().is_success());
     }
 }

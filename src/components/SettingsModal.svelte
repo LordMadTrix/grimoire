@@ -45,8 +45,15 @@
       models = await getOllamaModels();
       if (models.length === 0) {
         errorMsg = "Aucun modèle trouvé sur Ollama.";
-      } else if (!models.includes(currentModel)) {
-        currentModel = models[0];
+      } else {
+        const match = models.find(m => m === currentModel || m.startsWith(currentModel) || currentModel.startsWith(m));
+        if (match) {
+          currentModel = match;
+          setAiModel(match);
+        } else {
+          currentModel = models[0];
+          setAiModel(models[0]);
+        }
       }
     } catch (e) {
       errorMsg = "Impossible de se connecter à Ollama (est-il bien lancé ?).";

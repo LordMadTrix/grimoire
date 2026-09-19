@@ -674,16 +674,16 @@
 
     isGenerating = true;
 
+    const model = getAiModel();
+    const sysPrompt = getAiSystemPrompt();
+
     // Calculer la longueur depuis la chaîne réelle pour éviter les erreurs d'offset
-    const loadingText = '\n\n*✨ Réflexion de l\'IA...*';
+    const loadingText = `\n\n*✨ Réflexion de l'IA (${model || 'locale'})...*`;
     view.dispatch({
       changes: { from: insertPos, insert: loadingText }
     });
 
     const loadingEnd = insertPos + loadingText.length;
-
-    const model = getAiModel();
-    const sysPrompt = getAiSystemPrompt();
 
     askOllama(promptText, model, sysPrompt)
       .then(res => {
