@@ -104,17 +104,25 @@ Grimoire affiche directement dans l'éditeur les blocs de citation typés avec u
 - Les listes à puces Markdown `- [ ]` et `- [x]` sont transformées en cases à cocher personnalisées cliquables directement dans l'éditeur.
 - Cliquez sur la case : elle se coche ou se décoche instantanément dans le fichier source et déclenche la sauvegarde automatique transparente.
 
-### 🧘 4. Mode Zen & Typewriter Scrolling (Immersion Totale)
-- **Mode Zen (<kbd>F11</kbd> ou bouton `🧘`)** : Plongez dans un écran d'écriture pleine page sans aucune distraction. La barre latérale et les bordures s'effacent pour laisser place à vos mots. Pressez <kbd>Échap</kbd> ou <kbd>F11</kbd> pour revenir au mode standard.
-- **Typewriter Scrolling (bouton `📜`)** : Inspiré des machines à écrire mécaniques, ce mode maintient la ligne active exactement au centre vertical de l'écran, vous évitant de fixer le bas de votre écran pendant la rédaction.
+### 📏 4. Retour à la Ligne Automatique (Line Wrapping) & Lisibilité Parfaite
+- **Césure fluide** : Grimoire intègre l'extension officielle `lineWrapping` de CodeMirror 6. Vos longues descriptions et dialogues s'adaptent désormais dynamiquement à la largeur de votre fenêtre sans jamais dépasser du cadre ni nécessiter d'ascenseur horizontal.
+- **Règles de césure propres** : Césure respectant les mots (`break-word`) et padding latéral optimisé pour un confort de lecture digne d'un livre imprimé.
 
-### 🪄 5. Menu IA Flottant Rapide (Quick AI Assistant)
-- Sélectionnez n'importe quel mot ou paragraphe dans vos notes pour faire apparaître une bulle contextuelle magique :
-  - 🎭 **Décrire** : Génère une description évocatrice et sensorielle du lieu ou de l'objet.
-  - 💬 **Dialogue** : Fournit des citations, tics de langage et attitudes pour un PNJ.
-  - 👁️ **Sensoriel** : Liste des indices d'ambiance (sons étouffés, odeurs, ombres).
-  - ⚔️ **Stats** : Esquisse un profil chiffré de créature ou de piège.
-- Propulsé par votre moteur d'IA locale Ollama (100% privé et hors-ligne).
+### 🪄 5. Palette Interactive d'IA Rôliste (<kbd>Ctrl+J</kbd> ou bouton `🪄 Ollama`)
+Pressez <kbd>Ctrl+J</kbd> ou cliquez sur le bouton `🪄 Ollama` pour ouvrir la **Palette Interactive d'IA** au-dessus de vos notes :
+- **Détection automatique du modèle** : Grimoire interroge votre installation Ollama et s'adapte instantanément au modèle disponible (`llama3.2:1b`, `gemma2:2b`, etc.) sans plantage ni configuration complexe.
+- **Sélecteur d'Ambiance en 1 clic** : Basculez entre 6 univers narratifs (🧙‍♂️ Fantasy Héroïque, 🌑 Dark Fantasy, ⚔️ Médiéval Réaliste, 🕵️ Enquête & Mystère, 🚀 Sci-Fi & Cyberpunk, 🛡️ Neutre & Factuel). Fini d'être enfermé dans un seul thème d'ombres !
+- **Actions Rôlistes Prêtes à l'Emploi** :
+  - 🔤 **Corriger l'orthographe & style** : Mode strict qui rectifie la syntaxe, la grammaire et la ponctuation **sans inventer d'histoire imaginaire**, avec bouton de remplacement immédiat dans la note.
+  - ✍️ **Continuer l'écriture** : Développe la scène ou le paragraphe naturellement.
+  - 🏰 **Décrire un lieu / Décor** : Rédige une description sensorielle vivante (visuels, sons, odeurs, lumière).
+  - 👤 **Créer un PNJ** : Génère un profil complet avec secret inavouable et répliques.
+  - ⚔️ **Péripétie & Rebondissement** : 3 complications immédiates pour surprendre les joueurs.
+  - 🎲 **Table de butin & Trésor** : Objets insolites, reliques ou indices.
+  - 📜 **Résumer la note** : Synthèse claire en puces.
+  - 💬 **Consigne libre sur-mesure** : Tapez votre propre instruction (ex: *"Traduis en elfique"*, *"Crée une énigme"*).
+- **Prévisualisation & Application** : Boutons *« ✓ Remplacer dans la note »* ou *« ✓ Insérer à la suite »* pour intégrer le résultat propre sans bloc de citation `>` parasite.
+- **Mini-barre flottante au survol** : Sélectionnez n'importe quel texte pour faire surgir le mini-menu rapide (Décrire, Dialogues, Sensations, Stats ou Palette complète).
 
 ### 🗺️ 6. Passerelle Note ⟷ Scènes VTT (`[[map:NomDeScene]]`)
 - Tapez par exemple `[[map:Catacombes Niveau 1]]` dans votre note.
@@ -403,14 +411,38 @@ Pour le Maître du Jeu qui souhaite préparer ses parties en déplacement (trans
 
 ## 16. Assistant Narratif & IA Locale Ollama
 
-Grimoire intègre un écrivain fantôme alimenté par vos modèles d'IA locaux (Llama 3, Mistral, Gemma, Qwen) via **Ollama**. Vos données ne quittent jamais votre machine.
+Grimoire intègre un assistant rôliste d'élite propulsé par vos modèles d'IA locaux (Llama 3.2, Gemma 2, Mistral, Qwen...) via **Ollama**. Vos notes et idées ne transitent par aucun serveur cloud : tout s'exécute **100% hors-ligne sur votre processeur ou votre carte graphique**.
 
-### Modules de l'Assistant Narratif :
+### 🛠️ 1. Installation Facile & Sans Droits Administrateur
+- **Sous Linux** : Une commande officielle dans votre terminal suffit : `curl -fsSL https://ollama.com/install.sh | sh`. Grimoire propose un bouton de copie en un clic et rafraîchit immédiatement son état.
+- **Téléchargement automatique** : L'assistant d'onboarding Grimoire installe le moteur dans votre espace utilisateur local (`app_local_data_dir/bin`), éliminant tout blocage de permissions root ou admin.
+- **Détection automatique du port & des modèles** : Grimoire interroge en priorité le démon système sur le port standard `11434`. Si vous avez déjà un modèle installé (ex : `llama3.2:1b`), Grimoire le détecte automatiquement et l'active immédiatement, sans forcer un modèle manquant ni planter !
+
+### 🎭 2. Les 6 Ambiances & Styles Narratifs au Choix
+Ne soyez plus contraint par un style unique ! Grimoire propose un sélecteur d'ambiance direct (dans la palette et dans les Paramètres ⚙️) :
+1. 🧙‍♂️ **Fantasy Héroïque** (Style D&D / Pathfinder) : Descriptions épiques, magie vivante, bravoure et panache. *(Sélectionné par défaut)*
+2. 🌑 **Dark Fantasy** (Style Warhammer / Dark Souls) : Menace viscérale, corruption, suspense et obscurité.
+3. ⚔️ **Médiéval Réaliste** (Style Historique) : Rigueur matérielle, détails d'époque et authenticité sans surnaturel abusif.
+4. 🕵️ **Enquête & Mystère** (Style Cthulhu / Polar) : Indices voilés, atmosphère feutrée, suspense et faux-semblants.
+5. 🚀 **Sci-Fi & Cyberpunk** (Style Cyberpunk / Starfinder) : Technologie avancée, néons urbains et argot futuriste.
+6. 🛡️ **Neutre & Factuel** : Réponses claires, chirurgicales et concises (idéal pour les règles, calculs et fiches).
+
+### 🪄 3. La Palette de Prompts en Session (<kbd>Ctrl+J</kbd>)
+Au cœur de l'éditeur de notes, appuyez sur <kbd>Ctrl+J</kbd> (ou cliquez sur `🪄 Ollama`) pour ouvrir le menu d'actions contextuelles :
+- **🔤 Corriger l'orthographe & style** : Mode correcteur strict qui respecte scrupuleusement votre texte d'origine. Il ne brode **aucune fiction** et remplace directement la sélection dans la note au clic sur *« ✓ Remplacer dans la note »*.
+- **✍️ Continuer l'écriture** : Rédige 1 à 2 paragraphes cohérents pour enchaîner sur votre dernière phrase.
+- **🏰 Décrire un lieu / Décor** : Révèle les odeurs de feu de bois, le bruit des pavés humides ou la lueur des vitraux.
+- **👤 Créer un PNJ** : Génère nom, rôle, manie distinctive, secret inavouable et citations.
+- **⚔️ Péripétie & Rebondissement** : 3 complications inattendues pour dynamiser une scène qui s'étire.
+- **🎲 Table de butin & Trésor** : 4 objets intrigants avec détails mystiques adaptés à votre niveau.
+- **📜 Résumer la note** : Puces synthétiques prêtes à être partagées ou relues rapidement en jeu.
+- **💬 Prompt libre sur-mesure** : Une consigne totalement personnalisée pour vos besoins spécifiques.
+
+### 🧙‍♂️ 4. Modules Narratifs Avancés (Menu Outils MJ)
 Accessible via **🧙‍♂️ Outils MJ → 🤖 Assistant IA & Narratif** :
-1. **Descriptions d'Ambiance de Scène** : Sélectionnez un lieu impérial (Taverne mal famée, Forteresse naine, Forêt de Reikwald, Égouts fétides...) et un ton (Sombre & Viscéral, Mystérieux, Épique...). L'IA rédige une description sensorielle captivante.
-2. **Générateur d'Accroches de Quêtes** : Choisissez la carrière de vos héros (Chasseur de rats, Répurgateur, Sorcier...) pour obtenir des intrigues sur-mesure.
-3. **Dialogue de PNJ Express** : Définissez l'archétype et l'humeur du PNJ pour générer des répliques théâtrales immersives.
-4. **Diffusion Handout** : Cliquez sur *Diffuser aux Joueurs* pour envoyer la description générée directement sur l'écran joueur.
+1. **Descriptions d'Ambiance de Scène** : Sélectionnez un décor et une émotion pour obtenir une prose prête à déclamer.
+2. **Générateur d'Accroches de Quêtes** : Intrigues adaptées à la classe ou au passé des aventuriers.
+3. **Diffusion Handout Joueurs** : Projetez en un clic la description textuelle sur les smartphones de vos joueurs connectés au Hub Mobile.
 
 ---
 

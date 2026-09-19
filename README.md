@@ -30,11 +30,24 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 
 ### 1. 📝 Éditeur Markdown Rôliste Ultime (Style Obsidian & Outils MJ)
 - **Éditeur Markdown moderne (CodeMirror 6)** : Coloration syntaxique complète, formatage de texte, titres, listes, citations et tableaux.
+- **📏 Retour à la Ligne Automatique (Line Wrapping)** : Fini le texte qui déborde de l'écran ou les phrases coupées à l'horizontale. Vos notes et récits s'adaptent naturellement à la largeur de votre fenêtre avec césure de mots propre.
+- **🪄 Palette Interactive de Prompts IA (<kbd>Ctrl</kbd> + <kbd>J</kbd> ou bouton 🪄 Ollama)** :
+  - **Détection automatique et transparente** : Identifie immédiatement le modèle installé dans Ollama (`llama3.2:1b`, `gemma2:2b`, etc.) avec repli intelligent sans plantage ni configuration complexe.
+  - **Sélecteur d'Ambiances & Genres en 1-clic** : Ne soyez plus enfermé dans un seul univers ! Choisissez votre tonalité parmi 🧙‍♂️ Fantasy Héroïque, 🌑 Dark Fantasy, ⚔️ Médiéval Réaliste, 🕵️ Enquête & Mystère, 🚀 Sci-Fi & Cyberpunk ou 🛡️ Neutre & Factuel.
+  - **Actions Rôlistes Instantanées** :
+    - 🔤 **Correction d'orthographe & de style** : Corrige rigoureusement la syntaxe, la grammaire et la ponctuation **sans inventer d'histoire**, avec bouton de remplacement direct dans la note.
+    - ✍️ **Continuer l'écriture** : Développe la scène ou la suite naturellement.
+    - 🏰 **Décrire un lieu / Décor** : Description sensorielle riche (visuels, acoustique, odeurs, lumière).
+    - 👤 **Créer un PNJ** : Fiche synthétique avec identité, secrets inavouables et répliques.
+    - ⚔️ **Péripéties & Rebondissements** : Événements imprévus pour relancer le rythme.
+    - 🎲 **Table de Butin & Trésors** : Objets insolites, reliques ou indices mystérieux.
+    - 📜 **Résumer** : Synthèse claire et structurée en puces.
+    - 💬 **Consignes Libres Sur-Mesure** : Champ de commande pour taper n'importe quelle instruction personnalisée.
 - **🎲 Inline Dice Roller (Lancer Cliquable)** : Détection temps réel des formules (`1d20+5`, `2d6`, `d100`), badge orné d'un dé doré, son procédural de dés (Web Audio) et popup critique avec insertion en 1 clic.
 - **🛡️ Styled Callouts Rôlistes** : Rendu en direct des encadrés `[!NOTE]`, `[!SECRET]` (pièges et notes MJ dorées), `[!WARNING]` (dangers mortels), `[!LOOT]` (trésors émeraude) et `[!READALOUD]` (récits pour les joueurs).
 - **☑️ Checkboxes Interactives en Direct** : Les listes de quêtes `- [ ]` et `- [x]` sont directement cliquables dans le code source avec sauvegarde instantanée.
 - **🧘 Mode Zen & Machine à Écrire** : Plein écran épuré sans distraction (<kbd>F11</kbd> / <kbd>Échap</kbd>) et défilement centré Typewriter Scrolling.
-- **🪄 Menu IA Contextuel Flottant** : Sélection de texte avec menu instantané pour Décrire, dialoguer avec un PNJ, générer des indices sensoriels ou esquisser un profil de statistiques via Ollama.
+- **🪄 Menu IA Contextuel Flottant** : Sélection de texte avec mini-barre d'outils instantanée pour Décrire, dialoguer avec un PNJ, générer des indices sensoriels ou ouvrir le menu complet.
 - **🗺️ Passerelle Note ⟷ VTT Map** : Liens `[[map:NomDeScene]]` basculant directement sur la scène de la Table Virtuelle.
 - **🎵 Lecteur d'Ambiance Frontmatter** : Champ `ambiance: piste.mp3` déclenchant la bande-son du lieu sur le Soundscape VTT en 1 clic.
 - **✍️ Correcteur Hunspell Bilingue & Fantasy** : Correcteur orthographique en tâche de fond (Web Worker) FR & EN avec dictionnaire rôliste et ligatures françaises.
@@ -45,7 +58,7 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Vue Graphique 2D Interactive (Graph View)** : Visualisation de l'univers sous forme de toile cosmique avec physique de répulsion des nœuds interconnectés.
 - **Timeline & Calendrier Impérial** : Suivi des dates en jeu, avancement du temps (+1h, +1j), gestion des ères et saisons.
 - **Gestionnaire de Coffre (Vault Explorer)** : Support de coffres multiples, dossiers, glisser-déposer, favoris et fichiers récents.
-- **🤖 Assistant IA Local Intégré (Ollama v0.6.8)** : Assistant d'écriture 100% privé et hors-ligne propulsé par Ollama. Assistant de configuration guidé, détection automatique du démon système (port 11434/11435), téléchargement transparent des modèles (Gemma 2, Llama 3.2) avec jauge en mégaoctets et support Linux & Windows sans droit administrateur.
+- **🤖 Assistant IA Local Intégré (Ollama v0.6.8)** : Assistant d'écriture 100% privé et hors-ligne propulsé par Ollama. Assistant de configuration guidé, détection automatique du démon système (port 11434/11435), téléchargement transparent des modèles (Gemma 2, Llama 3.2) avec jauge en mégaoctets réels et support Linux & Windows sans droit administrateur.
 
 ### 2. 🗺️ Virtual TableTop Haute Performance (PixiJS v8 VTT)
 - **Moteur Graphique GPU 60+ FPS** : Rendu ultra-fluide des cartes géantes, textures dynamiques et animations sans ralentissement.
