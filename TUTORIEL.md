@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.6.8)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.6.9)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Inline Dice, Callouts, Mode Zen) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA · IA Locale Ollama*
+> *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA & Bouclier Anti-Perte · IA Locale Ollama*
 
 ---
 
@@ -151,6 +151,33 @@ Pressez <kbd>Ctrl+J</kbd> ou cliquez sur le bouton `🪄 Ollama` pour ouvrir la 
 - **Rétroliens Automatiques (Backlinks)** : Visualisez en bas de page toutes les fiches qui pointent vers la note active.
 - **Recherche Instantanée (FTS5)** : Pressez <kbd>Ctrl+K</kbd> ou <kbd>Ctrl+P</kbd> pour retrouver n'importe quel terme dans tout le coffre en moins de 5 millisecondes.
 - **Vue Graphique 2D** : Cartographie relationnelle D3.js avec simulation physique.
+
+### 🔍 10. Recherche & Remplacement Intégrés (<kbd>Ctrl+F</kbd> / <kbd>Ctrl+H</kbd>)
+- **Recherche Rapide (<kbd>Ctrl+F</kbd>)** : Ouvre le volet de recherche textuelle avec surlignage immédiat de toutes les occurrences dans la note active.
+- **Remplacement Intégré (<kbd>Ctrl+H</kbd>)** : Affiche les champs Chercher et Remplacer pour substituer un terme au cas par cas ou globalement.
+- **Surlignage Automatique (`highlightSelectionMatches`)** : Sélectionner un mot surligne instantanément toutes ses répétitions dans le document (façon VS Code / Obsidian).
+- **Navigation Clavier** : <kbd>Entrée</kbd> pour l'occurrence suivante, <kbd>Shift+Entrée</kbd> pour la précédente, et <kbd>Échap</kbd> pour refermer le volet.
+- **Bouton Loupe 🔍** : Accessible directement dans l'en-tête de la note pour ouvrir la recherche en 1 clic à la souris.
+
+### ⚡ 11. Saisie Fluide & GitHub Flavored Markdown (GFM)
+- **Indentation Directe (<kbd>Tab</kbd> / <kbd>Shift+Tab</kbd>)** : Indentez ou désindentez des blocs entiers de listes ou de paragraphes sans que le curseur ne quitte l'éditeur.
+- **Continuation Intelligente des Listes (<kbd>Entrée</kbd>)** :
+  - Dans une liste à puces (`- `), numérotée (`1. `), de tâches (`- [ ] `) ou de citation (`> `), presser <kbd>Entrée</kbd> insère automatiquement la puce suivante.
+  - Presser <kbd>Entrée</kbd> sur une ligne de puce vide la supprime proprement pour reprendre un paragraphe normal.
+- **Tableaux GFM Complets** : Syntaxe native `| Col 1 | Col 2 |` avec formatage inline (**gras**, *italique*, liens wiki, code).
+- **Encapsulation Automatique d'URL** : Sélectionner un mot ou une phrase et coller un lien (<kbd>Ctrl+V</kbd>) transforme automatiquement la sélection en `[mot](url)`.
+- **Rendu Visuel des Titres & Tâches** : Les titres H1 à H4 s'affichent avec une échelle et une dorure distinctes directement dans l'éditeur brut, et les tâches cochées (`- [x]`) sont automatiquement grisées et barrées.
+
+### 🌓 12. Double Vue Synchronisée (Split View) & Mode Lecture Seule
+Basculez entre trois modes d'affichage depuis le sélecteur dans l'en-tête de note :
+- ✏️ **Éditeur Seul** : Pleine largeur optimisée pour la rédaction fluide sans distraction.
+- 🌓 **Double Vue (Split)** : Éditeur CodeMirror à gauche et rendu HTML en direct à droite. Le défilement est synchronisé de manière fluide et bidirectionnelle sans sauts d'ascenseur.
+- 📖 **Mode Lecture Seule** : Rendu HTML élégant centré en pleine largeur. Idéal pour poser un écran ou un ordinateur portable sur la table de jeu et lire son scénario sans risquer d'altérer le texte par accident.
+
+### 💎 13. Aperçu Rendu Rôliste Enrichi & Dés Cliquables
+- **Callouts Multi-Lignes** : Les blocs de citations consécutifs (`> [!SECRET]`, `> [!LOOT]`, `> [!WARNING]`, etc.) sont regroupés au sein d'un seul encadré stylisé or, émeraude ou rouge avec leurs icônes thématiques.
+- **Véritables Listes HTML Imbriquées** : Rendu structuré avec balises `<ul>` et `<ol>` interprétant le gras, l'italique, le code et les wiki-liens dans chaque puce.
+- **Dés Cliquables dans l'Aperçu** : Toutes les formules de dés (`1d20+5`, `2d6`, etc.) dans le volet d'aperçu deviennent des boutons interactifs (`🎲 1d20+5`) déclenchant un jet physique sonore au clic !
 
 ---
 
@@ -402,6 +429,14 @@ Pour le Maître du Jeu qui souhaite préparer ses parties en déplacement (trans
    - `🎲 1d100` : Jet de dé aléatoire tactile pour trancher un imprévu.
 6. **📲 Export & Partage Universel** : Téléchargement en 1 clic du fichier `.md` sur le smartphone, ou partage natif vers WhatsApp, AirDrop, Google Drive ou e-mail.
 
+### 🛡️ Sécurité & Bouclier Anti-Perte de Données (v0.6.9) :
+Pour garantir l'intégrité absolue de vos récits entre votre smartphone et votre PC Grimoire :
+1. **Protection Anti-Effacement** : L'envoi depuis le mobile et le serveur Rust bloquent formellement l'écrasement d'un fichier existant par une note vide ou blanche.
+2. **Sauvegardes Automatiques Préventives (`.grimoire_backups/mobile_sync/`)** : Dès qu'une note mobile met à jour une note existante sur votre ordinateur, une copie de secours horodatée est archivée dans votre Vault avant toute écriture. Vos versions antérieures ne sont jamais perdues.
+3. **Détection des Conflits Horodatés** : Si vous avez modifié une note sur votre PC après la date de votre note mobile, la version PC est préservée et la note du smartphone est sauvegardée sous `[nom]_conflit_mobile_[timestamp].md` avec notification système.
+4. **Duplication Sécurisée sur Smartphone** : Si vous téléchargez une note depuis votre PC qui existe déjà localement sur votre téléphone avec des modifications différentes, une boîte de dialogue vous propose de créer une copie séparée `[Titre] (PC)` pour protéger vos notes mobiles.
+5. **Préservation des Chemins (`pcPath`)** : Les notes téléchargées du PC conservent leur arborescence exacte pour se synchroniser au bon endroit sans créer de doublons.
+
 ### 🚀 Guide Rapide d'Installation PWA sur GSM :
 - **Sur iPhone (Safari)** : Ouvrez la page, touchez l'icône de partage (carré avec flèche) > sélectionnez **« Sur l'écran d'accueil »**.
 - **Sur Android (Chrome)** : Touchez les trois points ⋮ > appuyez sur **« Installer l'application »** ou **« Ajouter à l'écran d'accueil »**.
@@ -491,8 +526,12 @@ Voici la check-list idéale pour préparer et mener votre première partie sur G
 | Raccourci | Contexte | Action |
 | :--- | :--- | :--- |
 | `Ctrl + K` / `Ctrl + P` | Partout | Palette de commande & recherche instantanée (FTS5) |
+| `Ctrl + F` | Éditeur Markdown | Rechercher dans la note active (avec surlignage auto) |
+| `Ctrl + H` | Éditeur Markdown | Rechercher & Remplacer dans la note active |
+| `Tab` / `Shift + Tab` | Éditeur Markdown | Indenter / désindenter le paragraphe ou la liste |
+| `Entrée` | Éditeur Markdown | Continuer automatiquement liste à puces, numérotée ou tâches |
 | `F11` | Éditeur Markdown | Activer / Désactiver le Mode Zen (Plein écran épuré) |
-| `Échap` | Éditeur (Mode Zen) | Quitter le Mode Zen |
+| `Échap` | Éditeur (Mode Zen / Recherche) | Quitter le Mode Zen ou fermer la recherche |
 | `Ctrl + Z` / `Ctrl + Y` | Éditeur / VTT / Map Editor | Annuler / Rétablir la dernière action |
 | `Ctrl + J` | Éditeur Markdown | Génération de texte IA sur la sélection |
 | `Ctrl + B` / `Ctrl + I` | Éditeur Markdown | Mettre le texte en Gras / Italique |

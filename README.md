@@ -30,6 +30,10 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 
 ### 1. 📝 Éditeur Markdown Rôliste Ultime (Style Obsidian & Outils MJ)
 - **Éditeur Markdown moderne (CodeMirror 6)** : Coloration syntaxique complète, formatage de texte, titres, listes, citations et tableaux.
+- **🔍 Recherche & Remplacement Intégrés (<kbd>Ctrl</kbd> + <kbd>F</kbd> et <kbd>Ctrl</kbd> + <kbd>H</kbd>)** : Volet escamotable complet stylisé or et sombre, navigation occurrence suivante/précédente (<kbd>Entrée</kbd> / <kbd>Shift+Entrée</kbd>), surlignage automatique en direct de toutes les correspondances du mot sélectionné (`highlightSelectionMatches`) et bouton loupe dédié.
+- **⚡ Saisie Fluide & GitHub Flavored Markdown (GFM)** : Indentation et désindentation directe avec <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> sans perte de focus, continuation intelligente des listes à puces, numérotées et de tâches (<kbd>Entrée</kbd>), tableaux GFM complets, texte barré `~~` et encapsulation automatique des URLs collées sur une sélection.
+- **🌓 3 Modes d'Affichage & Défilement Synchronisé** : Sélecteur instantané dans l'en-tête : ✏️ Éditeur seul (largeur maximale), 🌓 Double vue (Split) avec défilement synchronisé en temps réel sans saccades, et 📖 Mode Lecture seule (rendu HTML centré idéal en cours de partie sur table).
+- **💎 Rendu Rôliste & Dés Cliquables dans l'Aperçu** : Callouts multi-lignes fusionnés (`> [!SECRET]`, `> [!LOOT]`, etc.), véritables listes HTML imbriquées `<ul>`/`<ol>`, et formules de dés devenant des badges interactifs cliquables (`🎲 1d20+5`) déclenchant le lancer physique sonore et un toast.
 - **📏 Retour à la Ligne Automatique (Line Wrapping)** : Fini le texte qui déborde de l'écran ou les phrases coupées à l'horizontale. Vos notes et récits s'adaptent naturellement à la largeur de votre fenêtre avec césure de mots propre.
 - **🪄 Palette Interactive de Prompts IA (<kbd>Ctrl</kbd> + <kbd>J</kbd> ou bouton 🪄 Ollama)** :
   - **Détection automatique et transparente** : Identifie immédiatement le modèle installé dans Ollama (`llama3.2:1b`, `gemma2:2b`, etc.) avec repli intelligent sans plantage ni configuration complexe.
@@ -43,9 +47,9 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
     - 🎲 **Table de Butin & Trésors** : Objets insolites, reliques ou indices mystérieux.
     - 📜 **Résumer** : Synthèse claire et structurée en puces.
     - 💬 **Consignes Libres Sur-Mesure** : Champ de commande pour taper n'importe quelle instruction personnalisée.
-- **🎲 Inline Dice Roller (Lancer Cliquable)** : Détection temps réel des formules (`1d20+5`, `2d6`, `d100`), badge orné d'un dé doré, son procédural de dés (Web Audio) et popup critique avec insertion en 1 clic.
+- **🎲 Inline Dice Roller (Lancer Cliquable)** : Détection temps réel des formules (`1d20+5`, `1d20 + 5`, `2d6 - 1`, `d100`), badge orné d'un dé doré, son procédural de dés (Web Audio) et popup critique avec insertion en 1 clic.
 - **🛡️ Styled Callouts Rôlistes** : Rendu en direct des encadrés `[!NOTE]`, `[!SECRET]` (pièges et notes MJ dorées), `[!WARNING]` (dangers mortels), `[!LOOT]` (trésors émeraude) et `[!READALOUD]` (récits pour les joueurs).
-- **☑️ Checkboxes Interactives en Direct** : Les listes de quêtes `- [ ]` et `- [x]` sont directement cliquables dans le code source avec sauvegarde instantanée.
+- **☑️ Checkboxes Interactives en Direct** : Les listes de quêtes `- [ ]` et `- [x]` sont directement cliquables dans le code source avec sauvegarde instantanée et effet barré automatique.
 - **🧘 Mode Zen & Machine à Écrire** : Plein écran épuré sans distraction (<kbd>F11</kbd> / <kbd>Échap</kbd>) et défilement centré Typewriter Scrolling.
 - **🪄 Menu IA Contextuel Flottant** : Sélection de texte avec mini-barre d'outils instantanée pour Décrire, dialoguer avec un PNJ, générer des indices sensoriels ou ouvrir le menu complet.
 - **🗺️ Passerelle Note ⟷ VTT Map** : Liens `[[map:NomDeScene]]` basculant directement sur la scène de la Table Virtuelle.
@@ -58,7 +62,7 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Vue Graphique 2D Interactive (Graph View)** : Visualisation de l'univers sous forme de toile cosmique avec physique de répulsion des nœuds interconnectés.
 - **Timeline & Calendrier Impérial** : Suivi des dates en jeu, avancement du temps (+1h, +1j), gestion des ères et saisons.
 - **Gestionnaire de Coffre (Vault Explorer)** : Support de coffres multiples, dossiers, glisser-déposer, favoris et fichiers récents.
-- **🤖 Assistant IA Local Intégré (Ollama v0.6.8)** : Assistant d'écriture 100% privé et hors-ligne propulsé par Ollama. Assistant de configuration guidé, détection automatique du démon système (port 11434/11435), téléchargement transparent des modèles (Gemma 2, Llama 3.2) avec jauge en mégaoctets réels et support Linux & Windows sans droit administrateur.
+- **🤖 Assistant IA Local Intégré (Ollama v0.6.9)** : Assistant d'écriture 100% privé et hors-ligne propulsé par Ollama. Assistant de configuration guidé, détection automatique du démon système (port 11434/11435), téléchargement transparent des modèles (Gemma 2, Llama 3.2) avec jauge en mégaoctets réels et support Linux & Windows sans droit administrateur.
 
 ### 2. 🗺️ Virtual TableTop Haute Performance (PixiJS v8 VTT)
 - **Moteur Graphique GPU 60+ FPS** : Rendu ultra-fluide des cartes géantes, textures dynamiques et animations sans ralentissement.
@@ -96,8 +100,13 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **🕹️ D-Pad Tactile VTT** : Les joueurs déplacent leur propre pion sur la grille de la table virtuelle directement depuis leur mobile.
 - **Fiches Joueur & Suivi des PV** : Fiole de sang liquide interactive, suivi des stats, compétences et inventaire.
 - **Murmures & Messagerie Secrète** : Discussions privées chiffrées entre le MJ et un joueur spécifique.
-- **Sondages & Votes en Direct** : Créez des dilemmes de groupe avec affichage graphique des votes.
 - **Sketchpad & Sons Joueurs** : Dessins tactiques collaboratifs et bruitages déclenchables par les joueurs.
+- **📱 Carnet Nomade du MJ (`/mj`) & Bouclier Anti-Perte (v0.6.9)** :
+  - **Application Web Mobile Ultra-Rapide** : Accessible directement sur smartphone via `http://[IP]:7438/mj` avec dictée vocale, modèles JDR express, générateur aléatoire hors-ligne et retours haptiques.
+  - **Protection Anti-Effacement** : Refus systématique des payloads vides sur mobile et sur le serveur PC pour empêcher tout effacement accidentel.
+  - **Sauvegardes Préventives Automatiques** : Historique de sauvegarde horodaté (`.grimoire_backups/mobile_sync/`) créé sur PC avant chaque écrasement.
+  - **Détection des Conflits Horodatés** : Si le fichier PC est plus récent, il n'est jamais écrasé et la note mobile est sauvegardée dans une note de conflit dédiée (`_conflit_mobile_`).
+  - **Protection Mobile Dédiée** : Proposition de copie séparée `[Titre] (PC)` lors du téléchargement d'une note déjà modifiée sur le smartphone.
 
 ### 5. 🧙‍♂️ Outils du Maître du Jeu & Générateurs
 - **Écran du MJ Tactique (Dashboard)** : Vue d'ensemble de tous les héros, PV, CA et modificateurs.

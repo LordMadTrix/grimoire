@@ -1,10 +1,12 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { EditorState } from '@codemirror/state';
+  import { EditorState, RangeSetBuilder } from '@codemirror/state';
   import { EditorView, keymap, highlightActiveLine, lineNumbers, hoverTooltip, WidgetType, MatchDecorator, ViewPlugin, Decoration } from '@codemirror/view';
   import type { DecorationSet, ViewUpdate } from '@codemirror/view';
-  import { defaultKeymap, history, historyKeymap, undo, redo } from '@codemirror/commands';
-  import { markdown } from '@codemirror/lang-markdown';
+  import { defaultKeymap, history, historyKeymap, undo, redo, indentWithTab } from '@codemirror/commands';
+  import { markdown, markdownKeymap } from '@codemirror/lang-markdown';
+  import { GFM, Subscript, Superscript, Emoji } from '@lezer/markdown';
+  import { search, searchKeymap, openSearchPanel, highlightSelectionMatches } from '@codemirror/search';
   import { autocompletion, CompletionContext, startCompletion } from '@codemirror/autocomplete';
   import { oneDark } from '@codemirror/theme-one-dark';
   import { searchVault, askOllama, readFile, writeFile, openVault, readFileBase64 } from '$lib/api';
@@ -110,6 +112,45 @@
       decorations: DecorationSet;
       constructor(view: EditorView) { this.decorations = checkboxMatcher.createDeco(view); }
       update(update: ViewUpdate) { this.decorations = checkboxMatcher.updateDeco(update, this.decorations); }
+    },
+    { decorations: (v) => v.decorations }
+  );
+
+  // ── Line styling for Headings & Completed tasks ─────────────
+  const markdownLineStylingPlugin = ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      constructor(view: EditorView) {
+        this.decorations = this.buildDeco(view);
+      }
+      update(update: ViewUpdate) {
+        if (update.docChanged || update.viewportChanged) {
+          this.decorations = this.buildDeco(update.view);
+        }
+      }
+      buildDeco(view: EditorView) {
+        const builder = new RangeSetBuilder<Decoration>();
+        for (const { from, to } of view.visibleRanges) {
+          let pos = from;
+          while (pos <= to) {
+            const line = view.state.doc.lineAt(pos);
+            const text = line.text;
+            if (/^\s*[-*]\s+\[x\]/i.test(text)) {
+              builder.add(line.from, line.from, Decoration.line({ class: 'cm-task-done-line' }));
+            } else if (/^#\s+/.test(text)) {
+              builder.add(line.from, line.from, Decoration.line({ class: 'cm-heading-line cm-heading-1' }));
+            } else if (/^##\s+/.test(text)) {
+              builder.add(line.from, line.from, Decoration.line({ class: 'cm-heading-line cm-heading-2' }));
+            } else if (/^###\s+/.test(text)) {
+              builder.add(line.from, line.from, Decoration.line({ class: 'cm-heading-line cm-heading-3' }));
+            } else if (/^####\s+/.test(text)) {
+              builder.add(line.from, line.from, Decoration.line({ class: 'cm-heading-line cm-heading-4' }));
+            }
+            pos = line.to + 1;
+          }
+        }
+        return builder.finish();
+      }
     },
     { decorations: (v) => v.decorations }
   );
@@ -923,10 +964,17 @@
     }
   }
 
+  function onEditorSearch() {
+    if (view) {
+      openSearchPanel(view);
+    }
+  }
+
   onMount(() => {
     document.addEventListener('trigger-ai', runAI as any);
     document.addEventListener('editor-insert', insertAtCursor);
     document.addEventListener('editor-format', onEditorFormat);
+    document.addEventListener('editor-search', onEditorSearch);
     document.addEventListener('spellcheck-settings-changed', onSpellcheckChanged);
     document.addEventListener('toggle-typewriter', onToggleTypewriter);
     const state = EditorState.create({
@@ -935,11 +983,27 @@
         lineNumbers(),
         highlightActiveLine(),
         history(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([
+          ...defaultKeymap,
+          ...historyKeymap,
+          ...markdownKeymap,
+          ...searchKeymap,
+          {
+            key: 'Mod-h',
+            run: openSearchPanel,
+            scope: 'editor search-panel'
+          },
+          indentWithTab
+        ]),
         saveKeymap,
         aiKeymap,
         formattingKeymap,
-        markdown(),
+        search({ top: true }),
+        highlightSelectionMatches(),
+        markdown({
+          extensions: [GFM, Subscript, Superscript, Emoji],
+          addKeymap: true
+        }),
         oneDark,
         EditorView.lineWrapping,
         autocompletion({
@@ -950,6 +1014,7 @@
         wikiLinkClickHandler,
         inlineImagesPlugin,
         checkboxPlugin,
+        markdownLineStylingPlugin,
         dicePlugin,
         diceTheme,
         calloutPlugin,
@@ -979,6 +1044,101 @@
             lineHeight: "1.65",
             wordBreak: "break-word",
             overflowWrap: "break-word"
+          },
+          // Heading lines in editor
+          ".cm-heading-line": {
+            fontWeight: "700 !important",
+            fontFamily: "'Inter', sans-serif !important",
+            letterSpacing: "-0.01em !important"
+          },
+          ".cm-heading-1": {
+            fontSize: "1.45em !important",
+            color: "#fbbf24 !important",
+            paddingTop: "6px !important",
+            paddingBottom: "2px !important"
+          },
+          ".cm-heading-2": {
+            fontSize: "1.25em !important",
+            color: "#e5a853 !important",
+            paddingTop: "4px !important"
+          },
+          ".cm-heading-3": {
+            fontSize: "1.12em !important",
+            color: "#d4af37 !important"
+          },
+          ".cm-heading-4": {
+            fontSize: "1.04em !important",
+            color: "#f6ad55 !important"
+          },
+          // Completed task lines
+          ".cm-task-done-line": {
+            opacity: "0.55 !important",
+            textDecoration: "line-through !important",
+            textDecorationColor: "rgba(229, 168, 83, 0.6) !important"
+          },
+          // Search panel styling
+          ".cm-panel.cm-search": {
+            backgroundColor: "var(--bg-secondary) !important",
+            color: "var(--text-primary) !important",
+            borderBottom: "1px solid var(--border) !important",
+            padding: "6px 14px !important",
+            display: "flex !important",
+            alignItems: "center !important",
+            flexWrap: "wrap !important",
+            gap: "8px !important",
+            fontFamily: "'Inter', sans-serif !important",
+            fontSize: "12px !important",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.3) !important"
+          },
+          ".cm-search input.cm-textfield": {
+            backgroundColor: "var(--bg-tertiary) !important",
+            color: "var(--text-primary) !important",
+            border: "1px solid var(--border) !important",
+            borderRadius: "4px !important",
+            padding: "3px 8px !important",
+            outline: "none !important",
+            fontSize: "12px !important"
+          },
+          ".cm-search input.cm-textfield:focus": {
+            borderColor: "var(--accent) !important",
+            boxShadow: "0 0 0 1px var(--accent) !important"
+          },
+          ".cm-search button.cm-button": {
+            backgroundColor: "rgba(255, 255, 255, 0.05) !important",
+            color: "var(--text-secondary) !important",
+            border: "1px solid var(--border) !important",
+            borderRadius: "4px !important",
+            padding: "2px 8px !important",
+            cursor: "pointer !important",
+            fontSize: "11px !important",
+            fontWeight: "500 !important",
+            transition: "all 0.15s ease !important"
+          },
+          ".cm-search button.cm-button:hover": {
+            backgroundColor: "var(--bg-hover) !important",
+            color: "var(--accent) !important",
+            borderColor: "rgba(229, 168, 83, 0.4) !important"
+          },
+          ".cm-search label": {
+            color: "var(--text-muted) !important",
+            fontSize: "11px !important",
+            display: "inline-flex !important",
+            alignItems: "center !important",
+            gap: "4px !important",
+            cursor: "pointer !important"
+          },
+          ".cm-searchMatch": {
+            backgroundColor: "rgba(229, 168, 83, 0.35) !important",
+            border: "1px solid rgba(229, 168, 83, 0.6) !important",
+            borderRadius: "2px !important"
+          },
+          ".cm-searchMatch-selected": {
+            backgroundColor: "rgba(245, 158, 11, 0.6) !important",
+            border: "1px solid #fbbf24 !important"
+          },
+          ".cm-selectionMatch": {
+            backgroundColor: "rgba(229, 168, 83, 0.18) !important",
+            borderRadius: "2px !important"
           },
           ".cm-scroller": {
             overflowX: "hidden",
@@ -1021,6 +1181,7 @@
     document.removeEventListener('trigger-ai', runAI as any);
     document.removeEventListener('editor-insert', insertAtCursor);
     document.removeEventListener('editor-format', onEditorFormat);
+    document.removeEventListener('editor-search', onEditorSearch);
     document.removeEventListener('spellcheck-settings-changed', onSpellcheckChanged);
     document.removeEventListener('toggle-typewriter', onToggleTypewriter);
     if (view) {

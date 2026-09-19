@@ -453,31 +453,193 @@ pub struct ReadNoteQuery {
     pub path: String,
 }
 
+fn slugify_clean(title: &str) -> String {
+    let s: String = title
+        .to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'é' | 'è' | 'ê' | 'ë' => 'e',
+            'à' | 'â' | 'ä' => 'a',
+            'î' | 'ï' => 'i',
+            'ô' | 'ö' => 'o',
+            'ù' | 'û' | 'ü' => 'u',
+            'ç' => 'c',
+            c if c.is_ascii_alphanumeric() || c == '-' || c == '_' => c,
+            _ => '_',
+        })
+        .collect();
+    let trimmed = s.trim_matches('_');
+    if trimmed.is_empty() {
+        "note".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+struct MjSaveResult {
+    success: bool,
+    error: Option<String>,
+    path: Option<String>,
+    conflict: bool,
+    message: String,
+}
+
+async fn save_mj_note_internal(state: &std::sync::Arc<ServerInner>, payload: &serde_json::Value) -> MjSaveResult {
+    let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Note Sans Titre");
+    let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
+    let folder = payload.get("folder").and_then(|v| v.as_str()).unwrap_or("Notes/Mobile");
+    let pc_path_opt = payload.get("pcPath").or_else(|| payload.get("pc_path")).and_then(|v| v.as_str());
+    let updated_at = payload.get("updatedAt").and_then(|v| v.as_u64()).unwrap_or(0);
+
+    let vp_opt = state.current_vault_path.lock().await.clone();
+    let Some(vault_path) = vp_opt else {
+        return MjSaveResult {
+            success: false,
+            error: Some("Aucun Vault actif sur le PC".to_string()),
+            path: None,
+            conflict: false,
+            message: String::new(),
+        };
+    };
+
+    let v_base = std::path::Path::new(&vault_path);
+
+    // Déterminer le fichier cible : soit le pcPath s'il est valide, soit sous le dossier cible
+    let target_file = if let Some(pc_path) = pc_path_opt {
+        let clean_rel = crate::commands::addons::sanitize_relative_path(pc_path);
+        let full = v_base.join(&clean_rel);
+        if full.starts_with(v_base) {
+            full
+        } else {
+            let rel_folder = crate::commands::addons::sanitize_relative_path(folder);
+            let target_dir = v_base.join(&rel_folder);
+            let _ = std::fs::create_dir_all(&target_dir);
+            target_dir.join(format!("{}.md", slugify_clean(title)))
+        }
+    } else {
+        let rel_folder = crate::commands::addons::sanitize_relative_path(folder);
+        let target_dir = v_base.join(&rel_folder);
+        let _ = std::fs::create_dir_all(&target_dir);
+        target_dir.join(format!("{}.md", slugify_clean(title)))
+    };
+
+    // 1. Protection anti-effacement : refuser d'écraser un fichier existant par du vide
+    if content.trim().is_empty() && target_file.exists() {
+        if let Ok(existing) = std::fs::read_to_string(&target_file) {
+            if !existing.trim().is_empty() {
+                return MjSaveResult {
+                    success: false,
+                    error: Some("Sécurité : Refus d'écraser une note existante avec un contenu vide depuis le mobile.".to_string()),
+                    path: None,
+                    conflict: false,
+                    message: String::new(),
+                };
+            }
+        }
+    }
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let mut saved_as_conflict = false;
+    let mut final_saved_path = target_file.clone();
+
+    if target_file.exists() {
+        if let Ok(existing_content) = std::fs::read_to_string(&target_file) {
+            if existing_content.trim() != content.trim() {
+                // Sauvegarde automatique préventive dans .grimoire_backups/mobile_sync/
+                let backup_dir = v_base.join(".grimoire_backups").join("mobile_sync");
+                let _ = std::fs::create_dir_all(&backup_dir);
+                let stem = target_file.file_stem().and_then(|s| s.to_str()).unwrap_or("note");
+                let backup_file = backup_dir.join(format!("{}_{}.bak.md", stem, now));
+                let _ = std::fs::write(&backup_file, &existing_content);
+
+                // Conflit si le fichier PC a été modifié après le timestamp du mobile
+                let pc_mtime = target_file.metadata().ok().and_then(|m| m.modified().ok())
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0);
+
+                // Si le fichier PC est plus récent de plus de 5 secondes que le mobile
+                if updated_at > 0 && pc_mtime > updated_at + 5000 {
+                    // Conserver la version PC et enregistrer la version mobile sous un nom de conflit
+                    let conflict_file = target_file.with_file_name(format!("{}_conflit_mobile_{}.md", stem, now));
+                    let _ = std::fs::create_dir_all(conflict_file.parent().unwrap_or(v_base)).ok();
+                    let _ = std::fs::write(&conflict_file, content);
+                    final_saved_path = conflict_file;
+                    saved_as_conflict = true;
+                } else {
+                    if let Some(parent) = target_file.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    let _ = std::fs::write(&target_file, content);
+                }
+            }
+        } else {
+            if let Some(parent) = target_file.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let _ = std::fs::write(&target_file, content);
+        }
+    } else {
+        // Nouveau fichier
+        if let Some(parent) = target_file.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::write(&target_file, content);
+    }
+
+    let rel_saved = final_saved_path.strip_prefix(v_base)
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| "note.md".to_string());
+
+    let mut enriched_payload = payload.clone();
+    if let Some(obj) = enriched_payload.as_object_mut() {
+        obj.insert("saved_rel_path".to_string(), serde_json::Value::String(rel_saved.clone()));
+        obj.insert("is_conflict".to_string(), serde_json::Value::Bool(saved_as_conflict));
+    }
+
+    if saved_as_conflict {
+        notify_os(state, "⚠️ Conflit Note Mobile", &format!("{} (sauvegardé en copie séparée)", title)).await;
+    } else {
+        notify_os(state, "📝 Note MJ reçue", title).await;
+    }
+
+    emit_to_gm(state, "mj_note_received", enriched_payload).await;
+
+    MjSaveResult {
+        success: true,
+        error: None,
+        path: Some(rel_saved),
+        conflict: saved_as_conflict,
+        message: if saved_as_conflict {
+            "Note sauvegardée comme copie de conflit car la version PC était plus récente".to_string()
+        } else {
+            "Note enregistrée en toute sécurité sur le PC".to_string()
+        },
+    }
+}
+
 async fn handle_mj_note_post(
     State(state): State<std::sync::Arc<ServerInner>>,
     axum::extract::Json(payload): axum::extract::Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Note Sans Titre");
-    let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
-    let folder = payload.get("folder").and_then(|v| v.as_str()).unwrap_or("Notes/Mobile");
-
-    let vp_opt = state.current_vault_path.lock().await.clone();
-    if let Some(vault_path) = vp_opt {
-        let slug = title.to_lowercase()
-            .chars()
-            .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
-            .collect::<String>();
-        let rel_folder = crate::commands::addons::sanitize_relative_path(folder);
-        let target_dir = std::path::Path::new(&vault_path).join(&rel_folder);
-        let _ = std::fs::create_dir_all(&target_dir);
-        let filename = format!("{}.md", slug.trim_matches('_'));
-        let target_file = target_dir.join(&filename);
-        let _ = std::fs::write(&target_file, content);
+    let res = save_mj_note_internal(&state, &payload).await;
+    if res.success {
+        axum::Json(serde_json::json!({
+            "success": true,
+            "message": res.message,
+            "path": res.path,
+            "conflict": res.conflict
+        }))
+    } else {
+        axum::Json(serde_json::json!({
+            "success": false,
+            "error": res.error.unwrap_or_else(|| "Erreur inconnue".to_string())
+        }))
     }
-
-    notify_os(&state, "📝 Note MJ reçue", title).await;
-    emit_to_gm(&state, "mj_note_received", payload).await;
-    axum::Json(serde_json::json!({ "success": true, "message": "Note enregistrée sur le PC" }))
 }
 
 async fn handle_mj_vault_notes(
@@ -757,9 +919,7 @@ async fn handle_player_message(
             })).await;
         }
         "mj_note_push" => {
-            let title = env.data.get("title").and_then(|v| v.as_str()).unwrap_or("Note Sans Titre");
-            notify_os(state, "📝 Note MJ reçue", title).await;
-            emit_to_gm(state, "mj_note_received", env.data).await;
+            save_mj_note_internal(state, &env.data).await;
         }
         "ai_query" => {
             // Forward AI query to Ollama

@@ -995,17 +995,41 @@
 
           // Chercher si la note existe déjà localement
           let existing = notes.find(n => n.title === data.title || n.pcPath === relPath);
-          if (existing) {
-            existing.content = data.content;
-            existing.title = data.title;
-            existing.updatedAt = Date.now();
-            activeNoteId = existing.id;
+          let targetNote = existing;
+
+          if (existing && existing.content && existing.content.trim() !== data.content.trim()) {
+            const createCopy = confirm(
+              `⚠️ Attention : Une version modifiée de "${existing.title}" existe déjà sur votre mobile !\n\n` +
+              `• Cliquez sur [OK] pour CONSERVER vos modifications mobiles et importer le PC dans une nouvelle copie "${data.title} (PC)" (Recommandé).\n` +
+              `• Cliquez sur [Annuler] pour remplacer la version mobile par celle du PC.`
+            );
+            if (createCopy) {
+              targetNote = null;
+            } else {
+              const confirmOverwrite = confirm(
+                `🚨 Confirmation requise :\nÊtes-vous certain de vouloir ÉCRASER définitivement votre texte mobile par la version du PC ?`
+              );
+              if (!confirmOverwrite) {
+                showToast('Importation annulée pour protéger vos notes', '🛡️');
+                return;
+              }
+            }
+          }
+
+          if (targetNote) {
+            targetNote.content = data.content;
+            targetNote.title = data.title;
+            targetNote.pcPath = relPath;
+            targetNote.updatedAt = Date.now();
+            activeNoteId = targetNote.id;
           } else {
+            const isCopy = existing ? true : false;
+            const newTitle = isCopy ? `${data.title || fallbackTitle || 'Note PC'} (PC)` : (data.title || fallbackTitle || 'Note PC');
             const newNote = {
               id: 'note_' + Date.now(),
-              title: data.title || fallbackTitle || 'Note PC',
+              title: newTitle,
               content: data.content,
-              pcPath: relPath,
+              pcPath: isCopy ? undefined : relPath,
               updatedAt: Date.now()
             };
             notes.unshift(newNote);
@@ -1414,6 +1438,8 @@
 
     async function sendAllNotesToGrimoirePC() {
       triggerHaptic([30]);
+      saveCurrentNote();
+
       const serverUrl = inpServerUrl.value.trim().replace(/\/+$/, '');
       if (!serverUrl) {
         alert('Veuillez renseigner l\'URL ou l\'adresse IP de votre PC Grimoire.');
@@ -1421,18 +1447,29 @@
       }
       localStorage.setItem(SERVER_KEY, serverUrl);
       const targetFolder = selTargetFolder.value;
+
+      // Filtrer les notes non vides pour ne jamais envoyer de note blanche
+      const validNotes = notes.filter(n => n.content && n.content.trim().length > 0);
+      if (validNotes.length === 0) {
+        alert("Toutes vos notes sont vides. Rien à synchroniser.");
+        return;
+      }
+
       const btnAll = document.getElementById('btnSendAllToPc');
       btnAll.disabled = true;
       btnAll.innerHTML = '<span>⏳ Envoi groupé en cours…</span>';
       syncFeedback.classList.remove('hidden', 'bg-red-900/40', 'border-red-500', 'bg-emerald-900/40', 'border-emerald-500');
 
       let successCount = 0;
-      for (const n of notes) {
+      let conflictCount = 0;
+
+      for (const n of validNotes) {
         const payload = {
           title: n.title,
           content: n.content,
           folder: targetFolder,
-          updatedAt: n.updatedAt,
+          pcPath: n.pcPath || null,
+          updatedAt: n.updatedAt || Date.now(),
           author: 'MJ Mobile'
         };
         try {
@@ -1441,9 +1478,16 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
-          if (res.ok) successCount++;
+          const resData = await res.json().catch(() => ({}));
+          if (res.ok && resData.success !== false) {
+            successCount++;
+            if (resData.path) n.pcPath = resData.path;
+            if (resData.conflict) conflictCount++;
+          }
         } catch(e) {}
       }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
 
       btnAll.disabled = false;
       btnAll.innerHTML = `<span>📦 Tout synchroniser (${notes.length} notes vers PC)</span>`;
@@ -1451,9 +1495,14 @@
       if (successCount > 0) {
         triggerHaptic([20, 50, 20]);
         syncFeedback.className = 'text-xs rounded-xl p-3 bg-emerald-900/40 border border-emerald-500/80 text-emerald-200';
-        syncFeedback.innerHTML = `✅ <strong>${successCount} note${successCount > 1 ? 's transférées' : ' transférée'} avec succès !</strong><br/>Retrouvez vos écrits dans votre Vault Grimoire sous <code>${targetFolder}/</code>.`;
+        let msg = `✅ <strong>${successCount} note${successCount > 1 ? 's synchronisées' : ' synchronisée'} en toute sécurité !</strong>`;
+        if (conflictCount > 0) {
+          msg += `<br/><span class="text-amber-300">⚠️ ${conflictCount} note(s) sauvegardée(s) en copie de conflit car la version PC était plus récente.</span>`;
+        }
+        msg += `<br/>Retrouvez vos écrits dans votre Vault Grimoire sous <code>${escapeHtml(targetFolder)}/</code>.`;
+        syncFeedback.innerHTML = msg;
         showToast(`${successCount} notes envoyées au PC !`, '🚀');
-        setTimeout(closeSyncModal, 2500);
+        setTimeout(closeSyncModal, 2800);
       } else {
         syncFeedback.className = 'text-xs rounded-xl p-3 bg-red-900/40 border border-red-500/80 text-red-200';
         syncFeedback.innerHTML = `❌ <strong>Échec de connexion au PC :</strong><br/>Vérifiez que Grimoire PC est lancé avec le serveur mobile démarré, et que votre smartphone est connecté au Wi-Fi.`;
@@ -1462,6 +1511,8 @@
 
     async function sendNoteToGrimoirePC() {
       triggerHaptic([30]);
+      saveCurrentNote();
+
       const serverUrl = inpServerUrl.value.trim().replace(/\/+$/, '');
       if (!serverUrl) {
         alert('Veuillez renseigner l\'URL ou l\'adresse IP de votre PC Grimoire.');
@@ -1473,6 +1524,12 @@
       const note = notes.find(n => n.id === activeNoteId);
       if (!note) return;
 
+      // Sécurité anti-effacement sur mobile
+      if (!note.content || !note.content.trim()) {
+        alert("⚠️ Sécurité : Impossible d'envoyer une note vide vers le PC afin d'éviter tout écrasement accidentel.");
+        return;
+      }
+
       btnSendToPc.disabled = true;
       btnSendToPc.innerHTML = '<span>⏳ Envoi…</span>';
       syncFeedback.classList.remove('hidden', 'bg-red-900/40', 'border-red-500', 'bg-emerald-900/40', 'border-emerald-500');
@@ -1481,7 +1538,8 @@
         title: note.title,
         content: note.content,
         folder: targetFolder,
-        updatedAt: note.updatedAt,
+        pcPath: note.pcPath || null,
+        updatedAt: note.updatedAt || Date.now(),
         author: 'MJ Mobile'
       };
 
@@ -1492,17 +1550,34 @@
           body: JSON.stringify(payload)
         });
 
-        if (res.ok) {
+        const resData = await res.json().catch(() => ({}));
+
+        if (res.ok && resData.success !== false) {
           triggerHaptic([20, 50]);
+          if (resData.path) {
+            note.pcPath = resData.path;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+          }
+
           syncFeedback.className = 'text-xs rounded-xl p-3 bg-emerald-900/40 border border-emerald-500/80 text-emerald-200';
-          syncFeedback.innerHTML = `✅ <strong>Transfert réussi !</strong><br/>La note a été créée dans votre Vault Grimoire PC sous <code>${targetFolder}/${slugify(note.title)}.md</code>.`;
-          showToast('Note transférée vers Grimoire PC !', '🚀');
-          setTimeout(closeSyncModal, 2500);
+          if (resData.conflict) {
+            syncFeedback.innerHTML = `⚠️ <strong>Note enregistrée comme copie de conflit !</strong><br/>La version sur le PC était plus récente. Votre note a été sauvegardée sans rien écraser sous :<br/><code>${escapeHtml(resData.path)}</code>.`;
+            showToast('Enregistré en copie de conflit sur PC', '⚠️');
+          } else {
+            syncFeedback.innerHTML = `✅ <strong>Transfert sécurisé réussi !</strong><br/>Enregistré sur votre PC sous <code>${escapeHtml(resData.path || targetFolder)}</code>.<br/><span class="text-[10px] text-emerald-400">🛡️ Sauvegarde préventive automatique active sur PC.</span>`;
+            showToast('Note transférée vers Grimoire PC !', '🚀');
+          }
+          setTimeout(closeSyncModal, 2800);
         } else {
-          throw new Error(`Erreur serveur (${res.status})`);
+          throw new Error(resData.error || `Erreur serveur (${res.status})`);
         }
       } catch (err) {
-        tryFallbackWebSocket(serverUrl, payload);
+        if (err.message && err.message.includes('Sécurité')) {
+          syncFeedback.className = 'text-xs rounded-xl p-3 bg-red-900/40 border border-red-500/80 text-red-200';
+          syncFeedback.innerHTML = `❌ <strong>${escapeHtml(err.message)}</strong>`;
+        } else {
+          tryFallbackWebSocket(serverUrl, payload);
+        }
       } finally {
         btnSendToPc.disabled = false;
         btnSendToPc.innerHTML = '<span>🚀 Transférer</span>';

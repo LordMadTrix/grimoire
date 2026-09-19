@@ -13,7 +13,7 @@ export interface DiceRollResult {
 }
 
 // Synthèse sonore légère pour le lancer de dés (Web Audio API)
-function playDiceSound() {
+export function playDiceSound() {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
@@ -44,7 +44,7 @@ function playDiceSound() {
 }
 
 export function evaluateDiceFormula(raw: string): DiceRollResult | null {
-  const match = raw.trim().match(/^(\d{1,2})?d(\d{1,3})(?:([+-])(\d{1,3}))?$/i);
+  const match = raw.trim().match(/^(\d{1,2})?d(\d{1,3})(?:\s*([+-])\s*(\d{1,3}))?$/i);
   if (!match) return null;
 
   const count = match[1] ? Math.max(1, parseInt(match[1], 10)) : 1;
@@ -202,9 +202,9 @@ class DiceBadgeWidget extends WidgetType {
   }
 }
 
-// Décorateur recherchant les formules de dés (1d20, 2d6+2, d100, etc.)
+// Décorateur recherchant les formules de dés (1d20, 2d6+2, 1d20 + 5, d100, etc.)
 const diceMatcher = new MatchDecorator({
-  regexp: /\b(\d{1,2}d\d{1,3}(?:[+-]\d{1,3})?|d\d{1,3}(?:[+-]\d{1,3})?)\b/gi,
+  regexp: /\b(\d{1,2}d\d{1,3}(?:\s*[+-]\s*\d{1,3})?|d\d{1,3}(?:\s*[+-]\s*\d{1,3})?)\b/gi,
   decoration: (match, view, pos) => {
     const formula = match[0];
     return Decoration.replace({

@@ -15,15 +15,24 @@
     setSpellcheckEnabled
   } from '$lib/spellcheck/spellcheckStore.svelte';
   import { vttStore, updateGmAudio } from '$lib/stores/vtt.svelte';
+  import { CALLOUT_TYPES } from '$lib/editor/calloutPlugin';
+  import { evaluateDiceFormula, playDiceSound } from '$lib/editor/dicePlugin';
+  import { notifStore } from '$lib/stores/notifications.svelte';
 
   let saveTimeout: ReturnType<typeof setTimeout>;
   let backlinks = $state<BacklinkResult[]>([]);
   let showBacklinks = $state(false);
   let showOutline = $state(false);
-  let showPreview = $state(false);
+  let viewMode = $state<'edit' | 'split' | 'read'>('edit');
+  let showPreview = $derived(viewMode === 'split' || viewMode === 'read');
+  let showEditor = $derived(viewMode === 'edit' || viewMode === 'split');
   let showToolbar = $state(true);
   let scrollToLine = $state<number | null>(null);
   let previewHtml = $state('');
+
+  let editorWrapperEl = $state<HTMLDivElement | null>(null);
+  let previewPanelEl = $state<HTMLDivElement | null>(null);
+  let isSyncingScroll = false;
 
   let spellEnabled = $state(getSpellcheckEnabled());
   let spellLang = $state(getSpellcheckLang());
@@ -172,16 +181,77 @@
 
   function esc(s: string) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  function renderInline(raw: string): string {
+    let s = esc(raw);
+
+    // Standard markdown images: ![alt](url)
+    s = s.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+|\/[^\s)]+|[^\s)]+\.(?:png|jpg|jpeg|webp|gif|svg))\)/gi, '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;margin:4px 0" loading="lazy">');
+
+    // Wiki images: ![[path.ext]]
+    s = s.replace(/!\[\[([^\]]+\.(?:png|jpg|jpeg|webp|gif|svg))\]\]/gi, '<span class="preview-wiki-img" data-img-path="$1">🖼️ $1</span>');
+
+    // Markdown external links [label](url)
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1 ↗</a>');
+
+    // WikiLinks [[note]] ou [[note|alias]] ou [[map:scene]]
+    s = s.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, label) => {
+      const cleanTarget = target.trim();
+      const display = label ? label.trim() : cleanTarget;
+      if (cleanTarget.toLowerCase().startsWith('map:')) {
+        return `<a class="wikilink map-link" data-href="${esc(cleanTarget)}">🗺️ ${esc(display)}</a>`;
+      }
+      const href = cleanTarget.endsWith('.md') ? cleanTarget : `${cleanTarget}.md`;
+      return `<a class="wikilink" data-href="${esc(href)}">${esc(display)}</a>`;
+    });
+
+    // Formules de dés cliquables dans l'aperçu
+    s = s.replace(/\b(\d{1,2}d\d{1,3}(?:\s*[+-]\s*\d{1,3})?|d\d{1,3}(?:\s*[+-]\s*\d{1,3})?)\b/gi, (match) => {
+      return `<button type="button" class="preview-dice-btn" data-formula="${match}" title="🎲 Cliquer pour lancer ${match}">🎲 ${match}</button>`;
+    });
+
+    // Notes secrètes du MJ %% secret %%
+    s = s.replace(/%%([\s\S]*?)%%/g, '<span class="preview-gm-comment" title="Note confidentielle MJ">👁️‍🗨️ $1</span>');
+
+    // Bold + italic
+    s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    // Bold
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    s = s.replace(/(^|\W)_(.+?)_(\W|$)/g, '$1<em>$2</em>$3');
+    // Strikethrough & Highlight
+    s = s.replace(/~~(.+?)~~/g, '<del>$1</del>');
+    s = s.replace(/==(.+?)==/g, '<mark>$1</mark>');
+    // Inline code
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    return s;
+  }
+
   function renderTable(lines: string[]): string {
     const rows = lines.map(l => l.replace(/^\||\|$/g,'').split('|').map(c => c.trim()));
-    const isAlignRow = (r: string[]) => r.every(c => /^:?-+:?$/.test(c));
-    let html = '<table><thead><tr>';
     if (rows.length < 1) return '';
-    rows[0].forEach(h => { html += `<th>${esc(h)}</th>`; });
+    const isAlignRow = (r: string[]) => r.every(c => /^:?-+:?$/.test(c));
+    const alignments = rows.length > 1 && isAlignRow(rows[1])
+      ? rows[1].map(c => {
+          if (c.startsWith(':') && c.endsWith(':')) return 'center';
+          if (c.endsWith(':')) return 'right';
+          return 'left';
+        })
+      : [];
+
+    let html = '<table><thead><tr>';
+    rows[0].forEach((h, idx) => {
+      const align = alignments[idx] ? ` style="text-align:${alignments[idx]}"` : '';
+      html += `<th${align}>${renderInline(h)}</th>`;
+    });
     html += '</tr></thead><tbody>';
     for (let i = 1; i < rows.length; i++) {
       if (isAlignRow(rows[i])) continue;
-      html += '<tr>' + rows[i].map(c => `<td>${esc(c)}</td>`).join('') + '</tr>';
+      html += '<tr>' + rows[i].map((c, idx) => {
+        const align = alignments[idx] ? ` style="text-align:${alignments[idx]}"` : '';
+        return `<td${align}>${renderInline(c)}</td>`;
+      }).join('') + '</tr>';
     }
     return html + '</tbody></table>';
   }
@@ -193,98 +263,164 @@
     const lines = stripped.split('\n');
     let html = '';
     let i = 0;
+
     while (i < lines.length) {
       const line = lines[i];
+
+      // Empty line
+      if (!line.trim()) { i++; continue; }
+
       // Table block
       if (line.trim().startsWith('|') && i + 1 < lines.length) {
         const tableLines: string[] = [];
-        while (i < lines.length && lines[i].trim().startsWith('|')) { tableLines.push(lines[i]); i++; }
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
         html += renderTable(tableLines);
         continue;
       }
+
       // Code block
       if (line.startsWith('```')) {
         const lang = line.slice(3).trim();
         i++;
         let code = '';
-        while (i < lines.length && !lines[i].startsWith('```')) { code += esc(lines[i]) + '\n'; i++; }
+        while (i < lines.length && !lines[i].startsWith('```')) {
+          code += esc(lines[i]) + '\n';
+          i++;
+        }
         i++;
         html += `<pre><code${lang ? ` class="language-${lang}"` : ''}>${code}</code></pre>`;
         continue;
       }
+
       // Headings
       const hm = line.match(/^(#{1,6})\s+(.+)/);
-      if (hm) { html += `<h${hm[1].length}>${esc(hm[2])}</h${hm[1].length}>`; i++; continue; }
-      // HR
-      if (/^---+$/.test(line.trim())) { html += '<hr>'; i++; continue; }
-      // Blockquote & Callouts
-      if (line.startsWith('> ')) {
-        const quoteContent = line.slice(2);
-        const calloutMatch = quoteContent.match(/^\[!([A-Z]+)\]\s*(.*)/i);
-        if (calloutMatch) {
-          const cType = calloutMatch[1].toUpperCase();
-          const cTitle = calloutMatch[2] || cType;
-          html += `<div class="preview-callout callout-${cType.toLowerCase()}"><div class="callout-header"><span class="callout-icon">💡</span><strong>${esc(cTitle)}</strong></div></div>`;
-        } else {
-          html += `<blockquote>${esc(quoteContent)}</blockquote>`;
-        }
+      if (hm) {
+        html += `<h${hm[1].length}>${renderInline(hm[2])}</h${hm[1].length}>`;
         i++;
         continue;
       }
-      // Unordered list / checklist
-      const ulm = line.match(/^(\s*)[-*]\s+(.*)/);
-      if (ulm) {
-        const checkDone = ulm[2].match(/^\[x\]\s*(.*)/i);
-        const checkOpen = ulm[2].match(/^\[ \]\s*(.*)/);
-        if (checkDone) {
-          html += `<div class="checklist-item done"><span class="check">☑</span><span>${esc(checkDone[1])}</span></div>`;
-        } else if (checkOpen) {
-          html += `<div class="checklist-item"><span class="check">☐</span><span>${esc(checkOpen[1])}</span></div>`;
-        } else {
-          html += `<li>${esc(ulm[2])}</li>`;
-        }
-        i++; continue;
+
+      // HR
+      if (/^---+$/.test(line.trim())) {
+        html += '<hr>';
+        i++;
+        continue;
       }
-      // Ordered list
-      const olm = line.match(/^\d+\.\s+(.*)/);
-      if (olm) { html += `<li>${esc(olm[1])}</li>`; i++; continue; }
-      // Empty line
-      if (!line.trim()) { i++; continue; }
-      // Normal paragraph — inline formatting
-      let para = esc(line);
-      // Bold + italic
-      para = para.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-      para = para.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      para = para.replace(/\*(.+?)\*/g, '<em>$1</em>');
-      para = para.replace(/_(.+?)_/g, '<em>$1</em>');
-      // Strikethrough & Highlight
-      para = para.replace(/~~(.+?)~~/g, '<del>$1</del>');
-      para = para.replace(/==(.+?)==/g, '<mark>$1</mark>');
-      // Inline code
-      para = para.replace(/`(.+?)`/g, '<code>$1</code>');
-      // Markdown external links [label](url)
-      para = para.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1 ↗</a>');
-      // WikiLinks [[note]] → clickable link
-      para = para.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, label) => {
-        const display = label || target;
-        const href = target.endsWith('.md') ? target : `${target}.md`;
-        return `<a class="wikilink" data-href="${esc(href)}">${esc(display)}</a>`;
-      });
-      html += `<p>${para}</p>`;
+
+      // Callouts & Blockquotes
+      if (line.startsWith('> ') || line === '>') {
+        const firstQuote = line.replace(/^>\s?/, '');
+        const calloutMatch = firstQuote.match(/^\[!([a-zA-Z0-9_-]+)\](?:\s+(.*))?$/i);
+
+        if (calloutMatch) {
+          const rawType = calloutMatch[1].toLowerCase();
+          const customTitle = calloutMatch[2]?.trim();
+          const meta = CALLOUT_TYPES[rawType] || {
+            type: rawType,
+            icon: '📌',
+            label: rawType.charAt(0).toUpperCase() + rawType.slice(1),
+            color: '#e5a853',
+            bgColor: 'rgba(229, 168, 83, 0.08)'
+          };
+          const title = customTitle || meta.label;
+
+          i++;
+          const bodyLines: string[] = [];
+          while (i < lines.length && (lines[i].startsWith('> ') || lines[i] === '>')) {
+            bodyLines.push(lines[i].replace(/^>\s?/, ''));
+            i++;
+          }
+
+          const bodyContent = bodyLines
+            .filter(Boolean)
+            .map(l => `<p>${renderInline(l)}</p>`)
+            .join('');
+
+          html += `<div class="preview-callout callout-${meta.type}" style="border-left-color:${meta.color}; background:${meta.bgColor};">
+            <div class="callout-header">
+              <span class="callout-icon">${meta.icon}</span>
+              <strong style="color:${meta.color};">${esc(title)}</strong>
+            </div>
+            ${bodyContent ? `<div class="callout-content">${bodyContent}</div>` : ''}
+          </div>`;
+          continue;
+        } else {
+          // Standard blockquote
+          const quoteLines: string[] = [];
+          while (i < lines.length && (lines[i].startsWith('> ') || lines[i] === '>')) {
+            quoteLines.push(lines[i].replace(/^>\s?/, ''));
+            i++;
+          }
+          const quoteContent = quoteLines
+            .filter(Boolean)
+            .map(l => `<p>${renderInline(l)}</p>`)
+            .join('');
+          html += `<blockquote>${quoteContent}</blockquote>`;
+          continue;
+        }
+      }
+
+      // Checklists & Unordered lists
+      if (/^\s*[-*+]\s+/.test(line)) {
+        html += '<ul class="preview-list">';
+        while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+          const itemMatch = lines[i].match(/^\s*[-*+]\s+(.*)/);
+          if (itemMatch) {
+            const rawItem = itemMatch[1];
+            const checkDone = rawItem.match(/^\[x\]\s*(.*)/i);
+            const checkOpen = rawItem.match(/^\[ \]\s*(.*)/);
+            if (checkDone) {
+              html += `<li class="checklist-item done"><span class="check-box checked">☑</span><span>${renderInline(checkDone[1])}</span></li>`;
+            } else if (checkOpen) {
+              html += `<li class="checklist-item"><span class="check-box">☐</span><span>${renderInline(checkOpen[1])}</span></li>`;
+            } else {
+              html += `<li>${renderInline(rawItem)}</li>`;
+            }
+          }
+          i++;
+        }
+        html += '</ul>';
+        continue;
+      }
+
+      // Ordered lists
+      if (/^\s*\d+\.\s+/.test(line)) {
+        html += '<ol class="preview-list">';
+        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+          const itemMatch = lines[i].match(/^\s*\d+\.\s+(.*)/);
+          if (itemMatch) {
+            html += `<li>${renderInline(itemMatch[1])}</li>`;
+          }
+          i++;
+        }
+        html += '</ol>';
+        continue;
+      }
+
+      // Normal paragraph
+      html += `<p>${renderInline(line)}</p>`;
       i++;
     }
-    // Resolve ![[path]] image tags to base64 if requested
-    if (resolveImages && vaultPath) {
-      const imgMatches = [...html.matchAll(/!\[\[([^\]]+\.(png|jpg|jpeg|webp|gif))\]\]/gi)];
-      for (const m of imgMatches) {
+
+    // Resolve ![[path]] image tags to base64 if vaultPath is available
+    if (vaultPath) {
+      const wikiImgs = [...html.matchAll(/data-img-path="([^"]+)"/g)];
+      for (const m of wikiImgs) {
         try {
           const b64 = await readFileBase64(`${vaultPath}/${m[1]}`);
           const ext = m[1].split('.').pop()?.toLowerCase() ?? 'png';
           const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
-          html = html.replace(m[0], `<img src="data:${mime};base64,${b64}" alt="${esc(m[1])}" style="max-width:100%;border-radius:6px">`);
+          html = html.replace(
+            `<span class="preview-wiki-img" data-img-path="${m[1]}">🖼️ ${m[1]}</span>`,
+            `<img src="data:${mime};base64,${b64}" alt="${esc(m[1])}" style="max-width:100%;border-radius:6px;margin:6px 0;display:block;">`
+          );
         } catch {}
       }
     }
+
     return html;
   }
 
@@ -292,6 +428,46 @@
     if (!showPreview) return;
     const content = getActiveContent();
     markdownToHtml(content, false).then(h => { previewHtml = h; });
+  });
+
+  // Synchronisation du défilement entre l'éditeur et l'aperçu en mode Split
+  $effect(() => {
+    if (viewMode !== 'split' || !editorWrapperEl || !previewPanelEl) return;
+    const scroller = editorWrapperEl.querySelector('.cm-scroller') as HTMLElement | null;
+    const panel = previewPanelEl;
+    if (!scroller || !panel) return;
+
+    const handleEditorScroll = () => {
+      if (isSyncingScroll || viewMode !== 'split') return;
+      isSyncingScroll = true;
+      const maxScroller = scroller.scrollHeight - scroller.clientHeight;
+      const maxPreview = panel.scrollHeight - panel.clientHeight;
+      if (maxScroller > 0 && maxPreview > 0) {
+        const ratio = scroller.scrollTop / maxScroller;
+        panel.scrollTop = ratio * maxPreview;
+      }
+      requestAnimationFrame(() => { isSyncingScroll = false; });
+    };
+
+    const handlePreviewScroll = () => {
+      if (isSyncingScroll || viewMode !== 'split') return;
+      isSyncingScroll = true;
+      const maxScroller = scroller.scrollHeight - scroller.clientHeight;
+      const maxPreview = panel.scrollHeight - panel.clientHeight;
+      if (maxScroller > 0 && maxPreview > 0) {
+        const ratio = panel.scrollTop / maxPreview;
+        scroller.scrollTop = ratio * maxScroller;
+      }
+      requestAnimationFrame(() => { isSyncingScroll = false; });
+    };
+
+    scroller.addEventListener('scroll', handleEditorScroll, { passive: true });
+    panel.addEventListener('scroll', handlePreviewScroll, { passive: true });
+
+    return () => {
+      scroller.removeEventListener('scroll', handleEditorScroll);
+      panel.removeEventListener('scroll', handlePreviewScroll);
+    };
   });
 
   async function exportPdf() {
@@ -375,6 +551,41 @@
         return;
       } catch {}
     }
+  }
+
+  function handlePreviewClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+
+    // 1. Bouton de dé interactif dans l'aperçu
+    const diceBtn = target.closest('.preview-dice-btn') as HTMLElement | null;
+    if (diceBtn) {
+      const formula = diceBtn.dataset.formula;
+      if (formula) {
+        const result = evaluateDiceFormula(formula);
+        if (result) {
+          playDiceSound();
+          const detailStr = result.count > 1 || result.modifier !== 0
+            ? ` [${result.rolls.join('+')}]${result.modifier !== 0 ? (result.modifier > 0 ? ' +' + result.modifier : ' ' + result.modifier) : ''}`
+            : '';
+          notifStore.add('🎲', `Jet : ${result.formula}`, `Résultat = ${result.total}${detailStr}`, 'info', 4000);
+          window.dispatchEvent(new CustomEvent('dice-rolled', { detail: result }));
+        }
+      }
+      return;
+    }
+
+    // 2. Lien wiki ou scène VTT
+    const link = target.closest('[data-href]') as HTMLElement | null;
+    if (!link) return;
+    const href = link.dataset.href;
+    if (!href) return;
+    if (href.toLowerCase().startsWith('map:')) {
+      const targetMap = href.slice(4).trim();
+      const [mapName, pinTarget] = targetMap.split('#');
+      window.dispatchEvent(new CustomEvent('open-vtt-map', { detail: { mapName, pinTarget } }));
+      return;
+    }
+    openWikiFromPreview(href);
   }
 
   $effect(() => {
@@ -499,9 +710,43 @@
         >
           🖋️
         </button>
-        <button class="save-btn" class:active={showPreview} onclick={() => showPreview = !showPreview} title="Aperçu rendu (images + tableaux)">
-          👁️
+        <button
+          type="button"
+          class="save-btn search-btn"
+          onclick={() => document.dispatchEvent(new CustomEvent('editor-search'))}
+          title="Rechercher / Remplacer dans la note [Ctrl+F / Ctrl+H]"
+        >
+          🔍
         </button>
+        <div class="view-mode-group" role="group" aria-label="Mode d'affichage">
+          <button
+            type="button"
+            class="save-btn mode-btn"
+            class:active={viewMode === 'edit'}
+            onclick={() => viewMode = 'edit'}
+            title="Mode Éditeur seul"
+          >
+            ✏️
+          </button>
+          <button
+            type="button"
+            class="save-btn mode-btn"
+            class:active={viewMode === 'split'}
+            onclick={() => viewMode = 'split'}
+            title="Mode Double vue (Éditeur + Aperçu en direct)"
+          >
+            🌓
+          </button>
+          <button
+            type="button"
+            class="save-btn mode-btn"
+            class:active={viewMode === 'read'}
+            onclick={() => viewMode = 'read'}
+            title="Mode Lecture (Aperçu plein écran)"
+          >
+            📖
+          </button>
+        </div>
         <button onclick={exportPdf} class="save-btn" title="Exporter en PDF (rendu complet)">
           🖨️
         </button>
@@ -854,32 +1099,36 @@
         onclose={() => setActiveFile(null)}
       />
     {:else}
-      <div class="editor-wrapper" class:split-view={showPreview}>
-        <CodeMirrorEditor
-          value={getActiveContent()}
-          scrollToLine={scrollToLine}
-          onInput={(val) => {
-            setActiveContent(val);
-            setIsDirty(true);
-            scheduleAutoSave(val);
-            if (showPreview) markdownToHtml(val, false).then(h => { previewHtml = h; });
-          }}
-          onSave={() => {
-            clearTimeout(saveTimeout);
-            saveFile(true);
-          }}
-        />
+      <div
+        class="editor-wrapper"
+        class:split-view={viewMode === 'split'}
+        class:read-mode={viewMode === 'read'}
+        bind:this={editorWrapperEl}
+      >
+        {#if showEditor}
+          <CodeMirrorEditor
+            value={getActiveContent()}
+            scrollToLine={scrollToLine}
+            onInput={(val) => {
+              setActiveContent(val);
+              setIsDirty(true);
+              scheduleAutoSave(val);
+              if (showPreview) markdownToHtml(val, false).then(h => { previewHtml = h; });
+            }}
+            onSave={() => {
+              clearTimeout(saveTimeout);
+              saveFile(true);
+            }}
+          />
+        {/if}
         {#if showPreview}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="preview-panel" onclick={(e) => {
-            const target = e.target as HTMLElement;
-            const link = target.closest('[data-href]') as HTMLElement | null;
-            if (!link) return;
-            const href = link.dataset.href;
-            if (!href) return;
-            openWikiFromPreview(href);
-          }}>
+          <div
+            class="preview-panel"
+            bind:this={previewPanelEl}
+            onclick={handlePreviewClick}
+          >
             {@html previewHtml}
           </div>
         {/if}
@@ -1195,6 +1444,16 @@
 
   .editor-wrapper { flex: 1; min-height: 0; overflow: hidden; display: flex; }
   .editor-wrapper.split-view :global(.cm-editor) { flex: 1; min-width: 0; }
+  .editor-wrapper.read-mode {
+    justify-content: center;
+    background: var(--bg-primary);
+  }
+  .editor-wrapper.read-mode .preview-panel {
+    border-left: none;
+    max-width: 860px;
+    padding: 32px 48px;
+    background: var(--bg-primary);
+  }
 
   .preview-panel {
     flex: 1;
@@ -1220,13 +1479,92 @@
   .preview-panel :global(code) { font-family: monospace; background: rgba(255,255,255,.06); padding: 1px 4px; border-radius: 3px; font-size: 13px; }
   .preview-panel :global(img) { max-width: 100%; border-radius: 8px; margin: 8px 0; }
   .preview-panel :global(hr) { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  .preview-panel :global(.preview-list) { padding-left: 24px; margin: 0.8em 0; }
   .preview-panel :global(.checklist-item) { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; font-size: 14px; }
-  .preview-panel :global(.checklist-item .check) { font-size: 16px; flex-shrink: 0; color: var(--text-muted); }
+  .preview-panel :global(.checklist-item .check-box) { font-size: 16px; flex-shrink: 0; color: var(--text-muted); }
   .preview-panel :global(.checklist-item.done) { color: var(--text-muted); text-decoration: line-through; }
-  .preview-panel :global(.checklist-item.done .check) { color: #22c55e; }
+  .preview-panel :global(.checklist-item.done .check-box) { color: #22c55e; }
   .preview-panel :global(li) { margin: 3px 0; padding-left: 4px; }
   .preview-panel :global(.wikilink) { color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--accent); cursor: pointer; }
   .preview-panel :global(.wikilink:hover) { background: rgba(229,168,83,0.12); border-radius: 2px; }
+  .preview-panel :global(.preview-callout) {
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 1.2em 0;
+    background: rgba(229, 168, 83, 0.08);
+  }
+  .preview-panel :global(.callout-header) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .preview-panel :global(.callout-content) {
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+  .preview-panel :global(.callout-content p) {
+    margin: 4px 0;
+  }
+  .preview-panel :global(.preview-dice-btn) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, rgba(229, 168, 83, 0.15), rgba(217, 119, 6, 0.25));
+    border: 1px solid rgba(229, 168, 83, 0.45);
+    border-radius: 5px;
+    padding: 1px 7px;
+    margin: 0 2px;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #fbbf24;
+    cursor: pointer;
+    vertical-align: baseline;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  .preview-panel :global(.preview-dice-btn:hover) {
+    background: linear-gradient(135deg, rgba(229, 168, 83, 0.3), rgba(217, 119, 6, 0.45));
+    border-color: #fbbf24;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+  }
+  .preview-panel :global(.preview-gm-comment) {
+    background: rgba(147, 51, 234, 0.15);
+    border: 1px dashed rgba(147, 51, 234, 0.4);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.88em;
+    color: #c084fc;
+  }
+
+  .view-mode-group {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px;
+    gap: 1px;
+  }
+
+  .mode-btn {
+    border: none !important;
+    border-radius: 3px !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+    min-height: 22px !important;
+    min-width: 24px !important;
+  }
+
+  .mode-btn.active {
+    background: var(--accent-bg) !important;
+    color: var(--accent) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
 
   /* ── Frontmatter bar ────────────────────────────────────────── */
 

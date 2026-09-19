@@ -13,7 +13,7 @@
   } from '$lib/api';
   import { vttStore } from '$lib/stores/vtt.svelte';
   import { getGameConfig } from '$lib/stores/gameConfig.svelte';
-  import { getVaultPath, setVaultTree, setActiveFile } from '$lib/stores/vault.svelte';
+  import { getVaultPath, setVaultTree, setActiveFile, getActiveFile, setActiveContent, getIsDirty } from '$lib/stores/vault.svelte';
   import { invoke } from '@tauri-apps/api/core';
 
   let visible     = $state(false);
@@ -305,23 +305,38 @@
     unlistens.push(await listen<any>('mj_note_received', async ({ payload }) => {
       const title = payload?.title || 'Note Sans Titre';
       const content = payload?.content || '';
-      const folder = payload?.folder || 'Notes/Mobile';
-      addLog('MJ Mobile', `📝 Note reçue : "${title}"`);
+      const savedRelPath = payload?.saved_rel_path;
+      const isConflict = payload?.is_conflict ?? false;
+
+      if (isConflict) {
+        addLog('Sécurité MJ', `⚠️ Conflit détecté pour "${title}" : enregistré sous copie séparée (${savedRelPath}) pour protéger vos écrits PC.`);
+      } else {
+        addLog('MJ Mobile', `📝 Note reçue et sécurisée : "${title}" (${savedRelPath || 'Notes/Mobile'})`);
+      }
 
       const vp = getVaultPath();
       if (!vp) return;
 
-      const slug = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_');
-      const filename = `${folder}/${slug}.md`;
-      lastNote = { title, filename };
+      if (savedRelPath) {
+        lastNote = { title, filename: savedRelPath };
+      }
 
       try {
-        await createDirectory(vp, folder).catch(() => {});
-        await writeFile(vp, filename, content);
+        // Le backend Rust a déjà enregistré le fichier avec sauvegarde préventive et gestion des conflits
         const tree = await openVault(vp);
         setVaultTree(tree);
+
+        // Si la note reçue est celle actuellement ouverte dans l'éditeur :
+        if (savedRelPath && getActiveFile() === savedRelPath) {
+          if (getIsDirty()) {
+            addLog('Sécurité', `⚠️ Note active en cours d'édition sur PC : la version PC est préservée.`);
+          } else if (!isConflict) {
+            // Mettre à jour l'éditeur en direct pour qu'il soit synchronisé
+            setActiveContent(content);
+          }
+        }
       } catch (err) {
-        console.error('Erreur écriture note MJ mobile:', err);
+        console.error('Erreur rafraîchissement note MJ mobile:', err);
       }
     }));
   });
