@@ -25,10 +25,12 @@
   // Recevoir des callbacks du canevas pour certaines actions (ex: supprimer ou finir un tracé)
   let {
     onFinishPath = () => {},
-    onDeleteSelected = () => {}
+    onDeleteSelected = () => {},
+    onSendToGrimoire = () => {}
   }: {
     onFinishPath?: () => void;
     onDeleteSelected?: () => void;
+    onSendToGrimoire?: () => void;
   } = $props();
 
   // Liste de polices d'écriture médiévales Google Fonts
@@ -360,7 +362,7 @@
 
 
 
-  import { generateMazeDungeon, generateCaveDungeon, generateRuinsDungeon, generateTavern, generateForestCamp, generateAiDungeon } from '../lib/dungeonGenerator';
+  import { generateMazeDungeon, generateCaveDungeon, generateRuinsDungeon, generateBspDungeon, generateCatacombs, generateTemple, generateSewers, generateTavern, generateForestCamp, generateAiDungeon } from '../lib/dungeonGenerator';
   import { onMount } from 'svelte';
   import SculptPanel from './panels/SculptPanel.svelte';
 
@@ -455,6 +457,95 @@
     }
   }
 
+  const CURATED_SLOT_OPTIONS: Record<string, Array<{ id: string; name: string; icon: string }>> = {
+    wall: [
+      { id: 'td_wall', name: 'Mur Pierre Battlemap (3D)', icon: '🧱' },
+      { id: 'td_rock', name: 'Paroi Rocheuse Caverne', icon: '🪨' }
+    ],
+    wall_v: [
+      { id: 'td_wall', name: 'Mur Pierre Battlemap (3D)', icon: '🧱' },
+      { id: 'td_rock', name: 'Paroi Rocheuse Caverne', icon: '🪨' }
+    ],
+    wall_tl: [
+      { id: 'td_wall', name: 'Coin Pierre HG', icon: '📐' },
+      { id: 'td_rock', name: 'Coin Rocheux HG', icon: '🪨' }
+    ],
+    wall_tr: [
+      { id: 'td_wall', name: 'Coin Pierre HD', icon: '📐' },
+      { id: 'td_rock', name: 'Coin Rocheux HD', icon: '🪨' }
+    ],
+    wall_bl: [
+      { id: 'td_wall', name: 'Coin Pierre BG', icon: '📐' },
+      { id: 'td_rock', name: 'Coin Rocheux BG', icon: '🪨' }
+    ],
+    wall_br: [
+      { id: 'td_wall', name: 'Coin Pierre BD', icon: '📐' },
+      { id: 'td_rock', name: 'Coin Rocheux BD', icon: '🪨' }
+    ],
+    door: [
+      { id: 'td_door', name: 'Porte Ouverte Tactique', icon: '🚪' }
+    ],
+    chest: [
+      { id: 'td_chest', name: 'Coffre Trésor en Bois', icon: '📦' }
+    ],
+    pillar: [
+      { id: 'td_pillar', name: 'Pilier / Colonne de Temple', icon: '🏛️' }
+    ],
+    stairs_up: [
+      { id: 'td_stairs_up', name: 'Escalier Montant (Entrée)', icon: '📈' }
+    ],
+    stairs_down: [
+      { id: 'td_stairs_down', name: 'Escalier Descendant (Sortie)', icon: '📉' }
+    ],
+    altar: [
+      { id: 'td_altar', name: 'Autel Sacré', icon: '✨' }
+    ],
+    sarcophagus: [
+      { id: 'td_sarcophagus', name: 'Sarcophage Ancien', icon: '⚰️' }
+    ],
+    bookshelf: [
+      { id: 'td_bookshelf', name: 'Bibliothèque Occulte', icon: '📚' }
+    ],
+    brazier: [
+      { id: 'td_brazier', name: 'Braséro Ardent', icon: '🔥' }
+    ],
+    statue: [
+      { id: 'td_statue', name: 'Statue Guerrier', icon: '🗿' }
+    ],
+    trap: [
+      { id: 'td_trap', name: 'Dalle Piégée', icon: '⚠️' }
+    ]
+  };
+
+  function getSlotFallbackIcon(slot: string, assetId?: string): string {
+    if (assetId === 'td_rock') return '🪨';
+    if (assetId === 'td_wall') return '🧱';
+    if (assetId === 'td_door') return '🚪';
+    if (assetId === 'td_chest') return '📦';
+    if (assetId === 'td_pillar') return '🏛️';
+    if (assetId === 'td_stairs_up') return '📈';
+    if (assetId === 'td_stairs_down') return '📉';
+    if (assetId === 'td_altar') return '✨';
+    if (assetId === 'td_sarcophagus') return '⚰️';
+    if (assetId === 'td_bookshelf') return '📚';
+    if (assetId === 'td_brazier') return '🔥';
+    if (assetId === 'td_statue') return '🗿';
+    if (assetId === 'td_trap') return '⚠️';
+    if (slot.startsWith('wall')) return '🧱';
+    if (slot === 'door') return '🚪';
+    if (slot === 'chest') return '📦';
+    if (slot === 'pillar') return '🏛️';
+    if (slot === 'stairs_up') return '📈';
+    if (slot === 'stairs_down') return '📉';
+    if (slot === 'altar') return '✨';
+    if (slot === 'sarcophagus') return '⚰️';
+    if (slot === 'bookshelf') return '📚';
+    if (slot === 'brazier') return '🔥';
+    if (slot === 'statue') return '🗿';
+    if (slot === 'trap') return '⚠️';
+    return '✨';
+  }
+
   let dungeonThemeStamps = $derived.by(() => {
     const theme = dungeonTheme;
     if (theme === 'classic') {
@@ -476,7 +567,8 @@
   });
 
   function getStampFile(id: string) {
-    const meta = (importedStamps as any[]).find(s => s.id === id);
+    if (!id || id.startsWith('td_')) return '';
+    const meta = (importedStamps as any[]).find((s: any) => s.id === id || s.id === id.replace('imported_', 'stamp_'));
     return meta ? meta.file : '';
   }
 
@@ -1835,6 +1927,30 @@
               </div>
             </div>
 
+            <div class="panel-section">
+              <span class="section-title">Détails au Sol</span>
+              <div style="display: flex; gap: 6px;">
+                <button 
+                  type="button" 
+                  class="style-btn" 
+                  class:active={mapStore.dungeonDecorDensity === 0} 
+                  onclick={() => mapStore.dungeonDecorDensity = 0}
+                  title="Sol propre et net (lisibilité maximale)"
+                >
+                  ✨ Épuré (Net)
+                </button>
+                <button 
+                  type="button" 
+                  class="style-btn" 
+                  class:active={mapStore.dungeonDecorDensity > 0} 
+                  onclick={() => mapStore.dungeonDecorDensity = 1}
+                  title="Quelques décombres subtils"
+                >
+                  🌿 Subtil
+                </button>
+              </div>
+            </div>
+
             <div class="panel-section" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; margin-top: 12px;">
               <span class="section-title">🔧 Personnaliser le Thème</span>
               
@@ -1845,7 +1961,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].wall)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].wall)} alt="mur h" />
                     {:else}
-                      <span class="empty-preview">🧱</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('wall', mapStore.dungeonThemes[dungeonTheme].wall)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1856,7 +1972,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_v)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_v)} alt="mur v" />
                     {:else}
-                      <span class="empty-preview">🧱</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('wall_v', mapStore.dungeonThemes[dungeonTheme].wall_v)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1867,7 +1983,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_tl)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_tl)} alt="coin hg" />
                     {:else}
-                      <span class="empty-preview">📐</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('wall_tl', mapStore.dungeonThemes[dungeonTheme].wall_tl)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1878,7 +1994,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_tr)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_tr)} alt="coin hd" />
                     {:else}
-                      <span class="empty-preview">📐</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('wall_tr', mapStore.dungeonThemes[dungeonTheme].wall_tr)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1889,7 +2005,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_bl)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_bl)} alt="coin bg" />
                     {:else}
-                      <span class="empty-preview">📐</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('wall_bl', mapStore.dungeonThemes[dungeonTheme].wall_bl)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1900,7 +2016,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_br)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].wall_br)} alt="coin bd" />
                     {:else}
-                      <span class="empty-preview">📐</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('wall_br', mapStore.dungeonThemes[dungeonTheme].wall_br)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1911,7 +2027,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].door)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].door)} alt="porte" />
                     {:else}
-                      <span class="empty-preview">🚪</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('door', mapStore.dungeonThemes[dungeonTheme].door)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1922,7 +2038,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].chest)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].chest)} alt="coffre" />
                     {:else}
-                      <span class="empty-preview">📦</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('chest', mapStore.dungeonThemes[dungeonTheme].chest)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1933,7 +2049,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].pillar)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].pillar)} alt="pilier" />
                     {:else}
-                      <span class="empty-preview">🏛️</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('pillar', mapStore.dungeonThemes[dungeonTheme].pillar)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1944,7 +2060,7 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].stairs_up)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].stairs_up)} alt="entrée" />
                     {:else}
-                      <span class="empty-preview">📈</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('stairs_up', mapStore.dungeonThemes[dungeonTheme].stairs_up)}</span>
                     {/if}
                   </div>
                 </button>
@@ -1955,27 +2071,45 @@
                     {#if getStampFile(mapStore.dungeonThemes[dungeonTheme].stairs_down)}
                       <img src={getStampFile(mapStore.dungeonThemes[dungeonTheme].stairs_down)} alt="sortie" />
                     {:else}
-                      <span class="empty-preview">📉</span>
+                      <span class="empty-preview">{getSlotFallbackIcon('stairs_down', mapStore.dungeonThemes[dungeonTheme].stairs_down)}</span>
                     {/if}
                   </div>
                 </button>
               </div>
 
-              <span class="section-title-sub" style="margin-top: 10px; display: block; font-size: 10px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Choisir le visuel :</span>
-              <div class="dungeon-picker-wrapper">
-                <div class="dungeon-picker-grid">
-                  {#each dungeonThemeStamps as stamp}
-                    <button 
-                      type="button" 
-                      class="dungeon-picker-item" 
-                      class:selected={mapStore.dungeonThemes[dungeonTheme][activeDungeonSlot] === stamp.id}
-                      onclick={() => selectDungeonStamp(stamp.id)}
-                    >
-                      <img src={stamp.file} alt={stamp.name} title={stamp.name} loading="lazy" />
-                    </button>
-                  {/each}
-                </div>
+              <span class="section-title-sub" style="margin-top: 10px; display: block; font-size: 10px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Visuels recommandés :</span>
+              <div class="dungeon-curated-grid">
+                {#each (CURATED_SLOT_OPTIONS[activeDungeonSlot] || []) as opt}
+                  <button 
+                    type="button" 
+                    class="dungeon-curated-btn" 
+                    class:selected={mapStore.dungeonThemes[dungeonTheme][activeDungeonSlot] === opt.id}
+                    onclick={() => selectDungeonStamp(opt.id)}
+                    title={opt.name}
+                  >
+                    <span class="dungeon-curated-icon">{opt.icon}</span>
+                    <span class="dungeon-curated-label">{opt.name}</span>
+                  </button>
+                {/each}
               </div>
+
+              {#if dungeonThemeStamps.length > 0}
+                <span class="section-title-sub" style="margin-top: 10px; display: block; font-size: 10px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Autres tampons :</span>
+                <div class="dungeon-picker-wrapper">
+                  <div class="dungeon-picker-grid">
+                    {#each dungeonThemeStamps as stamp}
+                      <button 
+                        type="button" 
+                        class="dungeon-picker-item" 
+                        class:selected={mapStore.dungeonThemes[dungeonTheme][activeDungeonSlot] === stamp.id}
+                        onclick={() => selectDungeonStamp(stamp.id)}
+                      >
+                        <img src={stamp.file} alt={stamp.name} title={stamp.name} loading="lazy" />
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </div>
 
             <div class="panel-section" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; margin-top: 12px;">
@@ -2002,41 +2136,151 @@
               </div>
             </div>
 
+            <!-- Contrôles Maître du Jeu (GM) -->
+            <div class="panel-section" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <span class="section-title">👑 Paramètres Maître du Jeu</span>
+              
+              <!-- Densité de meublement -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 10px; color: var(--color-text-muted);">Densité du Mobilier</span>
+                <div class="style-buttons-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                  <button 
+                    type="button" 
+                    class="style-btn" 
+                    class:active={mapStore.dungeonFurnishingDensity === 'sparse'}
+                    onclick={() => mapStore.dungeonFurnishingDensity = 'sparse'}
+                    title="Mobilier épuré, grands espaces vides"
+                  >
+                    🍃 Épuré
+                  </button>
+                  <button 
+                    type="button" 
+                    class="style-btn" 
+                    class:active={mapStore.dungeonFurnishingDensity === 'normal'}
+                    onclick={() => mapStore.dungeonFurnishingDensity = 'normal'}
+                    title="Mobilier équilibré classique"
+                  >
+                    ⚖️ Normal
+                  </button>
+                  <button 
+                    type="button" 
+                    class="style-btn" 
+                    class:active={mapStore.dungeonFurnishingDensity === 'dense'}
+                    onclick={() => mapStore.dungeonFurnishingDensity = 'dense'}
+                    title="Donjon richement meublé et détaillé"
+                  >
+                    👑 Riche
+                  </button>
+                </div>
+              </div>
+
+              <!-- Toggles GM -->
+              <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; cursor: pointer; color: #e2e8f0; background: rgba(255,255,255,0.03); padding: 6px 8px; border-radius: 6px;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span>🐉</span> Sanctuaire & Boss
+                  </span>
+                  <input type="checkbox" bind:checked={mapStore.dungeonBossRoom} style="accent-color: #d4a84b; cursor: pointer;" />
+                </label>
+
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; cursor: pointer; color: #e2e8f0; background: rgba(255,255,255,0.03); padding: 6px 8px; border-radius: 6px;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span>⚠️</span> Pièges & Dalles Cachées
+                  </span>
+                  <input type="checkbox" bind:checked={mapStore.dungeonTraps} style="accent-color: #ef4444; cursor: pointer;" />
+                </label>
+
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; cursor: pointer; color: #e2e8f0; background: rgba(255,255,255,0.03); padding: 6px 8px; border-radius: 6px;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span>🕯️</span> Éclairage & Ambiance Auto
+                  </span>
+                  <input type="checkbox" bind:checked={mapStore.dungeonAutoAtmosphere} style="accent-color: #38bdf8; cursor: pointer;" />
+                </label>
+              </div>
+            </div>
+
             {#if generatorMode === 'procedural'}
               <div class="panel-section" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
                 <span class="section-title">Générateurs Algorithmiques</span>
+                
+                <!-- Nouveaux Donjons Tactiques Battlemap -->
                 <button 
                   type="button" 
                   class="action-btn" 
-                  onclick={() => generateMazeDungeon(dungeonTheme, dungeonSize)}
-                  title="Générer un Labyrinthe parfait"
+                  style="border-left: 3px solid #d4a84b; text-align: left; font-weight: 600;"
+                  onclick={() => generateBspDungeon(dungeonTheme, dungeonSize)}
+                  title="Générer un Donjon architectural complet avec salles partitionnées, couloirs et sanctuaire de boss"
                 >
-                  🌀 Labyrinthe
+                  🏰 Donjon BSP (Salles & Boss)
                 </button>
+
                 <button 
                   type="button" 
                   class="action-btn" 
-                  onclick={() => generateCaveDungeon(dungeonTheme, dungeonSize, dungeonSize)}
-                  title="Générer une Grotte organique"
+                  style="border-left: 3px solid #8b5cf6; text-align: left; font-weight: 600;"
+                  onclick={() => generateCatacombs(dungeonTheme, dungeonSize)}
+                  title="Générer des Catacombes anciennes avec alcôves de sarcophages et tombeau royal"
                 >
-                  🕳️ Caverne
+                  ⚰️ Catacombes & Cryptes
                 </button>
+
                 <button 
                   type="button" 
                   class="action-btn" 
-                  onclick={() => generateRuinsDungeon(dungeonTheme, dungeonSize)}
-                  title="Générer des ruines de salles"
+                  style="border-left: 3px solid #38bdf8; text-align: left; font-weight: 600;"
+                  onclick={() => generateTemple(dungeonTheme, dungeonSize)}
+                  title="Générer un Temple Sacré avec grande nef, colonnade, autel divin et archives"
                 >
-                  🏛️ Ruines
+                  ✨ Temple Sacré & Sanctuaire
                 </button>
+
                 <button 
                   type="button" 
                   class="action-btn" 
-                  onclick={() => generateTavern(dungeonTheme, dungeonSize)}
-                  title="Générer une Taverne animée"
+                  style="border-left: 3px solid #0284c7; text-align: left; font-weight: 600;"
+                  onclick={() => generateSewers(dungeonTheme, dungeonSize)}
+                  title="Générer des Égouts souterrains inondés avec canaux, quais et ponts en arche"
                 >
-                  🍺 Taverne
+                  🌊 Égouts & Canaux Inondés
                 </button>
+
+                <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0;"></div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                  <button 
+                    type="button" 
+                    class="action-btn" 
+                    onclick={() => generateRuinsDungeon(dungeonTheme, dungeonSize)}
+                    title="Générer des ruines de salles"
+                  >
+                    🏛️ Ruines
+                  </button>
+                  <button 
+                    type="button" 
+                    class="action-btn" 
+                    onclick={() => generateCaveDungeon(dungeonTheme, dungeonSize, dungeonSize)}
+                    title="Générer une Grotte organique"
+                  >
+                    🕳️ Caverne
+                  </button>
+                  <button 
+                    type="button" 
+                    class="action-btn" 
+                    onclick={() => generateMazeDungeon(dungeonTheme, dungeonSize)}
+                    title="Générer un Labyrinthe parfait"
+                  >
+                    🌀 Labyrinthe
+                  </button>
+                  <button 
+                    type="button" 
+                    class="action-btn" 
+                    onclick={() => generateTavern(dungeonTheme, dungeonSize)}
+                    title="Générer une Taverne animée"
+                  >
+                    🍺 Taverne
+                  </button>
+                </div>
+
                 <button 
                   type="button" 
                   class="action-btn" 
@@ -2121,6 +2365,33 @@
                 {/if}
               </div>
             {/if}
+
+            <!-- Passerelle Directe Table Virtuelle (VTT) -->
+            <div class="panel-section" style="border-top: 1px solid rgba(56, 189, 248, 0.25); background: linear-gradient(180deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.4) 100%); padding: 12px; border-radius: 8px; margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="section-title" style="color: #38bdf8; margin: 0; font-size: 11px;">🐉 Table Virtuelle (VTT)</span>
+                <span style="font-size: 9px; padding: 2px 6px; background: rgba(56, 189, 248, 0.18); color: #7dd3fc; border-radius: 4px; font-weight: 600;">Pont Grimoire</span>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; color: #cbd5e1; background: rgba(0,0,0,0.25); padding: 6px 8px; border-radius: 6px;">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span>🧱</span> Murs : <strong style="color: #38bdf8;">{mapStore.vttWalls.length}</strong>
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span>🔥</span> Feux : <strong style="color: #f59e0b;">{mapStore.vttLights.length}</strong>
+                </span>
+              </div>
+
+              <button 
+                type="button" 
+                class="action-btn"
+                onclick={onSendToGrimoire}
+                title="Envoyer instantanément la carte avec ses murs d'occlusion et lumières sur la Table Virtuelle"
+                style="background: linear-gradient(135deg, #0284c7, #4f46e5); color: #ffffff; font-weight: 600; padding: 9px 12px; border-radius: 6px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 2px;"
+              >
+                <span>⚔️</span> Envoyer sur la Table Virtuelle
+              </button>
+            </div>
             
             <p class="hint-text" style="font-style: italic; color: #94a3b8; font-size: 10px; margin-top: 12px;">
               ⚠️ Note: Générer un donjon effacera le contenu existant de la carte. Vous pouvez annuler avec Ctrl+Z.
@@ -2941,6 +3212,50 @@
     border-color: var(--accent-orange);
     background: rgba(255, 204, 90, 0.08);
     box-shadow: 0 0 6px rgba(255, 204, 90, 0.3);
+  }
+
+  .dungeon-curated-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .dungeon-curated-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0f131a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s ease;
+    text-align: left;
+  }
+
+  .dungeon-curated-btn:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 204, 90, 0.3);
+  }
+
+  .dungeon-curated-btn.selected {
+    background: rgba(255, 204, 90, 0.1);
+    border-color: var(--accent-orange, #f59e0b);
+    color: #fff;
+    box-shadow: 0 0 6px rgba(255, 204, 90, 0.2);
+  }
+
+  .dungeon-curated-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .dungeon-curated-label {
+    flex: 1;
+    font-weight: 500;
   }
 
   .spinner {

@@ -257,12 +257,29 @@
         }
 
         if (switchScene) {
-          addMapScene(safeTitle, relImgPath, payload.dataUrl);
+          addMapScene(safeTitle, relImgPath, payload.dataUrl, payload.walls, payload.lights);
           vttStore.currentMap = payload.dataUrl;
           vttStore.currentMapRelPath = relImgPath;
           if (payload.gridSize) vttStore.gridSize = payload.gridSize;
+          if (payload.walls && Array.isArray(payload.walls)) {
+            vttStore.walls = [...payload.walls];
+            const curScene = vttStore.maps?.find(m => m.id === vttStore.activeMapId);
+            if (curScene) curScene.walls = [...payload.walls];
+            emitToPlayerView('update_walls', vttStore.walls);
+          }
+          if (payload.lights && Array.isArray(payload.lights)) {
+            vttStore.lights = [...payload.lights];
+            const curScene = vttStore.maps?.find(m => m.id === vttStore.activeMapId);
+            if (curScene) curScene.lights = [...payload.lights];
+            emitToPlayerView('update_lights', vttStore.lights);
+          }
           viewMode = 'editor';
-          notifStore.add('🐉', 'Map Editor', `Carte « ${safeTitle} » chargée sur la Table Virtuelle !`, 'success', 6000);
+          const wallCount = payload.walls?.length || 0;
+          const lightCount = payload.lights?.length || 0;
+          const detailMsg = (wallCount > 0 || lightCount > 0)
+            ? ` (${wallCount} murs, ${lightCount} sources de lumière)`
+            : '';
+          notifStore.add('🐉', 'Map Editor', `Carte « ${safeTitle} » chargée sur la Table Virtuelle !${detailMsg}`, 'success', 6000);
         } else {
           notifStore.add('💾', 'Campagne', `Projet & Carte « ${safeTitle} » enregistrés dans le Coffre !`, 'success', 5000);
         }

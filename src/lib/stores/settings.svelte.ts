@@ -1,5 +1,5 @@
 // src/lib/stores/settings.svelte.ts
-let aiModel = $state('gemma2:9b');
+let aiModel = $state('gemma2:2b');
 let aiSystemPrompt = $state('En tant que Maître du Jeu de rôle (style dark fantasy), développe ou décris de manière immersive ceci :');
 
 // Initialize from LocalStorage

@@ -45,6 +45,7 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Vue Graphique 2D Interactive (Graph View)** : Visualisation de l'univers sous forme de toile cosmique avec physique de répulsion des nœuds interconnectés.
 - **Timeline & Calendrier Impérial** : Suivi des dates en jeu, avancement du temps (+1h, +1j), gestion des ères et saisons.
 - **Gestionnaire de Coffre (Vault Explorer)** : Support de coffres multiples, dossiers, glisser-déposer, favoris et fichiers récents.
+- **🤖 Assistant IA Local Intégré (Ollama v0.6.8)** : Assistant d'écriture 100% privé et hors-ligne propulsé par Ollama. Assistant de configuration guidé, détection automatique du démon système (port 11434/11435), téléchargement transparent des modèles (Gemma 2, Llama 3.2) avec jauge en mégaoctets et support Linux & Windows sans droit administrateur.
 
 ### 2. 🗺️ Virtual TableTop Haute Performance (PixiJS v8 VTT)
 - **Moteur Graphique GPU 60+ FPS** : Rendu ultra-fluide des cartes géantes, textures dynamiques et animations sans ralentissement.
@@ -88,7 +89,7 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 ### 5. 🧙‍♂️ Outils du Maître du Jeu & Générateurs
 - **Écran du MJ Tactique (Dashboard)** : Vue d'ensemble de tous les héros, PV, CA et modificateurs.
 - **Tracker d'Initiative & Combat** : Gestion des tours, décompte des rounds et états de combat.
-- **Générateur de Donjons Procéduraux** : Création automatique de plans de donjons complets avec pièces, couloirs, murs et portes.
+- **Générateur de Donjons Procéduraux ⟷ VTT Sync** : Création automatique de plans de donjons complets (pièces, couloirs, salles de boss, autels, cryptes, dalles piégées) avec projection instantanée des murs physiques (LOS) et des sources lumineuses sur la Table Virtuelle.
 - **Générateurs Rapides** : PNJ avec personnalités, Butins & Trésors, Rencontres aléatoires, Salles de donjon, Météo (7 jours).
 - **Règles Spécifiques WFRP & Dark Fantasy** : Blessures Critiques 🩸, Mutations du Chaos 🌑, Calculateur de Combat Opposé (SL Net).
 - **Marchands Procéduraux** : Échoppes avec inventaires et prix calculés selon la rareté.

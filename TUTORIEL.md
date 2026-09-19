@@ -1,4 +1,4 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.6.7)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.6.8)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
 > *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Inline Dice, Callouts, Mode Zen) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA · IA Locale Ollama*

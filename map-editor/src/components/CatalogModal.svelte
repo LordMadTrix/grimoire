@@ -77,7 +77,16 @@
         { id: 'td_wall', name: 'Mur de Briques', icon: '🧱' },
         { id: 'td_door', name: 'Porte Ouverte', icon: '🚪' },
         { id: 'td_bed', name: 'Lit Simple', icon: '🛏️' },
-        { id: 'td_tent', name: 'Tente de Camp', icon: '⛺' }
+        { id: 'td_tent', name: 'Tente de Camp', icon: '⛺' },
+        { id: 'td_stairs_up', name: 'Escalier Montant', icon: '📈' },
+        { id: 'td_stairs_down', name: 'Escalier Descendant', icon: '📉' },
+        { id: 'td_bar', name: 'Comptoir de Bar', icon: '🪵' },
+        { id: 'td_altar', name: 'Autel Sacré', icon: '✨' },
+        { id: 'td_sarcophagus', name: 'Sarcophage Ancien', icon: '⚰️' },
+        { id: 'td_bookshelf', name: 'Bibliothèque Occulte', icon: '📚' },
+        { id: 'td_brazier', name: 'Braséro Ardent', icon: '🔥' },
+        { id: 'td_statue', name: 'Statue de Guerrier', icon: '🗿' },
+        { id: 'td_trap', name: 'Dalle Piégée', icon: '⚠️' }
       ]
     }
   ];

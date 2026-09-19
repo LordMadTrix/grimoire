@@ -589,6 +589,16 @@
         break;
       }
       case 'td_campfire': {
+        // Halo de lueur ambiante chaleureuse
+        const fireHalo = ctx.createRadialGradient(0, 0, 8, 0, 0, 52);
+        fireHalo.addColorStop(0, 'rgba(245, 158, 11, 0.45)');
+        fireHalo.addColorStop(0.5, 'rgba(234, 88, 12, 0.18)');
+        fireHalo.addColorStop(1, 'rgba(234, 88, 12, 0)');
+        ctx.fillStyle = fireHalo;
+        ctx.beginPath();
+        ctx.arc(0, 0, 52, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.fillStyle = '#7f8c8d';
         ctx.strokeStyle = '#34495e';
         ctx.lineWidth = 1;
@@ -905,6 +915,540 @@
         ctx.stroke();
         break;
       }
+      case 'td_stairs_up': {
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 6;
+
+        // Base stone frame
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.rect(-32, -32, 64, 64);
+        ctx.fill();
+        ctx.stroke();
+
+        // 5 marches montantes (du bas vers le haut, de plus en plus claires)
+        const stepColors = ['#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0'];
+        const stepH = 56 / 5;
+        for (let i = 0; i < 5; i++) {
+          const sy = 24 - (i + 1) * stepH;
+          ctx.fillStyle = stepColors[i];
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.rect(-28, sy, 56, stepH);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-27, sy + 1);
+          ctx.lineTo(27, sy + 1);
+          ctx.stroke();
+        }
+
+        // Flèche indicatrice montante
+        ctx.fillStyle = '#0ea5e9';
+        ctx.beginPath();
+        ctx.moveTo(0, -20);
+        ctx.lineTo(7, -10);
+        ctx.lineTo(3, -10);
+        ctx.lineTo(3, 2);
+        ctx.lineTo(-3, 2);
+        ctx.lineTo(-3, -10);
+        ctx.lineTo(-7, -10);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      }
+      case 'td_stairs_down': {
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 6;
+
+        // Base stone frame
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#020617';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.rect(-32, -32, 64, 64);
+        ctx.fill();
+        ctx.stroke();
+
+        // 5 marches descendantes (du haut vers le bas, vers le noir profond)
+        const stepColorsDown = ['#94a3b8', '#64748b', '#475569', '#334155', '#1e293b'];
+        const stepH = 56 / 5;
+        for (let i = 0; i < 5; i++) {
+          const sy = -28 + i * stepH;
+          ctx.fillStyle = stepColorsDown[i];
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.rect(-28, sy, 56, stepH);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          ctx.fillRect(-28, sy + stepH - 2, 56, 2);
+        }
+
+        // Fosse ténébreuse au fond
+        ctx.fillStyle = '#05070c';
+        ctx.fillRect(-28, 20, 56, 8);
+
+        // Flèche indicatrice descendante
+        ctx.fillStyle = '#e11d48';
+        ctx.beginPath();
+        ctx.moveTo(0, 16);
+        ctx.lineTo(7, 6);
+        ctx.lineTo(3, 6);
+        ctx.lineTo(3, -6);
+        ctx.lineTo(-3, -6);
+        ctx.lineTo(-3, 6);
+        ctx.lineTo(-7, 6);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      }
+      case 'td_bar': {
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 5;
+
+        // Plan de travail en acajou foncé poli
+        ctx.fillStyle = '#451a03';
+        ctx.strokeStyle = '#1c0a00';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.rect(-38, -14, 76, 28);
+        ctx.fill();
+        ctx.stroke();
+
+        // Rebord en laiton doré
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(-38, 10, 76, 4);
+
+        // Reflet brillant sur le bois
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-36, -10);
+        ctx.lineTo(36, -10);
+        ctx.stroke();
+
+        // Lignes d'assemblage des planches
+        ctx.strokeStyle = '#2d1102';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-12, -14); ctx.lineTo(-12, 10);
+        ctx.moveTo(14, -14); ctx.lineTo(14, 10);
+        ctx.stroke();
+        break;
+      }
+      case 'td_altar': {
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 8;
+
+        // Base massive en pierre taillée
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.rect(-34, -20, 68, 40);
+        ctx.fill();
+        ctx.stroke();
+
+        // Rebord biseauté intérieur
+        ctx.fillStyle = '#475569';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.rect(-30, -17, 60, 34);
+        ctx.fill();
+        ctx.stroke();
+
+        // Nappe d'autel en velours pourpre au centre
+        ctx.fillStyle = '#581c87';
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.rect(-14, -20, 28, 40);
+        ctx.fill();
+        ctx.stroke();
+
+        // Franges dorées de la nappe (haut et bas)
+        ctx.fillStyle = '#ca8a04';
+        ctx.fillRect(-14, -20, 28, 3);
+        ctx.fillRect(-14, 17, 28, 3);
+
+        // Calice sacré d'or au centre
+        ctx.fillStyle = '#facc15';
+        ctx.strokeStyle = '#713f12';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 4 Bougies d'offrande aux extrémités
+        const candlePositions = [[-24, -10], [24, -10], [-24, 10], [24, 10]];
+        for (const [cx, cy] of candlePositions) {
+          const cGrad = ctx.createRadialGradient(cx, cy, 1, cx, cy, 12);
+          cGrad.addColorStop(0, 'rgba(254, 240, 138, 0.6)');
+          cGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+          ctx.fillStyle = cGrad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(cx, cy - 1, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+      }
+      case 'td_sarcophagus': {
+        ctx.shadowColor = 'rgba(0,0,0,0.55)';
+        ctx.shadowBlur = 9;
+
+        // Cuve en granit taillé
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#020617';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.rect(-18, -36, 36, 72);
+        ctx.fill();
+        ctx.stroke();
+
+        // Couvercle sculpté en relief biseauté
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(-14, -32, 28, 64);
+        ctx.fill();
+        ctx.stroke();
+
+        // Tête / Casque du gisant
+        ctx.fillStyle = '#64748b';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, -20, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Fente de visière
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-4, -21, 8, 2);
+
+        // Épée gravée le long du torse
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -9);
+        ctx.lineTo(0, 22);
+        ctx.stroke();
+
+        // Garde de l'épée
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(-6, -6);
+        ctx.lineTo(6, -6);
+        ctx.stroke();
+
+        // Pommeau d'or
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(0, -9, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bords de pierre usée
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-13, -31); ctx.lineTo(-13, 31);
+        ctx.stroke();
+        break;
+      }
+      case 'td_bookshelf': {
+        ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        ctx.shadowBlur = 6;
+
+        // Structure du meuble en chêne massif foncé
+        ctx.fillStyle = '#3b1d08';
+        ctx.strokeStyle = '#1a0c02';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.rect(-36, -16, 72, 32);
+        ctx.fill();
+        ctx.stroke();
+
+        // Rayonnage intérieur
+        ctx.fillStyle = '#542a0c';
+        ctx.fillRect(-33, -13, 66, 26);
+
+        // Séparateur d'étagère
+        ctx.strokeStyle = '#1a0c02';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-33, 0);
+        ctx.lineTo(33, 0);
+        ctx.stroke();
+
+        // Rangée supérieure de livres reliés
+        const topBookColors = ['#991b1b', '#065f46', '#1e40af', '#b45309', '#4c1d95', '#0f766e', '#831843', '#334155'];
+        let bx = -31;
+        let cIdx = 0;
+        while (bx < 28) {
+          const bw = 5 + ((cIdx * 3) % 4);
+          ctx.fillStyle = topBookColors[cIdx % topBookColors.length];
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 1;
+          ctx.fillRect(bx, -12, Math.min(bw, 30 - bx), 11);
+          ctx.strokeRect(bx, -12, Math.min(bw, 30 - bx), 11);
+          ctx.fillStyle = 'rgba(253, 224, 71, 0.7)';
+          ctx.fillRect(bx + 1, -8, Math.min(bw, 30 - bx) - 2, 1.5);
+          bx += bw + 1;
+          cIdx++;
+        }
+
+        // Rangée inférieure : parchemins et livres anciens
+        let bx2 = -31;
+        while (bx2 < 12) {
+          const bw = 6;
+          ctx.fillStyle = topBookColors[(cIdx + 3) % topBookColors.length];
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 1;
+          ctx.fillRect(bx2, 1, bw, 11);
+          ctx.strokeRect(bx2, 1, bw, 11);
+          bx2 += bw + 1;
+          cIdx++;
+        }
+
+        // Rouleaux de parchemin à droite
+        for (let i = 0; i < 3; i++) {
+          const px = 15 + i * 5;
+          ctx.fillStyle = '#fef3c7';
+          ctx.strokeStyle = '#92400e';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.rect(px, 2, 4, 10);
+          ctx.fill();
+          ctx.stroke();
+        }
+        break;
+      }
+      case 'td_brazier': {
+        // Halo de lueur ambiante chaude
+        const bzHalo = ctx.createRadialGradient(0, 0, 6, 0, 0, 56);
+        bzHalo.addColorStop(0, 'rgba(245, 158, 11, 0.45)');
+        bzHalo.addColorStop(0.5, 'rgba(234, 88, 12, 0.16)');
+        bzHalo.addColorStop(1, 'rgba(234, 88, 12, 0)');
+        ctx.fillStyle = bzHalo;
+        ctx.beginPath();
+        ctx.arc(0, 0, 56, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 6;
+
+        // Trépied métallique en fer forgé
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 4;
+        for (let i = 0; i < 3; i++) {
+          const angle = (i * Math.PI * 2) / 3 - Math.PI / 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(angle) * 26, Math.sin(angle) * 26);
+          ctx.stroke();
+        }
+
+        // Bassin circulaire en fer forgé sombre
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#020617';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 21, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Rebord intérieur en bronze
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(0, 0, 17, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Braises incandescentes
+        ctx.fillStyle = '#7f1d1d';
+        ctx.beginPath();
+        ctx.arc(0, 0, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Flammes vives au centre
+        ctx.save();
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 14;
+
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath();
+        drawFireShape(ctx, 14);
+        ctx.fill();
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        drawFireShape(ctx, 9);
+        ctx.fill();
+
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        drawFireShape(ctx, 5);
+        ctx.fill();
+        ctx.restore();
+        break;
+      }
+      case 'td_statue': {
+        ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        ctx.shadowBlur = 7;
+
+        // Socle taillé en double dégradé
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#020617';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.rect(-26, -26, 52, 52);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.rect(-21, -21, 42, 42);
+        ctx.fill();
+        ctx.stroke();
+
+        // Silhouette de guerrier de pierre (vue de dessus)
+        // Épaulettes massives
+        ctx.fillStyle = '#64748b';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(-11, -3, 8, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(11, -3, 8, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Torse / Armure de plates
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.ellipse(0, -2, 11, 8, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Casque à cimier
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.arc(0, -4, 6.5, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(-1.5, -10, 3, 10);
+
+        // Bouclier d'apparat au bras gauche
+        ctx.fillStyle = '#475569';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(-14, 5, 8, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.arc(-14, 5, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Épée bâtarde pointée vers l'avant
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(13, 2);
+        ctx.lineTo(13, 19);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(9, 6);
+        ctx.lineTo(17, 6);
+        ctx.stroke();
+        break;
+      }
+      case 'td_trap': {
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 4;
+
+        // Dalle de déclenchement en pierre fissurée
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(-30, -30, 60, 60);
+        ctx.fill();
+        ctx.stroke();
+
+        // Cadre en fer de la grille
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(-24, -24, 48, 48);
+
+        // Fosse ténébreuse sous la grille
+        ctx.fillStyle = '#05070c';
+        ctx.fillRect(-22, -22, 44, 44);
+
+        // Barres de grille en fer forgé
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+        for (let i = -16; i <= 16; i += 8) {
+          ctx.beginPath();
+          ctx.moveTo(i, -22); ctx.lineTo(i, 22);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-22, i); ctx.lineTo(22, i);
+          ctx.stroke();
+        }
+
+        // Pointes d'acier mortelles visibles au fond
+        ctx.fillStyle = '#94a3b8';
+        const spikes = [
+          [-12, -12], [0, -12], [12, -12],
+          [-12, 0],   [0, 0],   [12, 0],
+          [-12, 12],  [0, 12],  [12, 12]
+        ];
+        for (const [sx, sy] of spikes) {
+          ctx.beginPath();
+          ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Fissure d'avertissement subtile
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-28, -26);
+        ctx.lineTo(-20, -18);
+        ctx.lineTo(-24, -12);
+        ctx.stroke();
+        break;
+      }
     }
 
     if (selected) {
@@ -1052,7 +1596,12 @@
       const startY = (mapStore.canvasHeight - rows * gSize) / 2;
       
       const isFloorType = (cellType: string) => {
-        return cellType === 'floor_stone' || cellType === 'floor_dirt' || cellType === 'door' || cellType === 'chest' || cellType === 'pillar' || cellType === 'stairs_up' || cellType === 'stairs_down';
+        return cellType === 'floor_stone' || cellType === 'floor_dirt' || cellType === 'water' || cellType === 'door' || 
+               cellType === 'chest' || cellType === 'pillar' || cellType === 'stairs_up' || 
+               cellType === 'stairs_down' || cellType === 'table' || cellType === 'chair' || 
+               cellType === 'bar' || cellType === 'campfire' || cellType === 'bed' ||
+               cellType === 'altar' || cellType === 'sarcophagus' || cellType === 'bookshelf' ||
+               cellType === 'brazier' || cellType === 'statue' || cellType === 'trap';
       };
 
       for (let c = 0; c < cols; c++) {

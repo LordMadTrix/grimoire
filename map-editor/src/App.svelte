@@ -261,6 +261,8 @@
       width: mapStore.canvasWidth,
       height: mapStore.canvasHeight,
       gridSize: mapStore.gridSize,
+      walls: mapStore.vttWalls || [],
+      lights: mapStore.vttLights || [],
       projectJson: buildProjectData(true)
     };
 
@@ -373,6 +375,7 @@
     <RightPanel
       onFinishPath={handleFinishPath}
       onDeleteSelected={handleDeleteSelected}
+      onSendToGrimoire={sendToGrimoire}
     />
   {/if}
 

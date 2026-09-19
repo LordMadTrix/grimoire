@@ -15,13 +15,17 @@ const STAMP_NATIVE_MAX: Record<string, number> = {
   'imported_yoaljoray1fx6ocragjxz7ylj4cg': 160, 'imported_drno28tawfeedwm42jep9t6w5p58': 244,
   'imported_codly79togkk62b7t2a0de7inw18': 244, 'imported_c7va2xt9lw2pqy6mf2lk19v8zgm9': 160,
   'imported_ebdhe9whsys0k38dbwxxw0qsxxxa': 160, 'imported_sm3birrpdc71rui7yah5ychfnq5j': 160,
-  'imported_33istv8ff1hvps78ut39ifhj6x9i': 244,
+  'imported_33istv8ff1hvps78ut39ifhj6x9i': 244
 };
-const sNative = (id: string) => STAMP_NATIVE_MAX[id] ?? 160;
+const sNative = (id: string) => {
+  if (!id) return 80;
+  if (id.startsWith('td_')) return 80;
+  return STAMP_NATIVE_MAX[id] ?? 160;
+};
 
 
 // Types de tuiles pour la génération
-export type CellType = 'void' | 'floor_stone' | 'floor_dirt' | 'wall' | 'door' | 'chest' | 'pillar' | 'stairs_up' | 'stairs_down' | 'water' | 'table' | 'chair' | 'bar' | 'campfire' | 'tree' | 'rock' | 'bed';
+export type CellType = 'void' | 'floor_stone' | 'floor_dirt' | 'wall' | 'door' | 'chest' | 'pillar' | 'stairs_up' | 'stairs_down' | 'water' | 'table' | 'chair' | 'bar' | 'campfire' | 'tree' | 'rock' | 'bed' | 'altar' | 'sarcophagus' | 'bookshelf' | 'brazier' | 'statue' | 'trap';
 
 export type DungeonThemeName = 'classic' | 'prison' | 'cave';
 
@@ -226,6 +230,449 @@ export function generateRuinsDungeon(themeName: DungeonThemeName = 'classic', si
   instantiateGridStamps(grid, size, size, theme);
 }
 
+// ── 1. Donjon BSP (Binary Space Partitioning : Salles, Couloirs et Pièce de Boss) ──
+export function generateBspDungeon(themeName: DungeonThemeName = 'classic', size: number = 24) {
+  pushHistory();
+  clearMapElements();
+  applyThemeFloor(themeName);
+
+  const theme = mapStore.dungeonThemes[themeName];
+  const grid: CellType[][] = Array(size).fill(null).map(() => Array(size).fill('wall'));
+
+  interface BspNode {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    left?: BspNode;
+    right?: BspNode;
+    room?: { x: number; y: number; w: number; h: number };
+  }
+
+  function splitNode(node: BspNode, depth: number): void {
+    if (depth <= 0 || (node.w <= 9 && node.h <= 9)) return;
+
+    let splitH = Math.random() > 0.5;
+    if (node.w > node.h && node.w / node.h >= 1.25) splitH = false;
+    else if (node.h > node.w && node.h / node.w >= 1.25) splitH = true;
+
+    const max = (splitH ? node.h : node.w) - 5;
+    if (max <= 5) return;
+
+    const split = Math.floor(Math.random() * (max - 5)) + 5;
+
+    if (splitH) {
+      node.left = { x: node.x, y: node.y, w: node.w, h: split };
+      node.right = { x: node.x, y: node.y + split, w: node.w, h: node.h - split };
+    } else {
+      node.left = { x: node.x, y: node.y, w: split, h: node.h };
+      node.right = { x: node.x + split, y: node.y, w: node.w - split, h: node.h };
+    }
+
+    splitNode(node.left, depth - 1);
+    splitNode(node.right, depth - 1);
+  }
+
+  const root: BspNode = { x: 1, y: 1, w: size - 2, h: size - 2 };
+  splitNode(root, 4);
+
+  const leaves: BspNode[] = [];
+  function getLeaves(node: BspNode) {
+    if (!node.left && !node.right) {
+      leaves.push(node);
+    } else {
+      if (node.left) getLeaves(node.left);
+      if (node.right) getLeaves(node.right);
+    }
+  }
+  getLeaves(root);
+
+  // Créer une pièce dans chaque feuille
+  for (const leaf of leaves) {
+    const minW = Math.max(3, leaf.w - 3);
+    const minH = Math.max(3, leaf.h - 3);
+    const rw = Math.floor(Math.random() * (leaf.w - minW + 1)) + minW;
+    const rh = Math.floor(Math.random() * (leaf.h - minH + 1)) + minH;
+    const rx = leaf.x + Math.floor((leaf.w - rw) / 2);
+    const ry = leaf.y + Math.floor((leaf.h - rh) / 2);
+
+    leaf.room = { x: rx, y: ry, w: rw, h: rh };
+    for (let c = rx; c < rx + rw; c++) {
+      for (let r = ry; r < ry + rh; r++) {
+        grid[c][r] = 'floor_stone';
+      }
+    }
+  }
+
+  // Relier les feuilles sœurs par des couloirs
+  function connectLeaves(node: BspNode) {
+    if (!node.left || !node.right) return;
+    connectLeaves(node.left);
+    connectLeaves(node.right);
+
+    const getCenter = (n: BspNode): [number, number] => {
+      if (n.room) return [n.room.x + Math.floor(n.room.w / 2), n.room.y + Math.floor(n.room.h / 2)];
+      if (n.left) return getCenter(n.left);
+      return [n.x + Math.floor(n.w / 2), n.y + Math.floor(n.h / 2)];
+    };
+
+    const [x1, y1] = getCenter(node.left);
+    const [x2, y2] = getCenter(node.right);
+
+    let cx = x1;
+    let cy = y1;
+    while (cx !== x2) {
+      grid[cx][cy] = 'floor_stone';
+      cx += cx < x2 ? 1 : -1;
+    }
+    while (cy !== y2) {
+      grid[cx][cy] = 'floor_stone';
+      cy += cy < y2 ? 1 : -1;
+    }
+    grid[x2][y2] = 'floor_stone';
+  }
+  connectLeaves(root);
+
+  if (leaves.length > 0) {
+    // Entrée : première pièce
+    const startRoom = leaves[0].room!;
+    grid[startRoom.x + 1][startRoom.y + 1] = 'stairs_up';
+
+    // Salle de boss / Pièce la plus éloignée
+    let bossLeaf = leaves[leaves.length - 1];
+    let maxDist = 0;
+    for (const leaf of leaves) {
+      const r = leaf.room!;
+      const d = Math.hypot(r.x - startRoom.x, r.y - startRoom.y);
+      if (d > maxDist) {
+        maxDist = d;
+        bossLeaf = leaf;
+      }
+    }
+    const endRoom = bossLeaf.room!;
+    grid[endRoom.x + endRoom.w - 2][endRoom.y + endRoom.h - 2] = 'stairs_down';
+
+    // Décoration de la salle de Boss si activée
+    if (mapStore.dungeonBossRoom) {
+      const bx = endRoom.x + Math.floor(endRoom.w / 2);
+      const by = endRoom.y + 1;
+      grid[bx][by] = 'altar';
+      if (bx > endRoom.x + 1) grid[bx - 1][by] = 'brazier';
+      if (bx < endRoom.x + endRoom.w - 2) grid[bx + 1][by] = 'brazier';
+      if (endRoom.h >= 5) {
+        grid[bx][endRoom.y + Math.floor(endRoom.h / 2)] = 'sarcophagus';
+      }
+      grid[endRoom.x + 1][endRoom.y + 1] = 'chest';
+      grid[endRoom.x + endRoom.w - 2][endRoom.y + 1] = 'chest';
+      if (bx > endRoom.x + 2) grid[endRoom.x + 1][endRoom.y + endRoom.h - 2] = 'statue';
+      if (bx < endRoom.x + endRoom.w - 3) grid[endRoom.x + endRoom.w - 2][endRoom.y + endRoom.h - 2] = 'statue';
+    }
+
+    // Meubler les pièces selon la densité choisie
+    const density = mapStore.dungeonFurnishingDensity;
+    const fillChance = density === 'dense' ? 0.75 : density === 'normal' ? 0.45 : 0.2;
+
+    for (let i = 1; i < leaves.length; i++) {
+      const leaf = leaves[i];
+      if (leaf === bossLeaf) continue;
+      const room = leaf.room!;
+      if (Math.random() > fillChance) continue;
+
+      const roomType = Math.floor(Math.random() * 4);
+      if (roomType === 0) {
+        // Bibliothèque occulte
+        for (let c = room.x + 1; c < room.x + room.w - 1; c++) {
+          if (c % 2 === 0) grid[c][room.y] = 'bookshelf';
+        }
+        if (room.w >= 5 && room.h >= 5) {
+          const midX = room.x + Math.floor(room.w / 2);
+          const midY = room.y + Math.floor(room.h / 2);
+          grid[midX][midY] = 'table';
+          grid[midX - 1][midY] = 'chair';
+          grid[midX + 1][midY] = 'chair';
+        }
+      } else if (roomType === 1) {
+        // Crypte
+        const midX = room.x + Math.floor(room.w / 2);
+        const midY = room.y + Math.floor(room.h / 2);
+        grid[midX][midY] = 'sarcophagus';
+        if (midX > room.x + 1) grid[midX - 1][midY] = 'brazier';
+        if (midX < room.x + room.w - 2) grid[midX + 1][midY] = 'brazier';
+      } else if (roomType === 2) {
+        // Armurerie / Trésor
+        const midX = room.x + Math.floor(room.w / 2);
+        grid[midX][room.y + 1] = 'chest';
+        if (room.w >= 5) {
+          grid[room.x + 1][room.y + 1] = 'pillar';
+          grid[room.x + room.w - 2][room.y + 1] = 'pillar';
+        }
+        if (mapStore.dungeonTraps) {
+          grid[midX][room.y + 2] = 'trap';
+        }
+      } else {
+        // Dortoir de garde
+        if (room.w >= 5 && room.h >= 5) {
+          grid[room.x + 1][room.y + 1] = 'bed';
+          grid[room.x + room.w - 2][room.y + 1] = 'chest';
+        }
+      }
+    }
+
+    // Pièges dans les couloirs
+    if (mapStore.dungeonTraps) {
+      let trapsLeft = Math.floor(size / 5);
+      for (let c = 2; c < size - 2 && trapsLeft > 0; c++) {
+        for (let r = 2; r < size - 2 && trapsLeft > 0; r++) {
+          if (grid[c][r] === 'floor_stone') {
+            const isCorridorH = grid[c][r - 1] === 'wall' && grid[c][r + 1] === 'wall';
+            const isCorridorV = grid[c - 1][r] === 'wall' && grid[c + 1][r] === 'wall';
+            if ((isCorridorH || isCorridorV) && Math.random() < 0.25) {
+              grid[c][r] = 'trap';
+              trapsLeft--;
+            }
+          }
+        }
+      }
+    }
+
+    // Placer des portes aux seuils des pièces
+    for (const leaf of leaves) {
+      const r = leaf.room!;
+      for (let c = r.x; c < r.x + r.w; c++) {
+        if (r.y > 0 && grid[c][r.y - 1] === 'floor_stone' && grid[c - 1]?.[r.y] === 'wall' && grid[c + 1]?.[r.y] === 'wall') {
+          grid[c][r.y] = 'door';
+        }
+        if (r.y + r.h < size && grid[c][r.y + r.h] === 'floor_stone' && grid[c - 1]?.[r.y + r.h - 1] === 'wall' && grid[c + 1]?.[r.y + r.h - 1] === 'wall') {
+          grid[c][r.y + r.h - 1] = 'door';
+        }
+      }
+    }
+  }
+
+  instantiateGridStamps(grid, size, size, theme);
+}
+
+// ── 2. Catacombes & Cryptes Oubliées ──
+export function generateCatacombs(themeName: DungeonThemeName = 'classic', size: number = 22) {
+  pushHistory();
+  clearMapElements();
+  applyThemeFloor(themeName);
+
+  const theme = mapStore.dungeonThemes[themeName];
+  const grid: CellType[][] = Array(size).fill(null).map(() => Array(size).fill('wall'));
+
+  const midX = Math.floor(size / 2);
+  const midY = Math.floor(size / 2);
+
+  // Allées principales
+  for (let r = 2; r < size - 2; r++) {
+    grid[midX][r] = 'floor_stone';
+    grid[midX - 1][r] = 'floor_stone';
+  }
+  for (let c = 2; c < size - 2; c++) {
+    grid[c][midY] = 'floor_stone';
+    grid[c][midY - 1] = 'floor_stone';
+  }
+
+  grid[midX - 1][midY] = 'brazier';
+  grid[midX][midY] = 'brazier';
+
+  // Alcôves mortuaires
+  const alcoves = [
+    { x: 3, y: 3 }, { x: size - 7, y: 3 },
+    { x: 3, y: size - 7 }, { x: size - 7, y: size - 7 },
+    { x: 3, y: midY - 2 }, { x: size - 7, y: midY - 2 },
+    { x: midX - 2, y: 3 }, { x: midX - 2, y: size - 7 }
+  ];
+
+  for (const alc of alcoves) {
+    for (let c = alc.x; c < alc.x + 4; c++) {
+      for (let r = alc.y; r < alc.y + 4; r++) {
+        grid[c][r] = 'floor_stone';
+      }
+    }
+    grid[alc.x + 1][alc.y + 1] = 'sarcophagus';
+    grid[alc.x + 2][alc.y + 1] = 'sarcophagus';
+    grid[alc.x + 1][alc.y + 2] = 'brazier';
+    if (mapStore.dungeonTraps && Math.random() < 0.5) {
+      grid[alc.x + 2][alc.y + 2] = 'trap';
+    }
+  }
+
+  // Tombeau du Roi au nord
+  const bossY = 3;
+  grid[midX - 1][bossY] = 'altar';
+  grid[midX][bossY] = 'sarcophagus';
+  grid[midX - 2][bossY] = 'statue';
+  grid[midX + 1][bossY] = 'statue';
+  grid[midX - 2][bossY + 1] = 'chest';
+  grid[midX + 1][bossY + 1] = 'chest';
+
+  // Escaliers d'accès au sud
+  grid[midX][size - 3] = 'stairs_up';
+  grid[midX - 1][size - 3] = 'stairs_down';
+
+  instantiateGridStamps(grid, size, size, theme);
+}
+
+// ── 3. Temple Sacré / Sanctuaire Antique ──
+export function generateTemple(themeName: DungeonThemeName = 'classic', size: number = 22) {
+  pushHistory();
+  clearMapElements();
+  applyThemeFloor(themeName);
+
+  const theme = mapStore.dungeonThemes[themeName];
+  const grid: CellType[][] = Array(size).fill(null).map(() => Array(size).fill('wall'));
+
+  const midX = Math.floor(size / 2);
+
+  // Nef centrale majestueuse
+  for (let c = midX - 3; c <= midX + 3; c++) {
+    for (let r = 4; r <= size - 3; r++) {
+      grid[c][r] = 'floor_stone';
+    }
+  }
+
+  // Colonnade bordant la nef avec piliers et braséros
+  for (let r = 7; r <= size - 5; r += 3) {
+    grid[midX - 2][r] = 'pillar';
+    grid[midX + 2][r] = 'pillar';
+    grid[midX - 2][r + 1] = 'brazier';
+    grid[midX + 2][r + 1] = 'brazier';
+  }
+
+  // Sanctuaire Nord (Saint des Saints)
+  for (let c = midX - 4; c <= midX + 4; c++) {
+    for (let r = 2; r <= 5; r++) {
+      grid[c][r] = 'floor_stone';
+    }
+  }
+  grid[midX][2] = 'altar';
+  grid[midX - 2][2] = 'statue';
+  grid[midX + 2][2] = 'statue';
+  grid[midX - 3][3] = 'brazier';
+  grid[midX + 3][3] = 'brazier';
+
+  // Reliquaire secret derrière l'autel
+  for (let c = midX - 2; c <= midX + 2; c++) {
+    grid[c][1] = 'floor_stone';
+  }
+  grid[midX - 2][1] = 'chest';
+  grid[midX + 2][1] = 'chest';
+  grid[midX][1] = mapStore.dungeonTraps ? 'trap' : 'chest';
+  grid[midX - 3][2] = 'door';
+
+  // Ailes latérales (Bibliothèque et nécropole monastique)
+  for (let c = 2; c <= midX - 4; c++) {
+    for (let r = 8; r <= 14; r++) {
+      grid[c][r] = 'floor_stone';
+    }
+  }
+  for (let c = midX + 4; c <= size - 3; c++) {
+    for (let r = 8; r <= 14; r++) {
+      grid[c][r] = 'floor_stone';
+    }
+  }
+
+  // Bibliothèque aile ouest
+  grid[2][8] = 'bookshelf';
+  grid[3][8] = 'bookshelf';
+  grid[4][8] = 'bookshelf';
+  grid[3][11] = 'table';
+  grid[2][11] = 'chair';
+  grid[4][11] = 'chair';
+
+  // Tombeaux aile est
+  grid[size - 3][8] = 'sarcophagus';
+  grid[size - 4][8] = 'sarcophagus';
+  grid[size - 3][12] = 'sarcophagus';
+  grid[size - 4][12] = 'brazier';
+
+  // Portes des ailes
+  grid[midX - 4][11] = 'door';
+  grid[midX + 4][11] = 'door';
+
+  // Grand perron au sud
+  grid[midX][size - 2] = 'stairs_up';
+  grid[midX - 1][size - 2] = 'stairs_up';
+  grid[midX + 1][size - 2] = 'stairs_up';
+
+  instantiateGridStamps(grid, size, size, theme);
+}
+
+// ── 4. Égouts & Canaux Souterrains Inondés ──
+export function generateSewers(themeName: DungeonThemeName = 'prison', size: number = 22) {
+  pushHistory();
+  clearMapElements();
+  applyThemeFloor(themeName);
+
+  const theme = mapStore.dungeonThemes[themeName];
+  const grid: CellType[][] = Array(size).fill(null).map(() => Array(size).fill('wall'));
+
+  const mid = Math.floor(size / 2);
+
+  // Grand canal central inondé (eau)
+  for (let r = 1; r < size - 1; r++) {
+    grid[mid - 1][r] = 'water';
+    grid[mid][r] = 'water';
+    grid[mid + 1][r] = 'water';
+  }
+
+  // Quais en pierre de part et d'autre
+  for (let r = 1; r < size - 1; r++) {
+    grid[mid - 3][r] = 'floor_stone';
+    grid[mid - 2][r] = 'floor_stone';
+    grid[mid + 2][r] = 'floor_stone';
+    grid[mid + 3][r] = 'floor_stone';
+  }
+
+  // Ponts en pierre traversant le canal
+  const bridgeRows = [Math.floor(size * 0.25), Math.floor(size * 0.5), Math.floor(size * 0.75)];
+  for (const br of bridgeRows) {
+    grid[mid - 1][br] = 'floor_stone';
+    grid[mid][br] = 'floor_stone';
+    grid[mid + 1][br] = 'floor_stone';
+    grid[mid - 2][br] = 'brazier';
+    grid[mid + 2][br] = 'brazier';
+  }
+
+  // Grilles d'évacuation
+  for (let r = 3; r < size - 3; r += 4) {
+    grid[mid - 3][r] = 'trap';
+    grid[mid + 3][r] = 'trap';
+  }
+
+  // Repaires de contrebandiers latéraux
+  const hideoutLeft = { x: 2, y: mid - 3, w: 4, h: 6 };
+  for (let c = hideoutLeft.x; c < hideoutLeft.x + hideoutLeft.w; c++) {
+    for (let r = hideoutLeft.y; r < hideoutLeft.y + hideoutLeft.h; r++) {
+      grid[c][r] = 'floor_stone';
+    }
+  }
+  grid[hideoutLeft.x + 1][hideoutLeft.y + 1] = 'campfire';
+  grid[hideoutLeft.x + 2][hideoutLeft.y + 1] = 'chair';
+  grid[hideoutLeft.x + 1][hideoutLeft.y + 4] = 'bed';
+  grid[hideoutLeft.x + 2][hideoutLeft.y + 4] = 'chest';
+  grid[mid - 3][mid] = 'door';
+
+  const hideoutRight = { x: size - 6, y: mid - 3, w: 4, h: 6 };
+  for (let c = hideoutRight.x; c < hideoutRight.x + hideoutRight.w; c++) {
+    for (let r = hideoutRight.y; r < hideoutRight.y + hideoutRight.h; r++) {
+      grid[c][r] = 'floor_stone';
+    }
+  }
+  grid[hideoutRight.x + 2][hideoutRight.y + 2] = 'chest';
+  grid[hideoutRight.x + 2][hideoutRight.y + 3] = 'chest';
+  grid[hideoutRight.x + 1][hideoutRight.y + 2] = 'brazier';
+  grid[mid + 3][mid] = 'door';
+
+  // Escaliers d'accès
+  grid[mid - 2][2] = 'stairs_up';
+  grid[mid + 2][size - 3] = 'stairs_down';
+
+  instantiateGridStamps(grid, size, size, theme);
+}
+
 export function generateTavern(themeName: DungeonThemeName = 'classic', size: number = 20) {
   pushHistory();
   clearMapElements();
@@ -382,6 +829,170 @@ function wallTheme(theme: any): { fillColor: string; fillTexture: string; stroke
   return { fillColor: '#2a2018', fillTexture: 'stone', strokeColor: '#140e08' };
 }
 
+export function computeVttWallsAndLights(
+  grid: CellType[][],
+  cols: number,
+  rows: number,
+  startX: number,
+  startY: number,
+  gSize: number
+) {
+  const walls: any[] = [];
+  const lights: any[] = [];
+
+  const isFloor = (c: number, r: number) => {
+    if (c < 0 || c >= cols || r < 0 || r >= rows) return false;
+    const cell = grid[c][r];
+    return cell !== 'void' && cell !== 'wall';
+  };
+
+  // 1. Murs horizontaux (sur les frontières entre r et r+1, et r=0 / r=rows)
+  for (let r = 0; r <= rows; r++) {
+    let segStart: number | null = null;
+    for (let c = 0; c < cols; c++) {
+      const topFloor = isFloor(c, r - 1);
+      const bottomFloor = isFloor(c, r);
+      const isBoundary = topFloor !== bottomFloor;
+
+      if (isBoundary) {
+        if (segStart === null) segStart = c;
+      } else {
+        if (segStart !== null) {
+          walls.push({
+            id: `wall_h_${segStart}_${c}_${r}`,
+            points: [
+              { x: Math.round(startX + segStart * gSize), y: Math.round(startY + r * gSize) },
+              { x: Math.round(startX + c * gSize), y: Math.round(startY + r * gSize) }
+            ],
+            type: 'opaque'
+          });
+          segStart = null;
+        }
+      }
+    }
+    if (segStart !== null) {
+      walls.push({
+        id: `wall_h_${segStart}_${cols}_${r}`,
+        points: [
+          { x: Math.round(startX + segStart * gSize), y: Math.round(startY + r * gSize) },
+          { x: Math.round(startX + cols * gSize), y: Math.round(startY + r * gSize) }
+        ],
+        type: 'opaque'
+      });
+    }
+  }
+
+  // 2. Murs verticaux (sur les frontières entre c et c+1, et c=0 / c=cols)
+  for (let c = 0; c <= cols; c++) {
+    let segStart: number | null = null;
+    for (let r = 0; r < rows; r++) {
+      const leftFloor = isFloor(c - 1, r);
+      const rightFloor = isFloor(c, r);
+      const isBoundary = leftFloor !== rightFloor;
+
+      if (isBoundary) {
+        if (segStart === null) segStart = r;
+      } else {
+        if (segStart !== null) {
+          walls.push({
+            id: `wall_v_${c}_${segStart}_${r}`,
+            points: [
+              { x: Math.round(startX + c * gSize), y: Math.round(startY + segStart * gSize) },
+              { x: Math.round(startX + c * gSize), y: Math.round(startY + r * gSize) }
+            ],
+            type: 'opaque'
+          });
+          segStart = null;
+        }
+      }
+    }
+    if (segStart !== null) {
+      walls.push({
+        id: `wall_v_${c}_${segStart}_${rows}`,
+        points: [
+          { x: Math.round(startX + c * gSize), y: Math.round(startY + segStart * gSize) },
+          { x: Math.round(startX + c * gSize), y: Math.round(startY + rows * gSize) }
+        ],
+        type: 'opaque'
+      });
+    }
+  }
+
+  // 3. Portes & Sources de lumière dynamiques
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const cell = grid[c][r];
+      const cx = Math.round(startX + (c + 0.5) * gSize);
+      const cy = Math.round(startY + (r + 0.5) * gSize);
+
+      if (cell === 'door') {
+        const hasLeftWall = c > 0 && grid[c - 1][r] === 'wall';
+        const hasRightWall = c < cols - 1 && grid[c + 1][r] === 'wall';
+        if (hasLeftWall || hasRightWall) {
+          walls.push({
+            id: `door_${c}_${r}`,
+            points: [
+              { x: Math.round(startX + c * gSize), y: cy },
+              { x: Math.round(startX + (c + 1) * gSize), y: cy }
+            ],
+            type: 'door',
+            isOpen: false
+          });
+        } else {
+          walls.push({
+            id: `door_${c}_${r}`,
+            points: [
+              { x: cx, y: Math.round(startY + r * gSize) },
+              { x: cx, y: Math.round(startY + (r + 1) * gSize) }
+            ],
+            type: 'door',
+            isOpen: false
+          });
+        }
+      } else if (cell === 'brazier') {
+        lights.push({
+          id: `light_brazier_${c}_${r}`,
+          x: cx,
+          y: cy,
+          radius: 190,
+          color: '#f59e0b',
+          intensity: 0.85,
+          flicker: true,
+          type: 'torch',
+          label: 'Braséro'
+        });
+      } else if (cell === 'campfire') {
+        lights.push({
+          id: `light_campfire_${c}_${r}`,
+          x: cx,
+          y: cy,
+          radius: 220,
+          color: '#ea580c',
+          intensity: 0.9,
+          flicker: true,
+          type: 'campfire',
+          label: 'Feu de camp'
+        });
+      } else if (cell === 'altar') {
+        lights.push({
+          id: `light_altar_${c}_${r}`,
+          x: cx,
+          y: cy,
+          radius: 130,
+          color: '#fef08a',
+          intensity: 0.65,
+          flicker: true,
+          type: 'candle',
+          label: 'Bougies d\'autel'
+        });
+      }
+    }
+  }
+
+  mapStore.vttWalls = walls;
+  mapStore.vttLights = lights;
+}
+
 function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, theme: any) {
   if (typeof window !== 'undefined' && (window as any).sculptDungeonFloor) {
     (window as any).sculptDungeonFloor(grid, cols, rows, theme.floorTexture === 'dirt' ? 'cave' : 'classic');
@@ -407,74 +1018,58 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
   const startY = (mapStore.canvasHeight - rows * gSize) / 2;
 
   const isFloor = (cellType: CellType) => {
-    return cellType === 'floor_stone' || cellType === 'floor_dirt' || cellType === 'door' || cellType === 'chest' || cellType === 'pillar' || cellType === 'stairs_up' || cellType === 'stairs_down' || cellType === 'table' || cellType === 'chair' || cellType === 'bar' || cellType === 'campfire' || cellType === 'bed';
+    return cellType === 'floor_stone' || cellType === 'floor_dirt' || cellType === 'water' || cellType === 'door' || 
+           cellType === 'chest' || cellType === 'pillar' || cellType === 'stairs_up' || 
+           cellType === 'stairs_down' || cellType === 'table' || cellType === 'chair' || 
+           cellType === 'bar' || cellType === 'campfire' || cellType === 'bed' ||
+           cellType === 'altar' || cellType === 'sarcophagus' || cellType === 'bookshelf' ||
+           cellType === 'brazier' || cellType === 'statue' || cellType === 'trap';
   };
 
-  // Extraire les tampons décoratifs du sous-thème (décombres, toiles d'araignées, caisses, dalles brisées, taverne, campement)
-  const isDirt = theme.floorTexture === 'dirt';
-  let subcategory = isDirt ? 'Cave' : (theme.floorTexture === 'wood' || theme.wall.includes('drno') ? 'Prison' : 'Dungeons');
-  
   const hasBarOrTable = grid.some(row => row.some(cell => cell === 'bar' || cell === 'table'));
   const hasCampfire = grid.some(row => row.some(cell => cell === 'campfire'));
   const hasTrees = grid.some(row => row.some(cell => cell === 'tree'));
-  if (hasBarOrTable) {
-    subcategory = 'Tavern';
-  } else if (hasCampfire || hasTrees) {
-    subcategory = 'Camp';
-  }
-  const themeStamps = (importedStamps as any[]).filter(s => 
-    s.category === 'Fantasy Battlemaps' && s.subcategory === subcategory
-  );
-  const decorativeStamps = themeStamps.filter(s => 
-    s.id !== theme.wall && s.id !== theme.wall_v && s.id !== theme.wall_tl && 
-    s.id !== theme.wall_tr && s.id !== theme.wall_bl && s.id !== theme.wall_br &&
-    s.id !== theme.door && s.id !== theme.chest && s.id !== theme.pillar && 
-    s.id !== theme.stairs_up && s.id !== theme.stairs_down
-  );
 
-  // Analyser l'entourage pour faire de beaux murs droits et coins
+  // Parcourir la grille pour instancier les éléments de manière cohérente et structurée
   for (let c = 0; c < cols; c++) {
     for (let r = 0; r < rows; r++) {
       const cell = grid[c][r];
 
-      // Placer aléatoirement des éléments de décors au sol (8% de chance par case de sol libre)
-      if ((cell === 'floor_stone' || cell === 'floor_dirt') && decorativeStamps.length > 0) {
-        if (Math.random() < 0.08) {
-          const decoration = decorativeStamps[Math.floor(Math.random() * decorativeStamps.length)];
-          const dx = startX + (c + 0.5) * gSize + (Math.random() - 0.5) * (gSize * 0.4);
-          const dy = startY + (r + 0.5) * gSize + (Math.random() - 0.5) * (gSize * 0.4);
-          const dScale = ((gSize * 0.4) / 160) * (0.6 + Math.random() * 0.45);
-          const dRotation = Math.floor(Math.random() * 360);
-          
-          stampsList.push({
-            id: Math.random().toString(36).slice(2),
-            type: decoration.id,
-            x: dx,
-            y: dy,
-            scale: dScale,
-            rotation: dRotation,
-            opacity: 0.65 + Math.random() * 0.35,
-            zIndex: 0,
-            shadowEnabled: false
-          });
-        }
-      }
+      if (cell === 'void' || cell === 'floor_stone' || cell === 'floor_dirt') continue;
 
-      if (cell === 'void' || cell === 'floor_stone' || cell === 'floor_dirt' || cell === 'water') continue;
+      if (cell === 'water') {
+        const x0 = startX + c * gSize;
+        const y0 = startY + r * gSize;
+        shapesList.push({
+          id: Math.random().toString(36).slice(2),
+          type: 'rectangle',
+          points: [{ x: x0, y: y0 }, { x: x0 + gSize, y: y0 + gSize }],
+          fillColor: '#0369a1',
+          fillOpacity: 0.85,
+          fillTexture: 'water',
+          fillTextureScale: 1.0,
+          strokeColor: '#0284c7',
+          strokeWidth: 0,
+          strokeDash: 'solid'
+        });
+        continue;
+      }
 
       let type = '';
       let scale = 1.0;
       let rotation = 0;
-      let zIndex = cell === 'wall' ? 1 : 0;
+      let zIndex = 1;
       let shadowEnabled = true;
-      let shadowBlur = cell === 'wall' ? 8 : 6;
+      let shadowBlur = 6;
       let shadowColor = 'rgba(0, 0, 0, 0.45)';
-      let shadowOffsetX = cell === 'wall' ? 3 : 2;
-      let shadowOffsetY = cell === 'wall' ? 5 : 3;
+      let shadowOffsetX = 2;
+      let shadowOffsetY = 4;
 
       if (cell === 'wall') {
         const x0 = startX + c * gSize;
         const y0 = startY + r * gSize;
+
+        // Bloc de remplissage de mur
         shapesList.push({
           id: Math.random().toString(36).slice(2),
           type: 'rectangle',
@@ -487,105 +1082,136 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
           strokeWidth: 0,
           strokeDash: 'solid'
         });
+
+        // Détecter si le mur est sur le pourtour d'une pièce pour placer la bordure de mur orientée
+        const hasTopFloor = r > 0 && isFloor(grid[c][r - 1]);
+        const hasBottomFloor = r < rows - 1 && isFloor(grid[c][r + 1]);
+        const hasLeftFloor = c > 0 && isFloor(grid[c - 1][r]);
+        const hasRightFloor = c < cols - 1 && isFloor(grid[c + 1][r]);
+        const isPerimeter = hasTopFloor || hasBottomFloor || hasLeftFloor || hasRightFloor;
+
+        const wallAsset = theme.wall || 'td_wall';
+        if (isPerimeter && wallAsset) {
+          let wRot = 0;
+          let wType = wallAsset;
+
+          // Autotiling intelligent : coins et orientation
+          if (hasTopFloor && hasLeftFloor && theme.wall_tl) {
+            wType = theme.wall_tl;
+          } else if (hasTopFloor && hasRightFloor && theme.wall_tr) {
+            wType = theme.wall_tr;
+          } else if (hasBottomFloor && hasLeftFloor && theme.wall_bl) {
+            wType = theme.wall_bl;
+          } else if (hasBottomFloor && hasRightFloor && theme.wall_br) {
+            wType = theme.wall_br;
+          } else if (hasLeftFloor || hasRightFloor) {
+            wType = theme.wall_v || wallAsset;
+            wRot = 90;
+          } else {
+            wType = wallAsset;
+            wRot = 0;
+          }
+
+          const wScale = (gSize * 1.0) / sNative(wType);
+          stampsList.push({
+            id: Math.random().toString(36).slice(2),
+            type: wType,
+            x: x0 + gSize / 2,
+            y: y0 + gSize / 2,
+            scale: wScale,
+            rotation: wRot,
+            opacity: 1.0,
+            zIndex: 1,
+            shadowEnabled: true,
+            shadowBlur: 6,
+            shadowColor: 'rgba(0, 0, 0, 0.45)',
+            shadowOffsetX: 2,
+            shadowOffsetY: 4
+          });
+        }
         continue;
       } else if (cell === 'door') {
-        type = theme.door;
-        scale = (gSize * 0.9) / sNative(theme.door);
+        type = theme.door || 'td_door';
+        scale = (gSize * 0.95) / sNative(type);
 
-        // Orienter la porte vers le mur adjacent
+        // Orienter la porte selon l'axe du mur adjacent
         const hasLeftWall = c > 0 && grid[c - 1][r] === 'wall';
         const hasRightWall = c < cols - 1 && grid[c + 1][r] === 'wall';
-        if (hasLeftWall || hasRightWall) {
-          rotation = 0;
-        } else {
-          rotation = 90;
-        }
+        rotation = (hasLeftWall || hasRightWall) ? 0 : 90;
       } else if (cell === 'chest') {
-        type = theme.chest;
-        scale = (gSize * 0.75) / sNative(theme.chest);
+        type = theme.chest || 'td_chest';
+        scale = (gSize * 0.75) / sNative(type);
+
+        // Orienter le coffre contre le mur le plus proche
+        if (r > 0 && grid[c][r - 1] === 'wall') rotation = 0;
+        else if (r < rows - 1 && grid[c][r + 1] === 'wall') rotation = 180;
+        else if (c > 0 && grid[c - 1][r] === 'wall') rotation = -90;
+        else if (c < cols - 1 && grid[c + 1][r] === 'wall') rotation = 90;
       } else if (cell === 'pillar') {
-        type = theme.pillar;
-        scale = (gSize * 0.85) / sNative(theme.pillar);
+        type = theme.pillar || 'td_pillar';
+        scale = (gSize * 0.85) / sNative(type);
       } else if (cell === 'stairs_up') {
         if (hasBarOrTable) {
-          type = 'imported_ey1zn6h365n34btb9ivdyh221wmo'; // Cheminée
-          scale = (gSize * 1.1) / 160;
-          rotation = 180; // Fait face vers le bas
+          type = 'td_campfire'; // Cheminée chaleureuse dans une taverne
+          scale = (gSize * 0.85) / 80;
+          rotation = 180;
         } else {
-          type = theme.stairs_up;
-          scale = (gSize * 0.9) / sNative(theme.stairs_up);
+          type = theme.stairs_up || 'td_stairs_up';
+          scale = (gSize * 0.9) / sNative(type);
         }
       } else if (cell === 'stairs_down') {
-        type = theme.stairs_down;
-        scale = (gSize * 0.9) / sNative(theme.stairs_down);
+        type = theme.stairs_down || 'td_stairs_down';
+        scale = (gSize * 0.9) / sNative(type);
       } else if (cell === 'table') {
-        type = Math.random() < 0.5 ? 'imported_K1xpMf9WmpSBVM7zckV3h1' : 'imported_RFdpd7CV3ZGpVcmn8bpcdV';
-        scale = (gSize * 0.8) / 160;
+        type = 'td_table';
+        scale = (gSize * 0.85) / 80;
         shadowBlur = 5;
       } else if (cell === 'chair') {
-        type = Math.random() < 0.5 ? 'imported_A9qxwJhu4D8q15Lg1c9e3Y' : 'imported_lg4l4o5t6igjrzsgkuw2ybn1r7i1';
-        scale = (gSize * 0.5) / 160;
+        type = 'td_chair';
+        scale = (gSize * 0.55) / 80;
         shadowBlur = 3;
         shadowOffsetX = 1;
         shadowOffsetY = 2;
-        
+
         // Orienter la chaise vers la table ou le bar adjacent
-        if (c > 0 && grid[c - 1][r] === 'table') rotation = 180;
-        else if (c < cols - 1 && grid[c + 1][r] === 'table') rotation = 0;
-        else if (r > 0 && grid[c][r - 1] === 'table') rotation = 90;
-        else if (r < rows - 1 && grid[c][r + 1] === 'table') rotation = -90;
-        else if (c > 0 && grid[c - 1][r] === 'bar') rotation = 180;
+        if (c > 0 && (grid[c - 1][r] === 'table' || grid[c - 1][r] === 'bar')) rotation = 180;
+        else if (c < cols - 1 && (grid[c + 1][r] === 'table' || grid[c + 1][r] === 'bar')) rotation = 0;
+        else if (r > 0 && (grid[c][r - 1] === 'table' || grid[c][r - 1] === 'bar')) rotation = 90;
+        else if (r < rows - 1 && (grid[c][r + 1] === 'table' || grid[c][r + 1] === 'bar')) rotation = -90;
       } else if (cell === 'bar') {
-        type = 'imported_C6AjRDX3seHHG2zBbVe3YW'; // Bar Counter rectangular table
-        scale = (gSize * 0.8) / 160;
+        type = 'td_bar';
+        scale = (gSize * 0.95) / 80;
         rotation = 0;
         shadowBlur = 6;
         shadowOffsetX = 2;
         shadowOffsetY = 4;
       } else if (cell === 'campfire') {
-        type = 'imported_MqWqQziNJ3cHAnsf9qo93J';
-        scale = (gSize * 0.75) / 160;
+        type = 'td_campfire';
+        scale = (gSize * 0.85) / 80;
         rotation = Math.random() * 360;
         shadowBlur = 12;
-        shadowColor = 'rgba(230, 126, 34, 0.25)';
-        shadowOffsetX = 0;
-        shadowOffsetY = 0;
+        shadowColor = 'rgba(230, 126, 34, 0.35)';
       } else if (cell === 'tree') {
-        const forestStamps = (importedStamps as any[]).filter(s => s.category === 'Fantasy Battlemaps' && s.subcategory === 'Forest');
-        if (forestStamps.length > 0) {
-          type = forestStamps[Math.floor(Math.random() * forestStamps.length)].id;
-        } else {
-          type = Math.random() < 0.5 ? 'td_tree_pine' : 'td_tree_oak';
-        }
-        scale = (gSize * (1.1 + Math.random() * 0.4)) / 160;
-        rotation = Math.random() * 360;
+        // Uniquement de vrais arbres harmonieux (sapin ou chêne)
+        type = Math.random() < 0.6 ? 'td_tree_pine' : 'td_tree_oak';
+        scale = (gSize * (1.1 + Math.random() * 0.3)) / 80;
+        rotation = Math.floor(Math.random() * 360);
         zIndex = 3;
         shadowBlur = 10;
         shadowOffsetX = 4;
         shadowOffsetY = 6;
       } else if (cell === 'rock') {
-        const rockStamps = (importedStamps as any[]).filter(s => s.category === 'Fantasy Battlemaps' && (s.subcategory === 'Cave' || s.subcategory === 'Terrain' || s.subcategory === 'Terrain 2.0'));
-        if (rockStamps.length > 0) {
-          type = rockStamps[Math.floor(Math.random() * rockStamps.length)].id;
-        } else {
-          type = 'td_rock';
-        }
-        scale = (gSize * (0.8 + Math.random() * 0.4)) / 160;
-        rotation = Math.random() * 360;
+        type = 'td_rock';
+        scale = (gSize * (0.8 + Math.random() * 0.35)) / 80;
+        rotation = Math.floor(Math.random() * 360);
         shadowBlur = 6;
         shadowOffsetX = 2;
         shadowOffsetY = 4;
       } else if (cell === 'bed') {
-        const isCampLayout = grid.some(row => row.some(cell => cell === 'campfire')) || grid.some(row => row.some(cell => cell === 'tree')) || subcategory === 'Camp';
+        const isCampLayout = grid.some(row => row.some(cell => cell === 'campfire')) || grid.some(row => row.some(cell => cell === 'tree'));
         if (isCampLayout) {
-          const tents = [
-            'imported_GAi9aFHkKy81EEtt7SmaJZ', // beige/blue
-            'imported_3c3Sa1gPLHf33CS93Wgmif', // purple
-            'imported_XCRZzEFuaowYKg9Wrm7RFX', // grey
-            'imported_WHKfq5SVq8T24iNd3qGH75'  // blue
-          ];
-          type = tents[Math.floor(Math.random() * tents.length)];
-          scale = (gSize * 1.15) / 160;
+          type = 'td_tent';
+          scale = (gSize * 1.05) / 80;
           zIndex = 2;
           shadowBlur = 10;
           shadowOffsetX = 3;
@@ -595,19 +1221,49 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
           const midR = Math.floor(rows / 2);
           rotation = Math.atan2(midR - r, midC - c) * (180 / Math.PI) - 90;
         } else {
-          type = 'imported_v2b9xzh1pl2gw1rujvmydgq2lt3v'; // single wooden bed
-          scale = (gSize * 0.9) / 160;
+          type = 'td_bed';
+          scale = (gSize * 0.85) / 80;
           zIndex = 2;
           shadowBlur = 5;
           shadowOffsetX = 3;
           shadowOffsetY = 5;
 
-          // Lits orientés selon la disposition
-          const startCol = 2;
-          const endCol = cols - 3;
-          if (c === endCol) rotation = -90;
-          else if (c === startCol) rotation = 90;
+          if (c === cols - 3) rotation = -90;
+          else if (c === 2) rotation = 90;
         }
+      } else if (cell === 'altar') {
+        type = 'td_altar';
+        scale = (gSize * 0.95) / 80;
+        shadowBlur = 8;
+      } else if (cell === 'sarcophagus') {
+        type = 'td_sarcophagus';
+        scale = (gSize * 0.95) / 80;
+        shadowBlur = 8;
+        if (r > 0 && grid[c][r - 1] === 'wall') rotation = 0;
+        else if (r < rows - 1 && grid[c][r + 1] === 'wall') rotation = 180;
+        else if (c > 0 && grid[c - 1][r] === 'wall') rotation = 90;
+        else if (c < cols - 1 && grid[c + 1][r] === 'wall') rotation = -90;
+      } else if (cell === 'bookshelf') {
+        type = 'td_bookshelf';
+        scale = (gSize * 0.95) / 80;
+        shadowBlur = 6;
+        if (r > 0 && grid[c][r - 1] === 'wall') rotation = 0;
+        else if (r < rows - 1 && grid[c][r + 1] === 'wall') rotation = 180;
+        else if (c > 0 && grid[c - 1][r] === 'wall') rotation = 90;
+        else if (c < cols - 1 && grid[c + 1][r] === 'wall') rotation = -90;
+      } else if (cell === 'brazier') {
+        type = 'td_brazier';
+        scale = (gSize * 0.85) / 80;
+        shadowBlur = 12;
+        shadowColor = 'rgba(245, 158, 11, 0.4)';
+      } else if (cell === 'statue') {
+        type = 'td_statue';
+        scale = (gSize * 0.9) / 80;
+        shadowBlur = 8;
+      } else if (cell === 'trap') {
+        type = 'td_trap';
+        scale = (gSize * 0.85) / 80;
+        shadowBlur = 4;
       }
 
       if (!type) continue;
@@ -635,6 +1291,16 @@ function instantiateGridStamps(grid: CellType[][], cols: number, rows: number, t
 
   mapStore.stamps = stampsList;
   mapStore.shapes = shapesList;
+
+  // Calculer automatiquement les murs d'occlusion et les lumières pour la table virtuelle
+  computeVttWallsAndLights(grid, cols, rows, startX, startY, gSize);
+
+  // Ambiance automatique de donjon si activée
+  if (mapStore.dungeonAutoAtmosphere) {
+    mapStore.atmospherePreset = 'dungeon';
+    mapStore.vignetteEnabled = true;
+    mapStore.vignetteOpacity = 0.55;
+  }
 
   mapStore.zoom = 0.8;
   mapStore.panX = (mapStore.canvasWidth / 2) * -0.8 + 400;
@@ -672,8 +1338,8 @@ function parseAiGrid(text: string, size: number): CellType[][] | null {
   // Supprimer les \r et séparer par lignes
   const lines = text.replace(/\r/g, '').split('\n');
   
-  const allowedChars = new Set(['#', '.', ',', ' ', 'D', 'C', 'P', 'U', 'd', 'W', 'T', 'c', 'B', 'F', 't', 'r', 'b']);
-  const structuralChars = new Set(['#', '.', ',', 'D', 'C', 'P', 'U', 'd', 'W', 'T', 'c', 'B', 'F', 't', 'r', 'b']);
+  const allowedChars = new Set(['#', '.', ',', ' ', 'D', 'C', 'P', 'U', 'd', 'W', 'T', 'c', 'B', 'F', 't', 'r', 'b', 'A', 'S', 'k', 'Z', 'X', '^']);
+  const structuralChars = new Set(['#', '.', ',', 'D', 'C', 'P', 'U', 'd', 'W', 'T', 'c', 'B', 'F', 't', 'r', 'b', 'A', 'S', 'k', 'Z', 'X', '^']);
   
   let gridLines: string[] = [];
   for (const rawLine of lines) {
@@ -726,7 +1392,13 @@ function parseAiGrid(text: string, size: number): CellType[][] | null {
     'F': 'campfire',
     't': 'tree',
     'r': 'rock',
-    'b': 'bed'
+    'b': 'bed',
+    'A': 'altar',
+    'S': 'sarcophagus',
+    'k': 'bookshelf',
+    'Z': 'brazier',
+    'X': 'statue',
+    '^': 'trap'
   };
 
   const grid: CellType[][] = Array(size).fill(null).map(() => Array(size).fill('wall'));
@@ -775,13 +1447,19 @@ F : Feu de camp
 t : Arbre (pour l'extérieur)
 r : Rocher
 b : Lit (dans les dortoirs ou chambres)
+A : Autel sacré (dans sanctuaire ou salle de boss)
+S : Sarcophage (dans les cryptes ou tombes)
+k : Bibliothèque (dans les salles d'étude)
+Z : Braséro de feu
+X : Statue monumentale
+^ : Dalle piégée
 
 Règles de structure importantes :
 1. La grille doit faire EXACTEMENT ${size} lignes et ${size} colonnes. Pas une de plus, pas une de moins.
 2. Chaque ligne doit contenir EXACTEMENT ${size} caractères. Les caractères doivent se suivre DIRECTEMENT sans aucun espace de séparation (ex: '#####', et NON '# # # # #').
 3. Assure-toi que la carte est jouable : l'entrée (U) et la sortie (d) doivent être présentes et connectées par des chemins de sol (. ou ,).
 4. Place judicieusement les portes (D) pour séparer les pièces.
-5. Ajoute des meubles comme des tables (T), des chaises (c), des lits (b), des coffres (C) et des piliers (P) pour donner de la vie et du détail aux pièces.
+5. Ajoute des meubles et décors (A, S, k, Z, X, ^, T, c, b, C, P) pour donner de la vie et de la narration aux pièces.
 6. Renvoie uniquement la grille brute de caractères. Ne mets aucun texte avant ou après. N'utilise pas de bloc de code markdown.
 7. IMPORTANT : N'ajoute aucun espace de séparation entre les caractères. Les caractères doivent se suivre directement sans aucun espace (ex: '#####', et NON '# # # # #').`;
 

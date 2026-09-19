@@ -212,6 +212,7 @@ export type MapScene = {
   pins: MapPin[];
   spells: SpellMarker[];
   walls: WallDef[];
+  lights?: LightSource[];
   audioZones: AudioZoneDef[];
 };
 
@@ -473,6 +474,7 @@ function snapshotActiveScene() {
   scene.pins = [...vttStore.pins];
   scene.spells = [...vttStore.spells];
   scene.walls = [...vttStore.walls];
+  scene.lights = [...vttStore.lights];
   scene.audioZones = [...vttStore.audioZones];
 }
 
@@ -483,6 +485,7 @@ function applyScene(scene: MapScene) {
   vttStore.pins = [...scene.pins];
   vttStore.spells = [...scene.spells];
   vttStore.walls = scene.walls || [];
+  vttStore.lights = scene.lights || [];
   vttStore.audioZones = scene.audioZones || [];
 }
 
@@ -496,6 +499,7 @@ export function replaceActiveScene(name: string, relPath: string | null, dataUrl
     scene.pins = [];
     scene.spells = [];
     scene.walls = [];
+    scene.lights = [];
     scene.audioZones = [];
   }
   vttStore.currentMapRelPath = relPath;
@@ -505,11 +509,12 @@ export function replaceActiveScene(name: string, relPath: string | null, dataUrl
   vttStore.pins = [];
   vttStore.spells = [];
   vttStore.walls = [];
+  vttStore.lights = [];
   vttStore.audioZones = [];
   emitToPlayerView('set_player_map', { url: dataUrl });
 }
 
-export function addMapScene(name: string, relPath: string | null, dataUrl: string | null) {
+export function addMapScene(name: string, relPath: string | null, dataUrl: string | null, initialWalls?: WallDef[], initialLights?: LightSource[]) {
   snapshotActiveScene();
   const scene: MapScene = {
     id: Math.random().toString(36).slice(2),
@@ -519,7 +524,8 @@ export function addMapScene(name: string, relPath: string | null, dataUrl: strin
     tokens: [],
     pins: [],
     spells: [],
-    walls: [],
+    walls: initialWalls ? [...initialWalls] : [],
+    lights: initialLights ? [...initialLights] : [],
     audioZones: [],
   };
   vttStore.maps = [...vttStore.maps, scene];

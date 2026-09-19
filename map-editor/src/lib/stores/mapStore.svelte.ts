@@ -213,48 +213,55 @@ export const mapStore = $state({
   favoriteStamps: (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('map_editor_fav_stamps') || '[]') : []) as string[],
   favoriteTextures: (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('map_editor_fav_textures') || '[]') : []) as string[],
 
-  // Thèmes personnalisables du générateur de donjon
+  // Thèmes et options avancées du générateur de donjon
+  dungeonDecorDensity: 0, // 0 = Sol propre et net, 1 = petits débris subtils
+  dungeonFurnishingDensity: 'normal' as 'sparse' | 'normal' | 'rich', // Densité du meublement
+  dungeonBossRoom: true as boolean, // Générer une salle de Boss majeure
+  dungeonTraps: false as boolean, // Ajouter des dalles piégées discrètes
+  dungeonAutoAtmosphere: true as boolean, // Ajuster l'atmosphère automatiquement
+  vttWalls: [] as any[], // Segments de murs pour occlusion VTT (WallDef)
+  vttLights: [] as any[], // Sources de lumière pour VTT (LightSource)
   dungeonThemes: {
     classic: {
-      wall: 'imported_gjojg6sr808ix89hnqknbttvi8ik',
-      wall_v: 'imported_81qupz0jv6vinphr54s4ltsrlrlm',
-      wall_tl: 'imported_zy8s7mir0m6lffopt9ige9tqi4ee',
-      wall_tr: 'imported_pytnqfou56nay4uaiiclhngkv81y',
-      wall_bl: 'imported_v2ql1mj9ds55f3ez7d1u523wvfjw',
-      wall_br: 'imported_nbw4j74q8ub9zj88tg3e5gr4ig0l',
-      door: 'imported_quvw6fqdrojm83pd20svtniwcbos',
-      chest: 'imported_juzy62ujdon0wmo5qiv1ygwkhue2',
-      pillar: 'imported_ua0xxx0yco9uhet0n34xien2nw70',
-      stairs_up: 'imported_mxum8ja0e97vjiz6avc644unbnjb',
-      stairs_down: 'imported_zj9ucorcmdic7wk0wwdpqiyrrrn8',
+      wall: 'td_wall',
+      wall_v: 'td_wall',
+      wall_tl: 'td_wall',
+      wall_tr: 'td_wall',
+      wall_bl: 'td_wall',
+      wall_br: 'td_wall',
+      door: 'td_door',
+      chest: 'td_chest',
+      pillar: 'td_pillar',
+      stairs_up: 'td_stairs_up',
+      stairs_down: 'td_stairs_down',
       floorTexture: 'paving'
     },
     prison: {
-      wall: 'imported_drno28tawfeedwm42jep9t6w5p58',
-      wall_v: 'imported_drno28tawfeedwm42jep9t6w5p58',
-      wall_tl: 'imported_drno28tawfeedwm42jep9t6w5p58',
-      wall_tr: 'imported_drno28tawfeedwm42jep9t6w5p58',
-      wall_bl: 'imported_drno28tawfeedwm42jep9t6w5p58',
-      wall_br: 'imported_drno28tawfeedwm42jep9t6w5p58',
-      door: 'imported_codly79togkk62b7t2a0de7inw18',
-      chest: 'imported_c7va2xt9lw2pqy6mf2lk19v8zgm9',
-      pillar: 'imported_ebdhe9whsys0k38dbwxxw0qsxxxa',
-      stairs_up: 'imported_sm3birrpdc71rui7yah5ychfnq5j',
-      stairs_down: 'imported_33istv8ff1hvps78ut39ifhj6x9i',
+      wall: 'td_wall',
+      wall_v: 'td_wall',
+      wall_tl: 'td_wall',
+      wall_tr: 'td_wall',
+      wall_bl: 'td_wall',
+      wall_br: 'td_wall',
+      door: 'td_door',
+      chest: 'td_chest',
+      pillar: 'td_pillar',
+      stairs_up: 'td_stairs_up',
+      stairs_down: 'td_stairs_down',
       floorTexture: 'paving'
     },
     cave: {
-      wall: 'imported_wv2bfinnybnnlyf1v5ebatubdrlm',
-      wall_v: 'imported_wv2bfinnybnnlyf1v5ebatubdrlm',
-      wall_tl: 'imported_wv2bfinnybnnlyf1v5ebatubdrlm',
-      wall_tr: 'imported_wv2bfinnybnnlyf1v5ebatubdrlm',
-      wall_bl: 'imported_wv2bfinnybnnlyf1v5ebatubdrlm',
-      wall_br: 'imported_wv2bfinnybnnlyf1v5ebatubdrlm',
-      door: 'imported_q6o3hj6afiv45th7xxqzoxp0u8gq',
-      chest: 'imported_a8jdfemk3xgyg56bkiuzrdpwvm23',
-      pillar: 'imported_0syvaindutyoa0rpzzi3e4gs4yiu',
-      stairs_up: 'imported_n9lmribboj4o897zfsaf75lc17ok',
-      stairs_down: 'imported_yoaljoray1fx6ocragjxz7ylj4cg',
+      wall: 'td_rock',
+      wall_v: 'td_rock',
+      wall_tl: 'td_rock',
+      wall_tr: 'td_rock',
+      wall_bl: 'td_rock',
+      wall_br: 'td_rock',
+      door: 'td_door',
+      chest: 'td_chest',
+      pillar: 'td_pillar',
+      stairs_up: 'td_stairs_up',
+      stairs_down: 'td_stairs_down',
       floorTexture: 'dirt'
     }
   }

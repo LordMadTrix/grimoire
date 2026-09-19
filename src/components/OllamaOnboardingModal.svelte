@@ -17,14 +17,16 @@
   let downloadProgress = $state(0); // 0-100, 101 = extraction, 102 = done
   let pullPercent = $state(0);
   let pullStatus = $state('');
+  let isInstallingModel = $state(false);
   
   let selectedModel = $state('gemma2:2b');
   let errorMsg = $state('');
+  let copiedCmd = $state(false);
   
   const modelsOptions = [
     { id: 'gemma2:2b', name: 'Gemma 2 (2B)', desc: 'Recommandé. Excellent en français, très précis et léger (1.4 Go).', size: '~1.4 Go' },
-    { id: 'llama3.2:1b', name: 'Llama 3.2 (1B)', desc: 'Ultra-rapide. Conçu pour les ordinateurs portables et configurations modestes (1.2 Go).', size: '~1.2 Go' },
-    { id: 'llama3.2:3b', name: 'Llama 3.2 (3B)', desc: 'Créatif. Idéal si vous avez un PC de jeu avec carte graphique dédiée (2.0 Go).', size: '~2.0 Go' }
+    { id: 'llama3.2:1b', name: 'Llama 3.2 (1B)', desc: 'Ultra-rapide. Idéal pour ordinateurs portables et configurations modestes (1.2 Go).', size: '~1.2 Go' },
+    { id: 'llama3.2:3b', name: 'Llama 3.2 (3B)', desc: 'Plus créatif. Idéal avec une carte graphique dédiée (2.0 Go).', size: '~2.0 Go' }
   ];
 
   let unlistenDownload: (() => void) | null = null;
@@ -34,8 +36,10 @@
     try {
       await refreshStatus();
       if (binaryExists && existingModels.length > 0) {
-        // Déjà tout configuré ! On ferme ou on affiche le succès
         step = 'complete';
+      } else if (binaryExists) {
+        // Le moteur est déjà présent sur la machine, passer directement au choix du modèle !
+        step = 'download_model';
       }
     } catch (e) {
       console.error("Erreur de vérification Ollama :", e);
@@ -48,7 +52,6 @@
       downloadProgress = event.payload;
       if (downloadProgress === 102) {
         binaryExists = true;
-        // Passer à la sélection du modèle
         step = 'download_model';
       }
     });
@@ -56,17 +59,34 @@
     // Écouter le téléchargement du modèle
     unlistenPull = await listen<any>('ollama-pull-progress', (event) => {
       const payload = event.payload;
+
+      // 1. Détection d'erreur immédiate renvoyée par Ollama ou Rust
+      if (payload.error) {
+        errorMsg = typeof payload.error === 'string' ? payload.error : JSON.stringify(payload.error);
+        pullStatus = '';
+        isInstallingModel = false;
+        return;
+      }
+
+      // 2. Progression en octets (pourcentage et Mo téléchargés)
       if (payload.total > 0 && payload.completed !== undefined) {
-        const pct = Math.round((payload.completed / payload.total) * 100);
-        pullPercent = pct;
-        pullStatus = `Téléchargement : ${pct}% (Fichier ${payload.digest ? payload.digest.slice(7, 15) : ''})`;
+        const totalMb = (payload.total / (1024 * 1024)).toFixed(0);
+        const completedMb = (payload.completed / (1024 * 1024)).toFixed(0);
+        const pct = Math.min(100, Math.round((payload.completed / payload.total) * 100));
+
+        // Couches lourdes (> 50 Mo, les poids du modèle)
+        if (payload.total > 50 * 1024 * 1024) {
+          pullPercent = pct;
+          pullStatus = `Téléchargement des poids : ${completedMb} Mo / ${totalMb} Mo (${pct}%)`;
+        } else {
+          // Petites couches annexes (manifeste, configuration)
+          pullStatus = `Configuration des métadonnées (${completedMb} Mo / ${totalMb} Mo)...`;
+        }
       } else if (payload.status) {
-        // Autres status (ex: "verifying sha256", "success")
+        // Statuts textuels (ex: "verifying sha256 digest", "writing manifest", "success")
         pullStatus = payload.status.charAt(0).toUpperCase() + payload.status.slice(1);
         if (payload.status === 'success') {
           pullPercent = 100;
-          setAiModel(selectedModel);
-          step = 'complete';
         }
       }
     });
@@ -78,20 +98,30 @@
   });
 
   async function refreshStatus() {
-    const status = await checkOllamaStatus();
-    binaryExists = status.binary_exists;
-    serverRunning = status.server_running;
-    existingModels = status.models;
+    try {
+      const status = await checkOllamaStatus();
+      binaryExists = status.binary_exists;
+      serverRunning = status.server_running;
+      existingModels = status.models;
+      if (binaryExists && step === 'intro') {
+        step = 'download_model';
+      }
+    } catch (e: any) {
+      console.warn("Échec du rafraîchissement d'état Ollama :", e);
+    }
   }
 
   async function startSetup() {
     if (!binaryExists) {
       step = 'download_bin';
+      downloadProgress = 0;
+      errorMsg = '';
       try {
-        errorMsg = '';
         await downloadOllamaBinary();
+        binaryExists = true;
+        step = 'download_model';
       } catch (err: any) {
-        errorMsg = `Erreur de téléchargement du moteur : ${err}`;
+        errorMsg = typeof err === 'string' ? err : (err?.message || `Erreur de téléchargement : ${err}`);
         step = 'intro';
       }
     } else {
@@ -99,20 +129,33 @@
     }
   }
 
+  async function copyInstallCommand() {
+    try {
+      await navigator.clipboard.writeText('curl -fsSL https://ollama.com/install.sh | sh');
+      copiedCmd = true;
+      setTimeout(() => copiedCmd = false, 3000);
+    } catch {
+      // Ignore clipboard fallback
+    }
+  }
+
   async function installModel() {
-    step = 'download_model'; // pour forcer l'affichage de la progression
+    isInstallingModel = true;
     pullPercent = 0;
-    pullStatus = "Initialisation du téléchargement...";
+    pullStatus = "Connexion au moteur Ollama...";
     errorMsg = '';
 
     try {
-      // Lancer en arrière-plan et attendre
       await pullOllamaModel(selectedModel);
-      // Mettre à jour le modèle par défaut dans les réglages de l'application
+      // Confirmer que le modèle est bien présent
+      await refreshStatus();
       setAiModel(selectedModel);
       step = 'complete';
     } catch (err: any) {
-      errorMsg = `Erreur d'installation du modèle : ${err}`;
+      errorMsg = typeof err === 'string' ? err : (err?.message || `Erreur d'installation : ${err}`);
+      pullStatus = '';
+    } finally {
+      isInstallingModel = false;
     }
   }
 
@@ -131,8 +174,11 @@
     {:else}
       <!-- HEADER -->
       <div class="modal-header">
-        <span class="sparkle-icon">✨</span>
-        <h2>Assistant IA de Grimoire</h2>
+        <div class="header-title">
+          <span class="sparkle-icon">✨</span>
+          <h2>Assistant IA de Grimoire</h2>
+        </div>
+        <button class="btn-close" onclick={onClose} title="Fermer" aria-label="Fermer">✕</button>
       </div>
 
       <!-- MAIN LAYOUT -->
@@ -156,7 +202,7 @@
               <div class="feature-item">
                 <span class="feat-icon">🎲</span>
                 <div class="feat-text">
-                  <strong>Génération de contenu</strong>
+                  <strong>Génération de contenu rōliste</strong>
                   <p>Créez instantanément des descriptions immersives de salles, des profils de PNJ ou des idées de butin.</p>
                 </div>
               </div>
@@ -164,32 +210,54 @@
                 <span class="feat-icon">🔒</span>
                 <div class="feat-text">
                   <strong>100% Privé et Gratuit</strong>
-                  <p>Aucune donnée n'est envoyée dans le cloud. Pas d'abonnement, fonctionne même sans connexion internet.</p>
+                  <p>Aucune donnée n'est envoyée dans le cloud. Vos notes restent strictement sur votre machine.</p>
                 </div>
               </div>
               <div class="feature-item">
                 <span class="feat-icon">⚙️</span>
                 <div class="feat-text">
-                  <strong>Indépendant (Port 11435)</strong>
-                  <p>Fonctionne de manière isolée dans Grimoire sans entrer en conflit avec d'autres installations d'Ollama.</p>
+                  <strong>Standard Ollama (Port 11434)</strong>
+                  <p>Compatible avec votre installation existante ou configuré automatiquement par Grimoire.</p>
                 </div>
               </div>
             </div>
+
+            {#if !binaryExists}
+              <div class="terminal-box">
+                <span class="terminal-box-title">🐧 Vous êtes sous Linux ? (Option recommandée)</span>
+                <p>Vous pouvez installer le moteur officiel en une seule commande dans votre terminal :</p>
+                <div class="code-copy-row">
+                  <code>curl -fsSL https://ollama.com/install.sh | sh</code>
+                  <button class="btn-copy" onclick={copyInstallCommand}>
+                    {copiedCmd ? '✓ Copié !' : '📋 Copier'}
+                  </button>
+                </div>
+              </div>
+            {/if}
 
             <div class="actions">
               <button class="btn-secondary" onclick={onClose}>
                 Plus tard
               </button>
-              <button class="btn-primary" onclick={startSetup}>
-                {#if binaryExists}Choisir le modèle{:else}Installer l'IA localement (recommandé){/if}
-              </button>
+              {#if !binaryExists}
+                <button class="btn-secondary" onclick={refreshStatus} title="Vérifier si Ollama a été installé">
+                  🔄 Vérifier la détection
+                </button>
+                <button class="btn-primary" onclick={startSetup}>
+                  Télécharger automatiquement
+                </button>
+              {:else}
+                <button class="btn-primary" onclick={startSetup}>
+                  Choisir le modèle
+                </button>
+              {/if}
             </div>
           </div>
 
         {:else if step === 'download_bin'}
           <div class="step-progress">
-            <h3>Téléchargement d'Ollama Portable</h3>
-            <p class="desc">Nous récupérons le moteur Ollama (~280 Mo) pour le placer directement dans le répertoire de Grimoire.</p>
+            <h3>Téléchargement du moteur Ollama</h3>
+            <p class="desc">Nous récupérons le moteur Ollama pour le configurer dans votre espace utilisateur.</p>
             
             <div class="progress-container">
               <div class="progress-bar-bg">
@@ -207,13 +275,27 @@
               </div>
             </div>
             <div class="spinner-small" class:visible={downloadProgress === 101}></div>
+
+            {#if errorMsg}
+              <div class="actions" style="margin-top: 20px;">
+                <button class="btn-secondary" onclick={() => { errorMsg = ''; step = 'intro'; }}>
+                  Retour
+                </button>
+                <button class="btn-primary" onclick={startSetup}>
+                  Réessayer
+                </button>
+              </div>
+            {/if}
           </div>
 
         {:else if step === 'download_model'}
-          {#if pullPercent > 0 || pullStatus}
+          {#if isInstallingModel}
             <div class="step-progress">
               <h3>Téléchargement du Modèle : <span class="model-badge">{selectedModel}</span></h3>
-              <p class="desc">Ollama télécharge et configure le modèle de neurones de l'IA (entre 1.2 Go et 2 Go selon votre choix).</p>
+              <p class="desc">
+                Ollama télécharge les neurones de l'IA ({modelsOptions.find(m => m.id === selectedModel)?.size || '1-2 Go'}).
+                Veuillez patienter pendant le téléchargement.
+              </p>
               
               <div class="progress-container">
                 <div class="progress-bar-bg">
@@ -221,19 +303,21 @@
                 </div>
                 
                 <div class="progress-meta">
-                  <span class="status-pulse">{pullStatus}</span>
+                  <span class="status-pulse">{pullStatus || 'Téléchargement en cours...'}</span>
                   <span>{pullPercent}%</span>
                 </div>
               </div>
+              <div class="spinner-small visible"></div>
             </div>
           {:else}
             <div class="step-model">
               <h3>Choisissez votre modèle d'IA</h3>
-              <p class="desc">Sélectionnez le modèle le plus adapté à la puissance de votre ordinateur :</p>
+              <p class="desc">Sélectionnez le modèle le plus adapté à votre ordinateur :</p>
 
               <div class="model-cards">
                 {#each modelsOptions as opt}
                   <button 
+                    type="button"
                     class="model-card" 
                     class:selected={selectedModel === opt.id}
                     onclick={() => selectedModel = opt.id}
@@ -248,11 +332,11 @@
               </div>
 
               <div class="actions">
-                <button class="btn-secondary" onclick={() => step = 'intro'}>
+                <button class="btn-secondary" onclick={() => { errorMsg = ''; pullStatus = ''; pullPercent = 0; step = 'intro'; }}>
                   Retour
                 </button>
                 <button class="btn-primary" onclick={installModel}>
-                  Télécharger et Configurer
+                  {errorMsg ? 'Réessayer le téléchargement' : 'Télécharger et Configurer'}
                 </button>
               </div>
             </div>
@@ -263,15 +347,14 @@
             <div class="success-icon">✨</div>
             <h3>Votre IA Locale est Prête !</h3>
             <p class="desc">
-              Le moteur Ollama portable a été correctement déployé sur le port <strong>11435</strong>, 
-              et le modèle <strong>{selectedModel}</strong> est maintenant opérationnel.
+              Le moteur Ollama est opérationnel et le modèle <strong>{selectedModel}</strong> est configuré pour vos créations.
             </p>
             
             <div class="info-card">
               💡 <strong>Astuce :</strong> Vous pouvez lancer des générations automatiques de texte dans l'éditeur de notes à tout moment en utilisant le raccourci <kbd>Ctrl</kbd> + <kbd>J</kbd> !
             </div>
 
-            <div class="actions">
+            <div class="actions full">
               <button class="btn-primary full" onclick={finish}>
                 Commencer à utiliser Grimoire
               </button>
@@ -343,8 +426,35 @@
   .modal-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
     margin-bottom: 24px;
+  }
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-close {
+    background: transparent;
+    border: none;
+    color: #9c91a5;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.05);
   }
 
   .sparkle-icon {
@@ -374,17 +484,17 @@
 
   .desc {
     color: #b0a7b8;
-    font-size: 14.5px;
+    font-size: 14px;
     line-height: 1.5;
-    margin: 0 0 24px 0;
+    margin: 0 0 20px 0;
   }
 
   /* Feature List */
   .feature-list {
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    margin-bottom: 28px;
+    gap: 14px;
+    margin-bottom: 20px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
@@ -421,12 +531,72 @@
     line-height: 1.4;
   }
 
+  /* Terminal box */
+  .terminal-box {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(229, 168, 83, 0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+
+  .terminal-box-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4cf8f;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .terminal-box p {
+    font-size: 12.5px;
+    color: #b0a7b8;
+    margin: 0 0 10px 0;
+  }
+
+  .code-copy-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .code-copy-row code {
+    flex: 1;
+    font-family: monospace;
+    font-size: 12px;
+    color: #e8d0aa;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .btn-copy {
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.3);
+    color: #f4cf8f;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-copy:hover {
+    background: rgba(229, 168, 83, 0.25);
+    color: #ffffff;
+  }
+
   /* Model Cards Selection */
   .model-cards {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
 
   .model-card {
@@ -487,8 +657,8 @@
 
   /* Progress bars */
   .progress-container {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 16px;
@@ -516,6 +686,7 @@
   .progress-meta {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     color: #e3dbe8;
     font-size: 13px;
     font-weight: 600;
@@ -558,7 +729,7 @@
     font-size: 13.5px;
     line-height: 1.5;
     text-align: left;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
 
   kbd {
@@ -590,6 +761,7 @@
   .error-banner p {
     margin: 0;
     line-height: 1.4;
+    white-space: pre-wrap;
   }
 
   /* Buttons */
@@ -599,11 +771,15 @@
     gap: 12px;
   }
 
+  .actions.full {
+    width: 100%;
+  }
+
   button {
     font-family: inherit;
     font-size: 13.5px;
     font-weight: 700;
-    padding: 10px 20px;
+    padding: 10px 18px;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
