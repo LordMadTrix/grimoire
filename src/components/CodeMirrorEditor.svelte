@@ -16,6 +16,7 @@
   import { quickAiPlugin, quickAiTheme } from '$lib/editor/quickAiPlugin';
   import { typewriterCompartment, getTypewriterExtension } from '$lib/editor/typewriterPlugin';
   import { forceLinting } from '@codemirror/lint';
+  import AiMenuModal from './AiMenuModal.svelte';
 
   let { value = '', scrollToLine = null, onInput = () => {}, onSave = () => {} }: {
     value: string;
@@ -25,6 +26,10 @@
   } = $props();
 
   let isGenerating = $state(false);
+  let showAiMenu = $state(false);
+  let aiTargetText = $state('');
+  let aiFullDocText = $state('');
+  let aiSelectionRange = $state({ from: 0, to: 0, empty: true });
 
   let editorParent: HTMLDivElement;
   let view: EditorView;
@@ -640,37 +645,63 @@
     if (type) applyFormat(type);
   }
 
+  function openAiPalette() {
+    if (!view) return;
+    const selection = view.state.selection.main;
+    let targetText = '';
+    if (selection.empty) {
+      const line = view.state.doc.lineAt(selection.from);
+      targetText = line.text;
+      aiSelectionRange = { from: line.from, to: line.to, empty: true };
+    } else {
+      targetText = view.state.doc.sliceString(selection.from, selection.to);
+      aiSelectionRange = { from: selection.from, to: selection.to, empty: false };
+    }
+    aiTargetText = targetText;
+    aiFullDocText = view.state.doc.toString();
+    showAiMenu = true;
+  }
+
+  function handleAiApply(text: string, mode: 'replace' | 'insert_below') {
+    if (!view) return;
+    if (mode === 'replace') {
+      view.dispatch({
+        changes: {
+          from: aiSelectionRange.from,
+          to: aiSelectionRange.to,
+          insert: text
+        },
+        selection: { anchor: aiSelectionRange.from + text.length },
+        scrollIntoView: true
+      });
+    } else {
+      const insertPos = aiSelectionRange.to;
+      const insertion = '\n\n' + text + '\n';
+      view.dispatch({
+        changes: {
+          from: insertPos,
+          insert: insertion
+        },
+        selection: { anchor: insertPos + insertion.length },
+        scrollIntoView: true
+      });
+    }
+    view.focus();
+  }
+
   function runAI(evt?: Event) {
     if (!view || isGenerating) return;
 
     // Prompt custom passé via CustomEvent detail
     const customPrompt = (evt as CustomEvent)?.detail?.prompt as string | undefined;
 
-    let promptText = '';
-    let insertPos: number;
-
-    if (customPrompt) {
-      promptText = customPrompt;
-      insertPos = view.state.doc.length;
-    } else {
-      const selection = view.state.selection.main;
-      insertPos = selection.to;
-
-      if (selection.empty) {
-        const line = view.state.doc.lineAt(selection.from);
-        promptText = line.text;
-        insertPos = line.to;
-      } else {
-        promptText = view.state.doc.sliceString(selection.from, selection.to);
-      }
-
-      if (!promptText.trim()) {
-        const fullDoc = view.state.doc.toString().trim();
-        if (!fullDoc) { alert("Le document est vide."); return; }
-        promptText = `Résume ce document de manière structurée et concise (contexte : notes de Maître du Jeu TTRPG) :\n\n${fullDoc}`;
-        insertPos = view.state.doc.length;
-      }
+    if (!customPrompt) {
+      openAiPalette();
+      return;
     }
+
+    let promptText = customPrompt;
+    let insertPos = view.state.doc.length;
 
     isGenerating = true;
 
@@ -691,7 +722,7 @@
           changes: {
             from: insertPos,
             to: loadingEnd,
-            insert: '\n\n> ' + res.trim().split('\n').join('\n> ') + '\n'
+            insert: '\n\n' + res.trim() + '\n'
           }
         });
       })
@@ -910,6 +941,7 @@
         formattingKeymap,
         markdown(),
         oneDark,
+        EditorView.lineWrapping,
         autocompletion({
           override: [wikiLinkCompletions]
         }),
@@ -939,11 +971,18 @@
           },
           ".cm-content": {
             padding: "24px 32px",
-            maxWidth: "800px",
-            margin: "0 auto"
+            maxWidth: "860px",
+            margin: "0 auto",
+            boxSizing: "border-box"
+          },
+          ".cm-line": {
+            lineHeight: "1.65",
+            wordBreak: "break-word",
+            overflowWrap: "break-word"
           },
           ".cm-scroller": {
-            overflow: "auto"
+            overflowX: "hidden",
+            overflowY: "auto"
           },
           ".cm-activeLine": {
             backgroundColor: "rgba(136, 153, 183, 0.04)"
@@ -1011,12 +1050,28 @@
 
 <div class="codemirror-wrapper" bind:this={editorParent}></div>
 
+{#if showAiMenu}
+  <AiMenuModal
+    targetText={aiTargetText}
+    fullDocText={aiFullDocText}
+    onApply={handleAiApply}
+    onClose={() => { showAiMenu = false; view?.focus(); }}
+  />
+{/if}
+
 <style>
   .codemirror-wrapper {
     flex: 1;
     height: 100%;
     width: 100%;
+    min-width: 0;
     overflow: hidden;
     background: var(--bg-primary);
+    position: relative;
+  }
+  .codemirror-wrapper :global(.cm-editor) {
+    height: 100%;
+    width: 100%;
+    outline: none;
   }
 </style>

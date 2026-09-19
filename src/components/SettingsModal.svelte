@@ -3,7 +3,9 @@
   import { getOllamaModels } from '$lib/api';
   import {
     getAiModel, setAiModel,
-    getAiSystemPrompt, setAiSystemPrompt
+    getAiToneId, setAiToneId,
+    getAiSystemPrompt, setAiSystemPrompt,
+    AI_TONE_PRESETS
   } from '$lib/stores/settings.svelte';
   import {
     getSpellcheckEnabled, setSpellcheckEnabled,
@@ -19,6 +21,7 @@
   let errorMsg = $state('');
 
   let currentModel = $state(getAiModel());
+  let currentToneId = $state(getAiToneId());
   let currentPrompt = $state(getAiSystemPrompt());
 
   let currentSpellEnabled = $state(getSpellcheckEnabled());
@@ -63,8 +66,16 @@
     }
   });
 
+  function handleToneChange() {
+    const preset = AI_TONE_PRESETS.find(t => t.id === currentToneId);
+    if (preset) {
+      currentPrompt = preset.systemPrompt;
+    }
+  }
+
   function saveAndClose() {
     setAiModel(currentModel);
+    setAiToneId(currentToneId);
     setAiSystemPrompt(currentPrompt);
     setSpellcheckEnabled(currentSpellEnabled);
     setSpellcheckLang(currentSpellLang);
@@ -107,12 +118,22 @@
       </div>
 
       <div class="form-group">
-        <label for="ai-prompt">Prompt Système (Comportement de l'IA)</label>
+        <label for="ai-tone">Ambiance & Genre narratif de l'IA</label>
+        <select id="ai-tone" bind:value={currentToneId} onchange={handleToneChange}>
+          {#each AI_TONE_PRESETS as tone}
+            <option value={tone.id}>{tone.icon} {tone.name} — {tone.desc}</option>
+          {/each}
+        </select>
+        <small>Adapte le vocabulaire et l'ambiance des générations (évite de parler uniquement des ombres !).</small>
+      </div>
+
+      <div class="form-group">
+        <label for="ai-prompt">Prompt Système Personnalisé</label>
         <textarea 
           id="ai-prompt" 
           bind:value={currentPrompt} 
           rows="3"
-          placeholder="ex: Tu es un Maître du Jeu de dark fantasy..."
+          placeholder="ex: Tu es un Maître du Jeu..."
         ></textarea>
         <small>Donnez la tonalité de l'IA. Elle l'utilisera comme contexte avant chaque génération.</small>
       </div>

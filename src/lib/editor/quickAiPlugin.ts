@@ -45,7 +45,8 @@ export const quickAiPlugin = ViewPlugin.fromClass(
       }
 
       this.toolbar.innerHTML = `
-        <div class="quick-ai-title">🪄 IA MJ</div>
+        <div class="quick-ai-title">🪄 IA</div>
+        <button type="button" class="quick-ai-btn" data-action="menu" style="color: #e5a853; font-weight: 700;" title="Ouvrir le menu complet de l'assistant IA (Ctrl+J)">⚡ Menu IA</button>
         <button type="button" class="quick-ai-btn" data-action="describe" title="Générer une description visuelle et sensorielle">🎭 Décrire</button>
         <button type="button" class="quick-ai-btn" data-action="dialogue" title="Générer 3 répliques pour ce PNJ">🗣️ Dialogues</button>
         <button type="button" class="quick-ai-btn" data-action="sensory" title="Ajouter sons, odeurs et ambiance">📜 Sensations</button>
@@ -73,6 +74,11 @@ export const quickAiPlugin = ViewPlugin.fromClass(
     }
 
     executeAction(action: string | undefined, text: string, from: number, to: number) {
+      if (action === 'menu') {
+        document.dispatchEvent(new CustomEvent('trigger-ai'));
+        return;
+      }
+
       let prompt = '';
       switch (action) {
         case 'describe':
