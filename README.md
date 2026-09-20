@@ -30,6 +30,9 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 
 ### 1. 📝 Éditeur Markdown Rôliste Ultime (Style Obsidian & Outils MJ)
 - **Éditeur Markdown moderne (CodeMirror 6)** : Coloration syntaxique complète, formatage de texte, titres, listes, citations et tableaux.
+- **🗂️ Menus Déroulants Thématiques & Boutons Réflexes** : Barre d'outils épurée et intuitive organisée en 5 menus déroulants ergonomiques (`🗛 Titres`, `✍️ Format`, `☰ Listes`, `🎲 Blocs & JdR`, `🔗 Insérer`), épaulée par des boutons réflexes instantanés (`↩️`, `↪️`, `B`, `I`) et un accès immédiat au guide interactif des raccourcis.
+- **🖱️ Menu Contextuel au Clic Droit Rôliste** : Clic droit directement dans le texte pour faire surgir un menu contextuel complet sans quitter la souris : rangée de style rapide (**B**, *I*, ==H==, ~~S~~, `</>`), actions directes (`[[Note]]`, Secret MJ, Encadré Note, Case à cocher), sous-menus thématiques et commandes IA contextuelles (Correction stricte, Décrire la scène, Générer un PNJ, Péripétie).
+- **⌨️ Guide Interactif des Raccourcis Clavier** : Modale d'aide complète accessible d'un clic sur le bouton `⌨️` récapitulant tous les raccourcis de l'éditeur Markdown, de la navigation et de la table virtuelle.
 - **🔍 Recherche & Remplacement Intégrés (<kbd>Ctrl</kbd> + <kbd>F</kbd> et <kbd>Ctrl</kbd> + <kbd>H</kbd>)** : Volet escamotable complet stylisé or et sombre, navigation occurrence suivante/précédente (<kbd>Entrée</kbd> / <kbd>Shift+Entrée</kbd>), surlignage automatique en direct de toutes les correspondances du mot sélectionné (`highlightSelectionMatches`) et bouton loupe dédié.
 - **⚡ Saisie Fluide & GitHub Flavored Markdown (GFM)** : Indentation et désindentation directe avec <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> sans perte de focus, continuation intelligente des listes à puces, numérotées et de tâches (<kbd>Entrée</kbd>), tableaux GFM complets, texte barré `~~` et encapsulation automatique des URLs collées sur une sélection.
 - **🌓 3 Modes d'Affichage & Défilement Synchronisé** : Sélecteur instantané dans l'en-tête : ✏️ Éditeur seul (largeur maximale), 🌓 Double vue (Split) avec défilement synchronisé en temps réel sans saccades, et 📖 Mode Lecture seule (rendu HTML centré idéal en cours de partie sur table).
@@ -62,7 +65,7 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Vue Graphique 2D Interactive (Graph View)** : Visualisation de l'univers sous forme de toile cosmique avec physique de répulsion des nœuds interconnectés.
 - **Timeline & Calendrier Impérial** : Suivi des dates en jeu, avancement du temps (+1h, +1j), gestion des ères et saisons.
 - **Gestionnaire de Coffre (Vault Explorer)** : Support de coffres multiples, dossiers, glisser-déposer, favoris et fichiers récents.
-- **🤖 Assistant IA Local Intégré (Ollama v0.6.9)** : Assistant d'écriture 100% privé et hors-ligne propulsé par Ollama. Assistant de configuration guidé, détection automatique du démon système (port 11434/11435), téléchargement transparent des modèles (Gemma 2, Llama 3.2) avec jauge en mégaoctets réels et support Linux & Windows sans droit administrateur.
+- **🤖 Assistant IA Local Intégré (Ollama)** : Assistant d'écriture 100% privé et hors-ligne propulsé par Ollama. Assistant de configuration guidé, détection automatique du démon système (port 11434/11435), téléchargement transparent des modèles (Gemma 2, Llama 3.2) avec jauge en mégaoctets réels et support Linux & Windows sans droit administrateur.
 
 ### 2. 🗺️ Virtual TableTop Haute Performance (PixiJS v8 VTT)
 - **Moteur Graphique GPU 60+ FPS** : Rendu ultra-fluide des cartes géantes, textures dynamiques et animations sans ralentissement.
@@ -169,10 +172,14 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 | Raccourci | Contexte | Action |
 |-----------|----------|--------|
 | `Ctrl+K` ou `Ctrl+P` | Global | Palette de recherche rapide (FTS5) |
+| `Clic droit` | Éditeur Markdown | Menu contextuel rôliste (Styles, Blocs JdR, IA) |
+| `Ctrl+F` / `Ctrl+H` | Éditeur Markdown | Rechercher / Remplacer dans la note |
+| `Ctrl+B` / `Ctrl+I` | Éditeur Markdown | Mettre en Gras / Italique |
 | `F11` | Éditeur | Activer / Quitter le Mode Zen (Plein écran épuré) |
-| `Échap` | Éditeur (Mode Zen) | Quitter le Mode Zen |
+| `Échap` | Éditeur (Mode Zen / Menu) | Quitter le Mode Zen ou fermer les volets/menus |
 | `Ctrl+Z` / `Ctrl+Y` | Éditeur & Map Editor | Annuler / Rétablir |
 | `Ctrl+J` | Éditeur | Génération / Assistant IA sur la sélection |
+| Bouton `⌨️` | Éditeur (Barre d'outils) | Ouvrir le Guide interactif complet des raccourcis |
 | `Alt` + Molette | VTT | Redimensionner le pion survolé |
 | `Poignée ⬤` | VTT | Redimensionner un pion ou une zone de sélection |
 | `Clic droit sur Token` | VTT | Ouvrir la roue des conditions (ConditionWheel) |

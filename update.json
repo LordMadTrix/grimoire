@@ -1,6 +1,6 @@
 {
-  "version": "0.6.6",
-  "changelog": "Correcteur d'orthographe intelligent intégré (Hunspell en Web Worker), support Français & Anglais, dictionnaire personnalisé pour termes JdR/fantasy, infobulles de remplacement rapide et contrôles dans l'éditeur.",
+  "version": "0.7.0",
+  "changelog": "Barre d'outils avec menus déroulants thématiques (Titres, Format, Listes, Blocs & JdR, Insérer), Menu contextuel complet au Clic Droit dans l'éditeur (styles rapides, actions JdR, sous-menus et IA), guide interactif des raccourcis clavier.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-09-17"
+  "release_date": "2026-09-20"
 }

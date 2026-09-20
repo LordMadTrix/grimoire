@@ -27,6 +27,71 @@
   let showPreview = $derived(viewMode === 'split' || viewMode === 'read');
   let showEditor = $derived(viewMode === 'edit' || viewMode === 'split');
   let showToolbar = $state(true);
+  let activeToolbarMenu = $state<string | null>(null);
+  let showShortcutsModal = $state(false);
+
+  function toggleToolbarMenu(menu: string) {
+    activeToolbarMenu = activeToolbarMenu === menu ? null : menu;
+  }
+
+  function handleFormatAction(type: string) {
+    applyFormat(type);
+    activeToolbarMenu = null;
+  }
+
+  let editorCtxMenu = $state<{ x: number; y: number; hasSelection: boolean; selectedText: string } | null>(null);
+
+  function handleEditorContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    const sel = window.getSelection();
+    const selectedText = sel ? sel.toString().trim() : '';
+    const hasSelection = selectedText.length > 0;
+    
+    const menuWidth = 230;
+    const menuHeight = 360;
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 10);
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 10);
+
+    editorCtxMenu = {
+      x: Math.max(10, x),
+      y: Math.max(10, y),
+      hasSelection,
+      selectedText
+    };
+  }
+
+  function handleCtxAction(type: string) {
+    applyFormat(type);
+    editorCtxMenu = null;
+  }
+
+  function handleCtxAI(action: 'menu' | 'describe' | 'dialogue' | 'sensory' | 'stats') {
+    if (!editorCtxMenu) return;
+    const text = editorCtxMenu.selectedText;
+    editorCtxMenu = null;
+    if (action === 'menu' || !text) {
+      document.dispatchEvent(new CustomEvent('trigger-ai'));
+      return;
+    }
+    let prompt = '';
+    switch (action) {
+      case 'describe':
+        prompt = `Décris de manière évocatrice, vivante et percutante "${text}" pour une partie de jeu de rôle (style scénario TTRPG). Mentionne son apparence distinctive et un détail intrigant :\n\n${text}`;
+        break;
+      case 'dialogue':
+        prompt = `Imagine que tu incarnes le personnage "${text}". Rédige 3 répliques de dialogue authentiques et immersives qui expriment sa personnalité :\n\n${text}`;
+        break;
+      case 'sensory':
+        prompt = `Enrichis la description suivante avec des détails sensoriels immersifs pour le Maître du Jeu (sons, odeurs, luminosité, température, sensation générale) :\n\n${text}`;
+        break;
+      case 'stats':
+        prompt = `À partir de "${text}", génère un profil de caractéristiques et de combat synthétique en français pour jeu de rôle (CA, PV, Attaque, Dégâts, Capacité spéciale) :\n\n${text}`;
+        break;
+    }
+    if (prompt) {
+      triggerContextualAI(prompt);
+    }
+  }
   let scrollToLine = $state<number | null>(null);
   let previewHtml = $state('');
 
@@ -83,9 +148,20 @@
     if (e.key === 'F11') {
       e.preventDefault();
       toggleZenMode();
-    } else if (e.key === 'Escape' && isZenMode) {
-      e.preventDefault();
-      toggleZenMode();
+    } else if (e.key === 'Escape') {
+      if (editorCtxMenu !== null) {
+        e.preventDefault();
+        editorCtxMenu = null;
+      } else if (activeToolbarMenu !== null) {
+        e.preventDefault();
+        activeToolbarMenu = null;
+      } else if (showShortcutsModal) {
+        e.preventDefault();
+        showShortcutsModal = false;
+      } else if (isZenMode) {
+        e.preventDefault();
+        toggleZenMode();
+      }
     }
   }
 
@@ -606,7 +682,7 @@
   }
 </script>
 
-<svelte:window onkeydown={handleEditorKeydown} />
+<svelte:window onkeydown={handleEditorKeydown} onclick={() => { activeToolbarMenu = null; editorCtxMenu = null; }} />
 
 <div class="editor-container" class:zen-mode={isZenMode}>
   {#if isZenMode}
@@ -782,14 +858,14 @@
 
     {#if showToolbar && !getActiveFile()?.toLowerCase().endsWith('.pdf')}
       <div class="markdown-toolbar" role="toolbar" aria-label="Raccourcis de formatage Markdown">
-        <!-- Groupe Historique (Annuler / Rétablir en cas d'erreur) -->
+        <!-- Actions directes d'historique -->
         <div class="toolbar-group">
           <button
             type="button"
             class="tool-btn"
             onmousedown={(e) => e.preventDefault()}
             onclick={() => applyFormat('undo')}
-            title="Retour en arrière / Annuler en cas d'erreur [Ctrl+Z]"
+            title="Retour en arrière / Annuler [Ctrl+Z]"
           >
             <span class="btn-icon">↩️</span>
           </button>
@@ -806,7 +882,7 @@
 
         <div class="toolbar-divider"></div>
 
-        <!-- Groupe Style Inline -->
+        <!-- Actions directes de style réflexe -->
         <div class="toolbar-group">
           <button
             type="button"
@@ -826,253 +902,253 @@
           >
             <span class="btn-icon italic-icon">I</span>
           </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('strike')}
-            title="Barré (~~texte~~)"
-          >
-            <span class="btn-icon strike-icon">S</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('highlight')}
-            title="Surligné (==texte==)"
-          >
-            <span class="btn-icon mark-icon">H</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('inline-code')}
-            title="Code en ligne (`code`)"
-          >
-            <span class="btn-icon code-icon">&lt;/&gt;</span>
-          </button>
         </div>
 
         <div class="toolbar-divider"></div>
 
-        <!-- Groupe Titres -->
-        <div class="toolbar-group">
+        <!-- Menu Déroulant 1 : Titres -->
+        <div class="tb-dropdown" class:open={activeToolbarMenu === 'headings'}>
           <button
             type="button"
-            class="tool-btn heading-btn"
+            class="tb-dropdown-btn"
             onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('h1')}
-            title="Titre 1 (# Titre)"
+            onclick={(e) => { e.stopPropagation(); toggleToolbarMenu('headings'); }}
+            title="Titres et structure (H1 - H4)"
           >
-            H1
+            <span class="btn-icon">🗛</span>
+            <span class="btn-label">Titres</span>
+            <span class="dropdown-caret">▾</span>
           </button>
-          <button
-            type="button"
-            class="tool-btn heading-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('h2')}
-            title="Titre 2 (## Titre)"
-          >
-            H2
-          </button>
-          <button
-            type="button"
-            class="tool-btn heading-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('h3')}
-            title="Titre 3 (### Titre)"
-          >
-            H3
-          </button>
-          <button
-            type="button"
-            class="tool-btn heading-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('h4')}
-            title="Titre 4 (#### Titre)"
-          >
-            H4
-          </button>
+          {#if activeToolbarMenu === 'headings'}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="tb-dropdown-menu" onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('h1')}>
+                <span class="item-icon h-badge">H1</span>
+                <span class="item-label">Titre 1 (Principal)</span>
+                <span class="item-badge">#</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('h2')}>
+                <span class="item-icon h-badge">H2</span>
+                <span class="item-label">Titre 2 (Section)</span>
+                <span class="item-badge">##</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('h3')}>
+                <span class="item-icon h-badge">H3</span>
+                <span class="item-label">Titre 3 (Sous-section)</span>
+                <span class="item-badge">###</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('h4')}>
+                <span class="item-icon h-badge">H4</span>
+                <span class="item-label">Titre 4 (Paragraphe)</span>
+                <span class="item-badge">####</span>
+              </button>
+            </div>
+          {/if}
         </div>
 
-        <div class="toolbar-divider"></div>
-
-        <!-- Groupe Listes -->
-        <div class="toolbar-group">
+        <!-- Menu Déroulant 2 : Format & Style -->
+        <div class="tb-dropdown" class:open={activeToolbarMenu === 'format'}>
           <button
             type="button"
-            class="tool-btn"
+            class="tb-dropdown-btn"
             onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('bullet-list')}
-            title="Liste à puces (- élément)"
+            onclick={(e) => { e.stopPropagation(); toggleToolbarMenu('format'); }}
+            title="Styles de texte et typographie"
+          >
+            <span class="btn-icon">✍️</span>
+            <span class="btn-label">Format</span>
+            <span class="dropdown-caret">▾</span>
+          </button>
+          {#if activeToolbarMenu === 'format'}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="tb-dropdown-menu" onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('bold')}>
+                <span class="item-icon bold-icon">B</span>
+                <span class="item-label">Gras</span>
+                <span class="item-badge">Ctrl+B</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('italic')}>
+                <span class="item-icon italic-icon">I</span>
+                <span class="item-label">Italique</span>
+                <span class="item-badge">Ctrl+I</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('strike')}>
+                <span class="item-icon strike-icon">S</span>
+                <span class="item-label">Barré</span>
+                <span class="item-badge">~~</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('highlight')}>
+                <span class="item-icon mark-icon">H</span>
+                <span class="item-label">Surligné</span>
+                <span class="item-badge">==</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('inline-code')}>
+                <span class="item-icon code-icon">&lt;/&gt;</span>
+                <span class="item-label">Code en ligne</span>
+                <span class="item-badge">`code`</span>
+              </button>
+              <div class="tb-menu-divider"></div>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('undo')}>
+                <span class="item-icon">↩️</span>
+                <span class="item-label">Annuler</span>
+                <span class="item-badge">Ctrl+Z</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('redo')}>
+                <span class="item-icon">↪️</span>
+                <span class="item-label">Rétablir</span>
+                <span class="item-badge">Ctrl+Y</span>
+              </button>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Menu Déroulant 3 : Listes -->
+        <div class="tb-dropdown" class:open={activeToolbarMenu === 'lists'}>
+          <button
+            type="button"
+            class="tb-dropdown-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={(e) => { e.stopPropagation(); toggleToolbarMenu('lists'); }}
+            title="Listes à puces, numérotées et tâches"
           >
             <span class="btn-icon">☰</span>
-            <span class="btn-label">Puces</span>
+            <span class="btn-label">Listes</span>
+            <span class="dropdown-caret">▾</span>
           </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('number-list')}
-            title="Liste numérotée (1. élément)"
-          >
-            <span class="btn-icon">🔢</span>
-            <span class="btn-label">1. 2. 3.</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('task-list')}
-            title="Tâche / Case à cocher (- [ ] élément)"
-          >
-            <span class="btn-icon">☑</span>
-            <span class="btn-label">Tâche</span>
-          </button>
+          {#if activeToolbarMenu === 'lists'}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="tb-dropdown-menu" onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('bullet-list')}>
+                <span class="item-icon">☰</span>
+                <span class="item-label">Liste à puces</span>
+                <span class="item-badge">- texte</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('number-list')}>
+                <span class="item-icon">🔢</span>
+                <span class="item-label">Liste numérotée</span>
+                <span class="item-badge">1. texte</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('task-list')}>
+                <span class="item-icon">☑</span>
+                <span class="item-label">Liste de tâches (Checklist)</span>
+                <span class="item-badge">- [ ]</span>
+              </button>
+            </div>
+          {/if}
         </div>
 
-        <div class="toolbar-divider"></div>
-
-        <!-- Groupe Blocs & Structures -->
-        <div class="toolbar-group">
+        <!-- Menu Déroulant 4 : Blocs & JdR -->
+        <div class="tb-dropdown" class:open={activeToolbarMenu === 'blocks'}>
           <button
             type="button"
-            class="tool-btn"
+            class="tb-dropdown-btn"
             onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('quote')}
-            title="Citation (> citation)"
-          >
-            <span class="btn-icon">❞</span>
-            <span class="btn-label">Citation</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('codeblock')}
-            title="Bloc de code (```)"
-          >
-            <span class="btn-icon">💻</span>
-            <span class="btn-label">Bloc</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('table')}
-            title="Insérer un tableau Markdown"
-          >
-            <span class="btn-icon">▦</span>
-            <span class="btn-label">Tableau</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('rolltable')}
-            title="Table de tirage aléatoire d6"
+            onclick={(e) => { e.stopPropagation(); toggleToolbarMenu('blocks'); }}
+            title="Blocs de texte, Callouts MJ et tables"
           >
             <span class="btn-icon">🎲</span>
-            <span class="btn-label">Tirage d6</span>
+            <span class="btn-label">Blocs &amp; JdR</span>
+            <span class="dropdown-caret">▾</span>
           </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('callout')}
-            title="Boîte de note / Callout (> [!NOTE])"
-          >
-            <span class="btn-icon">💡</span>
-            <span class="btn-label">Note</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('secret')}
-            title="Secret / Piège MJ (> [!SECRET])"
-          >
-            <span class="btn-icon">🔒</span>
-            <span class="btn-label">Secret MJ</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('readaloud')}
-            title="Narration MJ à voix haute (> 🗣️ ...)"
-          >
-            <span class="btn-icon">🗣️</span>
-            <span class="btn-label">Récit MJ</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('statblock')}
-            title="Bloc de statistiques Créature / PNJ"
-          >
-            <span class="btn-icon">⚔️</span>
-            <span class="btn-label">Stats</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('hr')}
-            title="Ligne de séparation (---)"
-          >
-            <span class="btn-icon">―</span>
-            <span class="btn-label">Ligne</span>
-          </button>
+          {#if activeToolbarMenu === 'blocks'}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="tb-dropdown-menu" onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+              <div class="tb-menu-header">Boîtes de Jeu &amp; Callouts</div>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('callout')}>
+                <span class="item-icon">💡</span>
+                <span class="item-label">Boîte Note / Indice</span>
+                <span class="item-badge">&gt; [!NOTE]</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('secret')}>
+                <span class="item-icon">🔒</span>
+                <span class="item-label">Secret &amp; Piège MJ</span>
+                <span class="item-badge">&gt; [!SECRET]</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('readaloud')}>
+                <span class="item-icon">🗣️</span>
+                <span class="item-label">Récit MJ à voix haute</span>
+                <span class="item-badge">&gt; 🗣️</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('statblock')}>
+                <span class="item-icon">⚔️</span>
+                <span class="item-label">Fiche Stats PNJ / Monstre</span>
+                <span class="item-badge">Statblock</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('rolltable')}>
+                <span class="item-icon">🎲</span>
+                <span class="item-label">Table aléatoire d6</span>
+                <span class="item-badge">Table d6</span>
+              </button>
+              <div class="tb-menu-divider"></div>
+              <div class="tb-menu-header">Structures Markdown</div>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('quote')}>
+                <span class="item-icon">❞</span>
+                <span class="item-label">Citation</span>
+                <span class="item-badge">&gt; texte</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('codeblock')}>
+                <span class="item-icon">💻</span>
+                <span class="item-label">Bloc de code</span>
+                <span class="item-badge">```</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('hr')}>
+                <span class="item-icon">―</span>
+                <span class="item-label">Ligne séparatrice</span>
+                <span class="item-badge">---</span>
+              </button>
+            </div>
+          {/if}
         </div>
 
-        <div class="toolbar-divider"></div>
-
-        <!-- Groupe Liens & Médias -->
-        <div class="toolbar-group">
+        <!-- Menu Déroulant 5 : Insérer -->
+        <div class="tb-dropdown" class:open={activeToolbarMenu === 'insert'}>
           <button
             type="button"
-            class="tool-btn highlight-gold"
+            class="tb-dropdown-btn"
             onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('wikilink')}
-            title="Rétrolien Grimoire ([[Note]]) [Ctrl+K]"
+            onclick={(e) => { e.stopPropagation(); toggleToolbarMenu('insert'); }}
+            title="Liens, médias, tableaux et raccourcis"
           >
             <span class="btn-icon">🔗</span>
-            <span class="btn-label">[[Note]]</span>
+            <span class="btn-label">Insérer</span>
+            <span class="dropdown-caret">▾</span>
           </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('link')}
-            title="Lien hypertexte Web ([titre](url))"
-          >
-            <span class="btn-icon">🌐</span>
-            <span class="btn-label">Lien</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('image')}
-            title="Image (![alt](chemin))"
-          >
-            <span class="btn-icon">🖼️</span>
-            <span class="btn-label">Image</span>
-          </button>
-          <button
-            type="button"
-            class="tool-btn"
-            onmousedown={(e) => e.preventDefault()}
-            onclick={() => applyFormat('comment')}
-            title="Commentaire invisible du MJ (%% note %% )"
-          >
-            <span class="btn-icon">👁️‍🗨️</span>
-            <span class="btn-label">%% Note MJ</span>
-          </button>
+          {#if activeToolbarMenu === 'insert'}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="tb-dropdown-menu" onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+              <button type="button" class="tb-menu-item highlight-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('wikilink')}>
+                <span class="item-icon">🔗</span>
+                <span class="item-label">Rétrolien Grimoire</span>
+                <span class="item-badge">[[Note]]</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('link')}>
+                <span class="item-icon">🌐</span>
+                <span class="item-label">Lien Web hypertexte</span>
+                <span class="item-badge">[titre](url)</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('image')}>
+                <span class="item-icon">🖼️</span>
+                <span class="item-label">Image Markdown</span>
+                <span class="item-badge">![alt](src)</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('table')}>
+                <span class="item-icon">▦</span>
+                <span class="item-label">Tableau Markdown</span>
+                <span class="item-badge">| Col |</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('comment')}>
+                <span class="item-icon">👁️‍🗨️</span>
+                <span class="item-label">Note invisible MJ</span>
+                <span class="item-badge">%% note %%</span>
+              </button>
+              <div class="tb-menu-divider"></div>
+              <button type="button" class="tb-menu-item help-item" onmousedown={(e) => e.preventDefault()} onclick={() => { showShortcutsModal = true; activeToolbarMenu = null; }}>
+                <span class="item-icon">⌨️</span>
+                <span class="item-label">Guide des raccourcis clavier</span>
+                <span class="item-badge">Aide</span>
+              </button>
+            </div>
+          {/if}
         </div>
       </div>
     {/if}
@@ -1099,11 +1175,13 @@
         onclose={() => setActiveFile(null)}
       />
     {:else}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="editor-wrapper"
         class:split-view={viewMode === 'split'}
         class:read-mode={viewMode === 'read'}
         bind:this={editorWrapperEl}
+        oncontextmenu={handleEditorContextMenu}
       >
         {#if showEditor}
           <CodeMirrorEditor
@@ -1199,24 +1277,313 @@
   {/if}
 </div>
 
+{#if editorCtxMenu}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="editor-ctx-overlay" onclick={() => editorCtxMenu = null}></div>
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="editor-ctx-menu"
+    style="left: {editorCtxMenu.x}px; top: {editorCtxMenu.y}px;"
+    onclick={e => e.stopPropagation()}
+    role="menu"
+    tabindex="-1"
+  >
+    <!-- Bandeau de styles rapides (Gras, Italique, Surligné, Barré, Code) -->
+    <div class="editor-ctx-quick-row">
+      <button type="button" class="ctx-quick-btn" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('bold')} title="Gras (Ctrl+B)">
+        <span class="bold-icon">B</span>
+      </button>
+      <button type="button" class="ctx-quick-btn" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('italic')} title="Italique (Ctrl+I)">
+        <span class="italic-icon">I</span>
+      </button>
+      <button type="button" class="ctx-quick-btn" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('highlight')} title="Surligné (==texte==)">
+        <span class="mark-icon">H</span>
+      </button>
+      <button type="button" class="ctx-quick-btn" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('strike')} title="Barré (~~texte~~)">
+        <span class="strike-icon">S</span>
+      </button>
+      <button type="button" class="ctx-quick-btn" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('inline-code')} title="Code en ligne (`code`)">
+        <span class="code-icon">&lt;/&gt;</span>
+      </button>
+    </div>
+
+    <div class="editor-ctx-sep"></div>
+
+    <!-- Actions directes fréquentes -->
+    <button type="button" class="editor-ctx-item highlight-gold" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('wikilink')}>
+      <span class="ctx-icon">🔗</span>
+      <span class="ctx-label">Rétrolien Grimoire</span>
+      <span class="ctx-badge">[[Note]]</span>
+    </button>
+    <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('secret')}>
+      <span class="ctx-icon">🔒</span>
+      <span class="ctx-label">Secret &amp; Piège MJ</span>
+      <span class="ctx-badge">&gt; [!SECRET]</span>
+    </button>
+    <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('callout')}>
+      <span class="ctx-icon">💡</span>
+      <span class="ctx-label">Boîte Note / Indice</span>
+      <span class="ctx-badge">&gt; [!NOTE]</span>
+    </button>
+    <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('task-list')}>
+      <span class="ctx-icon">☑</span>
+      <span class="ctx-label">Tâche à cocher</span>
+      <span class="ctx-badge">- [ ]</span>
+    </button>
+
+    <div class="editor-ctx-sep"></div>
+
+    <!-- Sous-menu Titres -->
+    <div class="editor-ctx-has-sub">
+      <div class="editor-ctx-item">
+        <span class="ctx-icon">🗛</span>
+        <span class="ctx-label">Titres</span>
+        <span class="ctx-arrow">▸</span>
+      </div>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('h1')}>
+          <span class="ctx-icon h-badge">H1</span>
+          <span class="ctx-label">Titre 1 (Principal)</span>
+          <span class="ctx-badge">#</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('h2')}>
+          <span class="ctx-icon h-badge">H2</span>
+          <span class="ctx-label">Titre 2 (Section)</span>
+          <span class="ctx-badge">##</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('h3')}>
+          <span class="ctx-icon h-badge">H3</span>
+          <span class="ctx-label">Titre 3 (Sous-section)</span>
+          <span class="ctx-badge">###</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('h4')}>
+          <span class="ctx-icon h-badge">H4</span>
+          <span class="ctx-label">Titre 4 (Paragraphe)</span>
+          <span class="ctx-badge">####</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sous-menu Listes -->
+    <div class="editor-ctx-has-sub">
+      <div class="editor-ctx-item">
+        <span class="ctx-icon">☰</span>
+        <span class="ctx-label">Listes</span>
+        <span class="ctx-arrow">▸</span>
+      </div>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('bullet-list')}>
+          <span class="ctx-icon">☰</span>
+          <span class="ctx-label">Liste à puces</span>
+          <span class="ctx-badge">- texte</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('number-list')}>
+          <span class="ctx-icon">🔢</span>
+          <span class="ctx-label">Liste numérotée</span>
+          <span class="ctx-badge">1. texte</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('task-list')}>
+          <span class="ctx-icon">☑</span>
+          <span class="ctx-label">Liste de tâches</span>
+          <span class="ctx-badge">- [ ]</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sous-menu Blocs & JdR -->
+    <div class="editor-ctx-has-sub">
+      <div class="editor-ctx-item">
+        <span class="ctx-icon">🎲</span>
+        <span class="ctx-label">Blocs &amp; JdR</span>
+        <span class="ctx-arrow">▸</span>
+      </div>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('readaloud')}>
+          <span class="ctx-icon">🗣️</span>
+          <span class="ctx-label">Récit MJ à voix haute</span>
+          <span class="ctx-badge">&gt; 🗣️</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('statblock')}>
+          <span class="ctx-icon">⚔️</span>
+          <span class="ctx-label">Fiche Stats PNJ</span>
+          <span class="ctx-badge">Statblock</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('rolltable')}>
+          <span class="ctx-icon">🎲</span>
+          <span class="ctx-label">Table aléatoire d6</span>
+          <span class="ctx-badge">Table d6</span>
+        </button>
+        <div class="editor-ctx-sep"></div>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('quote')}>
+          <span class="ctx-icon">❞</span>
+          <span class="ctx-label">Citation</span>
+          <span class="ctx-badge">&gt; texte</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('codeblock')}>
+          <span class="ctx-icon">💻</span>
+          <span class="ctx-label">Bloc de code</span>
+          <span class="ctx-badge">```</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('hr')}>
+          <span class="ctx-icon">―</span>
+          <span class="ctx-label">Ligne séparatrice</span>
+          <span class="ctx-badge">---</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sous-menu Insérer -->
+    <div class="editor-ctx-has-sub">
+      <div class="editor-ctx-item">
+        <span class="ctx-icon">📎</span>
+        <span class="ctx-label">Insérer</span>
+        <span class="ctx-arrow">▸</span>
+      </div>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('link')}>
+          <span class="ctx-icon">🌐</span>
+          <span class="ctx-label">Lien Web hypertexte</span>
+          <span class="ctx-badge">[texte](url)</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('image')}>
+          <span class="ctx-icon">🖼️</span>
+          <span class="ctx-label">Image Markdown</span>
+          <span class="ctx-badge">![alt](src)</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('table')}>
+          <span class="ctx-icon">▦</span>
+          <span class="ctx-label">Tableau Markdown</span>
+          <span class="ctx-badge">| Col |</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('comment')}>
+          <span class="ctx-icon">👁️‍🗨️</span>
+          <span class="ctx-label">Note invisible MJ</span>
+          <span class="ctx-badge">%% note %%</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="editor-ctx-sep"></div>
+
+    <!-- Sous-menu Assistant IA (Ollama) -->
+    <div class="editor-ctx-has-sub">
+      <div class="editor-ctx-item ai-ctx-item">
+        <span class="ctx-icon">🪄</span>
+        <span class="ctx-label">Assistant IA</span>
+        <span class="ctx-arrow">▸</span>
+      </div>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        {#if editorCtxMenu.hasSelection}
+          <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAI('describe')}>
+            <span class="ctx-icon">🎭</span>
+            <span class="ctx-label">Décrire la sélection</span>
+          </button>
+          <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAI('dialogue')}>
+            <span class="ctx-icon">🗣️</span>
+            <span class="ctx-label">Générer 3 dialogues</span>
+          </button>
+          <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAI('sensory')}>
+            <span class="ctx-icon">📜</span>
+            <span class="ctx-label">Ajouter détails sensoriels</span>
+          </button>
+          <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAI('stats')}>
+            <span class="ctx-icon">⚔️</span>
+            <span class="ctx-label">Générer bloc de stats</span>
+          </button>
+          <div class="editor-ctx-sep"></div>
+        {/if}
+        <button type="button" class="editor-ctx-item highlight-gold" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAI('menu')}>
+          <span class="ctx-icon">⚡</span>
+          <span class="ctx-label">Menu IA complet</span>
+          <span class="ctx-badge">Ctrl+J</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="editor-ctx-sep"></div>
+
+    <!-- Actions d'édition classiques -->
+    <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('undo')}>
+      <span class="ctx-icon">↩️</span>
+      <span class="ctx-label">Annuler</span>
+      <span class="ctx-badge">Ctrl+Z</span>
+    </button>
+    <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('redo')}>
+      <span class="ctx-icon">↪️</span>
+      <span class="ctx-label">Rétablir</span>
+      <span class="ctx-badge">Ctrl+Y</span>
+    </button>
+  </div>
+{/if}
+
+{#if showShortcutsModal}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="shortcuts-modal-backdrop" onclick={() => showShortcutsModal = false} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="shortcuts-modal-content" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+      <div class="shortcuts-modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-header-icon">⌨️</span>
+          <h3>Guide des Raccourcis de Grimoire</h3>
+        </div>
+        <button type="button" class="shortcuts-modal-close" onclick={() => showShortcutsModal = false} title="Fermer (Échap)">✕</button>
+      </div>
+      <div class="shortcuts-modal-body">
+        <div class="shortcuts-grid">
+          <div class="shortcuts-section">
+            <h4>✍️ Édition & Formatage Markdown</h4>
+            <table class="shortcuts-table">
+              <tbody>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>B</kbd></td><td>Gras (<strong>texte</strong>)</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>I</kbd></td><td>Italique (<em>texte</em>)</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Rétrolien Grimoire [[Note]]</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td>Annuler la dernière action</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Rétablir l'action annulée</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>Sauvegarder immédiatement</td></tr>
+                <tr><td><kbd>Tab</kbd></td><td>Indenter (paragraphe, puce, liste)</td></tr>
+                <tr><td><kbd>Shift</kbd> + <kbd>Tab</kbd></td><td>Désindenter le paragraphe</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="shortcuts-section">
+            <h4>🗺️ Navigation, IA & Mode Jeu</h4>
+            <table class="shortcuts-table">
+              <tbody>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td>Palette de commande & recherche</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td><td>Rechercher dans la note active</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>H</kbd></td><td>Rechercher & Remplacer</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + <kbd>J</kbd></td><td>Génération IA locale (Ollama)</td></tr>
+                <tr><td><kbd>F11</kbd> / <kbd>Échap</kbd></td><td>Activer / Quitter le mode Zen</td></tr>
+                <tr><td><kbd>Ctrl</kbd> + Clic</td><td>Suivre un [[lien]] ou carte VTT</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="shortcuts-footer-tip">
+          💡 <strong>Astuce :</strong> Vous pouvez également afficher ou masquer la barre de raccourcis à tout moment avec le bouton plume <span class="tip-icon">🖋️</span> dans l'en-tête de l'éditeur.
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   /* ── Markdown Formatting Toolbar ───────────────────────────── */
 
   .markdown-toolbar {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     padding: 4px 12px;
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    overflow-x: auto;
-    scrollbar-width: thin;
     user-select: none;
-  }
-
-  .markdown-toolbar::-webkit-scrollbar {
-    height: 3px;
+    position: relative;
+    z-index: 100;
   }
 
   .toolbar-group {
@@ -1243,8 +1610,8 @@
     border: 1px solid transparent;
     border-radius: 4px;
     padding: 3px 6px;
-    min-height: 25px;
-    min-width: 25px;
+    min-height: 26px;
+    min-width: 26px;
     color: var(--text-secondary);
     font-size: 12px;
     cursor: pointer;
@@ -1272,7 +1639,7 @@
   }
 
   .btn-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
   }
 
@@ -1310,23 +1677,313 @@
     color: #38bdf8;
   }
 
-  .heading-btn {
+  /* ── Dropdowns de la barre de raccourcis ──────────────────────── */
+
+  .tb-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .tb-dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 3px 8px;
+    min-height: 26px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .tb-dropdown-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: rgba(229, 168, 83, 0.3);
+  }
+
+  .tb-dropdown.open .tb-dropdown-btn {
+    background: rgba(229, 168, 83, 0.14);
+    color: var(--accent);
+    border-color: rgba(229, 168, 83, 0.45);
+    box-shadow: 0 0 6px rgba(229, 168, 83, 0.2);
+  }
+
+  .dropdown-caret {
+    font-size: 9px;
+    opacity: 0.7;
+    margin-left: 2px;
+    transition: transform 0.15s ease;
+  }
+
+  .tb-dropdown.open .dropdown-caret {
+    transform: rotate(180deg);
+  }
+
+  .tb-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 230px;
+    background: #161b22;
+    border: 1px solid rgba(229, 168, 83, 0.35);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 1050;
+    animation: slideDown 0.12s ease-out;
+  }
+
+  .tb-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .tb-menu-item:hover {
+    background: rgba(229, 168, 83, 0.12);
+    color: var(--accent);
+  }
+
+  .tb-menu-item:active {
+    transform: translateX(1px);
+  }
+
+  .item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .item-label {
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  .item-badge {
+    font-size: 10px;
+    font-family: monospace;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+  }
+
+  .h-badge {
     font-family: monospace;
     font-weight: 700;
     font-size: 11px;
     color: var(--accent);
-    background: rgba(229, 168, 83, 0.06);
-    border: 1px solid rgba(229, 168, 83, 0.2);
-    padding: 2px 6px;
   }
 
-  .heading-btn:hover {
-    background: var(--accent-bg);
-    border-color: var(--accent);
+  .tb-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
   }
 
-  .highlight-gold {
+  .tb-menu-header {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 4px 8px 2px 8px;
+    font-weight: 600;
+  }
+
+  .highlight-item:hover {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.16);
+  }
+
+  .help-item {
+    color: #38bdf8;
+  }
+
+  .help-item:hover {
+    background: rgba(56, 189, 248, 0.15);
+    color: #7dd3fc;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Modal Guide des Raccourcis Clavier ─────────────────────── */
+
+  .shortcuts-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  .shortcuts-modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    border-radius: 10px;
+    width: min(720px, 94vw);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(229, 168, 83, 0.15);
+    overflow: hidden;
+  }
+
+  .shortcuts-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .modal-header-icon {
+    font-size: 18px;
+  }
+
+  .shortcuts-modal-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
     color: var(--accent);
+  }
+
+  .shortcuts-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+
+  .shortcuts-modal-close:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+
+  .shortcuts-modal-body {
+    padding: 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .shortcuts-section {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .shortcuts-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+    border-bottom: 1px solid rgba(229, 168, 83, 0.2);
+    padding-bottom: 6px;
+  }
+
+  .shortcuts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .shortcuts-table tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .shortcuts-table tr:last-child {
+    border-bottom: none;
+  }
+
+  .shortcuts-table td {
+    padding: 6px 4px;
+    color: var(--text-secondary);
+  }
+
+  .shortcuts-table td:first-child {
+    white-space: nowrap;
+    width: 45%;
+  }
+
+  .shortcuts-table kbd {
+    background: #0d1117;
+    border: 1px solid rgba(229, 168, 83, 0.35);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #fbbf24;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .shortcuts-footer-tip {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(229, 168, 83, 0.08);
+    border: 1px dashed rgba(229, 168, 83, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+  }
+
+  .shortcuts-footer-tip .tip-icon {
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   /* ── Preview Callouts & Styling ────────────────────────────── */
@@ -1970,5 +2627,162 @@
   @keyframes cmDicePop {
     from { opacity: 0; transform: scale(0.92) translateY(6px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* ── Menu Contextuel Clic Droit dans l'Éditeur ─────────────── */
+
+  .editor-ctx-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+  }
+
+  .editor-ctx-menu {
+    position: fixed;
+    z-index: 1201;
+    background: #161b22;
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 14px rgba(229, 168, 83, 0.15);
+    padding: 6px;
+    min-width: 225px;
+    user-select: none;
+    animation: slideDown 0.1s ease-out;
+  }
+
+  .editor-ctx-quick-row {
+    display: flex;
+    gap: 4px;
+    padding: 2px 2px 4px 2px;
+  }
+
+  .ctx-quick-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .ctx-quick-btn:hover {
+    background: rgba(229, 168, 83, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .ctx-quick-btn:active {
+    background: var(--accent-bg);
+    transform: translateY(1px);
+  }
+
+  .editor-ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    box-sizing: border-box;
+    text-decoration: none;
+  }
+
+  .editor-ctx-item:hover {
+    background: rgba(229, 168, 83, 0.12);
+    color: var(--accent);
+  }
+
+  .editor-ctx-item:active {
+    transform: translateX(1px);
+  }
+
+  .editor-ctx-has-sub {
+    position: relative;
+  }
+
+  .editor-ctx-has-sub:hover > .editor-ctx-sub {
+    display: flex;
+  }
+
+  .editor-ctx-sub {
+    display: none;
+    position: absolute;
+    top: -4px;
+    left: calc(100% + 2px);
+    min-width: 200px;
+    background: #161b22;
+    border: 1px solid rgba(229, 168, 83, 0.35);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+    padding: 4px;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 1202;
+    animation: slideDown 0.1s ease-out;
+  }
+
+  .editor-ctx-sub.open-left {
+    left: auto;
+    right: calc(100% + 2px);
+  }
+
+  .ctx-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .ctx-label {
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  .ctx-arrow {
+    margin-left: auto;
+    font-size: 9px;
+    color: var(--text-muted);
+    opacity: 0.8;
+  }
+
+  .ctx-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-family: monospace;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+  }
+
+  .editor-ctx-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 2px;
+  }
+
+  .ai-ctx-item {
+    color: #38bdf8;
+  }
+
+  .ai-ctx-item:hover {
+    background: rgba(56, 189, 248, 0.15) !important;
+    color: #7dd3fc !important;
   }
 </style>

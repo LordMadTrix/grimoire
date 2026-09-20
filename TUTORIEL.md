@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.6.9)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.7.0)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA & Bouclier Anti-Perte · IA Locale Ollama*
+> *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA & Bouclier Anti-Perte · IA Locale Ollama*
 
 ---
 
@@ -178,6 +178,41 @@ Basculez entre trois modes d'affichage depuis le sélecteur dans l'en-tête de n
 - **Callouts Multi-Lignes** : Les blocs de citations consécutifs (`> [!SECRET]`, `> [!LOOT]`, `> [!WARNING]`, etc.) sont regroupés au sein d'un seul encadré stylisé or, émeraude ou rouge avec leurs icônes thématiques.
 - **Véritables Listes HTML Imbriquées** : Rendu structuré avec balises `<ul>` et `<ol>` interprétant le gras, l'italique, le code et les wiki-liens dans chaque puce.
 - **Dés Cliquables dans l'Aperçu** : Toutes les formules de dés (`1d20+5`, `2d6`, etc.) dans le volet d'aperçu deviennent des boutons interactifs (`🎲 1d20+5`) déclenchant un jet physique sonore au clic !
+
+### 🗂️ 14. Menus Déroulants Thématiques & Boutons Réflexes (v0.7.0)
+La barre d'outils supérieure de l'éditeur Markdown a été entièrement repensée pour éliminer l'encombrement visuel des 27 boutons alignés et offrir une navigation fluide et élégante :
+- **Boutons Réflexes Immédiats** : Toujours à portée de clic sur la gauche :
+  - `↩️` Annuler (<kbd>Ctrl+Z</kbd>)
+  - `↪️` Rétablir (<kbd>Ctrl+Y</kbd>)
+  - **B** Gras (<kbd>Ctrl+B</kbd>)
+  - *I* Italique (<kbd>Ctrl+I</kbd>)
+- **5 Menus Déroulants Ergonomiques** :
+  - `🗛 Titres` : Titres H1 à H4 avec icônes de hiérarchie visuelle.
+  - `✍️ Format` : Gras, Italique, Barré (`~~`), Surligné (`==`), Code en ligne, Bloc de code préformaté et Citation.
+  - `☰ Listes` : Liste à puces, Liste numérotée, Liste de tâches (`- [ ]`), Tableau GFM et Ligne de séparation.
+  - `🎲 Blocs & JdR` : Encadrés rôlistes prédéfinis (Note secrète MJ `[!SECRET]`, Butin & Trésor `[!LOOT]`, Danger mortel `[!WARNING]`, Note générale `[!NOTE]`, Récit aux joueurs `[!READALOUD]`), formule de dé interactive, lien de scène VTT (`[[map:Scene]]`) et lecteur d'ambiance frontmatter.
+  - `🔗 Insérer` : Lien Wiki interne (`[[...]]`), Lien Web Markdown, Image et accès direct au Guide complet des raccourcis.
+- **Fermeture Automatique** : Cliquer en dehors ou presser <kbd>Échap</kbd> referme instantanément tout menu ouvert.
+
+### 🖱️ 15. Menu Contextuel au Clic Droit Rôliste & IA (v0.7.0)
+Ne quittez plus votre souris lors de la rédaction de vos scénarios ! Un clic droit n'importe où dans l'éditeur Markdown ouvre un menu contextuel complet adapté aux besoins du MJ :
+- **Barre Rapide Supérieure de Style** : Formatage instantané de la sélection en un clic : **Gras**, *Italique*, ==Surligné==, ~~Barré~~ ou `Code`.
+- **Raccourcis JdR Directs** :
+  - `[[Note]]` : Insère ou transforme la sélection en WikiLink avec autocomplétion.
+  - `🔒 Secret MJ` : Enveloppe le texte dans un encadré `> [!SECRET]`.
+  - `📌 Note` : Insère un encadré d'information générale `> [!NOTE]`.
+  - `☑️ Tâche` : Insère une case à cocher interactive de quête.
+- **Sous-Menus Hiérarchiques au Survol** : Accédez à tous les niveaux de Titres (H1-H4), Listes et Tableaux, Blocs Rôlistes et Liens d'insertion.
+- **🪄 Assistant IA Contextuel** :
+  - Lancer la palette complète (<kbd>Ctrl+J</kbd>).
+  - Correction stricte d'orthographe & de style (sans inventer d'histoire).
+  - Décrire le décor ou le lieu actuel.
+  - Générer un profil de PNJ avec ses secrets.
+  - Lancer une péripétie ou un rebondissement imprévu.
+- **Préservation Intelligente de la Sélection** : Le clic et les interactions dans le menu n'effacent jamais le curseur ni la sélection active dans le texte.
+
+### ⌨️ 16. Guide Interactif des Raccourcis Clavier
+Un clic sur le bouton `⌨️` (ou depuis le menu déroulant `🔗 Insérer`) ouvre une modale d'aide interactive et élégante répertoriant tous les raccourcis essentiels classés par univers : Édition de texte, Outils du MJ & IA, Table Virtuelle (VTT) et Navigation globale.
 
 ---
 
@@ -526,15 +561,17 @@ Voici la check-list idéale pour préparer et mener votre première partie sur G
 | Raccourci | Contexte | Action |
 | :--- | :--- | :--- |
 | `Ctrl + K` / `Ctrl + P` | Partout | Palette de commande & recherche instantanée (FTS5) |
+| `Clic Droit` | Éditeur Markdown | Menu contextuel rôliste (Formatage rapide, Blocs JdR, IA) |
 | `Ctrl + F` | Éditeur Markdown | Rechercher dans la note active (avec surlignage auto) |
 | `Ctrl + H` | Éditeur Markdown | Rechercher & Remplacer dans la note active |
 | `Tab` / `Shift + Tab` | Éditeur Markdown | Indenter / désindenter le paragraphe ou la liste |
 | `Entrée` | Éditeur Markdown | Continuer automatiquement liste à puces, numérotée ou tâches |
 | `F11` | Éditeur Markdown | Activer / Désactiver le Mode Zen (Plein écran épuré) |
-| `Échap` | Éditeur (Mode Zen / Recherche) | Quitter le Mode Zen ou fermer la recherche |
+| `Échap` | Éditeur (Mode Zen / Menus) | Quitter le Mode Zen ou fermer les menus contextuels |
 | `Ctrl + Z` / `Ctrl + Y` | Éditeur / VTT / Map Editor | Annuler / Rétablir la dernière action |
-| `Ctrl + J` | Éditeur Markdown | Génération de texte IA sur la sélection |
+| `Ctrl + J` | Éditeur Markdown | Palette de prompts & assistant IA sur la sélection |
 | `Ctrl + B` / `Ctrl + I` | Éditeur Markdown | Mettre le texte en Gras / Italique |
+| Bouton `⌨️` | Barre d'outils | Ouvrir le Guide interactif complet des raccourcis |
 | `Alt + Molette` | VTT (Token survolé) | Redimensionnement rapide du token |
 | `Poignée ⬤` | VTT (Token survolé) | Redimensionner manuellement le token |
 | `Clic Droit Token` | VTT | Ouvre la ConditionWheel (8 statuts) |
