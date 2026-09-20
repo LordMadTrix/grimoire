@@ -1,4 +1,4 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.7.0)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.7.1)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
 > *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA & Bouclier Anti-Perte · IA Locale Ollama*
@@ -214,6 +214,12 @@ Ne quittez plus votre souris lors de la rédaction de vos scénarios ! Un clic d
 ### ⌨️ 16. Guide Interactif des Raccourcis Clavier
 Un clic sur le bouton `⌨️` (ou depuis le menu déroulant `🔗 Insérer`) ouvre une modale d'aide interactive et élégante répertoriant tous les raccourcis essentiels classés par univers : Édition de texte, Outils du MJ & IA, Table Virtuelle (VTT) et Navigation globale.
 
+### 🛡️ 17. Passerelle Directe vers la Vue Joueur & Bouclier Anti-Spoil (v0.7.1)
+Partagez instantanément des extraits de notes, descriptions ou révélations vers l'écran des joueurs et leurs smartphones :
+- **Bouton de partage dédié** dans l'en-tête de l'éditeur pour projeter le contenu actif en un clic.
+- **Bouclier Anti-Spoil Automatique** : Filtre et masque automatiquement les blocs secrets (`> [!SECRET]`), les commentaires privés du MJ et les annotations confidentielles avant la transmission.
+- **Diffusion Ciblée** : Choisissez de diffuser à l'ensemble de la table ou de murmurer discrètement à un joueur précis.
+
 ---
 
 ## 5. Cartographie : Import, Fantasy Map Editor & Donjons Procéduraux
@@ -387,6 +393,13 @@ La Liseuse de PDF de Grimoire transforme vos modules et livres de règles en une
 - Faites un **clic droit** sur n'importe quel token : la **ConditionWheel** apparaît.
 - Cliquez sur une condition (🩸 *Hémorragie*, 💤 *Inconscient*, 🤢 *Empoisonné*, 👁️ *Aveuglé*, 🪢 *Entravé*, 🔥 *Enflammé*, 😱 *Effrayé*, 🛡️ *À terre*).
 - La condition s'affiche sous forme de badge flottant au-dessus du token et se synchronise sur les écrans des joueurs.
+
+### 🪟 Volet Flottant Express Joueurs (HUD) & Drag-and-Drop Direct (v0.7.1)
+- **HUD Flottant Déplaçable** : Fenêtre interactive repositionnable à la souris sur la Table Virtuelle pour garder un œil en permanence sur la table sans masquer le plan de bataille.
+- **Glisser-Déposer Instantané (Drag & Drop)** : Attrapez la pastille d'un joueur (connecté ou hors-ligne) dans le volet et déposez-la directement sur la carte VTT pour y poser ou déplacer immédiatement son token.
+- **Gestion des PV en 1 Clic** : Boutons rapides `[-5]`, `[-1]`, `[+1]`, `[+5]` pour ajuster la santé en plein combat avec mise à jour temps réel sur les fiches mobiles des joueurs.
+- **Tiroir d'Édition Express (`✏️`)** : Modifiez à la volée les PV max, caractéristiques ou mot de passe sans quitter la vue tactique.
+- **Persistance Définitive des Comptes (`.grimoire/player_accounts.json`)** : Sauvegarde permanente et restauration automatique de l'ensemble des fiches et de l'avancement des joueurs sur disque.
 
 ---
 

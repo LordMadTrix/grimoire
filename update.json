@@ -1,6 +1,6 @@
 {
-  "version": "0.7.0",
-  "changelog": "Barre d'outils avec menus déroulants thématiques (Titres, Format, Listes, Blocs & JdR, Insérer), Menu contextuel complet au Clic Droit dans l'éditeur (styles rapides, actions JdR, sous-menus et IA), guide interactif des raccourcis clavier.",
+  "version": "0.7.1",
+  "changelog": "Passerelle directe éditeur vers vue joueur/mobiles avec bouclier anti-spoil, volet flottant express joueurs (HUD interactif), drag-and-drop des tokens sur la grille VTT et persistance/gestion des comptes sur disque.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
   "release_date": "2026-09-20"
 }
