@@ -1,7 +1,7 @@
 # Created using Grimoire Manifest Generator
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
-PackageIdentifier: LordMadTrix.Grimoire
+PackageIdentifier: madtrix.Grimoire
 PackageVersion: 0.7.2
 InstallerType: inno
 Scope: machine

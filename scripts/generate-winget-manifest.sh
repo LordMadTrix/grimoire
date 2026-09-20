@@ -12,7 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 VERSION=$(grep '"version"' "$ROOT_DIR/package.json" | head -n 1 | awk -F '"' '{print $4}')
-IDENTIFIER="LordMadTrix.Grimoire"
+IDENTIFIER="madtrix.Grimoire"
+PUBLISHER="madtrix"
 REPO="LordMadTrix/grimoire"
 OUTPUT_DIR="$ROOT_DIR/dist-manifests/winget/$VERSION"
 
@@ -89,7 +90,7 @@ cat <<YAML > "$OUTPUT_DIR/$IDENTIFIER.locale.fr-FR.yaml"
 PackageIdentifier: $IDENTIFIER
 PackageVersion: $VERSION
 PackageLocale: fr-FR
-Publisher: LordMadTrix
+Publisher: $PUBLISHER
 PublisherUrl: https://github.com/LordMadTrix
 Author: MadTrix
 PackageName: Grimoire
