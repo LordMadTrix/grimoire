@@ -575,6 +575,240 @@ class SoundscapeStore {
       try { osc.stop(); lfo.stop(); } catch {}
     };
   }
+
+  // ── Procedural Web Audio SFX ────────────────────────────────────────
+  playSfx(sfxId: string, broadcast = true) {
+    this.initAudio();
+    if (!this.audioCtx || !this.masterGain) return;
+    const ctx = this.audioCtx;
+    const t0 = ctx.currentTime;
+
+    const sfxGain = ctx.createGain();
+    sfxGain.gain.setValueAtTime(0.85, t0);
+    sfxGain.connect(this.masterGain);
+
+    switch (sfxId) {
+      case 'sword': {
+        const bufferSize = Math.floor(ctx.sampleRate * 0.4);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+        const whiteNoise = ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const filter1 = ctx.createBiquadFilter();
+        filter1.type = 'bandpass';
+        filter1.frequency.setValueAtTime(2400, t0);
+        filter1.Q.setValueAtTime(14, t0);
+
+        const filter2 = ctx.createBiquadFilter();
+        filter2.type = 'bandpass';
+        filter2.frequency.setValueAtTime(4600, t0);
+        filter2.Q.setValueAtTime(18, t0);
+
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(1.0, t0);
+        env.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+
+        whiteNoise.connect(filter1);
+        whiteNoise.connect(filter2);
+        filter1.connect(env);
+        filter2.connect(env);
+        env.connect(sfxGain);
+
+        whiteNoise.start(t0);
+        whiteNoise.stop(t0 + 0.4);
+        break;
+      }
+      case 'thunder':
+      case 'explosion': {
+        const bufferSize = Math.floor(ctx.sampleRate * 1.5);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(280, t0);
+        lp.frequency.exponentialRampToValueAtTime(40, t0 + 1.2);
+
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(1.2, t0);
+        env.gain.exponentialRampToValueAtTime(0.001, t0 + 1.4);
+
+        noise.connect(lp);
+        lp.connect(env);
+        env.connect(sfxGain);
+
+        noise.start(t0);
+        noise.stop(t0 + 1.5);
+        break;
+      }
+      case 'magic': {
+        const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          const start = t0 + idx * 0.08;
+          osc.frequency.setValueAtTime(freq, start);
+
+          gain.gain.setValueAtTime(0, start);
+          gain.gain.linearRampToValueAtTime(0.4, start + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.6);
+
+          osc.connect(gain);
+          gain.connect(sfxGain);
+          osc.start(start);
+          osc.stop(start + 0.65);
+        });
+        break;
+      }
+      case 'door': {
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const env = ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, t0);
+        osc.frequency.exponentialRampToValueAtTime(80, t0 + 0.8);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(450, t0);
+        filter.Q.setValueAtTime(6, t0);
+
+        env.gain.setValueAtTime(0.01, t0);
+        env.gain.linearRampToValueAtTime(0.45, t0 + 0.1);
+        env.gain.exponentialRampToValueAtTime(0.001, t0 + 0.8);
+
+        osc.connect(filter);
+        filter.connect(env);
+        env.connect(sfxGain);
+
+        osc.start(t0);
+        osc.stop(t0 + 0.85);
+        break;
+      }
+      case 'coins': {
+        const freqs = [1864.66, 2217.46, 2793.83, 3135.96];
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          const start = t0 + idx * 0.06;
+          osc.frequency.setValueAtTime(freq, start);
+
+          gain.gain.setValueAtTime(0.3, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+
+          osc.connect(gain);
+          gain.connect(sfxGain);
+          osc.start(start);
+          osc.stop(start + 0.4);
+        });
+        break;
+      }
+      case 'monster': {
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const env = ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(95, t0);
+        osc.frequency.linearRampToValueAtTime(45, t0 + 0.9);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(320, t0);
+
+        env.gain.setValueAtTime(0.65, t0);
+        env.gain.exponentialRampToValueAtTime(0.001, t0 + 0.95);
+
+        osc.connect(filter);
+        filter.connect(env);
+        env.connect(sfxGain);
+
+        osc.start(t0);
+        osc.stop(t0 + 1.0);
+        break;
+      }
+      case 'arrow': {
+        const bufferSize = Math.floor(ctx.sampleRate * 0.3);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(800, t0);
+        filter.frequency.linearRampToValueAtTime(2200, t0 + 0.15);
+        filter.frequency.exponentialRampToValueAtTime(300, t0 + 0.28);
+
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0.1, t0);
+        env.gain.linearRampToValueAtTime(0.7, t0 + 0.15);
+        env.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+
+        noise.connect(filter);
+        filter.connect(env);
+        env.connect(sfxGain);
+
+        noise.start(t0);
+        noise.stop(t0 + 0.3);
+        break;
+      }
+      case 'death': {
+        const osc = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const env = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(130.81, t0);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(138.59, t0);
+
+        env.gain.setValueAtTime(0.8, t0);
+        env.gain.exponentialRampToValueAtTime(0.001, t0 + 1.8);
+
+        osc.connect(env);
+        osc2.connect(env);
+        env.connect(sfxGain);
+
+        osc.start(t0);
+        osc2.start(t0);
+        osc.stop(t0 + 1.85);
+        osc2.stop(t0 + 1.85);
+        break;
+      }
+    }
+
+    if (broadcast) {
+      import('$lib/api').then(({ broadcastToPlayers }) => {
+        broadcastToPlayers('sfx_play', { sfx: sfxId }).catch(() => {});
+      }).catch(() => {});
+    }
+  }
 }
+
+export interface SfxItem {
+  id: string;
+  name: string;
+  icon: string;
+  shortcut: string;
+}
+
+export const SFX_LIST: SfxItem[] = [
+  { id: 'sword', name: 'Épée', icon: '⚔️', shortcut: '1' },
+  { id: 'thunder', name: 'Tonnerre', icon: '💥', shortcut: '2' },
+  { id: 'magic', name: 'Magie', icon: '🔮', shortcut: '3' },
+  { id: 'door', name: 'Porte', icon: '🚪', shortcut: '4' },
+  { id: 'coins', name: 'Pièces', icon: '🪙', shortcut: '5' },
+  { id: 'monster', name: 'Monstre', icon: '🐉', shortcut: '6' },
+  { id: 'arrow', name: 'Flèche', icon: '🏹', shortcut: '7' },
+  { id: 'death', name: 'Glas', icon: '💀', shortcut: '8' },
+];
 
 export const soundscape = new SoundscapeStore();

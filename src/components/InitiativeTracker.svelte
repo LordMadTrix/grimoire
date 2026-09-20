@@ -2,7 +2,8 @@
   import {
     vttStore,
     nextTurn, prevTurn, stopCombat,
-    updateCombatantHp, addCombatant, removeCombatant
+    updateCombatantHp, addCombatant, removeCombatant,
+    rollAllInitiatives
   } from '$lib/stores/vtt.svelte';
 
   let showAddForm = $state(false);
@@ -39,7 +40,11 @@
 
 <div class="tracker">
   <div class="tracker-header">
-    <span class="tracker-title">⚔️ Combat</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="tracker-title">⚔️ Combat</span>
+      <button type="button" class="roll-btn" onclick={() => rollAllInitiatives('d20')} title="Lancer toutes les initiatives (d20)">🎲 d20</button>
+      <button type="button" class="roll-btn wfrp" onclick={() => rollAllInitiatives('wfrp')} title="Lancer toutes les initiatives (WFRP 1d10+3)">🎲 WFRP</button>
+    </div>
     <div class="turn-controls">
       <button class="ctrl-btn" onclick={prevTurn} title="Tour précédent">◀</button>
       <span class="current-turn" title="Combattant actuel">{currentName()}</span>
@@ -111,6 +116,34 @@
     font-weight: 700;
     color: #ef4444;
     letter-spacing: 0.5px;
+  }
+
+  .roll-btn {
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    color: #e5a853;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .roll-btn:hover {
+    background: rgba(229, 168, 83, 0.3);
+    border-color: #e5a853;
+  }
+
+  .roll-btn.wfrp {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+  }
+
+  .roll-btn.wfrp:hover {
+    background: rgba(56, 189, 248, 0.3);
+    border-color: #38bdf8;
   }
 
   .turn-controls {

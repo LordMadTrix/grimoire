@@ -76,6 +76,18 @@
         prompt = `Génère une table de 4 objets de butin, reliques, ingrédients rares ou indices mystérieux en rapport direct avec ceci, avec un détail insolite ou magique pour chacun :\n\n${subject}`;
         break;
 
+      case 'tavern':
+        prompt = `Génère une taverne médiévale-fantastique complète et vivante en rapport avec "${subject}" :\n- **Nom & Enseigne évocatrice**\n- **Ambiance sonore, odeurs & Clientèle type**\n- **Le Tavernier / La Tenancière (Nom, apparence marquante, caractère)**\n- **Menu du jour (Plat roboratif & Boisson locale typique)**\n- **3 Rumeurs ou accroches d'aventure entendues au comptoir**`;
+        break;
+
+      case 'encounter':
+        prompt = `Conçois une rencontre impromptue et palpitante adaptée à cette situation ou cet environnement ("${subject}") :\n- **Menace ou Créatures en présence (Nom, effectif, comportement)**\n- **Accroche dramatique (ce qui se passe immédiatement à l'arrivée des PJ)**\n- **Terrain & Éléments tactiques exploitables (hauteurs, obstacles, dangers)**\n- **Issue alternative (négociation, fuite ou retournement de situation)**`;
+        break;
+
+      case 'trap':
+        prompt = `Conçois une énigme ou un piège mécanique/magique ingénieux lié à "${subject}" :\n- **Nom & Nature du défi**\n- **Description sensorielle pour les joueurs (indices visuels, sonores ou tactiles)**\n- **Déclencheur & Conséquence si déclenché**\n- **Indice dissimulé dans la pièce**\n- **Solution ou méthode de désamorçage créative**`;
+        break;
+
       case 'summary':
         prompt = `Résume de manière structurée, claire et concise sous forme de points clés les informations majeures de ce document pour le Maître du Jeu :\n\n${subject}`;
         break;
@@ -221,6 +233,30 @@
           <div class="action-details">
             <strong>Table de Butin & Trésor</strong>
             <span>Objets insolites, trésors ou indices mystérieux</span>
+          </div>
+        </button>
+
+        <button type="button" class="action-card" onclick={() => executeAction('tavern')}>
+          <div class="action-icon">🍺</div>
+          <div class="action-details">
+            <strong>Taverne Express</strong>
+            <span>Enseigne, ambiance, patron, menu & rumeurs</span>
+          </div>
+        </button>
+
+        <button type="button" class="action-card" onclick={() => executeAction('encounter')}>
+          <div class="action-icon">⚔️</div>
+          <div class="action-details">
+            <strong>Rencontre Imprévue</strong>
+            <span>Créatures, accroche dramatique et tactique</span>
+          </div>
+        </button>
+
+        <button type="button" class="action-card" onclick={() => executeAction('trap')}>
+          <div class="action-icon">🧩</div>
+          <div class="action-details">
+            <strong>Piège & Énigme</strong>
+            <span>Mécanisme, indices subtils et désamorçage</span>
           </div>
         </button>
 

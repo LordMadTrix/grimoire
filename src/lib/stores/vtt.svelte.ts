@@ -325,6 +325,7 @@ export function setSpotlightToken(id: string | null) {
 }
 
 // ── Combat sync vers vue joueur ───────────────────────────────────
+
 export function syncCombatantsToPlayerView() {
   emitToPlayerView('update_combatants', {
     combatants: vttStore.combatants,
@@ -332,6 +333,19 @@ export function syncCombatantsToPlayerView() {
     currentTurn: vttStore.currentTurn,
     combatRound: vttStore.combatRound,
   });
+}
+
+export function updatePlayerHpByName(name: string, hp: number) {
+  const c = vttStore.combatants.find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (c) {
+    updateCombatantHp(c.id, hp);
+    return;
+  }
+  const token = vttStore.tokens.find(t => t.name.toLowerCase() === name.toLowerCase());
+  if (token) {
+    token.hp = hp;
+    emitToPlayerView('update_tokens', vttStore.tokens);
+  }
 }
 
 let _logId = 0;
@@ -415,6 +429,9 @@ export function stopCountdown() {
 export function setWeather(w: typeof vttStore.weather) {
   vttStore.weather = w;
   emitToPlayerView('set_weather', { weather: w });
+  import('$lib/api').then(({ broadcastToPlayers }) => {
+    broadcastToPlayers('weather_change', { weather: w }).catch(() => {});
+  }).catch(() => {});
 }
 
 export function addSpell(spell: SpellMarker) {
@@ -668,6 +685,60 @@ export function startCombat() {
   vttStore.currentTurn = 0;
   vttStore.combatRound = 1;
   vttStore.combatActive = true;
+}
+
+export function rollAllInitiatives(mode: 'd20' | 'wfrp' = 'd20') {
+  if (vttStore.combatants.length === 0 && vttStore.tokens.length > 0) {
+    startCombat();
+  }
+  if (vttStore.combatants.length === 0) return;
+
+  const rollDetails: string[] = [];
+  vttStore.combatants = vttStore.combatants.map(c => {
+    let roll = 0;
+    if (mode === 'wfrp') {
+      roll = Math.floor(Math.random() * 10) + 1 + 3;
+    } else {
+      roll = Math.floor(Math.random() * 20) + 1;
+    }
+    rollDetails.push(`${c.name} (${roll})`);
+    return {
+      ...c,
+      initiative: roll,
+    };
+  }).sort((a, b) => b.initiative - a.initiative);
+
+  vttStore.currentTurn = 0;
+  vttStore.combatRound = 1;
+
+  addCombatLogEntry({
+    type: 'turn',
+    actor: 'Système',
+    detail: `🎲 Initiatives groupées : ${rollDetails.join(', ')}`,
+  });
+
+  const first = vttStore.combatants[0];
+  if (first) {
+    addCombatLogEntry({
+      type: 'turn',
+      actor: first.name,
+      detail: `Tour 1 — Round ${vttStore.combatRound}`,
+    });
+    import('$lib/api').then(({ broadcastToPlayers }) => {
+      broadcastToPlayers('combat_turn', {
+        active_combatant: first.name,
+        round: vttStore.combatRound,
+        turn: 0,
+      }).catch(() => {});
+    }).catch(() => {});
+  }
+
+  emitToPlayerView('update_combatants', {
+    combatants: vttStore.combatants,
+    active: true,
+    currentTurn: 0,
+    combatRound: 1,
+  });
 }
 
 export function stopCombat() {

@@ -54,6 +54,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .bless-cur{font-size:36px;font-weight:900;color:#fff;width:70px;text-align:center;background:rgba(0,0,0,0.5);border:2px solid #900;border-radius:8px;outline:none;font-family:monospace;z-index:1;text-shadow:0 0 10px #f00}
 .bless-sep{font-size:24px;color:var(--muted);flex-shrink:0;z-index:1}
 .bless-max{font-size:24px;color:var(--text);font-family:monospace;flex-shrink:0;z-index:1}
+.hp-quick-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:20px;font-weight:700;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:all 0.15s}
+.hp-quick-btn:active{background:var(--accent);color:#000;transform:scale(0.92)}
+.comp-interactive{cursor:pointer;padding:2px 4px;border-radius:4px;user-select:none}
+.comp-interactive:active{color:var(--accent)}
 /* Profile table */
 .prof-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:6px}
 .prof-tbl{border-collapse:collapse;min-width:max-content;width:100%}
@@ -362,10 +366,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
     <div class="sec">Blessures</div>
     <div class="bless-row">
+      <button type="button" class="hp-quick-btn" onclick="adjustPlayerHp(-1)" title="Subir une blessure (−1)">−</button>
       <div class="bless-lbl">Blessures actuelles</div>
       <input class="bless-cur" id="f-bless" type="number" min="0" value="0" oninput="sc()"/>
       <div class="bless-sep">/</div>
       <div class="bless-max" id="bless-max">—</div>
+      <button type="button" class="hp-quick-btn" onclick="adjustPlayerHp(1)" title="Soigner une blessure (+1)">+</button>
     </div>
     <div id="health-state" style="padding:7px 12px;border-radius:6px;font-size:12px;font-weight:600;text-align:center;background:var(--bg3);border:1px solid var(--border);color:var(--muted)">—</div>
 
@@ -1121,7 +1127,7 @@ function addRich(){ch.rich.push({nom:'',loc:'',enc:''});rRich();sc();}
 
 function rComps(){
   document.getElementById('comp-list').innerHTML = ch.comps.map((c,i)=>
-    '<div class="comp-tag"><span>'+esc(c)+'</span><button onclick="ch.comps.splice('+i+',1);rComps();sc()">✕</button></div>'
+    '<div class="comp-tag"><span class="comp-interactive" onclick="rollSkill(\''+esc(c)+'\')" title="Cliquer pour lancer le test de compétence">🎲 '+esc(c)+'</span><button onclick="ch.comps.splice('+i+',1);rComps();sc()">✕</button></div>'
   ).join('');
 }
 function addComp(){
@@ -1199,9 +1205,55 @@ function sendCharacter(){
   send('character_update',{
     ...ch,
     name:ch.nom, class:ch.voc||ch.car,
-    hp:ch.bless, maxhp:parseInt(ch.profil.act.b)||0,
+    hp:ch.bless, maxhp:parseInt(ch.profil?.act?.b)||0,
   });
   showStatus('Fiche envoyée au MJ !',true);
+}
+
+function adjustPlayerHp(delta) {
+  const inp = document.getElementById('f-bless');
+  if (!inp) return;
+  let cur = parseInt(inp.value) || 0;
+  const maxB = parseInt(ch.profil?.act?.b) || 20;
+  cur = Math.max(0, Math.min(maxB, cur + delta));
+  inp.value = cur;
+  ch.bless = cur;
+  sc();
+  sendCharacter();
+  if (navigator.vibrate) navigator.vibrate(delta < 0 ? [80, 40, 80] : 30);
+  showToast(delta < 0 ? '🩸' : '💚', 'Blessures', `${cur} / ${maxB}`, delta < 0 ? 'danger' : 'success', 2500);
+}
+
+function rollSkill(compName) {
+  if (navigator.vibrate) navigator.vibrate(40);
+  const isD20 = (typeof gameConfig !== 'undefined' && gameConfig && gameConfig.system && gameConfig.system.includes('5e'));
+  let total = 0;
+  let text = '';
+
+  if (isD20) {
+    const d20 = Math.floor(Math.random() * 20) + 1;
+    total = d20;
+    text = `Jet de ${compName} : ${d20} (1d20)`;
+  } else {
+    const d100 = Math.floor(Math.random() * 100) + 1;
+    total = d100;
+    text = `Test de ${compName} : ${d100} (1d100)`;
+  }
+
+  showToast('🎲', compName, text, 'info', 4000);
+
+  const resEl = document.getElementById('test-result');
+  if (resEl) {
+    resEl.style.display = 'block';
+    resEl.innerHTML = `<div class="test-roll">${total}</div><div class="test-verdict">${esc(compName)}</div>`;
+  }
+
+  send('roll', {
+    stat: compName,
+    total: total,
+    formula: isD20 ? '1d20' : '1d100',
+    character: ch.nom || playerName,
+  });
 }
 
 // ── Rendu de la fiche personnage ───────────────────────────────────────
@@ -1631,6 +1683,10 @@ function connect(){
         showPollOverlay(env.data.question, env.data.options||[]);
       }else if(env.event==='poll_end'){
         closePoll();
+      }else if(env.event==='sfx_play'){
+        playMobileSfx(env.data.sfx);
+      }else if(env.event==='weather_change'){
+        handleMobileWeather(env.data.weather);
       }else if(env.event==='private_message'){
         if(!env.data.target_id||env.data.target_id===playerId){
           showPrivateMessage(env.data.message||'');
@@ -1646,6 +1702,107 @@ function connect(){
 }
 function send(event,data){
   if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({event,data}));
+}
+
+function playMobileSfx(sfxId) {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = ac.currentTime;
+    const gain = ac.createGain();
+    gain.connect(ac.destination);
+
+    if (sfxId === 'sword') {
+      const o = ac.createOscillator();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(2200, t0);
+      o.frequency.exponentialRampToValueAtTime(300, t0 + 0.3);
+      gain.gain.setValueAtTime(0.4, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3);
+      o.connect(gain); o.start(t0); o.stop(t0 + 0.32);
+      if (navigator.vibrate) navigator.vibrate(40);
+      showToast('⚔️', 'Bruitage MJ', 'Choc d\'acier !', 'info', 2500);
+    } else if (sfxId === 'thunder' || sfxId === 'explosion') {
+      const o = ac.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(140, t0);
+      o.frequency.exponentialRampToValueAtTime(30, t0 + 0.9);
+      gain.gain.setValueAtTime(0.6, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.9);
+      o.connect(gain); o.start(t0); o.stop(t0 + 0.95);
+      if (navigator.vibrate) navigator.vibrate([100, 40, 200]);
+      showToast('💥', 'Bruitage MJ', 'Déflagration !', 'warn', 2500);
+    } else if (sfxId === 'magic') {
+      [523, 659, 784, 1046].forEach((f, idx) => {
+        const o = ac.createOscillator();
+        const g = ac.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        const start = t0 + idx * 0.08;
+        g.gain.setValueAtTime(0.25, start);
+        g.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
+        o.connect(g); g.connect(ac.destination);
+        o.start(start); o.stop(start + 0.42);
+      });
+      showToast('🔮', 'Bruitage MJ', 'Sortilège !', 'accent', 2500);
+    } else if (sfxId === 'door') {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(160, t0);
+      o.frequency.exponentialRampToValueAtTime(70, t0 + 0.6);
+      gain.gain.setValueAtTime(0.3, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.6);
+      o.connect(gain); o.start(t0); o.stop(t0 + 0.65);
+      showToast('🚪', 'Bruitage MJ', 'Porte / Grincement', 'info', 2500);
+    } else if (sfxId === 'coins') {
+      [1800, 2400, 3000].forEach((f, idx) => {
+        const o = ac.createOscillator();
+        const g = ac.createGain();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        const start = t0 + idx * 0.07;
+        g.gain.setValueAtTime(0.2, start);
+        g.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+        o.connect(g); g.connect(ac.destination);
+        o.start(start); o.stop(start + 0.28);
+      });
+      showToast('🪙', 'Bruitage MJ', 'Pièces d\'or', 'accent', 2500);
+    } else if (sfxId === 'monster') {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(80, t0);
+      o.frequency.linearRampToValueAtTime(40, t0 + 0.8);
+      gain.gain.setValueAtTime(0.5, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.8);
+      o.connect(gain); o.start(t0); o.stop(t0 + 0.85);
+      if (navigator.vibrate) navigator.vibrate([80, 40, 150]);
+      showToast('🐉', 'Bruitage MJ', 'Rugissement de monstre !', 'danger', 2500);
+    } else if (sfxId === 'arrow') {
+      const o = ac.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(400, t0);
+      o.frequency.linearRampToValueAtTime(1400, t0 + 0.15);
+      o.frequency.exponentialRampToValueAtTime(200, t0 + 0.25);
+      gain.gain.setValueAtTime(0.3, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+      o.connect(gain); o.start(t0); o.stop(t0 + 0.26);
+      showToast('🏹', 'Bruitage MJ', 'Tir de flèche', 'info', 2000);
+    } else if (sfxId === 'death') {
+      const o = ac.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(130, t0);
+      gain.gain.setValueAtTime(0.6, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 1.5);
+      o.connect(gain); o.start(t0); o.stop(t0 + 1.55);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 300]);
+      showToast('💀', 'Bruitage MJ', 'Glas funèbre', 'danger', 3000);
+    }
+  } catch(e) {}
+}
+
+function handleMobileWeather(weather) {
+  const icons = { none: '☀️ Ensoleillé', rain: '🌧️ Pluie battante', storm: '🌩️ Nuit d\'orage', snow: '❄️ Chute de neige', fog: '🌫️ Nappe de brouillard', embers: '🔥 Braises et cendres' };
+  const label = icons[weather] || weather;
+  showToast('🌦️', 'Météo VTT', label, 'accent', 4000);
 }
 
 // ── UI ─────────────────────────────────────────────────────────────────

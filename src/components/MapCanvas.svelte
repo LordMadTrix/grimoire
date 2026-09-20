@@ -527,9 +527,9 @@
         for (let i = weatherParticles.length - 1; i >= 0; i--) {
           const p = weatherParticles[i];
           p.x += p.vx; p.y += p.vy;
-          if (weather === 'rain') {
+          if (weather === 'rain' || weather === 'storm') {
             if (p.y > H + 15) { weatherParticles.splice(i, 1); continue; }
-            weatherG.setStrokeStyle({ width: 1.5, color: 0x88aaff, alpha: p.alpha });
+            weatherG.setStrokeStyle({ width: weather === 'storm' ? 2.0 : 1.5, color: 0x88aaff, alpha: p.alpha });
             weatherG.moveTo(p.x, p.y).lineTo(p.x + p.vx * 2.5, p.y + p.vy * 2.5).stroke();
           } else if (weather === 'snow') {
             if (p.y > H + 10) { weatherParticles.splice(i, 1); continue; }

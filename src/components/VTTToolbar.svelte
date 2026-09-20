@@ -51,6 +51,7 @@
   import DungeonGenerator from './DungeonGenerator.svelte';
   import QuestJournal from './QuestJournal.svelte';
   import SoundscapeMixer from './SoundscapeMixer.svelte';
+  import SfxSoundboard from './SfxSoundboard.svelte';
   import { soundscape } from '$lib/stores/soundscape.svelte';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import AddonStore from './AddonStore.svelte';
@@ -151,6 +152,7 @@
   let showWeatherPlanner = $state(false);
   let showDurationTracker = $state(false);
   let showSharedNotes = $state(false);
+  let showSfxSoundboard = $state(false);
   let showToolsOverflow = $state(false);
   let toolbarEl: HTMLElement | undefined;
   let toolbarH = $state(56);
@@ -546,12 +548,18 @@
         <div class="dropdown-divider"></div>
         <div class="dropdown-title">Météo</div>
         <div class="dropdown-submenu-item tools-row">
-          {#each (['none','rain','snow','fog','embers'] as const) as w}
-            <button class="mini-btn" class:active={vttStore.weather === w} onclick={() => setWeather(w)} title={w}>{w === 'none' ? '☀️' : w === 'rain' ? '🌧️' : w === 'snow' ? '❄️' : w === 'fog' ? '🌫️' : '🔥'}</button>
+          {#each (['none','rain','snow','fog','embers','storm'] as const) as w}
+            <button class="mini-btn" class:active={vttStore.weather === w} onclick={() => setWeather(w)} title={w}>{w === 'none' ? '☀️' : w === 'rain' ? '🌧️' : w === 'snow' ? '❄️' : w === 'fog' ? '🌫️' : w === 'embers' ? '🔥' : '🌩️'}</button>
           {/each}
         </div>
         <button class="dropdown-item" onclick={sendWeatherNarrative} title="Diffuse et prononce une description du climat actuel">
           🌦️ Envoyer narration météo {#if isNarratorVoiceEnabled}<span style="margin-left: auto; font-size: 11px; opacity: 0.8;">🗣️ Voix</span>{/if}
+        </button>
+
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Effets Sonores SFX</div>
+        <button class="dropdown-item" onclick={() => { showSfxSoundboard = !showSfxSoundboard; activeMenu = null; }}>
+          🔊 {showSfxSoundboard ? 'Masquer le Soundboard SFX' : 'Ouvrir le Soundboard SFX (Pavé 1-8)'}
         </button>
 
         <div class="dropdown-divider"></div>
@@ -698,6 +706,11 @@
       title="Mixeur d'Ambiances Sonores">
       🌧️ Ambiance {#if soundscape.activeTracksCount > 0}<span class="sound-badge">{soundscape.activeTracksCount}</span>{/if}
     </button>
+    <button class="sfx-quick-btn" class:active-sound={showSfxSoundboard}
+      onclick={() => showSfxSoundboard = !showSfxSoundboard}
+      title="Soundboard SFX instantané (Raccourcis: Pavé 1-8)">
+      🔊 SFX
+    </button>
     <button class="mobile-quick-btn"
       onclick={() => onTogglePlayerMobileManager?.()}
       title="Ouvrir le Hub Mobile & Carnet MJ (QR Code)">
@@ -738,6 +751,11 @@
     <div class="soundscape-modal-wrap" onclick={e => e.stopPropagation()}>
       <SoundscapeMixer onclose={() => showSoundscapeMixer = false} />
     </div>
+  </div>
+{/if}
+{#if showSfxSoundboard}
+  <div class="sfx-floating-wrap">
+    <SfxSoundboard onClose={() => showSfxSoundboard = false} />
   </div>
 {/if}
 {#if showNpcModal}<QuickNpcModal onclose={() => showNpcModal = false} />{/if}
@@ -1176,6 +1194,34 @@
     color: #38bdf8;
     border-color: #38bdf8;
     box-shadow: 0 0 8px rgba(56,189,248,0.4);
+  }
+  .sfx-quick-btn {
+    background: #141d2b;
+    border: 1px solid #1e293b;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .sfx-quick-btn:hover,
+  .sfx-quick-btn.active-sound {
+    background: rgba(229, 168, 83, 0.2);
+    color: #e5a853;
+    border-color: #e5a853;
+    box-shadow: 0 0 8px rgba(229, 168, 83, 0.4);
+  }
+  .sfx-floating-wrap {
+    position: fixed;
+    top: 56px;
+    right: 20px;
+    z-index: 9500;
+    width: 320px;
   }
   .mobile-quick-btn {
     background: rgba(229,168,83,0.12);

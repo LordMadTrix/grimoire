@@ -35,7 +35,7 @@
     addDrawPath,
     saveGmSession, loadGmSession,
     addMapScene, switchMapScene, removeMapScene, renameMapScene,
-    syncCombatantsToPlayerView, addCombatLogEntry,
+    syncCombatantsToPlayerView, addCombatLogEntry, updatePlayerHpByName,
   } from '$lib/stores/vtt.svelte';
   import { listen } from '@tauri-apps/api/event';
 
@@ -319,6 +319,16 @@
           actor: name,
           detail: `🎲 ${rollText}`,
         });
+      }));
+
+      _unlistenApp.push(await listen('player_character_update', (e: any) => {
+        const { name, character } = e.payload;
+        if (character && character.hp !== undefined) {
+          const hp = Number(character.hp);
+          if (!isNaN(hp)) {
+            updatePlayerHpByName(name, hp);
+          }
+        }
       }));
 
       // ── Pont Bidirectionnel Map Editor -> Grimoire VTT ──
