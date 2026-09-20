@@ -1,4 +1,4 @@
-import { emitToPlayerView, writeFile, readFile, createDirectory, readFileBase64 } from '../api';
+import { emitToPlayerView, writeFile, readFile, createDirectory, readFileBase64, broadcastToPlayers } from '../api';
 
 // ── Undo stack ────────────────────────────────────────────────────
 type UndoEntry =
@@ -704,7 +704,14 @@ export function nextTurn() {
   if (next === 0) vttStore.combatRound++;
   vttStore.currentTurn = next;
   const nextC = vttStore.combatants[next];
-  if (nextC) addCombatLogEntry({ type: 'turn', actor: nextC.name, detail: `Tour ${next === 0 ? 'Round ' + vttStore.combatRound : ''}` });
+  if (nextC) {
+    addCombatLogEntry({ type: 'turn', actor: nextC.name, detail: `Tour ${next === 0 ? 'Round ' + vttStore.combatRound : ''}` });
+    broadcastToPlayers('combat_turn', {
+      active_combatant: nextC.name,
+      round: vttStore.combatRound,
+      turn: next,
+    }).catch(() => {});
+  }
 }
 
 export function prevTurn() {
@@ -712,6 +719,14 @@ export function prevTurn() {
   // Revenir avant le premier combattant = revenir au round précédent
   if (vttStore.currentTurn === 0 && vttStore.combatRound > 1) vttStore.combatRound--;
   vttStore.currentTurn = (vttStore.currentTurn - 1 + vttStore.combatants.length) % vttStore.combatants.length;
+  const prevC = vttStore.combatants[vttStore.currentTurn];
+  if (prevC) {
+    broadcastToPlayers('combat_turn', {
+      active_combatant: prevC.name,
+      round: vttStore.combatRound,
+      turn: vttStore.currentTurn,
+    }).catch(() => {});
+  }
 }
 
 export function updateCombatantHp(id: string, hp: number) {

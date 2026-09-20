@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { writeFile, readFile, getBacklinks, reindex, readFileBase64 } from '$lib/api';
-  import type { BacklinkResult } from '$lib/api';
+  import { writeFile, readFile, getBacklinks, reindex, readFileBase64, getFileHistory, restoreFileSnapshot } from '$lib/api';
+  import type { BacklinkResult, NoteSnapshot } from '$lib/api';
   import {
     getVaultPath, getActiveFile, getActiveContent,
     setActiveFile, setActiveContent, getIsDirty, setIsDirty
@@ -14,7 +14,7 @@
     setSpellcheckLang,
     setSpellcheckEnabled
   } from '$lib/spellcheck/spellcheckStore.svelte';
-  import { vttStore, updateGmAudio } from '$lib/stores/vtt.svelte';
+  import { vttStore, updateGmAudio, addGmToken } from '$lib/stores/vtt.svelte';
   import { CALLOUT_TYPES } from '$lib/editor/calloutPlugin';
   import { evaluateDiceFormula, playDiceSound } from '$lib/editor/dicePlugin';
   import { notifStore } from '$lib/stores/notifications.svelte';
@@ -34,6 +34,85 @@
   let showShareModal = $state(false);
   let shareModalContent = $state('');
   let shareModalTitle = $state('');
+  let showHistoryModal = $state(false);
+  let snapshots = $state<NoteSnapshot[]>([]);
+  let loadingHistory = $state(false);
+
+  async function openHistoryModal() {
+    const vp = getVaultPath();
+    const file = getActiveFile();
+    if (!vp || !file) return;
+    loadingHistory = true;
+    showHistoryModal = true;
+    try {
+      snapshots = await getFileHistory(vp, file);
+    } catch (err) {
+      console.error('Failed to load history:', err);
+      snapshots = [];
+    } finally {
+      loadingHistory = false;
+    }
+  }
+
+  async function handleRestoreSnapshot(snapshotId: string) {
+    const vp = getVaultPath();
+    const file = getActiveFile();
+    if (!vp || !file) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir restaurer cette révision ? (La version actuelle sera d'abord archivée)")) {
+      return;
+    }
+    try {
+      const restored = await restoreFileSnapshot(vp, file, snapshotId);
+      setActiveContent(restored);
+      setIsDirty(false);
+      showHistoryModal = false;
+      notifStore.add('🕒', 'Historique', 'Version restaurée avec succès !', 'success', 4000);
+    } catch (err) {
+      console.error('Failed to restore snapshot:', err);
+      notifStore.add('❌', 'Erreur', 'Échec de la restauration de la version', 'danger', 4000);
+    }
+  }
+
+  function deployPnjToVtt() {
+    const selected = editorCtxMenu?.selectedText?.trim();
+    const fullText = getActiveContent() || '';
+    const textToScan = selected || fullText;
+    editorCtxMenu = null;
+
+    if (!textToScan) return;
+
+    let name = selected || '';
+    if (!name || name.length > 50) {
+      const pnjMatch = textToScan.match(/>\s*\[!PNJ\]\s*([^\n\r]+)/i);
+      const titleMatch = textToScan.match(/^#+\s*([^\n\r]+)/m);
+      if (pnjMatch) name = pnjMatch[1].trim();
+      else if (titleMatch) name = titleMatch[1].trim();
+      else {
+        const file = getActiveFile();
+        name = file ? file.split('/').pop()?.replace(/\.md$/i, '') || 'PNJ' : 'PNJ';
+      }
+    }
+
+    let hp = 15;
+    const hpMatch = textToScan.match(/(?:PV|HP|Vitalité|Blessures)\s*[:=]\s*(\d+)/i);
+    if (hpMatch) {
+      hp = parseInt(hpMatch[1], 10) || 15;
+    }
+
+    addGmToken({
+      id: Math.random().toString(36).slice(2),
+      name,
+      x: 450 + Math.floor(Math.random() * 80),
+      y: 450 + Math.floor(Math.random() * 80),
+      size: 50,
+      hp,
+      maxHp: hp,
+      visible: true,
+      conditions: [],
+    });
+
+    notifStore.add('⚔️', 'VTT', `Token "${name}" (PV: ${hp}) déployé sur la table virtuelle`, 'success', 4500);
+  }
 
   function toggleToolbarMenu(menu: string) {
     activeToolbarMenu = activeToolbarMenu === menu ? null : menu;
@@ -894,6 +973,22 @@
         >
           📤
         </button>
+        <button
+          type="button"
+          class="save-btn history-btn"
+          onclick={openHistoryModal}
+          title="🕒 Historique des révisions & Snapshots automatiques"
+        >
+          🕒
+        </button>
+        <button
+          type="button"
+          class="save-btn pnj-deploy-btn"
+          onclick={deployPnjToVtt}
+          title="⚔️ Déployer ce PNJ comme Token sur la Table Virtuelle (VTT)"
+        >
+          ⚔️
+        </button>
         <button onclick={() => { clearTimeout(saveTimeout); saveFile(true); }} class="save-btn" title="Sauvegarder (Ctrl+S)">
           💾
         </button>
@@ -1400,6 +1495,11 @@
       <span class="ctx-label">Tâche à cocher</span>
       <span class="ctx-badge">- [ ]</span>
     </button>
+    <button type="button" class="editor-ctx-item highlight-gold" onmousedown={(e) => e.preventDefault()} onclick={deployPnjToVtt}>
+      <span class="ctx-icon">⚔️</span>
+      <span class="ctx-label">Déployer PNJ sur VTT</span>
+      <span class="ctx-badge">Token</span>
+    </button>
 
     <div class="editor-ctx-sep"></div>
 
@@ -1680,6 +1780,46 @@
     defaultTitle={shareModalTitle}
     onclose={() => showShareModal = false}
   />
+{/if}
+
+{#if showHistoryModal}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="history-modal-overlay" onclick={() => showHistoryModal = false}>
+    <div class="history-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+      <div class="history-header">
+        <h3>🕒 Historique des révisions ({getActiveFile()?.split('/').pop()})</h3>
+        <button type="button" class="modal-close-btn" onclick={() => showHistoryModal = false}>✕</button>
+      </div>
+      <p class="history-subtitle">
+        Grimoire archive automatiquement les versions précédentes de vos notes à chaque sauvegarde pour éviter toute perte.
+      </p>
+      <div class="history-list">
+        {#if loadingHistory}
+          <div class="history-loading">Chargement de l'historique…</div>
+        {:else if snapshots.length === 0}
+          <div class="history-empty">Aucune version antérieure enregistrée pour cette note. Modifiez et sauvegardez pour créer des révisions.</div>
+        {:else}
+          {#each snapshots as snap}
+            <div class="history-item">
+              <div class="history-item-top">
+                <span class="history-date">📅 {snap.date_formatted}</span>
+                <span class="history-size">{Math.round(snap.size / 1024 * 10) / 10} Ko</span>
+                <button
+                  type="button"
+                  class="history-restore-btn"
+                  onclick={() => handleRestoreSnapshot(snap.id)}
+                >
+                  🔄 Restaurer
+                </button>
+              </div>
+              <div class="history-preview">{snap.preview}…</div>
+            </div>
+          {/each}
+        {/if}
+      </div>
+    </div>
+  </div>
 {/if}
 
 <style>
@@ -2927,5 +3067,119 @@
   .ai-ctx-item:hover {
     background: rgba(56, 189, 248, 0.15) !important;
     color: #7dd3fc !important;
+  }
+
+  /* ── History Modal ─────────────────────────────────────────── */
+  .history-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .history-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 600px;
+    max-width: 92vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .history-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--accent);
+  }
+
+  .history-subtitle {
+    margin: 0 0 16px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .history-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .history-item-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .history-date {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+
+  .history-size {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .history-restore-btn {
+    margin-left: auto;
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .history-restore-btn:hover {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .history-preview {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+    white-space: pre-wrap;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .history-loading, .history-empty {
+    padding: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
   }
 </style>

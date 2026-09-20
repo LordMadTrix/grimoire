@@ -1,0 +1,31 @@
+# Created using Grimoire Manifest Generator
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: LordMadTrix.Grimoire
+PackageVersion: 0.7.1
+PackageLocale: fr-FR
+Publisher: LordMadTrix
+PublisherUrl: https://github.com/LordMadTrix
+Author: MadTrix
+PackageName: Grimoire
+PackageUrl: https://github.com/LordMadTrix/grimoire
+License: MIT
+LicenseUrl: https://github.com/LordMadTrix/grimoire/blob/main/LICENSE
+Copyright: Copyright (c) MadTrix
+ShortDescription: L'outil ultime pour les Maîtres du Jeu : Éditeur Markdown + VTT + IA Locale + HUB Mobile.
+Description: |
+  Grimoire est une application Desktop pour Maîtres du Jeu TTRPG combinant
+  un éditeur Markdown (style Obsidian), une Table Virtuelle (VTT) haute performance (PixiJS v8),
+  un serveur compagnon mobile PWA et une IA locale (Ollama).
+Tags:
+  - ttrpg
+  - vtt
+  - rpg
+  - tabletop
+  - jdr
+  - markdown
+  - wfrp
+  - dnd
+ReleaseNotesUrl: https://github.com/LordMadTrix/grimoire/releases/tag/v0.7.1
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

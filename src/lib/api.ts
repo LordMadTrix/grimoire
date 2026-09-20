@@ -65,6 +65,22 @@ export async function renameEntry(vaultPath: string, oldPath: string, newPath: s
   return invoke('rename_entry', { vaultPath, oldPath, newPath });
 }
 
+export interface NoteSnapshot {
+  id: string;
+  timestamp: number;
+  date_formatted: string;
+  size: number;
+  preview: string;
+}
+
+export async function getFileHistory(vaultPath: string, relativePath: string): Promise<NoteSnapshot[]> {
+  return invoke('get_file_history', { vaultPath, relativePath });
+}
+
+export async function restoreFileSnapshot(vaultPath: string, relativePath: string, snapshotId: string): Promise<string> {
+  return invoke('restore_file_snapshot', { vaultPath, relativePath, snapshotId });
+}
+
 // ── Search API ───────────────────────────────────────────────────
 
 export async function searchVault(query: string, limit?: number): Promise<SearchResult[]> {

@@ -36,7 +36,7 @@
     onPlayerTokenDrop = (_playerData: any, _x: number, _y: number) => {},
     onPinPlace = (_x: number, _y: number) => {},
     onPinDelete = (_id: string) => {},
-    onSpellPlace = (_x: number, _y: number, _angle?: number) => {},
+    onSpellPlace = (_x: number, _y: number, _radius?: number, _angle?: number, _length?: number) => {},
     onSpellDelete = (_id: string) => {},
     drawPaths = [] as DrawPath[],
     drawColor = 0xe5a853,
@@ -73,7 +73,7 @@
     onPlayerTokenDrop?: (playerData: any, x: number, y: number) => void;
     onPinPlace?: (x: number, y: number) => void;
     onPinDelete?: (id: string) => void;
-    onSpellPlace?: (x: number, y: number, angle?: number) => void;
+    onSpellPlace?: (x: number, y: number, radius?: number, angle?: number, length?: number) => void;
     onSpellDelete?: (id: string) => void;
     drawPaths?: DrawPath[];
     drawColor?: number;
@@ -1848,6 +1848,60 @@
         textObj.x = drawStartX + dx / 2;
         textObj.y = drawStartY + dy / 2 - 15;
         textObj.visible = true;
+      } else if (vttMode === 'spell') {
+        const dx = localPos.x - drawStartX;
+        const dy = localPos.y - drawStartY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const cases = Math.round((dist / gridSize) * 10) / 10;
+        const col = SPELL_COLORS[vttStore.spellType] ?? 0xe5a853;
+        const shape = vttStore.spellShape ?? 'circle';
+
+        if (shape === 'cone') {
+          const angle = Math.atan2(dy, dx);
+          const halfCone = (vttStore.spellConeAngle ?? Math.PI / 3) / 2;
+          const r = Math.max(gridSize / 2, dist);
+          previewShape.setStrokeStyle({ width: 2, color: col, alpha: 0.9 });
+          previewShape.moveTo(drawStartX, drawStartY);
+          previewShape.lineTo(drawStartX + Math.cos(angle - halfCone) * r, drawStartY + Math.sin(angle - halfCone) * r);
+          previewShape.arc(drawStartX, drawStartY, r, angle - halfCone, angle + halfCone);
+          previewShape.lineTo(drawStartX, drawStartY);
+          previewShape.fill({ color: col, alpha: 0.25 });
+          previewShape.stroke();
+        } else if (shape === 'line') {
+          const angle = Math.atan2(dy, dx);
+          const len = Math.max(gridSize, dist);
+          const w = (vttStore.spellRadius || 60) / 4;
+          const cosA = Math.cos(angle); const sinA = Math.sin(angle);
+          const perpX = -sinA * w; const perpY = cosA * w;
+          previewShape.setStrokeStyle({ width: 2, color: col, alpha: 0.9 });
+          previewShape.moveTo(drawStartX + perpX, drawStartY + perpY);
+          previewShape.lineTo(drawStartX + cosA * len + perpX, drawStartY + sinA * len + perpY);
+          previewShape.lineTo(drawStartX + cosA * len - perpX, drawStartY + sinA * len - perpY);
+          previewShape.lineTo(drawStartX - perpX, drawStartY - perpY);
+          previewShape.closePath();
+          previewShape.fill({ color: col, alpha: 0.25 });
+          previewShape.stroke();
+        } else {
+          const r = Math.max(gridSize / 2, dist);
+          previewShape.setStrokeStyle({ width: 2, color: col, alpha: 0.9 });
+          previewShape.circle(drawStartX, drawStartY, r);
+          previewShape.fill({ color: col, alpha: 0.25 });
+          previewShape.stroke();
+        }
+
+        if (!previewShape.children[0]) {
+          const t = new PIXI.Text({
+            text: '',
+            style: { fill: 0xffffff, fontSize: 14, stroke: { color: 0x000000, width: 4 }, fontWeight: 'bold' }
+          });
+          t.anchor.set(0.5);
+          previewShape.addChild(t);
+        }
+        const textObj = previewShape.children[0] as PIXI.Text;
+        textObj.text = `✨ ${cases} case${cases > 1 ? 's' : ''} (${Math.round(cases * 1.5)} m)`;
+        textObj.x = drawStartX + dx / 2;
+        textObj.y = drawStartY + dy / 2 - 16;
+        textObj.visible = true;
       } else if (vttMode === 'fog-rect') {
         if (previewShape.children[0]) previewShape.children[0].visible = false;
         const dx = localPos.x - drawStartX;
@@ -2031,13 +2085,51 @@
       if (movePathG) movePathG.clear();
     } else if (isDrawing && backgroundSprite) {
       isDrawing = false;
-      previewShape.clear();
-
-      if (vttMode === 'measure') return;
-
       const localPos = worldContainer.toLocal(e.global);
       const dx = localPos.x - drawStartX;
       const dy = localPos.y - drawStartY;
+
+      if (vttMode === 'measure') {
+        const pxDistance = Math.sqrt(dx * dx + dy * dy);
+        previewShape.clear();
+        if (pxDistance > 8) {
+          const gridDistance = Math.round((pxDistance / gridSize) * 1.5 * 10) / 10;
+          const cases = Math.round((pxDistance / gridSize) * 10) / 10;
+          previewShape.setStrokeStyle({ width: 3, color: 0xffaa00, alpha: 0.95 });
+          previewShape.moveTo(drawStartX, drawStartY);
+          previewShape.lineTo(localPos.x, localPos.y);
+          previewShape.stroke();
+          previewShape.circle(drawStartX, drawStartY, 4).fill(0xffaa00);
+          previewShape.circle(localPos.x, localPos.y, 4).fill(0xffaa00);
+          if (!previewShape.children[0]) {
+            const t = new PIXI.Text({
+              text: '',
+              style: { fill: 0xffaa00, fontSize: 14, stroke: { color: 0x000000, width: 4 }, fontWeight: 'bold' }
+            });
+            t.anchor.set(0.5);
+            previewShape.addChild(t);
+          }
+          const textObj = previewShape.children[0] as PIXI.Text;
+          textObj.text = `📏 ${gridDistance} m (${cases} case${cases > 1 ? 's' : ''})`;
+          textObj.x = drawStartX + dx / 2;
+          textObj.y = drawStartY + dy / 2 - 16;
+          textObj.visible = true;
+        }
+        return;
+      }
+
+      previewShape.clear();
+
+      if (vttMode === 'spell') {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+        if (dist > 15) {
+          onSpellPlace(drawStartX, drawStartY, dist, angle, dist);
+        } else {
+          onSpellPlace(drawStartX, drawStartY);
+        }
+        return;
+      }
 
       if (vttMode === 'zoom-rect') {
         zoomToRect(drawStartX, drawStartY, localPos.x, localPos.y);
@@ -2111,9 +2203,6 @@
     } else if (vttMode === 'pin') {
       const localPos = worldContainer.toLocal(e.global);
       onPinPlace(localPos.x, localPos.y);
-    } else if (vttMode === 'spell') {
-      const localPos = worldContainer.toLocal(e.global);
-      onSpellPlace(localPos.x, localPos.y);
     }
   }
 

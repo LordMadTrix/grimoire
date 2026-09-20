@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, net::SocketAddr, sync::OnceLock};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{broadcast, Mutex};
+use tokio::time::{timeout, Duration};
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
@@ -37,6 +38,22 @@ pub struct SavedCharacter {
     pub data: serde_json::Value,
     pub path: Option<String>,
     pub password: Option<String>,
+}
+
+const JOIN_HANDSHAKE_TIMEOUT_SECS: u64 = 20;
+
+fn normalize_player_name(raw: &str) -> String {
+    let cleaned = raw
+        .trim()
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(32)
+        .collect::<String>();
+    if cleaned.is_empty() {
+        "Joueur".to_string()
+    } else {
+        cleaned
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -804,6 +821,8 @@ async fn save_mj_note_internal(state: &std::sync::Arc<ServerInner>, payload: &se
     let mut enriched_payload = payload.clone();
     if let Some(obj) = enriched_payload.as_object_mut() {
         obj.insert("saved_rel_path".to_string(), serde_json::Value::String(rel_saved.clone()));
+        obj.insert("path".to_string(), serde_json::Value::String(rel_saved.clone()));
+        obj.insert("already_saved".to_string(), serde_json::Value::Bool(true));
         obj.insert("is_conflict".to_string(), serde_json::Value::Bool(saved_as_conflict));
     }
 
@@ -950,20 +969,24 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     let mut rx = state.broadcast_tx.subscribe();
     let (unicast_sender, mut unicast_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
-    // Wait for join message
-    let (name, password) = if let Some(Ok(Message::Text(raw))) = socket.recv().await {
+    // Wait for join message with timeout
+    let (name, password) = if let Ok(Some(Ok(Message::Text(raw)))) =
+        timeout(Duration::from_secs(JOIN_HANDSHAKE_TIMEOUT_SECS), socket.recv()).await
+    {
         if let Ok(env) = serde_json::from_str::<WsEnvelope>(&raw) {
             if env.event == "join" {
-                let n = env.data.get("name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("Joueur")
-                    .to_string();
+                let n = normalize_player_name(
+                    env.data.get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Joueur")
+                );
                 let p = env.data.get("password")
                     .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty());
                 (n, p)
-            } else { ("Joueur".to_string(), None) }
-        } else { ("Joueur".to_string(), None) }
+            } else { return; }
+        } else { return; }
     } else { return; };
 
     // Vérification du mot de passe si un compte existe

@@ -10,7 +10,8 @@
     "build": "vite build && npm run build --prefix map-editor",
     "preview": "vite preview",
     "tauri": "tauri",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "manifest:winget": "bash scripts/generate-winget-manifest.sh"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",

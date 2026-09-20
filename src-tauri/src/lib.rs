@@ -36,6 +36,8 @@ pub fn run() {
             commands::vault::delete_file,
             commands::vault::rename_entry,
             commands::vault::open_url,
+            commands::vault::get_file_history,
+            commands::vault::restore_file_snapshot,
             // Game config (addon system)
             commands::config::load_game_config,
             commands::config::save_game_config,

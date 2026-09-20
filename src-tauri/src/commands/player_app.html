@@ -1575,13 +1575,17 @@ function connect(){
         myConditions=env.data.conditions||[];
         renderMyConditions();
         showToast('✓','Condition retirée',env.data.condition,'success',3000);
-      }else if(env.event==='your_turn'){
-        const isMe=env.data.target_id===playerId;
+      }else if(env.event==='your_turn'||env.event==='combat_turn'){
+        const myName = (document.getElementById('f-nom')?.value || playerName || '').trim().toLowerCase();
+        const activeName = (env.data.active_combatant || env.data.name || '').trim().toLowerCase();
+        const isMe = (env.data.target_id && env.data.target_id === playerId) ||
+                     (myName && activeName && (myName === activeName || activeName.includes(myName) || myName.includes(activeName)));
+        const isActive = env.data.active !== false;
         const bar=document.getElementById('your-turn-bar');
-        if(bar)bar.style.display=(isMe&&env.data.active)?'block':'none';
-        if(isMe&&env.data.active){
-          showToast('⚔️','Combat','C\'est votre tour !','warn',0);
-          if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);
+        if(bar) bar.style.display = (isMe && isActive) ? 'block' : 'none';
+        if(isMe && isActive){
+          showToast('⚔️','Combat','C\'est votre tour de jouer !','warn',0);
+          if(navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
           try{
             const ac=new(window.AudioContext||window.webkitAudioContext)();
             const playBeep=(freq,start,dur)=>{
@@ -1594,6 +1598,8 @@ function connect(){
             };
             playBeep(440,0,0.15);playBeep(660,0.2,0.15);playBeep(880,0.4,0.3);
           }catch(e){}
+        } else if (env.data.active_combatant) {
+          showToast('🛡️','Combat',`Tour de ${env.data.active_combatant} (Round ${env.data.round || 1})`,'info',3500);
         }
       }else if(env.event==='xp_approved'){
         if(env.data.target_id!==playerId)return;

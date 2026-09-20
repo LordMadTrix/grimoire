@@ -35,19 +35,19 @@
     addDrawPath,
     saveGmSession, loadGmSession,
     addMapScene, switchMapScene, removeMapScene, renameMapScene,
-    syncCombatantsToPlayerView,
+    syncCombatantsToPlayerView, addCombatLogEntry,
   } from '$lib/stores/vtt.svelte';
   import { listen } from '@tauri-apps/api/event';
 
-  function handleSpellPlace(x: number, y: number) {
+  function handleSpellPlace(x: number, y: number, radius?: number, angle?: number, length?: number) {
     addSpell({
       id: Math.random().toString(36).slice(2),
       x, y,
       type: vttStore.spellType,
-      radius: vttStore.spellRadius,
+      radius: radius ?? vttStore.spellRadius,
       shape: vttStore.spellShape,
-      angle: vttStore.spellAngle,
-      length: vttStore.spellLength,
+      angle: angle ?? vttStore.spellAngle,
+      length: length ?? vttStore.spellLength,
       coneAngle: vttStore.spellConeAngle,
     });
   }
@@ -298,7 +298,27 @@
         notifStore.add('⚡', 'Initiative', `${name} : ${data?.result ?? '?'}`, 'info', 4000);
       }));
       _unlistenApp.push(await listen('player_roll', (e: any) => {
-        notifStore.add('🎲', e.payload.name, JSON.stringify(e.payload.data ?? ''), 'info', 4000);
+        const { name, data } = e.payload;
+        let rollText = '';
+        if (data && typeof data === 'object') {
+          if (data.formula && data.total !== undefined) {
+            rollText = `Résultat : ${data.total} (${data.formula})`;
+          } else if (data.total !== undefined) {
+            rollText = `Résultat : ${data.total}`;
+          } else if (data.result !== undefined) {
+            rollText = `Résultat : ${data.result}`;
+          } else {
+            rollText = JSON.stringify(data);
+          }
+        } else {
+          rollText = String(data || '');
+        }
+        notifStore.add('🎲', name, rollText, 'info', 5000);
+        addCombatLogEntry({
+          type: 'info',
+          actor: name,
+          detail: `🎲 ${rollText}`,
+        });
       }));
 
       // ── Pont Bidirectionnel Map Editor -> Grimoire VTT ──
