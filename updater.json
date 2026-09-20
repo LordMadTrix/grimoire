@@ -1,7 +1,7 @@
 {
-  "version": "0.7.1",
-  "notes": "Passerelle directe éditeur vers vue joueur/mobiles avec bouclier anti-spoil, volet flottant express joueurs (HUD interactif), drag-and-drop des tokens sur la grille VTT et persistance/gestion des comptes sur disque.",
-  "pub_date": "2026-09-20T14:30:00Z",
+  "version": "0.7.2",
+  "notes": "Suite complète v0.7.2 : alertes haptiques/sonores joueur 'C'est ton tour !', gabarits AoE et règle persistante VTT, historique automatique des révisions de notes avec restauration 1-clic, déploiement PNJ direct vers VTT, Graph View 2.0 et durcissement sécurité Mobile HUB.",
+  "pub_date": "2026-09-20T16:55:00Z",
   "platforms": {
     "windows-x86_64": {
       "url": "https://github.com/LordMadTrix/grimoire/releases/latest"
