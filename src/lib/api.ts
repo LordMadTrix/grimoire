@@ -181,6 +181,41 @@ export interface PlayerInfo {
   pending_xp?: number;
 }
 
+export interface PlayerAccountSummary {
+  name: string;
+  has_password: boolean;
+  password?: string | null;
+  character: any;
+  character_path?: string | null;
+  is_online: boolean;
+  player_id?: string | null;
+  conditions?: string[];
+}
+
+export async function getSavedPlayerAccounts(): Promise<PlayerAccountSummary[]> {
+  return invoke('get_saved_player_accounts');
+}
+
+export async function savePlayerAccount(
+  accountName: string,
+  newName: string | null,
+  newPassword: string | null,
+  character: any,
+  characterPath?: string | null
+): Promise<void> {
+  return invoke('save_player_account', {
+    accountName,
+    newName,
+    newPassword,
+    character,
+    characterPath: characterPath || null,
+  });
+}
+
+export async function deletePlayerAccount(accountName: string): Promise<void> {
+  return invoke('delete_player_account', { accountName });
+}
+
 export async function startPlayerServer(port?: number): Promise<ServerInfo> {
   return invoke('start_player_server', { port });
 }

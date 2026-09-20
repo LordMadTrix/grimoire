@@ -104,6 +104,12 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Fiches Joueur & Suivi des PV** : Fiole de sang liquide interactive, suivi des stats, compétences et inventaire.
 - **Murmures & Messagerie Secrète** : Discussions privées chiffrées entre le MJ et un joueur spécifique.
 - **Sketchpad & Sons Joueurs** : Dessins tactiques collaboratifs et bruitages déclenchables par les joueurs.
+- **💾 Persistance Définitive des Comptes & Fiches Joueurs (`.grimoire/player_accounts.json`)** : Création de compte autonome avec mot de passe par chaque joueur, sauvegarde permanente et restauration automatique de la fiche et de l'avancement (PV, PV Max, XP, caractéristiques, destins, corruption, blessures critiques, inventaire).
+- **🛠️ Gestion & Édition Complète par le MJ** : Contrôle total du MJ sur les comptes (renommer, réinitialiser mot de passe, modifier stats, PV, XP) et suppression de compte avec synchronisation WebSocket instantanée (`push_character`) sur le smartphone du joueur.
+- **🪟 Volet Flottant Déplaçable MJ (HUD Express Joueurs)** : Fenêtre flottante déplaçable à la souris sur la Table Virtuelle avec :
+  - **Drag & Drop sur la carte** : Glissez l'avatar du joueur (connecté ou hors-ligne) pour poser ou déplacer immédiatement son token sur la battlemap.
+  - **Santé & Conditions Express** : Boutons rapides `[-5]`, `[-1]`, `[+1]`, `[+5]`, pastilles de conditions WFRP et demandes de tests de dés directes.
+  - **Édition Express 1-Clic (`✏️`)** : Tiroir d'édition rapide pour ajuster PV, stats ou mot de passe en cours de combat sans quitter la scène.
 - **📱 Carnet Nomade du MJ (`/mj`) & Bouclier Anti-Perte (v0.6.9)** :
   - **Application Web Mobile Ultra-Rapide** : Accessible directement sur smartphone via `http://[IP]:7438/mj` avec dictée vocale, modèles JDR express, générateur aléatoire hors-ligne et retours haptiques.
   - **Protection Anti-Effacement** : Refus systématique des payloads vides sur mobile et sur le serveur PC pour empêcher tout effacement accidentel.

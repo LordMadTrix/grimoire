@@ -59,12 +59,14 @@
     onRoll,
     onTogglePlayerHub,
     onTogglePlayerManager,
-    onTogglePlayerMobileManager
+    onTogglePlayerMobileManager,
+    onTogglePlayerQuickDock
   }: { 
     onRoll?: ((result: number, label: string) => void) | null,
     onTogglePlayerHub?: (() => void) | null,
     onTogglePlayerManager?: (() => void) | null,
-    onTogglePlayerMobileManager?: (() => void) | null
+    onTogglePlayerMobileManager?: (() => void) | null,
+    onTogglePlayerQuickDock?: (() => void) | null
   } = $props();
 
   function handleDiceRoll(result: number, label: string) {
@@ -612,6 +614,7 @@
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'players' ? null : 'players'; }}>👥 Joueurs</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'players'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+        <button class="dropdown-item" onclick={() => { onTogglePlayerQuickDock?.(); activeMenu = null; }}>🪟 Volet Joueurs Express (HUD)</button>
         <button class="dropdown-item" onclick={() => { onTogglePlayerManager?.(); activeMenu = null; }}>📝 Gestionnaire de Groupe</button>
         <button class="dropdown-item" onclick={() => { onTogglePlayerHub?.(); activeMenu = null; }}>📱 Hub des Joueurs</button>
         <button class="dropdown-item" onclick={() => { onTogglePlayerMobileManager?.(); activeMenu = null; }}>📲 Serveur Mobile (QR)</button>

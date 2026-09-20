@@ -74,6 +74,9 @@ pub fn run() {
             commands::player_server::send_private_message,
             commands::player_server::start_poll,
             commands::player_server::end_poll,
+            commands::player_server::get_saved_player_accounts,
+            commands::player_server::save_player_account,
+            commands::player_server::delete_player_account,
             // Updater
             commands::update::check_for_updates,
             commands::update::get_current_version,

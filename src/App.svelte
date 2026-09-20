@@ -15,6 +15,7 @@
   import PlayerHub from './components/PlayerHub.svelte';
   import PlayerManager from './components/PlayerManager.svelte';
   import PlayerMobileManager from './components/PlayerMobileManager.svelte';
+  import PlayerQuickDock from './components/PlayerQuickDock.svelte';
   import MacroBar from './components/MacroBar.svelte';
   import UpdateModal from './components/UpdateModal.svelte';
   import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
@@ -87,6 +88,34 @@
       visible: true,
     });
   }
+
+  function handlePlayerTokenDrop(playerData: any, x: number, y: number) {
+    const existingToken = vttStore.tokens.find(
+      t => (playerData.id && t.playerId === playerData.id) || (t.name.toLowerCase().trim() === (playerData.name || '').toLowerCase().trim())
+    );
+
+    if (existingToken) {
+      updateGmToken(existingToken.id, x, y);
+      notifStore.add('📍', playerData.name, 'Token repositionné sur la carte', 'info', 2500);
+    } else {
+      addGmToken({
+        id: Math.random().toString(36).slice(2),
+        name: playerData.name || 'Joueur',
+        x,
+        y,
+        size: vttStore.gridSize,
+        color: 0x22c55e,
+        hp: playerData.hp ?? 10,
+        maxHp: playerData.maxHp ?? 10,
+        visionRange: 0,
+        isEnemy: false,
+        imageUrl: playerData.imageUrl || undefined,
+        visible: true,
+        playerId: playerData.id,
+      });
+      notifStore.add('🧙‍♂️', playerData.name, 'Pion ajouté sur la carte !', 'success', 3000);
+    }
+  }
   import { 
     getVaultTree, setVaultTree, 
     getVaultPath, setVaultPath,
@@ -106,6 +135,7 @@
   let showSettings = $state(false);
   let showOllamaOnboarding = $state(false);
   let showAddonStore = $state(false);
+  let showPlayerQuickDock = $state(true);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
   let viewMode = $state<'editor' | 'graph' | 'timeline' | 'calendar'>('editor');
@@ -705,6 +735,7 @@
         onTogglePlayerHub={() => playerHubRef?.toggle()} 
         onTogglePlayerManager={() => playerManagerRef?.toggle()}
         onTogglePlayerMobileManager={() => playerMobileManagerRef?.toggle()}
+        onTogglePlayerQuickDock={() => showPlayerQuickDock = !showPlayerQuickDock}
       />
     {/if}
     
@@ -731,6 +762,7 @@
         {/if}
         <div class="vtt-viewport">
           <SessionDashboard />
+          <PlayerQuickDock bind:visible={showPlayerQuickDock} />
           <MapCanvas
             mapUrl={vttStore.currentMap}
             gridEnabled={vttStore.showGrid}
@@ -757,6 +789,7 @@
             onTokenUpdate={replaceGmToken}
             onTokenDelete={removeGmToken}
             onTokenDrop={handleTokenDrop}
+            onPlayerTokenDrop={handlePlayerTokenDrop}
             onPinPlace={handlePinPlace}
             onPinDelete={removeGmPin}
             onPinReveal={revealGmPin}

@@ -33,6 +33,7 @@
     onTokenUpdate = () => {},
     onTokenDelete = () => {},
     onTokenDrop = (_imageUrl: string, _x: number, _y: number) => {},
+    onPlayerTokenDrop = (_playerData: any, _x: number, _y: number) => {},
     onPinPlace = (_x: number, _y: number) => {},
     onPinDelete = (_id: string) => {},
     onSpellPlace = (_x: number, _y: number, _angle?: number) => {},
@@ -69,6 +70,7 @@
     onTokenUpdate?: (token: Token) => void;
     onTokenDelete?: (id: string) => void;
     onTokenDrop?: (imageUrl: string, x: number, y: number) => void;
+    onPlayerTokenDrop?: (playerData: any, x: number, y: number) => void;
     onPinPlace?: (x: number, y: number) => void;
     onPinDelete?: (id: string) => void;
     onSpellPlace?: (x: number, y: number, angle?: number) => void;
@@ -770,6 +772,21 @@
     };
     window.addEventListener('vtt-sketch-push' as any, handler);
     return () => window.removeEventListener('vtt-sketch-push' as any, handler);
+  });
+
+  // Centrage sur token (vtt-center-token)
+  $effect(() => {
+    const handler = (e: any) => {
+      const { tokenId, playerId } = e.detail || {};
+      const targetToken = tokens.find(t => (tokenId && t.id === tokenId) || (playerId && t.playerId === playerId));
+      if (targetToken && worldContainer && canvasContainer) {
+        const rect = canvasContainer.getBoundingClientRect();
+        worldContainer.x = rect.width / 2 - targetToken.x * worldContainer.scale.x;
+        worldContainer.y = rect.height / 2 - targetToken.y * worldContainer.scale.y;
+      }
+    };
+    window.addEventListener('vtt-center-token' as any, handler);
+    return () => window.removeEventListener('vtt-center-token' as any, handler);
   });
 
   // Détection de dégâts (flash + shake)
@@ -2342,7 +2359,7 @@
 
   function onCanvasDragOver(e: DragEvent) {
     if (!isGM || !backgroundSprite) return;
-    if (e.dataTransfer?.types.includes('vtt/token-image')) {
+    if (e.dataTransfer?.types.includes('vtt/token-image') || e.dataTransfer?.types.includes('vtt/player-token')) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
     }
@@ -2350,6 +2367,33 @@
 
   function onCanvasDrop(e: DragEvent) {
     if (!isGM || !worldContainer || !backgroundSprite) return;
+
+    // Déposer un token joueur depuis le panneau PlayerQuickDock
+    if (e.dataTransfer?.types.includes('vtt/player-token')) {
+      const raw = e.dataTransfer.getData('vtt/player-token');
+      if (raw) {
+        try {
+          const playerData = JSON.parse(raw);
+          e.preventDefault();
+          const rect = canvasContainer.getBoundingClientRect();
+          const screenX = e.clientX - rect.left;
+          const screenY = e.clientY - rect.top;
+          const local = worldContainer.toLocal(new PIXI.Point(screenX, screenY));
+          let x = local.x;
+          let y = local.y;
+          if (gridEnabled) {
+            x = Math.floor(x / gridSize) * gridSize + gridSize / 2;
+            y = Math.floor(y / gridSize) * gridSize + gridSize / 2;
+          }
+          onPlayerTokenDrop(playerData, x, y);
+          return;
+        } catch (err) {
+          console.error('Error parsing vtt/player-token drop:', err);
+        }
+      }
+    }
+
+    // Déposer une image de token depuis la sidebar
     const imagePath = e.dataTransfer?.getData('vtt/token-image');
     if (!imagePath) return;
     e.preventDefault();

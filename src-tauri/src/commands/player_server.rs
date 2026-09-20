@@ -39,6 +39,48 @@ pub struct SavedCharacter {
     pub password: Option<String>,
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct PlayerAccountSummary {
+    pub name: String,
+    pub has_password: bool,
+    pub password: Option<String>,
+    pub character: serde_json::Value,
+    pub character_path: Option<String>,
+    pub is_online: bool,
+    pub player_id: Option<String>,
+    pub conditions: Vec<String>,
+}
+
+async fn load_saved_characters_from_disk(state: &std::sync::Arc<ServerInner>) {
+    let vp_opt = state.current_vault_path.lock().await.clone();
+    if let Some(vp) = vp_opt {
+        let file_path = std::path::Path::new(&vp).join(".grimoire").join("player_accounts.json");
+        if file_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&file_path) {
+                if let Ok(loaded) = serde_json::from_str::<HashMap<String, SavedCharacter>>(&content) {
+                    let mut chars = state.saved_characters.lock().await;
+                    for (k, v) in loaded {
+                        chars.entry(k).or_insert(v);
+                    }
+                }
+            }
+        }
+    }
+}
+
+async fn save_characters_to_disk(state: &std::sync::Arc<ServerInner>) {
+    let vp_opt = state.current_vault_path.lock().await.clone();
+    if let Some(vp) = vp_opt {
+        let grimoire_dir = std::path::Path::new(&vp).join(".grimoire");
+        let _ = std::fs::create_dir_all(&grimoire_dir);
+        let file_path = grimoire_dir.join("player_accounts.json");
+        let chars = state.saved_characters.lock().await.clone();
+        if let Ok(json) = serde_json::to_string_pretty(&chars) {
+            let _ = std::fs::write(&file_path, json);
+        }
+    }
+}
+
 static SERVER: OnceLock<std::sync::Arc<ServerInner>> = OnceLock::new();
 
 fn get_server() -> &'static std::sync::Arc<ServerInner> {
@@ -190,7 +232,9 @@ pub async fn set_game_config(config: serde_json::Value) -> Result<(), String> {
 /// Pousse le chemin du coffre actif vers le serveur mobile pour le carnet MJ
 #[tauri::command]
 pub async fn set_server_vault_path(vault_path: String) -> Result<(), String> {
-    *get_server().current_vault_path.lock().await = Some(vault_path);
+    let srv = get_server();
+    *srv.current_vault_path.lock().await = Some(vault_path);
+    load_saved_characters_from_disk(srv).await;
     Ok(())
 }
 
@@ -198,7 +242,7 @@ pub async fn set_server_vault_path(vault_path: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn apply_damage_to_player(player_id: String, damage: i32) -> Result<(), String> {
     let srv = get_server();
-    let msg = {
+    let (msg, p_name, char_data) = {
         let mut players = srv.players.lock().await;
         let p = players.get_mut(&player_id).ok_or("Joueur introuvable")?;
         let cur = p.character.get("bless").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
@@ -206,11 +250,19 @@ pub async fn apply_damage_to_player(player_id: String, damage: i32) -> Result<()
         if let Some(obj) = p.character.as_object_mut() {
             obj.insert("bless".into(), serde_json::json!(new_val));
         }
-        serde_json::to_string(&WsEnvelope {
+        let m = serde_json::to_string(&WsEnvelope {
             event: "damage_applied".into(),
             data: serde_json::json!({ "target_id": player_id, "damage": damage, "bless": new_val }),
-        }).unwrap_or_default()
+        }).unwrap_or_default();
+        (m, p.name.clone(), p.character.clone())
     };
+    {
+        let mut chars = srv.saved_characters.lock().await;
+        if let Some(sc) = chars.get_mut(&p_name) {
+            sc.data = char_data;
+        }
+    }
+    save_characters_to_disk(srv).await;
     send_to_player(srv, &player_id, msg).await;
     broadcast_group_state(srv).await;
     Ok(())
@@ -286,7 +338,7 @@ pub async fn set_active_turn(player_id: Option<String>) -> Result<(), String> {
 #[tauri::command]
 pub async fn approve_xp_request(player_id: String, amount: u32) -> Result<(), String> {
     let srv = get_server();
-    let msg = {
+    let (msg, p_name, char_data) = {
         let mut players = srv.players.lock().await;
         let p = players.get_mut(&player_id).ok_or("Joueur introuvable")?;
         p.pending_xp = None;
@@ -295,12 +347,21 @@ pub async fn approve_xp_request(player_id: String, amount: u32) -> Result<(), St
         if let Some(obj) = p.character.as_object_mut() {
             obj.insert("xp".into(), serde_json::json!(new_xp));
         }
-        serde_json::to_string(&WsEnvelope {
+        let m = serde_json::to_string(&WsEnvelope {
             event: "xp_approved".into(),
             data: serde_json::json!({ "target_id": player_id, "amount": amount, "total_xp": new_xp }),
-        }).unwrap_or_default()
+        }).unwrap_or_default();
+        (m, p.name.clone(), p.character.clone())
     };
+    {
+        let mut chars = srv.saved_characters.lock().await;
+        if let Some(sc) = chars.get_mut(&p_name) {
+            sc.data = char_data;
+        }
+    }
+    save_characters_to_disk(srv).await;
     send_to_player(srv, &player_id, msg).await;
+    broadcast_group_state(srv).await;
     Ok(())
 }
 
@@ -329,6 +390,7 @@ pub async fn assign_character(player_id: String, path: String, character: serde_
             password: existing_pwd, // preserve existing password if any
         });
     }
+    save_characters_to_disk(srv).await;
 
     // Push to player
     let msg = serde_json::to_string(&WsEnvelope {
@@ -420,6 +482,150 @@ pub async fn end_poll() -> Result<(), String> {
         data: serde_json::json!({}),
     }).map_err(|e| e.to_string())?;
     let _ = srv.broadcast_tx.send(msg);
+    Ok(())
+}
+
+/// Liste tous les comptes joueurs enregistrés (en ligne et hors-ligne) avec statut du mot de passe
+#[tauri::command]
+pub async fn get_saved_player_accounts() -> Result<Vec<PlayerAccountSummary>, String> {
+    let srv = get_server();
+    load_saved_characters_from_disk(srv).await;
+
+    let players = srv.players.lock().await;
+    let chars = srv.saved_characters.lock().await;
+
+    let mut result = Vec::new();
+
+    for (name, sc) in chars.iter() {
+        let online_entry = players.values().find(|p| &p.name == name);
+        result.push(PlayerAccountSummary {
+            name: name.clone(),
+            has_password: sc.password.as_ref().map(|p| !p.trim().is_empty()).unwrap_or(false),
+            password: sc.password.clone(),
+            character: if let Some(p) = online_entry {
+                if !p.character.is_null() { p.character.clone() } else { sc.data.clone() }
+            } else {
+                sc.data.clone()
+            },
+            character_path: sc.path.clone(),
+            is_online: online_entry.is_some(),
+            player_id: online_entry.map(|p| p.id.clone()),
+            conditions: online_entry.map(|p| p.conditions.clone()).unwrap_or_default(),
+        });
+    }
+
+    // Ajouter également les joueurs actuellement connectés qui ne seraient pas encore dans saved_characters
+    for p in players.values() {
+        if !chars.contains_key(&p.name) {
+            result.push(PlayerAccountSummary {
+                name: p.name.clone(),
+                has_password: false,
+                password: None,
+                character: p.character.clone(),
+                character_path: p.character_path.clone(),
+                is_online: true,
+                player_id: Some(p.id.clone()),
+                conditions: p.conditions.clone(),
+            });
+        }
+    }
+
+    result.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    Ok(result)
+}
+
+/// Permet au MJ de modifier un compte joueur (nom, mot de passe) et sa fiche de personnage
+#[tauri::command]
+pub async fn save_player_account(
+    account_name: String,
+    new_name: Option<String>,
+    new_password: Option<String>,
+    character: serde_json::Value,
+    character_path: Option<String>,
+) -> Result<(), String> {
+    let srv = get_server();
+    let final_name = new_name.filter(|s| !s.trim().is_empty()).unwrap_or_else(|| account_name.clone());
+
+    // Mettre à jour dans saved_characters
+    {
+        let mut chars = srv.saved_characters.lock().await;
+        let mut existing_pwd = chars.get(&account_name).and_then(|s| s.password.clone());
+        if let Some(ref p) = new_password {
+            if p.trim().is_empty() {
+                existing_pwd = None; // suppression mot de passe
+            } else {
+                existing_pwd = Some(p.trim().to_string());
+            }
+        }
+        if final_name != account_name {
+            chars.remove(&account_name);
+        }
+        chars.insert(final_name.clone(), SavedCharacter {
+            data: character.clone(),
+            path: character_path.clone(),
+            password: existing_pwd,
+        });
+    }
+
+    // Sauvegarder sur disque dans .grimoire/player_accounts.json
+    save_characters_to_disk(srv).await;
+
+    // Si le joueur est actuellement connecté, mettre à jour son objet en mémoire et pousser la nouvelle fiche
+    let online_id = {
+        let mut players = srv.players.lock().await;
+        let mut found = None;
+        for p in players.values_mut() {
+            if p.name == account_name || p.name == final_name {
+                p.name = final_name.clone();
+                p.character = character.clone();
+                p.character_path = character_path.clone();
+                found = Some(p.id.clone());
+                break;
+            }
+        }
+        found
+    };
+
+    if let Some(pid) = online_id {
+        let msg = serde_json::to_string(&WsEnvelope {
+            event: "push_character".into(),
+            data: character.clone(),
+        }).map_err(|e| e.to_string())?;
+        send_to_player(srv, &pid, msg).await;
+        broadcast_group_state(srv).await;
+    }
+
+    emit_to_gm(srv, "player_accounts_updated", serde_json::json!({ "name": final_name })).await;
+
+    Ok(())
+}
+
+/// Supprime définitivement un compte joueur du coffre
+#[tauri::command]
+pub async fn delete_player_account(account_name: String) -> Result<(), String> {
+    let srv = get_server();
+    {
+        let mut chars = srv.saved_characters.lock().await;
+        chars.remove(&account_name);
+    }
+    save_characters_to_disk(srv).await;
+
+    // Déconnecter le joueur si en ligne
+    let to_disconnect = {
+        let players = srv.players.lock().await;
+        players.values().find(|p| p.name == account_name).map(|p| p.id.clone())
+    };
+
+    if let Some(pid) = to_disconnect {
+        let msg = serde_json::to_string(&WsEnvelope {
+            event: "auth_error".into(),
+            data: serde_json::json!({ "message": "Votre compte a été supprimé par le Maître du Jeu." }),
+        }).unwrap_or_default();
+        send_to_player(srv, &pid, msg).await;
+    }
+
+    emit_to_gm(srv, "player_accounts_updated", serde_json::json!({ "deleted": account_name })).await;
+
     Ok(())
 }
 
@@ -808,6 +1014,7 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
             });
         }
     }
+    save_characters_to_disk(&state).await;
 
     // Notify GM of new player
     emit_to_gm(&state, "player_joined", serde_json::json!({
@@ -908,6 +1115,7 @@ async fn handle_player_message(
                 let existing_pwd = chars.get(player_name).and_then(|s| s.password.clone());
                 chars.insert(player_name.to_string(), SavedCharacter { data: char_data.clone(), path: path.clone(), password: existing_pwd });
             }
+            save_characters_to_disk(state).await;
             emit_to_gm(state, "player_character_update", serde_json::json!({
                 "id": player_id, "name": player_name, "character": char_data, "path": path
             })).await;

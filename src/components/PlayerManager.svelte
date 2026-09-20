@@ -7,7 +7,9 @@
     applyDamageToPlayer, type PlayerInfo,
     readFile, writeFile, createDirectory, type VaultEntry,
     assignCharacter, applyConditionToPlayer, removeConditionFromPlayer,
-    requestRoll, pushMapSnapshot, askOllama
+    requestRoll, pushMapSnapshot, askOllama,
+    getSavedPlayerAccounts, savePlayerAccount, deletePlayerAccount,
+    type PlayerAccountSummary
   } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import { vttStore } from '$lib/stores/vtt.svelte';
@@ -16,6 +18,7 @@
   let visible = $state(false);
   let activeTab = $state<'party' | 'library' | 'inventory' | 'notes' | 'ai'>('party');
   let players = $state<PlayerInfo[]>([]);
+  let savedAccounts = $state<PlayerAccountSummary[]>([]);
   let characters = $state<{ path: string; name: string; data: any }[]>([]);
   let selectedChar = $state<{ path: string; name: string; data: any } | null>(null);
   let searchQuery = $state('');
@@ -91,9 +94,14 @@
       }
     });
 
+    const unlistenAccounts = listen('player_accounts_updated', () => {
+      refreshData();
+    });
+
     return () => {
       unlistenUpdate.then(u => u());
       unlistenJournal.then(u => u());
+      unlistenAccounts.then(u => u());
     };
   });
 
@@ -101,6 +109,11 @@
     isLoading = true;
     try {
       players = await getPlayerConnections();
+      try {
+        savedAccounts = await getSavedPlayerAccounts();
+      } catch (err) {
+        console.warn('Failed to load player accounts:', err);
+      }
       await scanVaultForCharacters();
     } finally {
       isLoading = false;
@@ -218,51 +231,99 @@
     return `${basicFm}\n\n${oldContent}`;
   }
 
-  function startEdit(p: PlayerInfo) {
-    editingPlayerId = p.id;
+  function startEdit(p: PlayerInfo | PlayerAccountSummary) {
+    editingPlayerId = p.name;
+    const c = p.character || {};
     editForm = {
-      nom: p.character.nom || p.name,
-      race: p.character.race || '',
-      voc: p.character.voc || '',
-      hp: p.character.hp ?? p.character.bless ?? 10,
-      maxhp: p.character.maxhp ?? p.character.profil?.act?.b ?? 10,
-      xp: p.character.xp ?? 0,
-      avantage: p.character.avantage ?? p.character.advantage ?? 0,
-      destin: p.character.destin ?? 0,
-      fortune: p.character.fortune ?? 0,
-      resilience: p.character.resilience ?? 0,
-      resolution: p.character.resolution ?? 0,
-      corruption: p.character.corruption ?? '',
-      blessures_critiques: p.character.blessures_critiques ?? '',
-      etat_veille: p.character.etat_veille ?? 'eveil',
-      inventaire: p.character.inventaire ?? ''
+      nom: c.nom || p.name,
+      password: (p as any).password || '',
+      race: c.race || '',
+      voc: c.voc || c.car || '',
+      hp: c.hp ?? c.bless ?? 10,
+      maxhp: c.maxhp ?? c.profil?.act?.b ?? 10,
+      xp: c.xp ?? 0,
+      avantage: c.avantage ?? c.advantage ?? 0,
+      destin: c.destin ?? 0,
+      fortune: c.fortune ?? 0,
+      resilience: c.resilience ?? 0,
+      resolution: c.resolution ?? 0,
+      corruption: c.corruption ?? '',
+      blessures_critiques: c.blessures_critiques ?? '',
+      etat_veille: c.etat_veille ?? 'eveil',
+      inventaire: c.inventaire ?? (typeof c.eq === 'string' ? c.eq : '')
     };
   }
 
-  async function savePlayerEdit(p: PlayerInfo) {
+  async function savePlayerEdit(p: PlayerInfo | PlayerAccountSummary) {
+    const baseChar = p.character && typeof p.character === 'object' ? { ...p.character } : {};
     const updatedChar = {
-      ...p.character,
-      ...editForm,
+      ...baseChar,
+      nom: editForm.nom || p.name,
+      race: editForm.race || '',
+      voc: editForm.voc || '',
       bless: editForm.hp,
+      hp: editForm.hp,
+      maxhp: editForm.maxhp,
+      xp: editForm.xp,
+      avantage: editForm.avantage,
+      destin: editForm.destin,
+      fortune: editForm.fortune,
+      resilience: editForm.resilience,
+      resolution: editForm.resolution,
+      corruption: editForm.corruption,
+      blessures_critiques: editForm.blessures_critiques,
+      etat_veille: editForm.etat_veille,
+      inventaire: editForm.inventaire
     };
     
     if (!updatedChar.profil) updatedChar.profil = { act: {} };
+    if (!updatedChar.profil.act) updatedChar.profil.act = {};
     updatedChar.profil.act.b = editForm.maxhp;
 
-    if (p.character_path) {
-      await autoSaveCharacter(p.character_path, updatedChar);
-      await assignCharacter(p.id, p.character_path, updatedChar);
+    try {
+      await savePlayerAccount(
+        p.name,
+        editForm.nom || p.name,
+        editForm.password || null,
+        updatedChar,
+        p.character_path || null
+      );
+      if (p.character_path) {
+        await autoSaveCharacter(p.character_path, updatedChar);
+      }
+      statusMessage = `Compte ${editForm.nom || p.name} enregistré et synchronisé !`;
+      setTimeout(() => statusMessage = '', 3000);
+    } catch (err) {
+      console.error('Error saving player account:', err);
     }
     
     editingPlayerId = null;
     refreshData();
   }
 
-  async function updateSingleField(p: PlayerInfo, field: string, value: any) {
-    const updatedChar = { ...p.character, [field]: value };
-    if (p.character_path) {
-      await autoSaveCharacter(p.character_path, updatedChar);
-      await assignCharacter(p.id, p.character_path, updatedChar);
+  async function handleDeleteAccount(accountName: string) {
+    if (!confirm(`Supprimer définitivement le compte de « ${accountName} » ?`)) return;
+    try {
+      await deletePlayerAccount(accountName);
+      statusMessage = `Compte ${accountName} supprimé.`;
+      setTimeout(() => statusMessage = '', 3000);
+    } catch (err) {
+      console.error('Delete account error:', err);
+    }
+    editingPlayerId = null;
+    refreshData();
+  }
+
+  async function updateSingleField(p: PlayerInfo | PlayerAccountSummary, field: string, value: any) {
+    const baseChar = p.character && typeof p.character === 'object' ? { ...p.character } : {};
+    const updatedChar = { ...baseChar, [field]: value };
+    try {
+      await savePlayerAccount(p.name, null, null, updatedChar, p.character_path || null);
+      if (p.character_path) {
+        await autoSaveCharacter(p.character_path, updatedChar);
+      }
+    } catch (err) {
+      console.error('Update field error:', err);
     }
     refreshData();
   }
@@ -315,11 +376,24 @@
     saveInventory();
   }
 
+  const displayAccounts = $derived(
+    savedAccounts.length > 0 ? savedAccounts : players.map(p => ({
+      name: p.name,
+      has_password: false,
+      password: null,
+      character: p.character,
+      character_path: p.character_path,
+      is_online: true,
+      player_id: p.id,
+      conditions: p.conditions || []
+    } as PlayerAccountSummary))
+  );
+
   const filteredLibrary = $derived(
     characters.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  function getHpPct(p: PlayerInfo) {
+  function getHpPct(p: PlayerInfo | PlayerAccountSummary) {
     if (!p.character) return 0;
     const hp = p.character.hp ?? p.character.bless ?? 0;
     const max = p.character.maxhp ?? (parseInt(p.character.profil?.act?.b) || 10);
@@ -436,21 +510,45 @@
         {#if activeTab === 'party'}
           <section class="party-view" in:fade>
             <div class="party-grid">
-              {#each players as p (p.id)}
+              {#if displayAccounts.length === 0}
+                <div class="empty-party">
+                  <p>Aucun compte joueur enregistré ni connecté.</p>
+                  <p class="empty-hint">Les joueurs peuvent créer leur compte sur mobile ou navigateur via l'adresse du serveur local.</p>
+                </div>
+              {/if}
+              {#each displayAccounts as p (p.name)}
                 <div class="player-card">
                   <div class="player-header">
                     <div class="avatar" style="background-color: hsl({(p.name.length * 65) % 360}, 60%, 45%)">{p.name.charAt(0)}</div>
                     <div class="info">
-                      <span class="name">{p.name}</span>
-                      <span class="status"><span class="dot"></span> {p.character_path ? 'Synchronisé' : 'Connecté'}</span>
+                      <div class="name-row">
+                        <span class="name">{p.name}</span>
+                        {#if p.has_password}
+                          <span class="pwd-badge locked" title="Compte protégé par mot de passe">🔒 Protégé</span>
+                        {:else}
+                          <span class="pwd-badge open" title="Compte sans mot de passe">🔓 Libre</span>
+                        {/if}
+                      </div>
+                      <span class="status {p.is_online ? 'online' : 'offline'}">
+                        <span class="dot"></span> {p.is_online ? (p.character_path ? 'Synchronisé' : 'Connecté') : 'Hors-ligne'}
+                      </span>
                     </div>
                   </div>
 
                   {#if p.character}
                     <div class="char-box">
-                      {#if editingPlayerId === p.id}
+                      {#if editingPlayerId === p.name}
                         <div class="edit-form">
-                          <input type="text" bind:value={editForm.nom} placeholder="Nom" class="edit-input" />
+                          <div class="edit-account-header">
+                            <div class="edit-field-group">
+                              <span class="edit-label">Nom du compte / personnage :</span>
+                              <input type="text" bind:value={editForm.nom} placeholder="Nom" class="edit-input" />
+                            </div>
+                            <div class="edit-field-group">
+                              <span class="edit-label">Mot de passe du compte :</span>
+                              <input type="text" bind:value={editForm.password} placeholder="Laisser vide pour aucun" class="edit-input" />
+                            </div>
+                          </div>
                           <div class="edit-row">
                             <input type="text" bind:value={editForm.race} placeholder="Race" class="edit-input" style="flex:1" />
                             <input type="text" bind:value={editForm.voc} placeholder="Métier/Classe" class="edit-input" style="flex:1" />
@@ -485,7 +583,8 @@
                           <textarea bind:value={editForm.inventaire} class="edit-textarea" placeholder="Objets, Couronnes..."></textarea>
                           
                           <div class="edit-actions">
-                            <button class="btn-save" onclick={() => savePlayerEdit(p)}>Enregistrer</button>
+                            <button class="btn-save" onclick={() => savePlayerEdit(p)}>💾 Enregistrer</button>
+                            <button type="button" class="btn-delete-acc" onclick={() => handleDeleteAccount(p.name)}>🗑️ Supprimer</button>
                             <button class="btn-cancel" onclick={cancelEdit}>Annuler</button>
                           </div>
                         </div>
@@ -498,7 +597,8 @@
                               <button class="btn-state" class:active-state={p.character.etat_veille === 'eveil'} onclick={() => updateSingleField(p, 'etat_veille', 'eveil')} title="Éveillé">☀️</button>
                               <button class="btn-state" class:active-state={p.character.etat_veille === 'endormi'} onclick={() => updateSingleField(p, 'etat_veille', 'endormi')} title="Endormi">🌙</button>
                               <button class="btn-state" class:active-state={p.character.etat_veille === 'garde'} onclick={() => updateSingleField(p, 'etat_veille', 'garde')} title="Garde">🛡️</button>
-                              <button class="btn-edit" onclick={() => startEdit(p)} title="Modifier le personnage">✏️</button>
+                              <button class="btn-edit" onclick={() => startEdit(p)} title="Modifier le personnage et le compte">✏️</button>
+                              <button class="btn-del" onclick={() => handleDeleteAccount(p.name)} title="Supprimer le compte">🗑️</button>
                             </div>
                           </div>
                           <span class="char-desc">
@@ -536,37 +636,47 @@
                           </div>
                         {/if}
 
-                        <div class="cond-row">
-                          {#each p.conditions as c}
-                            <span class="cond-tag">{c} <button onclick={() => removeConditionFromPlayer(p.id, c)}>✕</button></span>
-                          {/each}
-                        </div>
+                        {#if p.conditions && p.conditions.length > 0}
+                          <div class="cond-row">
+                            {#each p.conditions as c}
+                              <span class="cond-tag">{c} {#if p.player_id}<button onclick={() => removeConditionFromPlayer(p.player_id!, c)}>✕</button>{/if}</span>
+                            {/each}
+                          </div>
+                        {/if}
 
-                        <div class="cond-selector">
-                          {#each WFRP_CONDITIONS as cond}
-                            <button 
-                              class="btn-cond-add" 
-                              class:active={p.conditions.includes(cond.name)}
-                              onclick={() => toggleCondition(p.id, p.conditions, cond.name)}
-                              title={cond.desc}
-                            >
-                              {cond.icon}
-                            </button>
-                          {/each}
-                        </div>
+                        {#if p.player_id}
+                          <div class="cond-selector">
+                            {#each WFRP_CONDITIONS as cond}
+                              <button 
+                                class="btn-cond-add" 
+                                class:active={(p.conditions || []).includes(cond.name)}
+                                onclick={() => toggleCondition(p.player_id!, p.conditions || [], cond.name)}
+                                title={cond.desc}
+                              >
+                                {cond.icon}
+                              </button>
+                            {/each}
+                          </div>
 
-                        <!-- Forced Roll UI -->
-                        <div class="forced-roll-row">
-                          <select bind:value={rollStat} class="fr-select">
-                            {#each STATS as s}<option value={s.key}>{s.lbl}</option>{/each}
-                          </select>
-                          <input type="number" bind:value={rollMod} class="fr-mod" placeholder="+/-" />
-                          <button class="btn-fr" onclick={() => handleForcedRoll(p.id)} title="Lancer un test">🎲</button>
-                        </div>
+                          <!-- Forced Roll UI -->
+                          <div class="forced-roll-row">
+                            <select bind:value={rollStat} class="fr-select">
+                              {#each STATS as s}<option value={s.key}>{s.lbl}</option>{/each}
+                            </select>
+                            <input type="number" bind:value={rollMod} class="fr-mod" placeholder="+/-" />
+                            <button class="btn-fr" onclick={() => handleForcedRoll(p.player_id!)} title="Lancer un test">🎲</button>
+                          </div>
+                        {/if}
                       {/if}
                     </div>
                   {:else}
-                    <div class="empty-char">En attente de fiche...</div>
+                    <div class="empty-char">
+                      <span>En attente de fiche...</span>
+                      <div style="display:flex; gap:6px; margin-top:8px;">
+                        <button class="btn-edit" onclick={() => startEdit(p)} title="Créer la fiche">✏️ Fiche</button>
+                        <button class="btn-del" onclick={() => handleDeleteAccount(p.name)} title="Supprimer le compte">🗑️</button>
+                      </div>
+                    </div>
                   {/if}
                 </div>
               {/each}
@@ -736,7 +846,13 @@
   .player-header { display: flex; align-items: center; gap: 12px; }
   .avatar { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; }
   .name { font-weight: 700; color: white; }
+  .name-row { display: flex; align-items: center; gap: 6px; }
+  .pwd-badge { font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+  .pwd-badge.locked { background: rgba(229,168,83,0.15); color: #e5a853; border: 1px solid rgba(229,168,83,0.3); }
+  .pwd-badge.open { background: rgba(88,166,255,0.15); color: #58a6ff; border: 1px solid rgba(88,166,255,0.3); }
   .status { font-size: 10px; color: #3fb950; display: flex; align-items: center; gap: 5px; }
+  .status.offline { color: #8b949e; }
+  .status.offline .dot { background: #8b949e; }
   .dot { width: 6px; height: 6px; background: #3fb950; border-radius: 50%; }
 
   .char-box { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.05); }
@@ -781,12 +897,18 @@
   
   .edit-form { display: flex; flex-direction: column; gap: 8px; }
   .edit-input { background: #010409; border: 1px solid #30363d; border-radius: 6px; padding: 6px; color: white; font-size: 12px; }
+  .edit-account-header { display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.07); margin-bottom: 4px; }
+  .edit-field-group { display: flex; flex-direction: column; gap: 2px; }
   .edit-textarea { background: #010409; border: 1px solid #30363d; border-radius: 6px; padding: 6px; color: white; font-size: 12px; resize: vertical; min-height: 40px; font-family: monospace; }
   .edit-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #8b949e; }
   .edit-num { background: #010409; border: 1px solid #30363d; border-radius: 6px; padding: 4px; color: white; font-size: 11px; width: 40px; text-align: center; }
   .edit-actions { display: flex; gap: 6px; margin-top: 4px; }
   .btn-save { flex: 1; background: #238636; color: white; border: none; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+  .btn-delete-acc { background: rgba(248,81,73,0.15); color: #f85149; border: 1px solid rgba(248,81,73,0.3); padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+  .btn-delete-acc:hover { background: rgba(248,81,73,0.35); }
   .btn-cancel { flex: 1; background: #30363d; color: white; border: none; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+  .empty-party { grid-column: 1 / -1; padding: 40px; text-align: center; color: #8b949e; }
+  .empty-party .empty-hint { font-size: 12px; margin-top: 6px; color: #484f58; }
 
   /* Library View */
   .library-view { display: grid; grid-template-columns: 280px 1fr; height: 100%; }
