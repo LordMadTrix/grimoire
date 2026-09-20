@@ -18,6 +18,8 @@
   import { CALLOUT_TYPES } from '$lib/editor/calloutPlugin';
   import { evaluateDiceFormula, playDiceSound } from '$lib/editor/dicePlugin';
   import { notifStore } from '$lib/stores/notifications.svelte';
+  import ShareToPlayersModal from './ShareToPlayersModal.svelte';
+  import { cleanNoteForPlayers, shareWithPlayers } from '$lib/playerShare';
 
   let saveTimeout: ReturnType<typeof setTimeout>;
   let backlinks = $state<BacklinkResult[]>([]);
@@ -29,6 +31,9 @@
   let showToolbar = $state(true);
   let activeToolbarMenu = $state<string | null>(null);
   let showShortcutsModal = $state(false);
+  let showShareModal = $state(false);
+  let shareModalContent = $state('');
+  let shareModalTitle = $state('');
 
   function toggleToolbarMenu(menu: string) {
     activeToolbarMenu = activeToolbarMenu === menu ? null : menu;
@@ -92,6 +97,36 @@
       triggerContextualAI(prompt);
     }
   }
+
+  function openShareModalForNote() {
+    editorCtxMenu = null;
+    const file = getActiveFile();
+    const title = file ? file.split('/').pop()?.replace(/\.md$/i, '') : 'Document';
+    shareModalContent = getActiveContent();
+    shareModalTitle = title || 'Document';
+    showShareModal = true;
+  }
+
+  function shareSelectionDirect(target: 'all' | 'playerView' | 'mobile', mode: 'parchment' | 'ambient' = 'parchment') {
+    if (!editorCtxMenu) return;
+    const selected = editorCtxMenu.selectedText;
+    editorCtxMenu = null;
+    if (!selected) {
+      openShareModalForNote();
+      return;
+    }
+    const file = getActiveFile();
+    const noteTitle = file ? file.split('/').pop()?.replace(/\.md$/i, '') : 'Extrait';
+    const cleaned = cleanNoteForPlayers(selected, { hideSecrets: true, defaultTitle: `${noteTitle} (Extrait)` });
+    shareWithPlayers({
+      title: cleaned.title,
+      text: cleaned.cleanText,
+      html: cleaned.cleanHtml,
+      target,
+      mode
+    });
+  }
+
   let scrollToLine = $state<number | null>(null);
   let previewHtml = $state('');
 
@@ -415,10 +450,17 @@
             .map(l => `<p>${renderInline(l)}</p>`)
             .join('');
 
+          const isReadAloud = meta.type === 'readaloud';
+          const rawCalloutText = bodyLines.join('\n');
+          const quickShareBtn = isReadAloud
+            ? `<button type="button" class="callout-share-btn" data-title="${esc(title)}" data-body="${esc(rawCalloutText)}" title="📤 Projeter ce récit aux Joueurs (TV & Smartphones)">📤 Projeter</button>`
+            : '';
+
           html += `<div class="preview-callout callout-${meta.type}" style="border-left-color:${meta.color}; background:${meta.bgColor};">
             <div class="callout-header">
               <span class="callout-icon">${meta.icon}</span>
               <strong style="color:${meta.color};">${esc(title)}</strong>
+              ${quickShareBtn}
             </div>
             ${bodyContent ? `<div class="callout-content">${bodyContent}</div>` : ''}
           </div>`;
@@ -650,7 +692,25 @@
       return;
     }
 
-    // 2. Lien wiki ou scène VTT
+    // 2. Bouton de projection directe d'un récit MJ [!READALOUD]
+    const shareBtn = target.closest('.callout-share-btn') as HTMLElement | null;
+    if (shareBtn) {
+      const shareTitle = shareBtn.dataset.title || 'Récit MJ';
+      const shareBody = shareBtn.dataset.body || '';
+      if (shareBody) {
+        const cleaned = cleanNoteForPlayers(shareBody, { hideSecrets: true, defaultTitle: shareTitle });
+        shareWithPlayers({
+          title: cleaned.title,
+          text: cleaned.cleanText,
+          html: cleaned.cleanHtml,
+          target: 'all',
+          mode: 'parchment'
+        });
+      }
+      return;
+    }
+
+    // 3. Lien wiki ou scène VTT
     const link = target.closest('[data-href]') as HTMLElement | null;
     if (!link) return;
     const href = link.dataset.href;
@@ -825,6 +885,14 @@
         </div>
         <button onclick={exportPdf} class="save-btn" title="Exporter en PDF (rendu complet)">
           🖨️
+        </button>
+        <button
+          type="button"
+          class="save-btn share-broadcast-btn"
+          onclick={openShareModalForNote}
+          title="📤 Diffuser cette note aux Joueurs (Projeter sur la TV ou envoyer aux mobiles)"
+        >
+          📤
         </button>
         <button onclick={() => { clearTimeout(saveTimeout); saveFile(true); }} class="save-btn" title="Sauvegarder (Ctrl+S)">
           💾
@@ -1504,6 +1572,42 @@
 
     <div class="editor-ctx-sep"></div>
 
+    <!-- Sous-menu Diffusion Joueurs (TV & Mobiles) -->
+    <div class="editor-ctx-has-sub">
+      <div class="editor-ctx-item ctx-share-item">
+        <span class="ctx-icon">📤</span>
+        <span class="ctx-label">Diffuser aux Joueurs</span>
+        <span class="ctx-arrow">▸</span>
+      </div>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        {#if editorCtxMenu.hasSelection}
+          <button type="button" class="editor-ctx-item highlight-gold" onmousedown={(e) => e.preventDefault()} onclick={() => shareSelectionDirect('all', 'parchment')}>
+            <span class="ctx-icon">🌐</span>
+            <span class="ctx-label">Projeter sélection (TV &amp; Mobiles)</span>
+          </button>
+          <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => shareSelectionDirect('playerView', 'parchment')}>
+            <span class="ctx-icon">📺</span>
+            <span class="ctx-label">Vue Joueur (Parchemin TV)</span>
+          </button>
+          <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => shareSelectionDirect('mobile', 'parchment')}>
+            <span class="ctx-icon">📱</span>
+            <span class="ctx-label">Smartphones Joueurs</span>
+          </button>
+          <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => shareSelectionDirect('playerView', 'ambient')}>
+            <span class="ctx-icon">✨</span>
+            <span class="ctx-label">Texte d'Ambiance Flottant</span>
+          </button>
+          <div class="editor-ctx-sep"></div>
+        {/if}
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={openShareModalForNote}>
+          <span class="ctx-icon">⚙️</span>
+          <span class="ctx-label">Options de diffusion note…</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="editor-ctx-sep"></div>
+
     <!-- Actions d'édition classiques -->
     <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('undo')}>
       <span class="ctx-icon">↩️</span>
@@ -1568,6 +1672,14 @@
       </div>
     </div>
   </div>
+{/if}
+
+{#if showShareModal}
+  <ShareToPlayersModal
+    rawContent={shareModalContent}
+    defaultTitle={shareModalTitle}
+    onclose={() => showShareModal = false}
+  />
 {/if}
 
 <style>
@@ -2014,6 +2126,26 @@
     color: var(--text-primary);
   }
 
+  .preview-panel :global(.callout-share-btn) {
+    margin-left: auto;
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    color: #e5a853;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .preview-panel :global(.callout-share-btn:hover) {
+    background: rgba(229, 168, 83, 0.35);
+    border-color: #e5a853;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(229, 168, 83, 0.4);
+  }
+
   .preview-panel :global(mark) {
     background: rgba(229, 168, 83, 0.35);
     color: inherit;
@@ -2080,6 +2212,17 @@
     white-space: nowrap;
   }
   .save-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .save-btn.share-broadcast-btn {
+    border-color: rgba(229, 168, 83, 0.4);
+    color: #e5a853;
+  }
+  .save-btn.share-broadcast-btn:hover {
+    background: rgba(229, 168, 83, 0.15);
+    border-color: #e5a853;
+    color: #f59e0b;
+    box-shadow: 0 0 8px rgba(229, 168, 83, 0.3);
+  }
 
   .ctx-btn {
     border-color: rgba(124, 106, 245, 0.5);
