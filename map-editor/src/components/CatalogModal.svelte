@@ -1,6 +1,24 @@
 <script lang="ts">
   import { mapStore, toggleFavoriteStamp } from '../lib/stores/mapStore.svelte';
-  import importedStamps from '../lib/imported_stamps.json';
+
+  let importedStamps = $state<any[]>([]);
+  let isLoadingImportedStamps = $state(false);
+
+  $effect(() => {
+    if (!mapStore.showCatalog || isLoadingImportedStamps || importedStamps.length > 0) return;
+
+    isLoadingImportedStamps = true;
+    void import('../lib/imported_stamps.json')
+      .then(({ default: stamps }) => {
+        importedStamps = stamps;
+      })
+      .catch((error) => {
+        console.error('Impossible de charger le catalogue de tampons :', error);
+      })
+      .finally(() => {
+        isLoadingImportedStamps = false;
+      });
+  });
 
   // Liste globale des assets du catalogue
   const DEFAULT_STAMP_GROUPS = [
@@ -92,7 +110,7 @@
   ];
 
   // Grouper les tampons importés par catégorie principale une seule fois au chargement
-  const rawImportedGroups: any[] = (() => {
+  let rawImportedGroups = $derived.by(() => {
     const groupsMap = new Map<string, {
       id: string;
       name: string;
@@ -163,12 +181,12 @@
         subcategories: Array.from(group.subcatMap.keys()) as string[]
       };
     });
-  })();
+  });
 
-  const allStampGroups = [
+  let allStampGroups: any[] = $derived([
     ...DEFAULT_STAMP_GROUPS,
     ...rawImportedGroups
-  ];
+  ]);
 
   // États locaux de recherche et filtrage
   let selectedCategory = $state('all');

@@ -429,9 +429,7 @@ export function stopCountdown() {
 export function setWeather(w: typeof vttStore.weather) {
   vttStore.weather = w;
   emitToPlayerView('set_weather', { weather: w });
-  import('$lib/api').then(({ broadcastToPlayers }) => {
-    broadcastToPlayers('weather_change', { weather: w }).catch(() => {});
-  }).catch(() => {});
+  broadcastToPlayers('weather_change', { weather: w }).catch(() => {});
 }
 
 export function addSpell(spell: SpellMarker) {
@@ -724,12 +722,10 @@ export function rollAllInitiatives(mode: 'd20' | 'wfrp' = 'd20') {
       actor: first.name,
       detail: `Tour 1 — Round ${vttStore.combatRound}`,
     });
-    import('$lib/api').then(({ broadcastToPlayers }) => {
-      broadcastToPlayers('combat_turn', {
-        active_combatant: first.name,
-        round: vttStore.combatRound,
-        turn: 0,
-      }).catch(() => {});
+    broadcastToPlayers('combat_turn', {
+      active_combatant: first.name,
+      round: vttStore.combatRound,
+      turn: 0,
     }).catch(() => {});
   }
 

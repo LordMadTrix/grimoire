@@ -1,7 +1,7 @@
 {
-  "version": "0.7.2",
-  "notes": "Suite complète v0.7.2 : alertes haptiques/sonores joueur 'C'est ton tour !', gabarits AoE et règle persistante VTT, historique automatique des révisions de notes avec restauration 1-clic, déploiement PNJ direct vers VTT, Graph View 2.0 et durcissement sécurité Mobile HUB.",
-  "pub_date": "2026-09-20T16:55:00Z",
+  "version": "0.7.3",
+  "notes": "Optimisations de performance : chargement différé et mis en cache du catalogue de tampons de l'éditeur de cartes, réduction des appels asynchrones inutiles lors des diffusions VTT, et correctifs de stabilité du générateur de donjon.",
+  "pub_date": "2026-09-21T02:52:06Z",
   "platforms": {
     "windows-x86_64": {
       "url": "https://github.com/LordMadTrix/grimoire/releases/latest"

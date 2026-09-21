@@ -73,7 +73,7 @@ if (typeof window !== 'undefined') {
     if (savedPrompt.includes('style dark fantasy') && (!savedTone || savedTone !== 'dark_fantasy')) {
       const currentPreset = AI_TONE_PRESETS.find(t => t.id === aiToneId) || AI_TONE_PRESETS[0];
       aiSystemPrompt = currentPreset.systemPrompt;
-      localStorage.setItem('grimoire_aiSystemPrompt', aiSystemPrompt);
+      localStorage.setItem('grimoire_aiSystemPrompt', currentPreset.systemPrompt);
     } else {
       aiSystemPrompt = savedPrompt;
     }

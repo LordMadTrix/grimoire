@@ -1,5 +1,4 @@
 import { mapStore, pushHistory } from './stores/mapStore.svelte';
-import importedStamps from './imported_stamps.json';
 import { invoke } from '@tauri-apps/api/core';
 
 // Taille native maximale (px) de chaque stamp thématique — sert à calibrer l'échelle
@@ -66,6 +65,7 @@ export function generateMazeDungeon(themeName: DungeonThemeName = 'classic', siz
         carve(nc, nr);
       }
     }
+
   }
 
   carve(1, 1);
@@ -370,7 +370,7 @@ export function generateBspDungeon(themeName: DungeonThemeName = 'classic', size
 
     // Meubler les pièces selon la densité choisie
     const density = mapStore.dungeonFurnishingDensity;
-    const fillChance = density === 'dense' ? 0.75 : density === 'normal' ? 0.45 : 0.2;
+    const fillChance = density === 'rich' ? 0.75 : density === 'normal' ? 0.45 : 0.2;
 
     for (let i = 1; i < leaves.length; i++) {
       const leaf = leaves[i];
@@ -1546,4 +1546,3 @@ Règles de structure importantes :
     }
   }
 }
-

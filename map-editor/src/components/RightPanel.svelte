@@ -59,10 +59,31 @@
     { id: 'water', name: 'Mer', file: 'water.png', color: '#4a6f8a' },
   ];
 
-
-
-  import importedStamps from '../lib/imported_stamps.json';
   import importedTextures from '../lib/imported_textures.json';
+
+  let importedStamps = $state<any[]>([]);
+  let isLoadingImportedStamps = $state(false);
+
+  $effect(() => {
+    const needsImportedStamps =
+      mapStore.activeTool === 'dungeon' ||
+      mapStore.favoriteStamps.length > 0 ||
+      mapStore.activeStamp.startsWith('stamp_');
+
+    if (!needsImportedStamps || isLoadingImportedStamps || importedStamps.length > 0) return;
+
+    isLoadingImportedStamps = true;
+    void import('../lib/imported_stamps.json')
+      .then(({ default: stamps }) => {
+        importedStamps = stamps;
+      })
+      .catch((error) => {
+        console.error('Impossible de charger les tampons importés :', error);
+      })
+      .finally(() => {
+        isLoadingImportedStamps = false;
+      });
+  });
 
   interface StampItem {
     id: string;
@@ -92,19 +113,6 @@
     { id: 'compass', name: 'Boussole', file: '/assets/stamps/compass.png', icon: '🧭', variants: ['compass'] },
     { id: 'banner', name: 'Bannière', file: '/assets/stamps/banner.png', icon: '📜', variants: ['banner'] },
   ];
-
-  const STAMPS_ISO: StampItem[] = [
-    ...DEFAULT_STAMPS_ISO,
-    ...(importedStamps as any[]).map(s => ({
-      id: s.id,
-      name: s.name,
-      file: s.file,
-      icon: s.icon || '🎨',
-      variants: s.variants || [s.id]
-    }))
-  ];
-
-
 
   // Dérivations réactives pour Svelte 5
   let activeTextures = $derived(TEXTURES_ISO);
@@ -2165,8 +2173,8 @@
                   <button 
                     type="button" 
                     class="style-btn" 
-                    class:active={mapStore.dungeonFurnishingDensity === 'dense'}
-                    onclick={() => mapStore.dungeonFurnishingDensity = 'dense'}
+                    class:active={mapStore.dungeonFurnishingDensity === 'rich'}
+                    onclick={() => mapStore.dungeonFurnishingDensity = 'rich'}
                     title="Donjon richement meublé et détaillé"
                   >
                     👑 Riche

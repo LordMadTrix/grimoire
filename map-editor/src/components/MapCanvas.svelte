@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { mapStore, pushHistory, undo, redo, setRasterHooks, type MapStamp, type MapPath, type MapText, type MapShape, type SelectableType } from '../lib/stores/mapStore.svelte';
-  import importedStamps from '../lib/imported_stamps.json';
   import importedTextures from '../lib/imported_textures.json';
   import { generateContinent } from '../lib/terrainGenerator';
   import {
@@ -39,6 +38,7 @@
   // Cache d'images traitées
   const assetCache = new Map<string, HTMLCanvasElement | HTMLImageElement>();
   const imageLoadingPromises: Promise<void>[] = [];
+  let importedStamps: any[] | null = null;
 
 
   // États locaux de dessin / pan / interaction
@@ -146,8 +146,23 @@
     if (dynamicLoadingAssets.has(cacheKey)) return null;
 
     // Chercher le chemin de l'image dans les tampons importés ou URL directe (ex: Bibliothèque Céleste)
-    const stampMeta = (importedStamps as any[]).find((s: any) => s.id === type);
+    const stampMeta = importedStamps?.find((s: any) => s.id === type);
     const fileSrc = stampMeta ? stampMeta.file : (type.startsWith('http') || type.startsWith('/') || type.startsWith('data:') || type.startsWith('blob:')) ? type : null;
+
+    if (!fileSrc && type.startsWith('stamp_')) {
+      dynamicLoadingAssets.add(cacheKey);
+      void import('../lib/imported_stamps.json')
+        .then(({ default: stamps }) => {
+          importedStamps = stamps;
+          dynamicLoadingAssets.delete(cacheKey);
+          getOrLoadAsset(type);
+        })
+        .catch((error) => {
+          console.error('Impossible de charger le catalogue de tampons :', error);
+          dynamicLoadingAssets.delete(cacheKey);
+        });
+      return null;
+    }
 
     if (fileSrc) {
       dynamicLoadingAssets.add(cacheKey);
