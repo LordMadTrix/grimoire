@@ -29,6 +29,11 @@ public/assets/textures/*/
 !public/assets/textures/*.png
 public/drive-catalog.json
 
+# Artefacts générés du catalogue de tampons à la demande (régénérés par predev/prebuild)
+src/lib/stamps_fragments/
+src/lib/stamps_manifest.json
+src/lib/stamps_registry.json
+
 # Scripts de scraping et fichiers extraits (outils de dev locaux, non versionnés)
 inkarnate-extracted/
 *.txt

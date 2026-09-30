@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { mapStore, pushHistory, undo, redo, setRasterHooks, type MapStamp, type MapPath, type MapText, type MapShape, type SelectableType } from '../lib/stores/mapStore.svelte';
   import { generateContinent } from '../lib/terrainGenerator';
+  import { stampsCatalog, resolveStampMeta } from '../lib/stampsCatalog.svelte';
   import {
     setElementMeasurer,
     setSelection,
@@ -37,7 +38,7 @@
   // Cache d'images traitées
   const assetCache = new Map<string, HTMLCanvasElement | HTMLImageElement>();
   const imageLoadingPromises: Promise<void>[] = [];
-  let importedStamps: any[] | null = null;
+  let importedStamps = $derived(stampsCatalog.loaded as any[] | null);
   let importedTextures: any[] | null = null;
 
 
@@ -151,14 +152,17 @@
 
     if (!fileSrc && type.startsWith('stamp_')) {
       dynamicLoadingAssets.add(cacheKey);
-      void import('../lib/imported_stamps.json')
-        .then(({ default: stamps }) => {
-          importedStamps = stamps;
+      // Catalogue à la demande : résoudre l'id via le registre puis charger
+      // uniquement le fragment contenant ce tampon.
+      void resolveStampMeta(type)
+        .then((meta) => {
           dynamicLoadingAssets.delete(cacheKey);
-          getOrLoadAsset(type);
+          if (meta?.file) {
+            getOrLoadAsset(meta.file.startsWith('/') || meta.file.startsWith('http') ? meta.file : type);
+          }
         })
         .catch((error) => {
-          console.error('Impossible de charger le catalogue de tampons :', error);
+          console.error('Impossible de résoudre le tampon :', error);
           dynamicLoadingAssets.delete(cacheKey);
         });
       return null;

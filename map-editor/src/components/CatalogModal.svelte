@@ -1,24 +1,30 @@
 <script lang="ts">
   import { mapStore, toggleFavoriteStamp } from '../lib/stores/mapStore.svelte';
   import { assetPreview } from '../lib/assetPreviewFallback';
+  import { stampsCatalog, ensureStampsTree, ensureSubcategory, ensureStampsRegistry, getLoadedStampMeta } from '../lib/stampsCatalog.svelte';
 
-  let importedStamps = $state<any[]>([]);
-  let isLoadingImportedStamps = $state(false);
+  // Catalogue à la demande : l'arborescence vient du manifeste (18 ko) et
+  // les entrées de chaque sous-catégorie sont chargées à la sélection.
+  let importedStamps = $derived(stampsCatalog.loaded as any[]);
+  let isLoadingImportedStamps = $derived(stampsCatalog.indexLoading);
 
   $effect(() => {
-    if (!mapStore.showCatalog || isLoadingImportedStamps || importedStamps.length > 0) return;
+    if (!mapStore.showCatalog || stampsCatalog.indexLoading || stampsCatalog.indexReady) return;
+    void ensureStampsTree().catch((error) => {
+      console.error('Impossible de charger le catalogue de tampons :', error);
+    });
+  });
 
-    isLoadingImportedStamps = true;
-    void import('../lib/imported_stamps.json')
-      .then(({ default: stamps }) => {
-        importedStamps = stamps;
-      })
-      .catch((error) => {
-        console.error('Impossible de charger le catalogue de tampons :', error);
-      })
-      .finally(() => {
-        isLoadingImportedStamps = false;
-      });
+  // Charger automatiquement le fragment correspondant à la sélection.
+  $effect(() => {
+    if (!mapStore.showCatalog) return;
+    const cat = selectedCategory;
+    const sub = selectedSubcategory;
+    if (!sub) return;
+    // La catégorie sélectionnée vaut "imported_cat_<nom>" pour les packs importés.
+    const groupName = cat.startsWith('imported_cat_') ? cat.replace('imported_cat_', '').replace(/_/g, ' ') : '';
+    const row = stampsCatalog.tree.find((m) => m.c === groupName && m.s === sub);
+    if (row) void ensureSubcategory(row.c, row.s);
   });
 
   // Liste globale des assets du catalogue
@@ -112,74 +118,44 @@
 
   // Grouper les tampons importés par catégorie principale une seule fois au chargement
   let rawImportedGroups = $derived.by(() => {
-    const groupsMap = new Map<string, {
-      id: string;
-      name: string;
-      category: string;
-      isImported: boolean;
-      type: string;
-      variants: any[];
-      subcatMap: Map<string, any[]>;
-    }>();
-
-    importedStamps.forEach((stamp: any) => {
-      const cat = stamp.category || 'Bibliothèque de Décors';
-      const subcat = stamp.subcategory || 'Général';
-      if (!groupsMap.has(cat)) {
-        groupsMap.set(cat, {
-          id: `imported_cat_${cat.replace(/\s+/g, '_')}`,
-          name: cat,
-          category: 'isometric',
-          isImported: true,
-          type: 'imported',
-          variants: [],
-          subcatMap: new Map<string, any[]>()
-        });
+    // Arbre complet depuis le manifeste (structure légère) : chaque pack
+    // affiche ses sous-catégories et leurs compteurs ; les variantes ne
+    // contiennent que les fragments réellement chargés.
+    const catNames = [...new Set(stampsCatalog.tree.map((m) => m.c))];
+    return catNames.map((cat) => {
+      const rows = stampsCatalog.tree.filter((m) => m.c === cat);
+      const variants = importedStamps.filter((s: any) => s.category === cat);
+      const subcatMap = new Map<string, any[]>();
+      for (const v of variants) {
+        if (!subcatMap.has(v.subcategory)) subcatMap.set(v.subcategory, []);
+        subcatMap.get(v.subcategory)!.push(v);
       }
-      
-      const group = groupsMap.get(cat)!;
-      const variant = {
-        id: stamp.id,
-        name: stamp.name,
-        file: stamp.file,
-        subcategory: subcat
-      };
-      group.variants.push(variant);
-      
-      if (!group.subcatMap.has(subcat)) {
-        group.subcatMap.set(subcat, []);
-      }
-      group.subcatMap.get(subcat)!.push(variant);
-    });
-
-    // Pré-calculer la liste d'affichage plate (en-têtes + variantes) par défaut (sans recherche)
-    return Array.from(groupsMap.values()).map(group => {
+      const subcategories = rows.map((r) => r.s);
       const preRenderedList: any[] = [];
-      group.subcatMap.forEach((variants, subcatName) => {
+      for (const r of rows) {
+        const subVariants = subcatMap.get(r.s) || [];
+        if (subVariants.length === 0) continue;
         preRenderedList.push({
-          groupName: group.name,
-          id: `header_${group.name}_${subcatName}`,
-          name: `${group.name} / ${subcatName}`,
+          groupName: cat,
+          id: `header_${cat}_${r.s}`,
+          name: `${cat} / ${r.s}`,
           isHeader: true
         });
-        variants.forEach(v => {
-          preRenderedList.push({
-            groupName: group.name,
-            ...v
-          });
-        });
-      });
-
+        for (const v of subVariants) {
+          preRenderedList.push({ groupName: cat, ...v });
+        }
+      }
       return {
-        id: group.id,
-        name: group.name,
-        category: group.category,
-        isImported: group.isImported,
-        type: group.type,
-        variants: group.variants,
-        preRenderedList: preRenderedList,
-        subcatMap: group.subcatMap,
-        subcategories: Array.from(group.subcatMap.keys()) as string[]
+        id: `imported_cat_${cat.replace(/\s+/g, '_')}`,
+        name: cat,
+        category: 'isometric',
+        isImported: true,
+        type: 'imported',
+        variants,
+        preRenderedList,
+        subcatMap,
+        subcategories,
+        totalCount: rows.reduce((acc, r) => acc + r.n, 0)
       };
     });
   });
@@ -188,6 +164,11 @@
     ...DEFAULT_STAMP_GROUPS,
     ...rawImportedGroups
   ]);
+
+  // Compteurs d'en-tête : total connu via le manifeste même si aucun
+  // fragment n'est encore chargé.
+  let importedTotalCount = $derived(stampsCatalog.tree.reduce((acc, m) => acc + m.n, 0));
+  let defaultStampsCount = $derived(DEFAULT_STAMP_GROUPS.reduce((acc, g) => acc + g.variants.length, 0));
 
   // États locaux de recherche et filtrage
   let selectedCategory = $state('all');
@@ -225,6 +206,49 @@
     }
   }
 
+  // Résultats de recherche dans le registre (26 242 noms, sans charger les fragments).
+  let registrySearchResults = $state<{ id: string; name: string; cat: string; sub: string }[]>([]);
+  let registrySearchQuery = $state('');
+
+  // Recherche debouncée dans le registre (chargé une seule fois au premier caractère).
+  $effect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      registrySearchResults = [];
+      registrySearchQuery = '';
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const reg = await ensureStampsRegistry();
+        const needle = q.toLowerCase();
+        const rows = stampsCatalog.tree;
+        const results: { id: string; name: string; cat: string; sub: string }[] = [];
+        for (const [id, [ordinal, name]] of Object.entries(reg)) {
+          if (results.length >= 300) break;
+          if (!name.toLowerCase().includes(needle)) continue;
+          const row = rows[ordinal];
+          results.push({ id, name, cat: row?.c ?? '', sub: row?.s ?? '' });
+        }
+        registrySearchResults = results;
+        registrySearchQuery = q;
+      } catch (error) {
+        console.error('Recherche de tampons impossible :', error);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  });
+
+  // Charger automatiquement toute la catégorie quand aucune sous-catégorie n'est choisie.
+  $effect(() => {
+    if (!mapStore.showCatalog || searchQuery.trim()) return;
+    const cat = selectedCategory;
+    if (!cat.startsWith('imported_cat_')) return;
+    const groupName = cat.replace('imported_cat_', '').replace(/_/g, ' ');
+    const rows = stampsCatalog.tree.filter((m) => m.c === groupName);
+    for (const r of rows) void ensureSubcategory(r.c, r.s);
+  });
+
   // Filtrer les tampons réactivement
   let filteredStamps = $derived.by(() => {
     let list: any[] = [];
@@ -241,6 +265,38 @@
             (v.subcategory && v.subcategory.toLowerCase().includes(query))
           );
         }
+        variants.forEach((variant: any) => {
+          list.push({
+            groupName: group.name,
+            ...variant
+          });
+        });
+      });
+      return list;
+    }
+
+    // Recherche globale : les résultats viennent du registre (tous les packs,
+    // fragments chargés à la demande pour ceux visibles).
+    if (isSearchActive) {
+      if (registrySearchQuery === searchQuery.trim()) {
+        for (const r of registrySearchResults) {
+          const meta = getLoadedStampMeta(r.id);
+          list.push({
+            groupName: r.cat,
+            id: r.id,
+            name: r.name,
+            file: meta?.file ?? '',
+            subcategory: r.sub
+          });
+        }
+      }
+      // Tampons par défaut restent filtrés côté client.
+      allStampGroups.forEach(group => {
+        if (group.isImported) return;
+        let variants = group.variants.filter((v: any) =>
+          v.name.toLowerCase().includes(query) ||
+          group.name.toLowerCase().includes(query)
+        );
         variants.forEach((variant: any) => {
           list.push({
             groupName: group.name,
@@ -270,14 +326,6 @@
         // Filtrer par sous-catégorie si spécifié
         if (selectedSubcategory !== '') {
           variants = variants.filter((v: any) => v.subcategory === selectedSubcategory);
-        }
-
-        if (isSearchActive) {
-          variants = variants.filter((v: any) => 
-            v.name.toLowerCase().includes(query) || 
-            group.name.toLowerCase().includes(query) ||
-            (v.subcategory && v.subcategory.toLowerCase().includes(query))
-          );
         }
 
         if (variants.length > 0) {
@@ -363,7 +411,7 @@
       <div class="catalog-header">
         <div class="header-left">
           <span class="catalog-title">Catalogue d'Assets [F]</span>
-          <span class="items-count">({filteredStamps.length} tampons trouvés)</span>
+          <span class="items-count">({filteredStamps.filter((s: any) => !s.isHeader).length} tampons affichés{importedTotalCount > 0 ? ` / ${importedTotalCount + defaultStampsCount} au total` : ''})</span>
         </div>
         
         <div class="header-right">

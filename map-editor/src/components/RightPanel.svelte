@@ -1,6 +1,7 @@
 <script lang="ts">
   import { mapStore } from '../lib/stores/mapStore.svelte';
   import { assetPreview } from '../lib/assetPreviewFallback';
+  import { stampsCatalog, ensureStampsTree, ensureSubcategory, resolveStampMeta, getLoadedStampMeta } from '../lib/stampsCatalog.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import {
     alignSelection,
@@ -86,8 +87,10 @@
       });
   });
 
-  let importedStamps = $state<any[]>([]);
-  let isLoadingImportedStamps = $state(false);
+  // Catalogue à la demande : le panneau ne charge que les fragments utiles
+  // (thème de donjon affiché, tampon actif, favoris) via le registre.
+  let importedStamps = $derived(stampsCatalog.loaded as any[]);
+  let isLoadingImportedStamps = $derived(stampsCatalog.indexLoading || Object.keys(stampsCatalog.pending).length > 0);
 
   $effect(() => {
     const needsImportedStamps =
@@ -95,19 +98,42 @@
       mapStore.favoriteStamps.length > 0 ||
       mapStore.activeStamp.startsWith('stamp_');
 
-    if (!needsImportedStamps || isLoadingImportedStamps || importedStamps.length > 0) return;
+    if (!needsImportedStamps) return;
 
-    isLoadingImportedStamps = true;
-    void import('../lib/imported_stamps.json')
-      .then(({ default: stamps }) => {
-        importedStamps = stamps;
-      })
-      .catch((error) => {
-        console.error('Impossible de charger les tampons importés :', error);
-      })
-      .finally(() => {
-        isLoadingImportedStamps = false;
-      });
+    void ensureStampsTree().catch((error) => {
+      console.error('Impossible de charger le catalogue de tampons :', error);
+    });
+  });
+
+  // Charger les fragments du thème de donjon actif (quelques sous-catégories ciblées).
+  $effect(() => {
+    if (mapStore.activeTool !== 'dungeon') return;
+    if (!stampsCatalog.indexReady) return;
+    const theme = dungeonTheme;
+    const wanted: [string, string][] =
+      theme === 'classic'
+        ? [['Fantasy Battlemaps', 'Dungeons'], ['Fantasy Battlemaps', 'Castle 2.0'], ['Fantasy Battlemaps', 'Castle']]
+        : theme === 'prison'
+          ? [['Fantasy Battlemaps', 'Prison'], ['Fantasy Battlemaps', 'Prison 2.0']]
+          : [['Fantasy Battlemaps', 'Cave'], ['Fantasy Battlemaps', 'Cave 2.0'], ['Fantasy Battlemaps', 'Mine']];
+    for (const [cat, sub] of wanted) {
+      if (stampsCatalog.tree.some((m) => m.c === cat && m.s === sub)) {
+        void ensureSubcategory(cat, sub);
+      }
+    }
+  });
+
+  // Résoudre les métadonnées des favoris et du tampon actif via le registre.
+  $effect(() => {
+    const favIds = [...mapStore.favoriteStamps];
+    const active = mapStore.activeStamp;
+    if (!stampsCatalog.indexReady) return;
+    const ids = [...favIds, ...(active.startsWith('stamp_') ? [active] : [])];
+    for (const id of ids) {
+      if (!getLoadedStampMeta(id)) {
+        void resolveStampMeta(id).catch(() => {});
+      }
+    }
   });
 
   interface StampItem {
