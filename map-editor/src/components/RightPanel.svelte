@@ -1,5 +1,6 @@
 <script lang="ts">
   import { mapStore } from '../lib/stores/mapStore.svelte';
+  import { assetPreview } from '../lib/assetPreviewFallback';
   import { invoke } from '@tauri-apps/api/core';
   import {
     alignSelection,
@@ -670,7 +671,7 @@
                     title={tex.name}
                   >
                     {#if tex.file}
-                      <div class="texture-preview-img" style="background-image: url('/assets/textures/{tex.file}')"></div>
+                      <div class="texture-preview-img" use:assetPreview={`/assets/textures/${tex.file}`} style="background-image: url('/assets/textures/{tex.file}')"></div>
                     {:else}
                       <div class="texture-preview-color" style="background-color: {tex.color}"></div>
                     {/if}
@@ -683,7 +684,7 @@
                     class="texture-card active"
                     title={currentTextureDetails.name.replace('Texture Importée', 'Texture')}
                   >
-                    <div class="texture-preview-img" style="background-image: url('/assets/textures/{currentTextureDetails.file}')"></div>
+                    <div class="texture-preview-img" use:assetPreview={`/assets/textures/${currentTextureDetails.file}`} style="background-image: url('/assets/textures/{currentTextureDetails.file}')"></div>
                     <span class="texture-name">{currentTextureDetails.name.replace('Texture Importée', 'Texture')}</span>
                   </button>
                 {/if}
@@ -811,7 +812,7 @@
                       title={tex.name}
                     >
                       {#if tex.file}
-                        <div class="texture-preview-img" style="background-image: url('/assets/textures/{tex.file}')"></div>
+                        <div class="texture-preview-img" use:assetPreview={`/assets/textures/${tex.file}`} style="background-image: url('/assets/textures/{tex.file}')"></div>
                       {:else}
                         <div class="texture-preview-color" style="background-color: {tex.color}"></div>
                       {/if}
@@ -824,7 +825,7 @@
                       class="texture-card active"
                       title={currentBackgroundTextureDetails.name.replace('Texture Importée', 'Texture')}
                     >
-                      <div class="texture-preview-img" style="background-image: url('/assets/textures/{currentBackgroundTextureDetails.file}')"></div>
+                      <div class="texture-preview-img" use:assetPreview={`/assets/textures/${currentBackgroundTextureDetails.file}`} style="background-image: url('/assets/textures/{currentBackgroundTextureDetails.file}')"></div>
                       <span class="texture-name">{currentBackgroundTextureDetails.name.replace('Texture Importée', 'Texture')}</span>
                     </button>
                   {/if}
@@ -1555,7 +1556,7 @@
                       title={tex.name}
                     >
                       {#if tex.file}
-                        <div class="texture-preview-img" style="background-image: url('/assets/textures/{tex.file}'); height: 24px;"></div>
+                        <div class="texture-preview-img" use:assetPreview={`/assets/textures/${tex.file}`} style="background-image: url('/assets/textures/{tex.file}'); height: 24px;"></div>
                       {:else}
                         <div class="texture-preview-color" style="background-color: {tex.color}; height: 24px;"></div>
                       {/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { mapStore, toggleFavoriteTexture } from '../lib/stores/mapStore.svelte';
+  import { assetPreview } from '../lib/assetPreviewFallback';
 
   let importedTextures = $state<any[]>([]);
   let isLoadingImportedTextures = $state(false);
@@ -461,7 +462,8 @@
                         <!-- Si texture importée ou avec fichier local -->
                         <div 
                           class="texture-card-image" 
-                          style="background-image: url('{tex.id.startsWith('imported_') ? `/assets/textures/${tex.file}` : `/assets/textures/${tex.file}`}')"
+                          use:assetPreview={`/assets/textures/${tex.file}`}
+                          style="background-image: url('/assets/textures/{tex.file}')"
                         ></div>
                       {:else}
                         <!-- Texture de couleur pure (procedural) -->

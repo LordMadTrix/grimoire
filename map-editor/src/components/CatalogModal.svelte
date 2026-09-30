@@ -1,5 +1,6 @@
 <script lang="ts">
   import { mapStore, toggleFavoriteStamp } from '../lib/stores/mapStore.svelte';
+  import { assetPreview } from '../lib/assetPreviewFallback';
 
   let importedStamps = $state<any[]>([]);
   let isLoadingImportedStamps = $state(false);
@@ -545,7 +546,7 @@
 
                     <div class="stamp-card-preview-box">
                       {#if stamp.file}
-                        <div class="stamp-card-image" style="background-image: url('{stamp.file}')"></div>
+                        <div class="stamp-card-image" use:assetPreview={stamp.file} style="background-image: url('{stamp.file}')"></div>
                       {:else}
                         <span class="stamp-card-emoji">{stamp.icon}</span>
                       {/if}
