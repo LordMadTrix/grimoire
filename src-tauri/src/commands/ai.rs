@@ -100,44 +100,175 @@ pub fn find_ollama_binary(app_handle: Option<&tauri::AppHandle>) -> Option<std::
     None
 }
 
-pub async fn get_active_ollama_host(client: &reqwest::Client) -> Option<String> {
-    // 1. Try standard Ollama port 11434 first (shared system service / default desktop port)
-    if let Ok(res) = client.get("http://127.0.0.1:11434/api/tags").send().await {
-        if res.status().is_success() {
-            return Some("http://127.0.0.1:11434".to_string());
-        }
+const OLLAMA_STANDARD_HOST: &str = "http://127.0.0.1:11434";
+const OLLAMA_FALLBACK_HOST: &str = "http://127.0.0.1:11435";
+const OLLAMA_LAST_RESORT_HOST: &str = "http://127.0.0.1:11436";
+
+/// Sonde un hôte Ollama : None si injoignable, Some(nombre de modèles) sinon.
+async fn probe_ollama_host(client: &reqwest::Client, host: &str) -> Option<usize> {
+    let res = client.get(format!("{}/api/tags", host)).send().await.ok()?;
+    if !res.status().is_success() {
+        return None;
     }
-    // 2. Try Grimoire custom port 11435
-    if let Ok(res) = client.get("http://127.0.0.1:11435/api/tags").send().await {
-        if res.status().is_success() {
-            return Some("http://127.0.0.1:11435".to_string());
-        }
+    let tags: OllamaTagsResponse = res.json().await.ok()?;
+    Some(tags.models.len())
+}
+
+pub async fn get_active_ollama_host(client: &reqwest::Client) -> Option<String> {
+    // Préférer un serveur qui possède réellement des modèles installés,
+    // puis conserver l'ordre historique (11434 avant 11435).
+    let n_standard = probe_ollama_host(client, OLLAMA_STANDARD_HOST).await;
+    if n_standard.unwrap_or(0) > 0 {
+        return Some(OLLAMA_STANDARD_HOST.to_string());
+    }
+    let n_fallback = probe_ollama_host(client, OLLAMA_FALLBACK_HOST).await;
+    if n_fallback.unwrap_or(0) > 0 {
+        return Some(OLLAMA_FALLBACK_HOST.to_string());
+    }
+    if n_standard.is_some() {
+        return Some(OLLAMA_STANDARD_HOST.to_string());
+    }
+    if n_fallback.is_some() {
+        return Some(OLLAMA_FALLBACK_HOST.to_string());
     }
     None
 }
 
+/// Recherche récursive d'au moins un fichier manifeste dans un dossier de
+/// modèles Ollama (preuve que le dossier contient réellement des modèles).
+fn manifests_dir_has_model(dir: &std::path::Path, depth: usize) -> bool {
+    if depth > 4 {
+        return false;
+    }
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                return true;
+            }
+            if path.is_dir() && manifests_dir_has_model(&path, depth + 1) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Le dossier de modèles par défaut d'Ollama (~/.ollama/models) contient-il
+/// au moins un modèle ? Sert à ne pas écraser une installation existante.
+fn default_models_dir_has_models() -> bool {
+    let home_var = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+    std::env::var(home_var).ok().map_or(false, |home| {
+        let dir = std::path::PathBuf::from(home).join(".ollama").join("models");
+        dir.join("manifests").is_dir() && manifests_dir_has_model(&dir.join("manifests"), 0)
+    })
+}
+
+/// Ancien dossier de modèles dédié utilisé par Grimoire avant la v0.6.8 :
+/// les modèles téléchargés via l'application y résident toujours
+/// (<dossier de l'exécutable>/models ou <données locales>/models).
+fn find_legacy_grimoire_models_dir(app_handle: Option<&tauri::AppHandle>) -> Option<std::path::PathBuf> {
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    if let Some(app) = app_handle {
+        if let Ok(data_dir) = app.path().app_local_data_dir() {
+            candidates.push(data_dir.join("models"));
+        }
+    }
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            candidates.push(parent.join("models"));
+        }
+    }
+    candidates.into_iter().find(|dir| {
+        dir.join("manifests").is_dir()
+            && dir.join("blobs").is_dir()
+            && manifests_dir_has_model(&dir.join("manifests"), 0)
+    })
+}
+
+fn spawn_ollama_server(
+    bin: &std::path::Path,
+    host: &str,
+    models_dir: Option<&std::path::Path>,
+) -> Result<(), String> {
+    let mut child = std::process::Command::new(bin);
+    child.arg("serve");
+    child.env("OLLAMA_HOST", host);
+    if let Some(dir) = models_dir {
+        child.env("OLLAMA_MODELS", dir);
+    }
+    child
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Impossible de démarrer Ollama : {}", e))
+}
+
+async fn wait_for_ollama(client: &reqwest::Client, host: &str, attempts: usize, require_models: bool) -> bool {
+    for _ in 0..attempts {
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        match probe_ollama_host(client, host).await {
+            Some(n) if !require_models || n > 0 => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
 pub async fn ensure_ollama_running(app_handle: Option<&tauri::AppHandle>, client: &reqwest::Client) -> Result<String, String> {
-    if let Some(host) = get_active_ollama_host(client).await {
-        return Ok(host);
+    let n_standard = probe_ollama_host(client, OLLAMA_STANDARD_HOST).await;
+    if n_standard.unwrap_or(0) > 0 {
+        return Ok(OLLAMA_STANDARD_HOST.to_string());
+    }
+    let n_fallback = probe_ollama_host(client, OLLAMA_FALLBACK_HOST).await;
+    if n_fallback.unwrap_or(0) > 0 {
+        return Ok(OLLAMA_FALLBACK_HOST.to_string());
     }
 
     let bin = find_ollama_binary(app_handle).ok_or_else(|| {
         "Binaire Ollama introuvable. Veuillez installer Ollama sur votre système (https://ollama.com).".to_string()
     })?;
 
-    let mut child = std::process::Command::new(&bin);
-    child.arg("serve");
-    // Standard port 11434 by default
-    child.env("OLLAMA_HOST", "127.0.0.1:11434");
+    // Modèles historiques de Grimoire (pré-v0.6.8) : si aucun serveur actif
+    // ne voit de modèles alors que l'ancien dossier dédié en contient encore,
+    // on (re)lance un serveur avec OLLAMA_MODELS pointant dessus — sans
+    // copier les gigaoctets de blobs.
+    let legacy_models_dir = if default_models_dir_has_models() {
+        None // Une installation Ollama standard possède déjà des modèles.
+    } else {
+        find_legacy_grimoire_models_dir(app_handle)
+    };
 
-    let _ = child.spawn().map_err(|e| format!("Impossible de démarrer Ollama : {}", e))?;
-
-    // Wait up to 15 seconds (30 * 500ms) because GPU discovery (CUDA/Vulkan) can take 5-7s
-    for _ in 0..30 {
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        if let Some(host) = get_active_ollama_host(client).await {
-            return Ok(host);
+    // 1. Port standard libre → démarrer notre serveur dessus.
+    if n_standard.is_none() {
+        spawn_ollama_server(&bin, OLLAMA_STANDARD_HOST, legacy_models_dir.as_deref())?;
+        // Wait up to 15 seconds (30 * 500ms) because GPU discovery (CUDA/Vulkan) can take 5-7s
+        if wait_for_ollama(client, OLLAMA_STANDARD_HOST, 30, legacy_models_dir.is_some()).await {
+            return Ok(OLLAMA_STANDARD_HOST.to_string());
         }
+    }
+
+    // 2. Port standard occupé par un serveur sans modèles → serveur dédié
+    //    sur le port de repli avec l'ancien dossier de modèles.
+    if legacy_models_dir.is_some() {
+        spawn_ollama_server(&bin, OLLAMA_FALLBACK_HOST, legacy_models_dir.as_deref())?;
+        if wait_for_ollama(client, OLLAMA_FALLBACK_HOST, 30, true).await {
+            return Ok(OLLAMA_FALLBACK_HOST.to_string());
+        }
+        // Dernier port de secours si 11435 est lui aussi occupé par un
+        // serveur vide.
+        spawn_ollama_server(&bin, OLLAMA_LAST_RESORT_HOST, legacy_models_dir.as_deref())?;
+        if wait_for_ollama(client, OLLAMA_LAST_RESORT_HOST, 30, true).await {
+            return Ok(OLLAMA_LAST_RESORT_HOST.to_string());
+        }
+    }
+
+    // 3. Un serveur répond (sans modèles) : le signaler tel quel pour que
+    //    l'app propose l'installation d'un modèle via l'onboarding.
+    if n_standard.is_some() {
+        return Ok(OLLAMA_STANDARD_HOST.to_string());
+    }
+    if n_fallback.is_some() {
+        return Ok(OLLAMA_FALLBACK_HOST.to_string());
     }
 
     Err("Le serveur Ollama a été démarré mais ne répond pas après 15 secondes. Vérifiez vos logs ou lancez 'ollama serve' dans un terminal.".to_string())
@@ -554,15 +685,22 @@ mod tests {
         let tags = tags_res.json::<OllamaTagsResponse>().await.unwrap();
         assert!(!tags.models.is_empty(), "Should have at least 1 installed model");
 
-        let mut target_model = "gemma2:2b".to_string();
-        let model_exists = tags.models.iter().any(|m| m.name == target_model || m.name.starts_with(&target_model));
-        if !model_exists {
-            target_model = tags.models[0].name.clone();
-        }
-        assert_eq!(target_model, "llama3.2:1b");
+        // Le modèle demandé n'existe pas : le repli doit sélectionner un
+        // modèle réellement installé (le premier de la liste), quel qu'il soit
+        // selon la machine (ne pas coder un nom en dur). La logique de repli
+        // vit dans ask_ollama ; on vérifie ici l'invariant utilisé.
+        let requested = "gemma2:2b";
+        let model_exists = tags.models.iter().any(|m| m.name == requested || m.name.starts_with(requested));
+        let expected_fallback = if model_exists {
+            let matched = tags.models.iter().find(|m| m.name == requested || m.name.starts_with(requested)).unwrap();
+            matched.name.clone()
+        } else {
+            tags.models[0].name.clone()
+        };
+        assert!(!expected_fallback.is_empty());
 
         let req = OllamaRequest {
-            model: target_model,
+            model: expected_fallback,
             prompt: "Bonjour".to_string(),
             system: "Tu es un assistant.".to_string(),
             stream: false,
