@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { mapStore, pushHistory, undo, redo, setRasterHooks, type MapStamp, type MapPath, type MapText, type MapShape, type SelectableType } from '../lib/stores/mapStore.svelte';
-  import importedTextures from '../lib/imported_textures.json';
   import { generateContinent } from '../lib/terrainGenerator';
   import {
     setElementMeasurer,
@@ -39,6 +38,7 @@
   const assetCache = new Map<string, HTMLCanvasElement | HTMLImageElement>();
   const imageLoadingPromises: Promise<void>[] = [];
   let importedStamps: any[] | null = null;
+  let importedTextures: any[] | null = null;
 
 
   // États locaux de dessin / pan / interaction
@@ -223,8 +223,31 @@
     if (dynamicLoadingTextures.has(cacheKey)) return undefined;
 
     // Chercher la texture dans les textures importées ou URL directe (Bibliothèque Céleste)
-    const texMeta = (importedTextures as any[]).find((t: any) => t.id === type);
+    const texMeta = importedTextures?.find((t: any) => t.id === type);
     const fileSrc = texMeta ? `/assets/textures/${texMeta.file}` : (type.startsWith('http') || type.startsWith('/') || type.startsWith('data:') || type.startsWith('blob:')) ? type : null;
+
+    if (!fileSrc && type.startsWith('tex_')) {
+      dynamicLoadingTextures.add(cacheKey);
+      void import('../lib/imported_textures.json')
+        .then(({ default: textures }) => {
+          importedTextures = textures;
+          dynamicLoadingTextures.delete(cacheKey);
+          if (!textures.some((t: any) => t.id === type)) {
+            // Texture absente du catalogue (id obsolète) : mémoriser un placeholder
+            // pour éviter de relancer l'import en boucle.
+            const canvas = document.createElement('canvas');
+            canvas.width = 1; canvas.height = 1;
+            assetCache.set(cacheKey, canvas);
+            return;
+          }
+          getOrLoadTexture(type);
+        })
+        .catch((error) => {
+          console.error('Impossible de charger le catalogue de textures :', error);
+          dynamicLoadingTextures.delete(cacheKey);
+        });
+      return undefined;
+    }
 
     if (fileSrc) {
       dynamicLoadingTextures.add(cacheKey);

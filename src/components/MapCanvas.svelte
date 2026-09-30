@@ -210,6 +210,16 @@
 
   // Throttle pour emitCamera (max 1 envoi / 80ms)
   let _emitCameraTimer: ReturnType<typeof setTimeout> | null = null;
+  const scheduledLayerRenders = new Map<string, number>();
+
+  function scheduleLayerRender(key: string, render: () => void) {
+    if (scheduledLayerRenders.has(key)) return;
+    const frameId = requestAnimationFrame(() => {
+      scheduledLayerRenders.delete(key);
+      render();
+    });
+    scheduledLayerRenders.set(key, frameId);
+  }
   function emitCameraThrottled() {
     if (_emitCameraTimer) return;
     _emitCameraTimer = setTimeout(() => {
@@ -626,6 +636,8 @@
   onDestroy(() => {
     window.removeEventListener('resize', handleResize);
     if (_emitCameraTimer) clearTimeout(_emitCameraTimer);
+    for (const frameId of scheduledLayerRenders.values()) cancelAnimationFrame(frameId);
+    scheduledLayerRenders.clear();
     if (app && isGM) {
       app.canvas.removeEventListener('wheel', onWheel);
     }
@@ -666,7 +678,7 @@
     fowShapes; // track
     tokens;    // track
     if (!appReady) return;
-    renderFow();
+    scheduleLayerRender('fow', renderFow);
   });
 
   // Réagir aux changements de tokens (positions, HP, conditions, etc.)
@@ -675,7 +687,7 @@
     selectedTokenIds; // track (pour anneaux de sélection)
     spotlightTokenId; // track (pour halo spotlight)
     if (!appReady) return;
-    renderTokens();
+    scheduleLayerRender('tokens', renderTokens);
   });
 
   // Ping externe (depuis vue joueur ou autre fenêtre)
@@ -689,35 +701,35 @@
   $effect(() => {
     pins; // track
     if (!appReady) return;
-    renderPins();
+    scheduleLayerRender('pins', renderPins);
   });
 
   // Sorts / AOE
   $effect(() => {
     spells; // track
     if (!appReady) return;
-    renderSpells();
+    scheduleLayerRender('spells', renderSpells);
   });
 
   // Tracés libres
   $effect(() => {
     drawPaths; // track
     if (!appReady) return;
-    renderDrawPaths();
+    scheduleLayerRender('draw-paths', renderDrawPaths);
   });
 
   // Murs (Ligne de vue)
   $effect(() => {
     walls; // track
     if (!appReady) return;
-    renderWalls();
+    scheduleLayerRender('walls', renderWalls);
   });
 
   // Zones terrain
   $effect(() => {
     terrainZones; // track
     if (!appReady || !terrainLayer) return;
-    renderTerrain();
+    scheduleLayerRender('terrain', renderTerrain);
   });
 
   // Dungeon tiles
@@ -752,8 +764,10 @@
   $effect(() => {
     audioZones; // track
     if (!appReady) return;
-    renderAudioZones();
-    manageZoneAudios();
+    scheduleLayerRender('audio-zones', () => {
+      renderAudioZones();
+      manageZoneAudios();
+    });
   });
 
   // Éclairage dynamique
@@ -761,7 +775,7 @@
     tokens;  // track
     gridSize;
     if (!appReady) return;
-    renderLighting();
+    scheduleLayerRender('lighting', renderLighting);
   });
 
   // Croquis mobiles

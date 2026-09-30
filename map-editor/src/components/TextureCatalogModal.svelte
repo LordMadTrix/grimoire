@@ -1,6 +1,24 @@
 <script lang="ts">
   import { mapStore, toggleFavoriteTexture } from '../lib/stores/mapStore.svelte';
-  import importedTextures from '../lib/imported_textures.json';
+
+  let importedTextures = $state<any[]>([]);
+  let isLoadingImportedTextures = $state(false);
+
+  $effect(() => {
+    if (!mapStore.showTextureCatalog || isLoadingImportedTextures || importedTextures.length > 0) return;
+
+    isLoadingImportedTextures = true;
+    void import('../lib/imported_textures.json')
+      .then(({ default: textures }) => {
+        importedTextures = textures;
+      })
+      .catch((error) => {
+        console.error('Impossible de charger le catalogue de textures :', error);
+      })
+      .finally(() => {
+        isLoadingImportedTextures = false;
+      });
+  });
 
   // Liste globale des textures du catalogue par défaut
   const DEFAULT_TEXTURES = [
@@ -17,7 +35,7 @@
   ];
 
   // Grouper les textures importées par catégorie principale une seule fois au chargement
-  const rawImportedGroups: any[] = (() => {
+  let rawImportedGroups = $derived.by(() => {
     const groupsMap = new Map<string, {
       id: string;
       name: string;
@@ -86,7 +104,7 @@
         subcategories: Array.from(group.subcatMap.keys()) as string[]
       };
     });
-  })();
+  });
 
   // États locaux de recherche et filtrage
   let selectedCategory = $state('all');

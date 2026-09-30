@@ -59,7 +59,31 @@
     { id: 'water', name: 'Mer', file: 'water.png', color: '#4a6f8a' },
   ];
 
-  import importedTextures from '../lib/imported_textures.json';
+  let importedTextures = $state<any[]>([]);
+  let isLoadingImportedTextures = $state(false);
+
+  $effect(() => {
+    const needsImportedTextures =
+      mapStore.activeTool === 'paint' ||
+      mapStore.activeTool === 'background' ||
+      mapStore.favoriteTextures.length > 0 ||
+      mapStore.paintTexture.startsWith('tex_') ||
+      mapStore.backgroundTexture.startsWith('tex_');
+
+    if (!needsImportedTextures || isLoadingImportedTextures || importedTextures.length > 0) return;
+
+    isLoadingImportedTextures = true;
+    void import('../lib/imported_textures.json')
+      .then(({ default: textures }) => {
+        importedTextures = textures;
+      })
+      .catch((error) => {
+        console.error('Impossible de charger les textures importées :', error);
+      })
+      .finally(() => {
+        isLoadingImportedTextures = false;
+      });
+  });
 
   let importedStamps = $state<any[]>([]);
   let isLoadingImportedStamps = $state(false);

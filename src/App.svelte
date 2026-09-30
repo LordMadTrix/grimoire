@@ -142,6 +142,7 @@
   let isZenMode = $state(false);
   let rollTablesRef = $state<any>(null);
   let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let playerSyncTimer: ReturnType<typeof setTimeout> | null = null;
   let mapRoll = $state<{ text: string; seq: number } | null>(null);
   let mapRollSeq = 0;
   let playerHubRef = $state<any>(null);
@@ -180,8 +181,7 @@
     vttStore.activeMapId;
     vttStore.drawPaths;
 
-    // Sync combat state to player view automatically
-    syncCombatantsToPlayerView();
+    schedulePlayerViewSync();
 
     const vp = getVaultPath();
     if (!vp) return;
@@ -191,6 +191,14 @@
       sessionSaveTimer = null;
     }, 2000);
   });
+
+  function schedulePlayerViewSync() {
+    if (playerSyncTimer) clearTimeout(playerSyncTimer);
+    playerSyncTimer = setTimeout(() => {
+      syncStateToPlayerView();
+      playerSyncTimer = null;
+    }, 250);
+  }
 
   const _unlistenApp: (() => void)[] = [];
   onMount(() => {
@@ -431,7 +439,11 @@
         window.removeEventListener('open-vtt-map', onOpenVttMap);
       });
     })();
-    return () => _unlistenApp.forEach(fn => fn());
+    return () => {
+      _unlistenApp.forEach(fn => fn());
+      if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
+      if (playerSyncTimer) clearTimeout(playerSyncTimer);
+    };
   });
 
   async function loadVault(vaultPath: string) {
