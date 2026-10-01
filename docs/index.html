@@ -162,6 +162,9 @@
             <a id="dl-linux" href="https://github.com/LordMadTrix/grimoire/releases/latest" class="px-8 py-4 rounded-xl glass text-white font-semibold text-lg hover:border-grimoire-accent transition-all">
                 🐧 Télécharger (Linux)
             </a>
+            <a id="dl-macos" href="https://github.com/LordMadTrix/grimoire/releases/latest" class="px-8 py-4 rounded-xl glass text-white font-semibold text-lg hover:border-grimoire-accent transition-all">
+                🍎 Télécharger (macOS)
+            </a>
             <a href="tutorial.html" class="px-6 py-4 rounded-xl glass border-grimoire-accent/40 text-grimoire-accent font-bold text-lg hover:bg-grimoire-accent hover:text-black transition-all">
                 📖 Manuel & Guide
             </a>
@@ -344,6 +347,56 @@
                 </div>
 
 
+            </div>
+        </section>
+
+        <!-- Nouveautés v0.7.5 -->
+        <section class="max-w-7xl mx-auto px-4 py-16 reveal">
+            <div class="flex items-center gap-3 mb-8">
+                <span class="px-3 py-1 rounded-full bg-grimoire-accent text-black text-xs font-black">NOUVEAU — v0.7.5</span>
+                <h2 class="text-3xl font-black text-white">Les 7 évolutions qui changent la table</h2>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🧠</div>
+                    <h3 class="font-bold text-white text-sm">Mémoire des PNJ</h3>
+                    <p class="text-gray-400 text-xs mt-1">Les PNJ récurrents se souviennent de vos joueurs : dettes, griefs et secrets réinjectés dans les répliques IA.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">📖</div>
+                    <h3 class="font-bold text-white text-sm">Chronique de séance</h3>
+                    <p class="text-gray-400 text-xs mt-1">L'IA locale rédige le récit de la partie à partir des faits réels de la table. Éditable, exportable HTML/PDF.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🎙️</div>
+                    <h3 class="font-bold text-white text-sm">Transcription whisper</h3>
+                    <p class="text-gray-400 text-xs mt-1">Enregistrez votre séance, Grimoire la transcrit en texte. 100% local, aucune donnée envoyée en ligne.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🍎</div>
+                    <h3 class="font-bold text-white text-sm">Arrivée sur macOS</h3>
+                    <p class="text-gray-400 text-xs mt-1">Grimoire est désormais compilé pour Mac Apple Silicon, en plus de Windows et Linux.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">⚡</div>
+                    <h3 class="font-bold text-white text-sm">Catalogue à la demande</h3>
+                    <p class="text-gray-400 text-xs mt-1">Le catalogue Drive (30 000 fichiers) se charge par fragments : démarrage encore plus léger.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">📦</div>
+                    <h3 class="font-bold text-white text-sm">Store communautaire</h3>
+                    <p class="text-gray-400 text-xs mt-1">Soumettez vos packs via un template dédié — un validateur CI vérifie chaque lien avant publication.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🏷️</div>
+                    <h3 class="font-bold text-white text-sm">Installateurs renommés</h3>
+                    <p class="text-gray-400 text-xs mt-1">Noms normalisés Grimoire_V0.7.5_X86 (.exe, .msi, .AppImage, .deb, .rpm, .dmg) pour toutes les plateformes.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🤖</div>
+                    <h3 class="font-bold text-white text-sm">Releases automatiques</h3>
+                    <p class="text-gray-400 text-xs mt-1">Renommage des assets et manifests winget générés automatiquement par le CI à chaque version.</p>
+                </div>
             </div>
         </section>
 
@@ -725,8 +778,11 @@
                 const assets = rel.assets || [];
                 const win = assets.find(a => /\.msi$/i.test(a.name)) || assets.find(a => /setup.*\.exe$/i.test(a.name));
                 const linux = assets.find(a => /\.AppImage$/i.test(a.name)) || assets.find(a => /\.deb$/i.test(a.name));
+                const mac = assets.find(a => /\.dmg$/i.test(a.name));
                 if (win) document.getElementById('dl-windows').href = win.browser_download_url;
                 if (linux) document.getElementById('dl-linux').href = linux.browser_download_url;
+                if (mac) document.getElementById('dl-macos').href = mac.browser_download_url;
+                else document.getElementById('dl-macos').style.display = 'none';
             })
             .catch(() => { /* hors-ligne ou quota API : liens statiques conservés */ });
     </script>

@@ -142,7 +142,16 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Bouton `🎵 Diffuser vers VTT`** : Projetez en 1 clic n'importe quelle piste du catalogue vers le canal d'ambiance actif de la Table Virtuelle.
 - **Installation 1-Clic dans le Coffre** : Téléchargement direct des musiques dans `assets/audio/` de votre campagne active.
 - **Packs d'Aventures & Assets** : Téléchargement et installation en 1 clic de packs officiels et communautaires : Campagnes, Livres PDF, Bestiaires, Banques de textures et tampons HD.
-- **Système de Cache Intelligent** : Chargement instantané à 0 ms et détection automatique des nouveautés.
+- **Contributions Communautaires Encadrées** : Soumettez votre pack via le [template d'issue dédié](https://github.com/LordMadTrix/grimoire/issues/new?template=addon-submission.yml) — un validateur CI vérifie liens, tailles et cohérence avant publication (voir le [guide contributeur](docs/ADDONS-CONTRIBUTING.md)).
+- **Système de Cache Intelligent** : Chargement instantané à 0 ms, catalogue Drive chargé à la demande (manifeste de 400 o + fragments par dossier) et détection automatique des nouveautés.
+
+---
+
+## 🧠 Intelligence Artificielle Locale — Nouveautés v0.7.5
+
+- **🧠 Mémoire de Campagne des PNJ** : Les PNJ récurrents se souviennent des joueurs ! Chaque interaction est résumée localement (`.grimoire/npc-memory.json`), et l'IA réinjecte ce passé dans ses répliques : dettes, griefs, secrets partagés… Vos joueurs seront pris de court.
+- **📖 Chronique de Séance Automatique** : En fin de partie, Grimoire rédige le récit de la séance à partir des faits réels de la table (timeline, calendrier, combats, personnages) — éditable, exportable en HTML/PDF. Zéro comptabilité, que du récit.
+- **🎙️ Transcription de Table 100% Locale (whisper.cpp)** : Enregistrez votre séance, Grimoire la transcrit en texte hors-ligne via un modèle whisper embarqué. Aucun cloud, même philosophie qu'Ollama.
 
 ---
 
@@ -197,7 +206,10 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 
 ### Pour les Maîtres du Jeu & Joueurs
 1. Rendez-vous sur la page des [Releases GitHub](https://github.com/LordMadTrix/grimoire/releases/latest).
-2. Téléchargez l'installateur `.msi` (Windows) ou `.AppImage` (Linux).
+2. Téléchargez l'installateur pour votre plateforme :
+   - **Windows** : `Grimoire_V*.*.*_X86.exe` (setup) ou `.msi`
+   - **Linux** : `Grimoire_V*.*.*_X86.AppImage`, `.deb` ou `.rpm`
+   - **macOS (Apple Silicon)** : `Grimoire_V*.*.*_X86.dmg`
 3. **Au premier lancement sous Windows** : Si l'avertissement *SmartScreen* apparaît (*« Windows a protégé votre ordinateur »*), cliquez sur **« Informations complémentaires »** puis **« Exécuter quand même »**.
 
 ### Pour les Développeurs
