@@ -4,6 +4,7 @@
   import SearchPalette from './components/SearchPalette.svelte';
   import VTTToolbar from './components/VTTToolbar.svelte';
   import SettingsModal from './components/SettingsModal.svelte';
+  import FeedbackModal from './components/FeedbackModal.svelte';
   import MapCanvas from './components/MapCanvas.svelte';
   import InitiativeTracker from './components/InitiativeTracker.svelte';
   import AudioPlayer from './components/AudioPlayer.svelte';
@@ -135,6 +136,7 @@
   let showSettings = $state(false);
   let showOllamaOnboarding = $state(false);
   let showAddonStore = $state(false);
+  let showFeedback = $state(false);
   let showPlayerQuickDock = $state(true);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
@@ -683,6 +685,10 @@
   <AddonStore onclose={() => showAddonStore = false} />
 {/if}
 
+{#if showFeedback}
+  <FeedbackModal onClose={() => showFeedback = false} />
+{/if}
+
 <div class="app-layout" class:zen-mode={isZenMode}>
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -739,6 +745,9 @@
             🔄 Mises à jour
           </button>
         </div>
+        <button onclick={() => showFeedback = true} class="footer-btn" title="Laisser un message aux développeurs">
+          📝 Signaler un bug
+        </button>
       </div>
     {:else}
       <div class="welcome">
