@@ -14,7 +14,15 @@
       "size_bytes": 48234496,
       "file_count": 12,
       "destination": "maps",
-      "tags": ["cartes", "wfrp", "auberge", "egouts", "donjon", "sigmar"]
+      "tags": [
+        "cartes",
+        "wfrp",
+        "auberge",
+        "egouts",
+        "donjon",
+        "sigmar"
+      ],
+      "available": false
     },
     {
       "id": "wfrp-dark-fantasy-tokens",
@@ -28,7 +36,15 @@
       "size_bytes": 18454912,
       "file_count": 48,
       "destination": "tokens",
-      "tags": ["tokens", "monstres", "pj", "pnj", "skaven", "chaos"]
+      "tags": [
+        "tokens",
+        "monstres",
+        "pj",
+        "pnj",
+        "skaven",
+        "chaos"
+      ],
+      "available": false
     },
     {
       "id": "wfrp-immersive-audio-ambiences",
@@ -42,7 +58,14 @@
       "size_bytes": 62914560,
       "file_count": 24,
       "destination": "audio",
-      "tags": ["audio", "musique", "spatial", "ambiance", "orage"]
+      "tags": [
+        "audio",
+        "musique",
+        "spatial",
+        "ambiance",
+        "orage"
+      ],
+      "available": false
     },
     {
       "id": "module-heritage-saponatheim",
@@ -56,7 +79,14 @@
       "size_bytes": 12582912,
       "file_count": 6,
       "destination": "scenarios",
-      "tags": ["aventure", "grimoirepack", "scénario", "wfrp", "quete"]
+      "tags": [
+        "aventure",
+        "grimoirepack",
+        "scénario",
+        "wfrp",
+        "quete"
+      ],
+      "available": false
     }
   ]
 }

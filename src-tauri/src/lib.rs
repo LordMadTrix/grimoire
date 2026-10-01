@@ -98,6 +98,11 @@ pub fn run() {
             // Campagne Export / Import .grimoire
             commands::campaign::campaign_export_package,
             commands::campaign::campaign_import_package,
+            // Transcription locale (whisper.cpp)
+            commands::transcribe::transcribe_status,
+            commands::transcribe::transcribe_download_model,
+            commands::transcribe::transcribe_open_bin_folder,
+            commands::transcribe::transcribe_audio,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");

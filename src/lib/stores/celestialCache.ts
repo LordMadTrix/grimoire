@@ -328,7 +328,92 @@ export async function getCelestialCatalog(forceRefresh = false): Promise<Celesti
   return await fetchFreshCatalog();
 }
 
+// ── Catalogue Drive à la demande (manifeste + fragments) ────────────────────
+// drive-catalog-light.json (≈400 o) : total + compteur par dossier
+// drive-fragments/<dossier>.json : lignes compactes [[id, path, name], …]
+// Le catalogue complet (4,4 Mo) reste servi pour les anciennes versions.
+
+interface DriveCatalogManifest {
+  version: number;
+  updated: string;
+  totalFiles: number;
+  folders: Record<string, number>;
+}
+
+let manifestPromise: Promise<DriveCatalogManifest | null> | null = null;
+
+async function fetchDriveManifest(): Promise<DriveCatalogManifest | null> {
+  try {
+    const res = await fetch('/drive-catalog-light.json');
+    if (res.ok) return await res.json();
+  } catch {
+    // Repli en ligne
+  }
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/drive-catalog-light.json');
+    if (res.ok) return await res.json();
+  } catch {
+    // Hors ligne : manifeste inaccessible
+  }
+  return null;
+}
+
+function getDriveManifest(): Promise<DriveCatalogManifest | null> {
+  manifestPromise ??= fetchDriveManifest();
+  return manifestPromise;
+}
+
+async function fetchDriveFragment(folder: string): Promise<any[] | null> {
+  const file = `${folder.replaceAll('/', '__')}.json`;
+  try {
+    const res = await fetch(`/drive-fragments/${encodeURIComponent(file)}`);
+    if (res.ok) return await res.json();
+  } catch {
+    // Repli en ligne
+  }
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/drive-fragments/${encodeURIComponent(file)}`);
+    if (res.ok) return await res.json();
+  } catch {
+    // Fragment inaccessible
+  }
+  return null;
+}
+
+/**
+ * Reconstitue le catalogue complet en chargeant chaque fragment à la demande,
+ * puis met en cache mémoire + IndexedDB et notifie les listeners.
+ */
+async function getFullCatalog(): Promise<CelestialData> {
+  const manifest = await getDriveManifest();
+  if (!manifest) throw new Error('Impossible de charger le manifeste du catalogue Drive');
+
+  const folders = Object.keys(manifest.folders);
+  const results = await Promise.all(folders.map(async folder => ({ folder, rows: await fetchDriveFragment(folder) })));
+  const failed = results.filter(r => !r.rows);
+  if (failed.length) {
+    throw new Error(`Fragments de catalogue inaccessibles : ${failed.map(f => f.folder).join(', ')}`);
+  }
+
+  const rows = results.flatMap(r => r.rows!);
+  const result = parseJsonToCelestialData({ files: rows, updated: manifest.updated });
+
+  memoryCache = result;
+  await saveToIndexedDB(result);
+  notifyListeners(result, 0);
+
+  return result;
+}
+
 async function fetchFreshCatalog(): Promise<CelestialData> {
+  // 1re tentative : fragments à la demande (léger au démarrage)
+  try {
+    return await getFullCatalog();
+  } catch (e) {
+    console.warn('Fragments indisponibles, repli sur le catalogue complet...', e);
+  }
+
+  // 2e tentative : catalogue complet local (compatibilité / mode dégradé)
   const timestamp = Date.now();
   let json: any = null;
 
@@ -366,37 +451,21 @@ async function fetchFreshCatalog(): Promise<CelestialData> {
 export async function checkForCatalogUpdates(): Promise<{ updated: boolean; newFiles: number; total: number }> {
   try {
     const current = memoryCache || (await getFromIndexedDB());
-    const timestamp = Date.now();
-    
-    let json: any = null;
-    try {
-      const res = await fetch(`/drive-catalog.json?t=${timestamp}`);
-      if (res.ok) json = await res.json();
-    } catch {
-      // Ignorer erreur réseau locale
-    }
 
-    if (!json) {
-      const remoteUrl = `https://raw.githubusercontent.com/LordMadTrix/grimoire/main/public/drive-catalog.json?t=${timestamp}`;
-      const res = await fetch(remoteUrl);
-      if (res.ok) json = await res.json();
-    }
-
-    if (!json) {
+    // Manifeste léger (≈400 o) : total + date au lieu des 4,4 Mo du catalogue
+    const manifest = await getDriveManifest();
+    if (!manifest) {
       return { updated: false, newFiles: 0, total: current?.totalFiles || 0 };
     }
-
-    const remoteTotal = Array.isArray(json.files) ? json.files.length : (json.totalFiles || 0);
-    const remoteUpdated = json.updated || '';
+    const remoteTotal = manifest.totalFiles;
+    const remoteUpdated = manifest.updated;
     const currentTotal = current?.totalFiles || 0;
     const currentUpdated = current?.updatedAt || '';
 
     // Si nouveau total ou date de mise à jour différente
     if (remoteTotal !== currentTotal || remoteUpdated !== currentUpdated || currentTotal === 0) {
       console.log(`✨ Nouveautés détectées dans les Archives Célestes (${currentTotal} -> ${remoteTotal} fichiers)`);
-      const newData = parseJsonToCelestialData(json);
-      memoryCache = newData;
-      await saveToIndexedDB(newData);
+      const newData = await getFullCatalog();
 
       const diff = Math.max(0, newData.totalFiles - currentTotal);
       notifyListeners(newData, diff);

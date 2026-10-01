@@ -1,0 +1,113 @@
+name: "📦 Soumettre un addon"
+description: "Proposer un pack (cartes, tokens, audio, scénarios…) pour le Grimoire Addon Store"
+title: "[Addon] <nom de votre pack>"
+labels: ["addon-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de contribuer au **Grimoire Addon Store** ! 🧙
+        Un mainteneur transformera cette demande en entrée du catalogue après vérification.
+        Un **lien de téléchargement public et stable** (GitHub Releases recommandé) est indispensable.
+
+  - type: input
+    id: name
+    attributes:
+      label: Nom du pack
+      description: "Avec un emoji thématique si possible, ex : 🗺️ Pack Donjons Oubliés"
+      placeholder: "🗺️ Pack Donjons Oubliés"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Catégorie
+      options:
+        - maps (cartes de bataille)
+        - tokens (tampons & tokens)
+        - audio (musiques & ambiances)
+        - scenarios (scénarios, PDF)
+        - other (autre)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: destination
+    attributes:
+      label: Dossier de destination dans le coffre
+      options:
+        - maps
+        - tokens
+        - audio
+        - scenarios
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: "Contenu du pack, univers de jeu, ce que le MJ va en faire."
+      placeholder: "12 cartes tactiques haute résolution pour donjons médiévaux-fantastiques…"
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Auteur / Créateur
+      placeholder: "Votre pseudo (GitHub, Patreon…)"
+    validations:
+      required: true
+
+  - type: input
+    id: download_url
+    attributes:
+      label: Lien de téléchargement (.zip direct)
+      description: "Doit être public, direct et stable — les liens Drive à accès limité seront refusés."
+      placeholder: "https://github.com/votre-compte/votre-depot/releases/download/v1.0.0/pack.zip"
+    validations:
+      required: true
+
+  - type: input
+    id: thumbnail
+    attributes:
+      label: Vignette (URL d'image)
+      description: "Image d'illustration affichée dans le store (optionnel mais recommandé)."
+      placeholder: "https://.../apercu.png"
+
+  - type: input
+    id: size_bytes
+    attributes:
+      label: Taille du fichier (octets)
+      description: "Visible dans les propriétés du .zip — le CI vérifie la cohérence."
+      placeholder: "48234496"
+    validations:
+      required: true
+
+  - type: input
+    id: file_count
+    attributes:
+      label: Nombre de fichiers
+      placeholder: "12"
+    validations:
+      required: true
+
+  - type: textarea
+    id: license
+    attributes:
+      label: Licence / Droits
+      description: "Vous certifiez détenir les droits sur ces contenus et autorisez leur distribution via Grimoire."
+      placeholder: "CC-BY-NC-SA 4.0 / création originale"
+    validations:
+      required: true

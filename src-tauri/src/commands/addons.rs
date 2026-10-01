@@ -20,6 +20,12 @@ pub struct AddonManifest {
     pub file_count: Option<u32>,
     pub destination: String, // sous-dossier cible dans public/ : "maps", "tokens", "tiles/custom"
     pub tags: Option<Vec<String>>,
+    #[serde(default = "default_available")]
+    pub available: bool,
+}
+
+fn default_available() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -244,11 +250,11 @@ pub async fn addon_fetch_catalog(catalog_url: String) -> Result<Vec<AddonManifes
 
     let text = resp.text().await.map_err(|e| e.to_string())?;
     if let Ok(catalog) = serde_json::from_str::<AddonCatalog>(&text) {
-        return Ok(catalog.addons);
+        return Ok(catalog.addons.into_iter().filter(|a| a.available).collect());
     }
-    serde_json::from_str::<Vec<AddonManifest>>(&text).map_err(|e| {
-        format!("Format catalogue invalide : {e}")
-    })
+    let addons: Vec<AddonManifest> = serde_json::from_str(&text)
+        .map_err(|e| format!("Format catalogue invalide : {e}"))?;
+    Ok(addons.into_iter().filter(|a| a.available).collect())
 }
 
 /// Retourne la liste des addons installés localement.
@@ -617,6 +623,7 @@ pub async fn addon_install_local_file(
         file_count: None,
         destination,
         tags: Some(vec!["local".to_string(), "import".to_string()]),
+        available: true,
     };
 
     extract_and_register_zip(&app, &bytes, &manifest)

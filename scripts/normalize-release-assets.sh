@@ -44,6 +44,8 @@ declare -A RENAMES=(
   ["Grimoire_${VERSION}_amd64.AppImage"]="Grimoire_V${VERSION}_X86.AppImage"
   ["Grimoire_${VERSION}_amd64.deb"]="Grimoire_V${VERSION}_X86.deb"
   ["Grimoire-${VERSION}-1.x86_64.rpm"]="Grimoire_V${VERSION}_X86.rpm"
+  ["Grimoire_${VERSION}_aarch64.dmg"]="Grimoire_V${VERSION}_X86.dmg"
+  ["Grimoire_${VERSION}_aarch64.app.tar.gz"]="Grimoire_V${VERSION}_X86.app.tar.gz"
 )
 
 # Noms déjà présents sur la release

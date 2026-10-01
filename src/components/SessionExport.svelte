@@ -1,7 +1,9 @@
 <script lang="ts">
   import { vttStore } from '$lib/stores/vtt.svelte';
-  import { readFile } from '$lib/api';
+  import { readFile, askOllama, transcribeStatus, transcribeDownloadModel, transcribeOpenBinFolder, transcribeAudio, type TranscribeStatus } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
+  import { listen } from '@tauri-apps/api/event';
+  import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 
   let visible = $state(false);
   let exporting = $state(false);
@@ -241,6 +243,57 @@ ${timeline.length > 0 ? `
     }
   }
 
+  // ── Chronique de séance automatique (IA locale) ────────────────────────────
+  let chronicle = $state('');
+  let generatingChronicle = $state(false);
+
+  /** Rassemble les faits bruts de la séance pour le prompt IA */
+  async function buildSessionFacts(): Promise<string> {
+    const combatants = vttStore.combatants;
+    const [timeline, calEvents] = await Promise.all([loadTimelineEvents(), loadCalendarEvents()]);
+    const parts: string[] = [];
+    parts.push(`Carte active : ${vttStore.currentMapRelPath?.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'aucune'} (météo : ${vttStore.weather}, round de combat : ${vttStore.combatRound}).`);
+    if (vttStore.campaignTitle) parts.push(`Campagne : ${vttStore.campaignTitle}.`);
+    if (combatants.length > 0) {
+      parts.push(`Combat (round ${vttStore.combatRound}) : ${combatants.map(c => `${c.name} (init ${c.initiative}, ${c.hp}/${c.maxHp} PV, ${c.isEnemy ? 'ennemi' : 'allie'})`).join('; ')}.`);
+    }
+    if (timeline.length > 0) {
+      parts.push(`Événements récents : ${timeline.slice(-15).map((e: any) => `${e.date ?? ''} ${e.title ?? ''}${e.description ? ` (${e.description})` : ''}`).join('; ')}.`);
+    }
+    if (calEvents.length > 0) {
+      parts.push(`Calendrier : ${calEvents.slice(-10).map((e: any) => `jour ${e.day} ${e.month}/${e.year} — ${e.title}`).join('; ')}.`);
+    }
+    const players = vttStore.tokens.filter(t => !t.isEnemy).map(t => t.name);
+    if (players.length > 0) parts.push(`Personnages présents sur la table : ${players.join(', ')}.`);
+    return parts.join('\n');
+  }
+
+  async function generateChronicle() {
+    if (generatingChronicle) return;
+    generatingChronicle = true;
+    try {
+      const facts = await buildSessionFacts();
+      const prompt = `Tu es le scribe d'une campagne de jeu de rôle sombre et réaliste.\nÀ partir des FAITS DE LA SÉANCE ci-dessous, rédige une chronique narrative immersive de la séance (300 à 500 mots, en français, style récit au passé).\nStructure : un titre évocateur en première ligne, puis 3 à 5 paragraphes qui racontent ce qui s'est passé en s'appuyant UNIQUEMENT sur les faits fournis (ne rien inventer de contradictoire). Termine par une ligne « À suivre » avec un hook narratif.\n\nFAITS DE LA SÉANCE :\n${facts}`;
+      chronicle = await askOllama(prompt, '', '');
+    } catch (e) {
+      alert('Génération de la chronique impossible : ' + String(e));
+    } finally {
+      generatingChronicle = false;
+    }
+  }
+
+  async function exportChronicleHtml() {
+    const now = new Date().toLocaleDateString('fr-FR', { dateStyle: 'long' });
+    const html = `<!DOCTYPE html>\n<html lang="fr">\n<head><meta charset="UTF-8"><title>Chronique de séance — Grimoire</title>\n<style>body{font-family:Georgia,serif;background:#0e1117;color:#c9d1d9;padding:40px;max-width:800px;margin:0 auto;line-height:1.7}h1{color:#e5a853;border-bottom:2px solid #e5a853;padding-bottom:8px}.date{color:#8899b7;margin-bottom:24px}p{margin:0 0 14px}@media print{body{background:white;color:black}h1{color:#b07830}}</style></head>\n<body><h1>📖 Chronique de Séance</h1><div class="date">${now}</div>${chronicle.split(/\n{2,}/).map(p => `<p>${escHtml(p).replace(/\n/g, '<br>')}</p>`).join('')}\n<div style="margin-top:40px;padding-top:16px;border-top:1px solid #1c2233;font-size:11px;color:#4a5568;text-align:center">Généré par Grimoire · ${now}</div></body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chronique-${new Date().toISOString().slice(0, 10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function printReport() {
     exporting = true;
     try {
@@ -253,6 +306,51 @@ ${timeline.length > 0 ? `
       setTimeout(() => win.print(), 400);
     } finally {
       exporting = false;
+    }
+  }
+
+  // ── Transcription locale de la séance (whisper.cpp) ───────────────────────
+  let trStatus = $state<TranscribeStatus | null>(null);
+  let trDownloadPct = $state(-1);
+  let trTranscribing = $state(false);
+  let trResult = $state('');
+  let trError = $state('');
+
+  async function refreshTrStatus() {
+    try { trStatus = await transcribeStatus(); } catch { trStatus = null; }
+  }
+
+  const trReady = $derived(!!trStatus?.binary_exists && !!trStatus?.model_exists);
+
+  async function trDownload() {
+    trDownloadPct = 0;
+    try {
+      await transcribeDownloadModel();
+      await refreshTrStatus();
+    } catch (e) {
+      trError = String(e);
+    } finally {
+      trDownloadPct = -1;
+    }
+  }
+
+  async function trPickAndTranscribe() {
+    if (trTranscribing) return;
+    trError = '';
+    try {
+      const selected = await openFileDialog({
+        multiple: false,
+        directory: false,
+        filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'ogg', 'flac', 'm4a'] }],
+      });
+      if (!selected) return;
+      trTranscribing = true;
+      trResult = '';
+      trResult = await transcribeAudio(selected as string);
+    } catch (e) {
+      trError = String(e);
+    } finally {
+      trTranscribing = false;
     }
   }
 </script>
@@ -305,6 +403,53 @@ ${timeline.length > 0 ? `
             <input type="file" accept=".grimoirepack,.json" onchange={handleImportPack} style="display:none"/>
           </label>
         </div>
+
+        <div style="font-size:11px;font-weight:bold;color:var(--accent);text-transform:uppercase;margin-top:4px">
+          📖 Chronique de Séance (IA locale)
+        </div>
+        {#if !chronicle}
+          <button class="btn-export" style="width:100%" onclick={generateChronicle} disabled={generatingChronicle}>
+            {generatingChronicle ? '⏳ Le scribe rédige…' : '✨ Générer la chronique de la séance'}
+          </button>
+        {:else}
+          <textarea class="chronicle-edit" bind:value={chronicle} rows="9" placeholder="La chronique apparaîtra ici — vous pouvez la corriger avant export."></textarea>
+          <div class="export-actions">
+            <button class="btn-export" onclick={exportChronicleHtml} disabled={exporting}>💾 Chronique HTML</button>
+            <button class="btn-export" onclick={generateChronicle} disabled={generatingChronicle}>{generatingChronicle ? '⏳ …' : '🔄 Régénérer'}</button>
+          </div>
+        {/if}
+
+        <div style="font-size:11px;font-weight:bold;color:var(--accent);text-transform:uppercase;margin-top:4px">
+          🎙️ Transcription de table (100% local, whisper)
+        </div>
+        {#if !trStatus}
+          <button class="btn-export" style="width:100%" onclick={refreshTrStatus}>Vérifier l'installation…</button>
+        {:else if !trReady}
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5">
+            {!trStatus.binary_exists
+              ? `Binaire whisper-cli requis : placez-le dans ${trStatus.binary_path}`
+              : 'Modèle whisper manquant (≈142 Mo, téléchargé une fois).'}
+          </div>
+          {#if trStatus.binary_exists && !trStatus.model_exists}
+            {#if trDownloadPct >= 0}
+              <div style="font-size:11px">⏳ Téléchargement du modèle… {trDownloadPct}%</div>
+            {:else}
+              <button class="btn-export" style="width:100%" onclick={trDownload}>⬇️ Télécharger le modèle whisper</button>
+            {/if}
+          {:else}
+            <button class="btn-export" style="width:100%" onclick={() => transcribeOpenBinFolder()}>📂 Ouvrir le dossier d'installation</button>
+          {/if}
+        {:else}
+          <button class="btn-export" style="width:100%" onclick={trPickAndTranscribe} disabled={trTranscribing}>
+            {trTranscribing ? '⏳ Transcription en cours…' : '🎙️ Transcrire un enregistrement de séance'}
+          </button>
+        {/if}
+        {#if trError}
+          <div style="font-size:11px;color:#f85149">{trError}</div>
+        {/if}
+        {#if trResult}
+          <textarea class="chronicle-edit" bind:value={trResult} rows="6" placeholder="Transcription…"></textarea>
+        {/if}
 
         <div style="font-size:11px;font-weight:bold;color:var(--text-muted);text-transform:uppercase;margin-top:4px">
           📜 Rapport Imprimable
@@ -434,6 +579,20 @@ ${timeline.length > 0 ? `
     color: #fff;
   }
   .btn-pack-import:hover { background: #388bfd; }
+
+  .chronicle-edit {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: Georgia, serif;
+    font-size: 12.5px;
+    line-height: 1.6;
+    padding: 10px;
+    resize: vertical;
+  }
+  .chronicle-edit:focus { outline: 1px solid var(--accent); }
 
   .btn-export {
     background: var(--bg-tertiary);

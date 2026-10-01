@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { getPlayerConnections, type PlayerInfo, broadcastToPlayers } from '$lib/api';
+  import { getPlayerConnections, type PlayerInfo, broadcastToPlayers, askOllama } from '$lib/api';
   import { notifStore } from '$lib/stores/notifications.svelte';
+  import { ensureNpcMemoryLoaded, findNpcMemory, saveNpcInteraction, forgetNpc, getNpcMemoryContext, type NpcMemory } from '$lib/stores/npcMemory.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
 
@@ -23,6 +24,9 @@
   let npcHood = $state<'suspicious' | 'friendly' | 'terrified' | 'greedy' | 'arrogant'>('suspicious');
   let playerQuestion = $state('');
   let generatedNpcReply = $state('');
+  // Mémoire de campagne du PNJ
+  let npcName = $state('');
+  let generatingMemoryReply = $state(false);
 
   // Templates procéduraux d'ambiance
   const ATMOSPHERE_TEMPLATES = {
@@ -163,6 +167,40 @@
     generatedNpcReply = playerQuestion.trim()
       ? `En réponse à « ${playerQuestion.trim()} » :\n\n${reply}`
       : reply;
+
+    // Mémoire : enregistrer l'échange avec le PNJ nommé
+    if (npcName.trim()) {
+      saveNpcInteraction(npcName.trim(), `Échange ${npcArchetype} (${npcHood})${playerQuestion.trim() ? ` — les PJ ont demandé : « ${playerQuestion.trim()} »` : ''} ; réaction : ${npcHood}.`)
+        .then(() => notifStore.add('🧠', 'Mémoire du PNJ', `${npcName.trim()} se souviendra de cette rencontre.`, 'success', 2500))
+        .catch(() => {});
+    }
+  }
+
+  const npcMemory: NpcMemory | null = $derived(npcName.trim() ? findNpcMemory(npcName.trim()) ?? null : null);
+
+  /** Réplique enrichie : la mémoire de campagne est injectée dans le prompt IA locale */
+  async function generateMemoryReply() {
+    if (!npcName.trim() || generatingMemoryReply) return;
+    generatingMemoryReply = true;
+    try {
+      await ensureNpcMemoryLoaded();
+      const memoryCtx = getNpcMemoryContext(npcName.trim());
+      const question = playerQuestion.trim() || 'Comment réagit-il à l\'arrivée des personnages ?';
+      const prompt = `Tu incarnes ${npcName.trim()}, un PNJ ${npcArchetype === 'innkeeper' ? 'aubergiste' : npcArchetype === 'guard' ? 'gardien' : npcArchetype === 'merchant' ? 'marchand' : npcArchetype === 'noble' ? 'noble' : npcArchetype === 'priest' ? 'prêtre' : 'hérétique'} d'attitude ${npcHood === 'suspicious' ? 'méfiante' : npcHood === 'friendly' ? 'amicale' : npcHood === 'terrified' ? 'terrifiée' : npcHood === 'greedy' ? 'cupide' : 'arrogante'} dans un univers sombre et réaliste de jeu de rôle.\n${memoryCtx}\nLes personnages viennent de dire ou demander : « ${question} »\n\nÉcris uniquement sa réplique à la première personne (3 à 5 phrases), en français, en cohérence totale avec ses interactions passées.`;
+      const reply = await askOllama(prompt, '', '');
+      generatedNpcReply = `« ${npcName.trim()} » (mémoire de campagne) :\n\n${reply}`;
+      await saveNpcInteraction(npcName.trim(), `Conversation IA : les PJ ont dit « ${question} » — nouvelle réaction mémorisée.`);
+    } catch (e) {
+      notifStore.add('⚠️', 'IA indisponible', String(e).slice(0, 120), 'danger', 4000);
+    } finally {
+      generatingMemoryReply = false;
+    }
+  }
+
+  async function forgetThisNpc() {
+    if (!npcName.trim()) return;
+    await forgetNpc(npcName.trim());
+    notifStore.add('🧹', 'Mémoire effacée', `${npcName.trim()} a tout oublié.`, 'success', 2500);
   }
 
   function copyText(text: string) {
@@ -303,7 +341,26 @@
             placeholder="Question ou provocation du joueur (optionnel)..."
             bind:value={playerQuestion}
           />
-          <button class="na-btn na-btn-pri" onclick={generateNpcReply}>🗣️ Générer Réplique du PNJ</button>
+          <input
+            type="text"
+            class="na-input"
+            placeholder="Nom du PNJ (mémoire de campagne, ex : Baldur l'aubergiste)..."
+            bind:value={npcName}
+          />
+          {#if npcMemory && npcMemory.interactions.length > 0}
+            <div class="na-memory-box" title={npcMemory.summary}>
+              🧠 <strong>{npcMemory.name}</strong> se souvient de {npcMemory.interactions.length} interaction(s) — dernières : {npcMemory.interactions.slice(-2).map(i => i.summary).join(' · ').slice(0, 140)}…
+            </div>
+          {/if}
+          <div class="na-row">
+            <button class="na-btn na-btn-pri" style="flex:1" onclick={generateNpcReply}>🗣️ Réplique Rapide</button>
+            <button class="na-btn" style="flex:1" disabled={!npcName.trim() || generatingMemoryReply} onclick={generateMemoryReply} title="Réplique IA locale enrichie par la mémoire de campagne">
+              {generatingMemoryReply ? '⏳ Réflexion...' : '🧠 Réplique avec Mémoire'}
+            </button>
+          </div>
+          {#if npcMemory && npcMemory.interactions.length > 0}
+            <button class="na-action-btn" onclick={forgetThisNpc}>🧹 Effacer la mémoire de {npcMemory.name}</button>
+          {/if}
         </div>
 
         {#if generatedNpcReply}
@@ -321,6 +378,16 @@
 </div>
 
 <style>
+  .na-memory-box {
+    background: rgba(229, 168, 83, 0.08);
+    border: 1px solid rgba(229, 168, 83, 0.35);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+    color: var(--text-secondary, #c9d1d9);
+    line-height: 1.45;
+  }
+
   .na-backdrop {
     position: fixed;
     inset: 0;

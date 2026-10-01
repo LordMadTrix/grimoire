@@ -168,6 +168,31 @@ export async function checkOllamaStatus(): Promise<OllamaStatus> {
   return invoke('check_ollama_status');
 }
 
+// ── Transcription locale (whisper.cpp) ───────────────────────────────────────
+export interface TranscribeStatus {
+  binary_exists: boolean;
+  model_exists: boolean;
+  model_size_bytes: number | null;
+  binary_path: string;
+  model_path: string;
+}
+
+export async function transcribeStatus(): Promise<TranscribeStatus> {
+  return invoke('transcribe_status');
+}
+
+export async function transcribeDownloadModel(): Promise<void> {
+  return invoke('transcribe_download_model');
+}
+
+export async function transcribeOpenBinFolder(): Promise<string> {
+  return invoke('transcribe_open_bin_folder');
+}
+
+export async function transcribeAudio(audioPath: string, language?: string): Promise<string> {
+  return invoke('transcribe_audio', { audioPath, language });
+}
+
 export async function downloadOllamaBinary(): Promise<void> {
   return invoke('download_ollama_binary');
 }

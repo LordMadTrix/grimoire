@@ -17,6 +17,8 @@ jobs:
             target: x86_64-pc-windows-msvc
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+          - platform: macos-14
+            target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -86,3 +88,40 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/normalize-release-assets.sh
+
+  winget-manifests:
+    needs: normalize-assets
+    if: ${{ !cancelled() && needs.normalize-assets.result != 'failed' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: generate winget manifests with real sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install --no-save
+          bash scripts/generate-winget-manifest.sh
+          bash scripts/normalize-release-assets.sh   # vérification idempotence
+
+      - name: commit manifests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          VERSION=$(node -p "require('./package.json').version")
+          git add dist-manifests/winget
+          if git diff --cached --quiet; then
+            echo "Aucun changement de manifest — rien à committer."
+          else
+            git commit -m "chore(manifest): manifests winget v$VERSION (CI)"
+            git push origin HEAD:main
+          fi
