@@ -1,7 +1,7 @@
 {
-  "version": "0.7.3",
-  "notes": "Optimisations de performance : chargement différé et mis en cache du catalogue de tampons de l'éditeur de cartes, réduction des appels asynchrones inutiles lors des diffusions VTT, et correctifs de stabilité du générateur de donjon.",
-  "pub_date": "2026-09-21T02:52:06Z",
+  "version": "0.7.4",
+  "notes": "Performances : le catalogue de tampons (26 000+ éléments) se charge désormais à la demande (5,7 Mo → 18 ko au démarrage) et les rendus VTT sont optimisés (catalogues en chargement différé, coalescence des images, synchronisation joueur lissée). Nouveauté : les vignettes des assets absents basculent automatiquement sur les miniatures Google Drive. Correctif : les modèles Ollama des installations antérieures à la v0.6.8 sont de nouveau détectés.",
+  "pub_date": "2026-10-01T02:20:00Z",
   "platforms": {
     "windows-x86_64": {
       "url": "https://github.com/LordMadTrix/grimoire/releases/latest"
