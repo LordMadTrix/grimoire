@@ -72,3 +72,17 @@ jobs:
             *Voir le détail des changements récents dans l'historique des commits.*
           releaseDraft: false
           prerelease: false
+
+  normalize-assets:
+    needs: release
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: normalize release asset names
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/normalize-release-assets.sh

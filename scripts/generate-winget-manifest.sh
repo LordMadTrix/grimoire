@@ -20,8 +20,8 @@ OUTPUT_DIR="$ROOT_DIR/dist-manifests/winget/$VERSION"
 echo "🧙 Génération du manifest WinGet pour Grimoire v$VERSION..."
 mkdir -p "$OUTPUT_DIR"
 
-EXE_URL="https://github.com/$REPO/releases/download/v$VERSION/Grimoire_${VERSION}_x64-setup.exe"
-MSI_URL="https://github.com/$REPO/releases/download/v$VERSION/Grimoire_${VERSION}_x64_en-US.msi"
+EXE_URL="https://github.com/$REPO/releases/download/v$VERSION/Grimoire_V${VERSION}_X86.exe"
+MSI_URL="https://github.com/$REPO/releases/download/v$VERSION/Grimoire_V${VERSION}_X86.msi"
 
 get_sha256() {
   local url="$1"
