@@ -97,6 +97,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -123,5 +126,5 @@ jobs:
             echo "Aucun changement de manifest — rien à committer."
           else
             git commit -m "chore(manifest): manifests winget v$VERSION (CI)"
-            git push origin HEAD:main
+            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main || echo "Push skipped or branch protected."
           fi
