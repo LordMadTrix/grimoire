@@ -45,7 +45,9 @@ function createHerboristeStore() {
   let favoriteCreatureIds = $state<string[]>(loadFavorites('dnd_herbalist_favorite_creatures', ['dragon_vert', 'loup_garou']));
   let selectedPlant = $state<Plant | null>(null);
   let selectedCreatureId = $state<string | null>(null);
+  let selectedGemId = $state<string | null>(null);
   let isAddModalOpen = $state(false);
+  let handoutItem = $state<{ type: 'plant' | 'gem'; item: any } | null>(null);
 
   const plants = $derived<Plant[]>([...customPlants, ...INITIAL_PLANTS]);
   const creatures = $derived<Creature[]>([...customCreatures, ...INITIAL_CREATURES]);
@@ -61,8 +63,12 @@ function createHerboristeStore() {
     set selectedPlant(p: Plant | null) { selectedPlant = p; },
     get selectedCreatureId() { return selectedCreatureId; },
     set selectedCreatureId(id: string | null) { selectedCreatureId = id; },
+    get selectedGemId() { return selectedGemId; },
+    set selectedGemId(id: string | null) { selectedGemId = id; },
     get isAddModalOpen() { return isAddModalOpen; },
     set isAddModalOpen(v: boolean) { isAddModalOpen = v; },
+    get handoutItem() { return handoutItem; },
+    set handoutItem(item: { type: 'plant' | 'gem'; item: any } | null) { handoutItem = item; },
 
     addCustomPlant(plant: Plant) {
       customPlants = [...customPlants, plant];

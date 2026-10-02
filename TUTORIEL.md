@@ -603,20 +603,30 @@ Grimoire embarque un **compendium complet d'herboristerie fantastique** : flore 
 ### 🌿 Ouvrir le Guide
 Dans la barre d'outils de la **Table Virtuelle (VTT)**, ouvrez le menu des outils et cliquez sur **`🌿 Guide de l'Herboriste`**. Une fenêtre plein écran s'ouvre avec 11 onglets.
 
-### 📖 Les 11 Ateliers
+### 📖 Les 20 Ateliers & Simulateurs
 | Onglet | Usage en séance |
 |--------|-----------------|
 | 📖 **Grimoire** | Livre à pages (◀ ▶) : règles de récolte, herbier illustré, recettes — parfait à projeter ou lire à voix haute. |
-| 🌿 **Herbier** | 97 plantes : recherche, filtres par biome/rareté, favoris ❤️, fiche détaillée avec illustration botanique. Bouton **➕ Plante** pour créer vos propres plantes *homebrew* (persistées dans le navigateur). |
-| ⚗️ **Alchimie** | Recettes de potions avec ingrédients cliquables, **jet de concoction d20** contre le DD de la recette, labo avancé (synergies plantes + minéraux) et générateur de tables de potions aléatoires (copie Markdown pour vos notes). |
-| 💀 **Poisons** | Compendium des poisons : vecteurs (contact/ingestion/blessure), conditions infligées, **antidotes liés aux plantes**, prix du marché noir. |
+| 🌿 **Herbier** | 97 plantes : recherche, filtres par biome/rareté, favoris ❤️, fiche détaillée avec illustration botanique. Bouton **➕ Plante** pour créer vos propres plantes *homebrew* et **📜 Handout** pour générer une planche d'indice parcheminée imprimable avec sceau de cire. |
+| ⚗️ **Alchimie** | Recettes de potions avec ingrédients cliquables, **jet de concoction d20** contre le DD de la recette, labo avancé (synergies plantes + minéraux) et générateur de tables de potions aléatoires. |
+| 💀 **Poisons** | Compendium des poisons : vecteurs, conditions infligées, **antidotes liés aux plantes**, détection et **Distillerie de venins de monstres**. |
+| 🍄 **Fongarium** | Mycologie des cavernes : 8 champignons bioluminescents & toxiques, chambre de culture sur substrat, test de sauvegarde aux spores. |
 | 🧭 **Cueillette** | Simulateur de récolte : choisissez biome + météo + durée, lancez le d20, obtenez plantes et rencontres. |
-| 📜 **Guide** | Tables de DD par biome et rareté, les 4 phases de la cueillette, rencontres de fourragement d20 et **sosies toxiques** (la plante qui ressemble à une autre…). |
+| 🌱 **Serre** | Jardin botanique interactif : 4 bacs de culture, arrosage, engrais (humus, phénix, lune), croissance au repos long et chaudron d'hybridation. |
+| 🧺 **Séchage** | 4 techniques de conservation (séchoir suspendu, teinture-mère, salaison, miel sauvage), durée de garde et bonus de conservation. |
+| 🎒 **Sacoche** | Inventaire tactique à 12 compartiments matelassés (fioles, herbes, gemmes, outils), jauge de fragilité et simulateur de casse aux chutes et coups critiques. |
+| 📜 **Quêtes** | Générateur procédural d'accroches de taverne, rumeurs de filons minéraux, gardiens de bestiaire et récompenses en PO. |
+| 🗺️ **Guide** | Tables de DD par biome et rareté, les 4 phases de la cueillette, rencontres de fourragement d20 et **sosies toxiques**. |
 | 🐺 **Bestiaire** | 42 créatures dont on récolte des composants (venin, organes, écailles, spores) avec DD et risques en cas d'échec. |
 | ⛏️ **Minéraux** | Catalogue de minerais magiques + simulateur d'extraction (critique au 20, catastrophe au 1). |
-| 🔨 **Forge** | Recettes de forge naine : choix du foyer, trempe, **sertissage de gemmes**, composants de monstres. |
-| 💎 **Lapidaire** | 20 gemmes avec **calculateur de prix en Goltors** (compatible Donjon de Naheulbeuk) et tirage de coffre au trésor. |
+| 🔨 **Forge** | Recettes de forge naine : choix du foyer, trempe, sertissage de gemmes, composants de monstres. |
+| 💎 **Lapidaire** | 32 gemmes avec **calculateur en Goltors** (Naheulbeuk), **Atelier de Taille** (ébauche, facettage, meules) et **Prospection alluviale & casse de géodes**. |
+| 💍 **Joaillerie** | Établi de sertissage runique : combinez 5 supports forgés (anneau, torque, dague...) avec 5 métaux nobles et vos gemmes taillées. Rendu SVG dynamique et export de fiche magique. |
+| 🌙 **Astral** | Almanach céleste : 8 phases lunaires, constellations de Fangh, marées de sève et résonance tellurique en temps réel. |
+| ⚖️ **Marché** | Cours régionaux des 5 cités de Fangh (Glargh, Waldorg...) et mini-jeu de négociation au d20 face aux marchands PNJ. |
+| 🎲 **Fiascos & Chaos** | Table de magie sauvage : 20 fiascos comiques et 20 prodiges inattendus au d100 pour pimenter vos jets critiques. |
 | 🖨️ **PDF** | Exportez un **livret A4 imprimable** (format poche ou grand grimoire) avec vos favoris. |
+| 🎧 **Ambiance** | Lecteur d'ambiances sonores procédurales Web Audio (Forêt, Torrent, Mine, Alchimie) sans aucun fichier audio externe requis. |
 
 ### 🔍 Recherche Globale
 La barre de recherche dans l'en-tête du Guide fouille **plantes, créatures, gemmes et minéraux** d'un coup — idéale quand un joueur demande *« je peux trouver quoi avec cette racine ? »* au milieu d'une scène.

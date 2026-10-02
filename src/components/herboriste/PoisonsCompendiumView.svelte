@@ -3,6 +3,7 @@
   import type { Plant } from '$lib/herboriste/types/herb';
   import { POISONS_LIST, POISON_VECTORS_META, POISON_CONDITIONS_META } from '$lib/herboriste/data/poisonsData';
   import { herboristeStore } from '$lib/herboriste/store.svelte';
+  import VenomDistilleryView from './VenomDistilleryView.svelte';
 
   let {
     onSelectPlant,
@@ -29,7 +30,7 @@
   let saveResult = $state<PoisonSaveRoll | null>(null);
 
   // Active guide sub-tab
-  let activeSubTab = $state<'compendium' | 'conditions_rules' | 'detection_lore'>('compendium');
+  let activeSubTab = $state<'compendium' | 'conditions_rules' | 'detection_lore' | 'distillery'>('compendium');
 
   // Filtered list
   const filteredPoisons = $derived(
@@ -152,6 +153,11 @@
         <button class="subtab" class:subtab-active={activeSubTab === 'detection_lore'} onclick={() => (activeSubTab = 'detection_lore')}>
           <span>⚠️</span>
           <span>Détection & Marché Noir</span>
+        </button>
+
+        <button class="subtab" class:subtab-active={activeSubTab === 'distillery'} onclick={() => (activeSubTab = 'distillery')}>
+          <span>🧪</span>
+          <span>Distillerie de Venins</span>
         </button>
       </div>
     </div>
@@ -527,6 +533,8 @@
         </div>
       </div>
     </div>
+  {:else if activeSubTab === 'distillery'}
+    <VenomDistilleryView />
   {/if}
 </div>
 

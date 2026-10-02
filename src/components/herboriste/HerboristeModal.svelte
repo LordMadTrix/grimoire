@@ -12,12 +12,43 @@
   import MineralExplorerView from './MineralExplorerView.svelte';
   import ForgeWorkshopView from './ForgeWorkshopView.svelte';
   import LapidaireView from './LapidaireView.svelte';
+  import BotanicalGreenhouseView from './BotanicalGreenhouseView.svelte';
+  import HerbPreservationView from './HerbPreservationView.svelte';
+  import QuestRumorsGeneratorView from './QuestRumorsGeneratorView.svelte';
+  import JewelryEncrustingWorkshopView from './JewelryEncrustingWorkshopView.svelte';
+  import AstralCalendarView from './AstralCalendarView.svelte';
+  import MerchantMarketView from './MerchantMarketView.svelte';
+  import FungariumMycologyView from './FungariumMycologyView.svelte';
+  import ApothecarySatchelView from './ApothecarySatchelView.svelte';
+  import WildMagicFiascosSurgesView from './WildMagicFiascosSurgesView.svelte';
   import PdfExportView from './PdfExportView.svelte';
   import PlantDetailModal from './PlantDetailModal.svelte';
   import AddCustomPlantModal from './AddCustomPlantModal.svelte';
+  import HandoutGeneratorModal from './HandoutGeneratorModal.svelte';
+  import SoundscapePlayer from './SoundscapePlayer.svelte';
   import GlobalSearchBar from './GlobalSearchBar.svelte';
 
-  type ActiveTab = 'grimoire' | 'herbier' | 'alchimie' | 'poisons' | 'cueillette' | 'guide_recolteur' | 'bestiaire' | 'mineraux' | 'forge' | 'lapidaire' | 'pdf_export';
+  type ActiveTab =
+    | 'grimoire'
+    | 'herbier'
+    | 'alchimie'
+    | 'poisons'
+    | 'fongarium'
+    | 'cueillette'
+    | 'serre'
+    | 'sechage'
+    | 'sacoche'
+    | 'quetes'
+    | 'guide_recolteur'
+    | 'bestiaire'
+    | 'mineraux'
+    | 'forge'
+    | 'lapidaire'
+    | 'joaillerie'
+    | 'astral'
+    | 'marche'
+    | 'fiascos'
+    | 'pdf_export';
 
   let visible = $state(false);
   let activeTab = $state<ActiveTab>('grimoire');
@@ -32,12 +63,21 @@
     { id: 'herbier', label: 'Herbier', icon: '🌿' },
     { id: 'alchimie', label: 'Alchimie', icon: '⚗️' },
     { id: 'poisons', label: 'Poisons', icon: '💀' },
+    { id: 'fongarium', label: 'Fongarium', icon: '🍄' },
     { id: 'cueillette', label: 'Cueillette', icon: '🧭' },
-    { id: 'guide_recolteur', label: 'Guide', icon: '📜' },
+    { id: 'serre', label: 'Serre', icon: '🌱' },
+    { id: 'sechage', label: 'Séchage', icon: '🧺' },
+    { id: 'sacoche', label: 'Sacoche', icon: '🎒' },
+    { id: 'quetes', label: 'Quêtes', icon: '📜' },
+    { id: 'guide_recolteur', label: 'Guide', icon: '🗺️' },
     { id: 'bestiaire', label: 'Bestiaire', icon: '🐺' },
     { id: 'mineraux', label: 'Minéraux', icon: '⛏️' },
     { id: 'forge', label: 'Forge', icon: '🔨' },
     { id: 'lapidaire', label: 'Lapidaire', icon: '💎' },
+    { id: 'joaillerie', label: 'Joaillerie', icon: '💍' },
+    { id: 'astral', label: 'Astral', icon: '🌙' },
+    { id: 'marche', label: 'Marché', icon: '⚖️' },
+    { id: 'fiascos', label: 'Fiascos & Chaos', icon: '🎲' },
     { id: 'pdf_export', label: 'PDF', icon: '🖨️' },
   ];
 
@@ -78,12 +118,13 @@
             creatures={herboristeStore.creatures}
             onSelectPlant={selectPlant}
             onSelectCreature={selectCreature}
-            onSelectGem={() => activeTab = 'lapidaire'}
+            onSelectGem={(g) => { herboristeStore.selectedGemId = g.id; activeTab = 'lapidaire'; }}
             onSelectMineral={() => activeTab = 'mineraux'}
           />
         </div>
 
         <div class="header-actions">
+          <SoundscapePlayer />
           <button class="add-btn" onclick={() => herboristeStore.isAddModalOpen = true} title="Ajouter une plante homebrew">➕ Plante</button>
           <button class="close-btn" onclick={() => visible = false} title="Fermer">✕</button>
         </div>
@@ -120,12 +161,22 @@
             onSelectPlant={selectPlant}
             onNavigateToAlchemy={() => activeTab = 'alchimie'}
           />
+        {:else if activeTab === 'fongarium'}
+          <FungariumMycologyView />
         {:else if activeTab === 'cueillette'}
           <GatheringSimulator
             plants={herboristeStore.plants}
             onSelectPlant={selectPlant}
             onNavigateToGuide={() => activeTab = 'guide_recolteur'}
           />
+        {:else if activeTab === 'serre'}
+          <BotanicalGreenhouseView />
+        {:else if activeTab === 'sechage'}
+          <HerbPreservationView />
+        {:else if activeTab === 'sacoche'}
+          <ApothecarySatchelView />
+        {:else if activeTab === 'quetes'}
+          <QuestRumorsGeneratorView />
         {:else if activeTab === 'guide_recolteur'}
           <HarvesterGuideView
             plants={herboristeStore.plants}
@@ -146,6 +197,14 @@
           />
         {:else if activeTab === 'lapidaire'}
           <LapidaireView />
+        {:else if activeTab === 'joaillerie'}
+          <JewelryEncrustingWorkshopView />
+        {:else if activeTab === 'astral'}
+          <AstralCalendarView />
+        {:else if activeTab === 'marche'}
+          <MerchantMarketView />
+        {:else if activeTab === 'fiascos'}
+          <WildMagicFiascosSurgesView />
         {:else if activeTab === 'pdf_export'}
           <PdfExportView
             plants={herboristeStore.plants}
@@ -161,6 +220,8 @@
       <PlantDetailModal {recipes} />
 
       <AddCustomPlantModal />
+
+      <HandoutGeneratorModal />
     </div>
   </div>
 {/if}

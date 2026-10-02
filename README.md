@@ -145,18 +145,28 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Contributions Communautaires Encadrées** : Soumettez votre pack via le [template d'issue dédié](https://github.com/LordMadTrix/grimoire/issues/new?template=addon-submission.yml) — un validateur CI vérifie liens, tailles et cohérence avant publication (voir le [guide contributeur](docs/ADDONS-CONTRIBUTING.md)).
 - **Système de Cache Intelligent** : Chargement instantané à 0 ms, catalogue Drive chargé à la demande (manifeste de 400 o + fragments par dossier) et détection automatique des nouveautés.
 
-### 8. 🌿 Guide de l'Herboriste & Lapidaire (Module Intégré)
-Un compendium complet d'herboristerie, d'alchimie et de minéralogie directement accessible depuis la barre d'outils VTT (`🌿 Guide de l'Herboriste`) — 11 ateliers en un seul grimoire :
+### 8. 🌿 Guide de l'Herboriste & Lapidaire (Module Intégré — 20 Ateliers & Simulateurs)
+Un compendium complet d'herboristerie, d'alchimie, de lapidaire et de minéralogie directement accessible depuis la barre d'outils VTT (`🌿 Guide de l'Herboriste`) :
 - **📖 Grimoire Complet** : Livre à pages navigable (règles de récolte, herbier illustré, recettes) prêt à consulter en séance.
-- **🌿 Herbier & Index** : 97 plantes détaillées (biomes, rareté, DD de récolte et d'alchimie, illustrations botaniques SVG) avec filtres, tri, favoris ❤️ et ajout de plantes *homebrew* persistées.
-- **⚗️ Atelier Alchimie & Labo Avancé** : Recettes de potions/onguents/teintures, creuset avec jet de concoction d20, moteur de synergies plantes + minéraux et table de potions aléatoires (copie Markdown pour vos notes).
-- **💀 Compendium des Poisons** : Vecteurs, conditions, antidotes liés aux plantes, règles de détection et prix du marché noir.
+- **🌿 Herbier & Index** : 97 plantes détaillées (biomes, rareté, DD de récolte et d'alchimie, illustrations botaniques SVG) avec filtres, tri, favoris ❤️, ajout de plantes *homebrew* persistées et **générateur de Handouts Joueurs parcheminés**.
+- **⚗️ Atelier Alchimie & Labo Avancé** : Recettes de potions/onguents/teintures, creuset avec jet de concoction d20, moteur de synergies plantes + minéraux et table de potions aléatoires.
+- **💀 Compendium des Poisons & Distillerie** : Vecteurs, conditions, antidotes liés aux plantes, règles de détection, marché noir et **distillerie de venins de créatures**.
+- **🍄 Fongarium Mystique & Mycologie Souterraine** : 8 espèces fongiques bioluminescentes et toxiques, chambre de culture sur substrat et tests de résistance aux spores.
 - **🧭 Simulateur de Cueillette & 📜 Guide du Récolteur** : Jets de récolte avec modificateurs (météo, lune, durée, équipement), tables de rareté d100 par biome, rencontres de fourragement d20 et sosies toxiques.
+- **🌱 Serre Botanique Mystique** : 4 bacs de culture interactifs, arrosage, engrais alchimiques, progression au repos long et chaudron d'hybridation.
+- **🧺 Séchage & Conservation d'Herbes** : 4 procédés (séchoir suspendu, teinture-mère, salaison, miel sauvage), gestion des péremptions et bonus d'efficacité.
+- **🎒 Sacoche d'Apothicaire & Grille Tactique** : Inventaire de 12 compartiments pour fioles et poudres, jauge de fragilité et simulateur de casse aux chutes et coups critiques en donjon.
+- **📜 Générateur de Quêtes & Rumeurs de Filons** : Accroches de tavernes procédurales, gardiens de bestiaire et conditions spéciales de récolte.
 - **🐺 Bestiaire Récoltable** : 42 créatures avec composants à prélever (venin, organes, écailles, spores…) et simulateur de jet de récolte.
 - **⛏️ Minéraux & 🔨 Forge Naine** : Catalogue de minerais magiques, simulateur d'extraction, recettes de forge (trempe, sertissage de gemmes, composants de monstres).
-- **💎 Lapidaire de Fangh** : 20 gemmes avec calculateur de prix en Goltors (Naheulbeuk-compatible) et tirage de coffre au trésor.
-- **🖨️ Export PDF A4** : Livret de poche ou grand grimoire imprimable, profil joueur et sélection de favoris.
-- **🔍 Recherche Globale** : Plantes, créatures, gemmes et minéraux accessibles depuis une barre unique.
+- **💎 Lapidaire de Fangh & Prospection Alluviale** : 32 gemmes avec planches gemmologiques, calculateur de prix en Goltors (Naheulbeuk-compatible), **Atelier de Taille & Facettage** (meules, DD de Mohs) et **simulateur de prospection alluviale & casse de géodes**.
+- **💍 Établi de Joaillerie Runique** : Enchâssez vos gemmes taillées sur 5 supports forgés (anneau, torque, dague...) avec 5 métaux nobles. Rendu SVG dynamique et export de fiches d'objets magiques.
+- **🌙 Almanach Astral & Marées Telluriques** : Disque lunaire interactif (8 phases), constellations de Fangh, marées de sève et influences magiques en temps réel.
+- **⚖️ Bourse Régionale & Négociation au Comptoir** : Indices des cours des 5 cités de Fangh et mini-jeu de marchandage au d20 face aux marchands PNJ.
+- **🎲 Table des Fiascos Comiques & Prodiges Inattendus** : 20 fiascos déjantés et 20 prodiges miraculeux au d100 pour pimenter les jets critiques de craft.
+- **🎧 Ambiances Procédurales Web Audio** : Soundscapes sonores générés en temps réel sans aucun fichier audio externe (Forêt, Torrent, Mine, Alchimie).
+- **🖨️ Export PDF A4 & Handouts** : Livret de poche ou grand grimoire imprimable, profil joueur et sélection de favoris.
+- **🔍 Recherche Globale** : Plantes, créatures, gemmes et minéraux accessibles instantanément depuis une barre unique.
 
 ---
 

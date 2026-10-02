@@ -36,8 +36,17 @@
   {@const rarityInfo = RARITY_METADATA[plant.rarity]}
   <div class="modal-overlay">
     <div class="modal-panel">
-      <!-- Top Action Buttons (Favorite + Close) -->
+      <!-- Top Action Buttons (Favorite + Handout + Close) -->
       <div class="top-actions">
+        <button
+          type="button"
+          onclick={() => (herboristeStore.handoutItem = { type: 'plant', item: plant })}
+          title="Générer une planche parcheminée / Handout Joueur"
+          class="icon-btn handout-pill-btn"
+        >
+          📜 Handout
+        </button>
+
         <button
           onclick={() => herboristeStore.toggleFavoritePlant(plant.id)}
           title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
@@ -269,6 +278,15 @@
     background-color: #ffe4e6;
     border-color: #fb7185;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  .handout-pill-btn {
+    width: auto;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: #e8dbc3;
+    color: #4a2c11;
   }
 
   .modal-header {

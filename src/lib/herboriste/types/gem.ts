@@ -11,7 +11,10 @@ export type GemCut =
   | 'coussin' 
   | 'emeraude' 
   | 'goutte' 
-  | 'ovale';
+  | 'ovale'
+  | 'marquise'
+  | 'baguette'
+  | 'trillant';
 
 export interface Gem {
   id: string;
@@ -40,4 +43,98 @@ export interface GemLootRoll {
   isCut: boolean;
   purity: 'Parfaite (+50%)' | 'Standard' | 'Avec inclusions (-25%)';
   finalValuePo: number;
+}
+
+export type ProspectingSiteId =
+  | 'riviere'
+  | 'montagne'
+  | 'caverne'
+  | 'volcan'
+  | 'cote'
+  | 'astral';
+
+export interface ProspectingSite {
+  id: ProspectingSiteId;
+  name: string;
+  icon: string;
+  subtitle: string;
+  description: string;
+  dcBase: number;
+  difficultyLabel: string;
+  keyMinerals: string;
+  availableGemIds: string[];
+}
+
+export type ProspectingToolId =
+  | 'batee'
+  | 'marteau'
+  | 'loupe'
+  | 'lanterne';
+
+export interface ProspectingTool {
+  id: ProspectingToolId;
+  name: string;
+  icon: string;
+  description: string;
+  bonus: number;
+}
+
+export interface ProspectingRollResult {
+  d20: number;
+  skillBonus: number;
+  toolBonus: number;
+  conditionBonus: number;
+  total: number;
+  dc: number;
+  success: boolean;
+  critSuccess: boolean;
+  critFail: boolean;
+  foundGem: Gem | null;
+  weightGoltors: number;
+  state: 'brute' | 'geode' | 'alluviale' | 'gravier';
+  purity: 'Parfaite (+50%)' | 'Standard' | 'Avec inclusions (-25%)';
+  finalValuePo: number;
+  flavorTitle: string;
+  flavorDesc: string;
+  hazardNote?: string;
+  isGeode: boolean;
+  geodeCracked?: boolean;
+}
+
+// Gem Cutting Workshop types
+export interface GemCuttingPattern {
+  id: GemCut;
+  name: string;
+  icon: string;
+  facetCount: number;
+  description: string;
+  dcMod: number;
+  valueMultiplier: number;
+}
+
+export type LapidaryWheelId = 'gres' | 'emeri' | 'diamant' | 'feutre_cerium';
+
+export interface LapidaryWheel {
+  id: LapidaryWheelId;
+  name: string;
+  icon: string;
+  description: string;
+  bonus: number;
+  suitableMohs: string;
+}
+
+export interface GemCuttingRollResult {
+  d20: number;
+  artisanBonus: number;
+  wheelBonus: number;
+  total: number;
+  dc: number;
+  outcome: 'masterpiece' | 'standard' | 'flawed' | 'shattered';
+  gem: Gem;
+  chosenPattern: GemCuttingPattern;
+  weightGoltors: number;
+  finalValuePo: number;
+  title: string;
+  desc: string;
+  enchantmentBonus?: string;
 }
