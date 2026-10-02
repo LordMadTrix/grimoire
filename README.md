@@ -164,6 +164,14 @@ Un compendium complet d'herboristerie, d'alchimie, de lapidaire et de minéralog
 - **🌙 Almanach Astral & Marées Telluriques** : Disque lunaire interactif (8 phases), constellations de Fangh, marées de sève et influences magiques en temps réel.
 - **⚖️ Bourse Régionale & Négociation au Comptoir** : Indices des cours des 5 cités de Fangh et mini-jeu de marchandage au d20 face aux marchands PNJ.
 - **🎲 Table des Fiascos Comiques & Prodiges Inattendus** : 20 fiascos déjantés et 20 prodiges miraculeux au d100 pour pimenter les jets critiques de craft.
+- **📡 Passerelle VTT, Écran Joueur & Compagnons Mobiles (Nouveauté)** :
+  - **👁️ Révélation Cinématique sur Écran Joueur (2e écran / Rétroprojecteur)** : Projetez des parchemins enluminés plein écran avec sceau de cire officiel, illustrations botaniques/gemmologiques et notes secrètes du MJ.
+  - **🔍 Mode Mystère & Dévoilement Participatif** : Projetez un spécimen non-identifié. Les joueurs lancent un test d'Herboristerie sur leur smartphone pour débloquer progressivement les indices (famille, vertus) directement sur le rétroprojecteur avec animation d'encre ancienne !
+  - **🎒 Sacoche Botanique Mobile & Cadeaux du MJ** : Le MJ peut transférer des plantes, potions ou gemmes directement dans l'inventaire mobile des PJ connectés en Wi-Fi local.
+  - **💀 HUD de Survie & Antidotes en Direct** : Le MJ peut infliger un empoisonnement en direct ; le mobile du joueur passe en alerte rouge avec vibrations, et un bouton d'urgence permet de consommer automatiquement l'antidote approprié depuis la sacoche.
+  - **⚖️ Marchand Ambulant Connecté** : Le MJ ouvre son étal d'apothicaire en 1 clic pour diffuser le catalogue sur les téléphones des joueurs pour achat et vente immédiate.
+  - **⛏️ Radar Minier & Enduits d'Armes au Combat** : Détection de filons par vibration mobile lors de l'exploration, et possibilité pour les guerriers/roublards d'enduire leurs armes de venins (+1d6 poison sur 3 frappes).
+  - **🏷️ Générateur d'Étiquettes d'Apothicaire & Grand Folio** : Impression de véritables étiquettes de fioles d'officine vintage (posologie, lot, avertissement Naheulbeuk) prêtes à découper ou exporter.
 - **🎧 Ambiances Procédurales Web Audio** : Soundscapes sonores générés en temps réel sans aucun fichier audio externe (Forêt, Torrent, Mine, Alchimie).
 - **🖨️ Export PDF A4 & Handouts** : Livret de poche ou grand grimoire imprimable, profil joueur et sélection de favoris.
 - **🔍 Recherche Globale** : Plantes, créatures, gemmes et minéraux accessibles instantanément depuis une barre unique.

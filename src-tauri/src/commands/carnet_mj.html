@@ -171,6 +171,9 @@
     <button onclick="insertTemplate('loot')" class="px-2.5 py-1 rounded-md bg-grimoire-surface/80 border border-grimoire-border text-[11px] text-gray-300 flex-shrink-0 whitespace-nowrap active:border-grimoire-accent">
       💰 Trésor
     </button>
+    <button onclick="insertTemplate('herbo')" class="px-2.5 py-1 rounded-md bg-grimoire-surface/80 border border-grimoire-border text-[11px] text-emerald-300 flex-shrink-0 whitespace-nowrap active:border-grimoire-accent">
+      🌿 Botanique
+    </button>
 
     <div class="h-4 w-px bg-grimoire-border flex-shrink-0 mx-0.5"></div>
 
@@ -778,6 +781,13 @@
 - **Monnaies** : 
 - **Objet magique / Relique** : 
 - **Indice / Lettre** : \n`;
+      } else if (type === 'herbo') {
+        tpl = `\n\n### 🌿 Spécimen Botanique & Minéral (Table de Référence MJ)
+- **Biome & Climat** : Forêt / Marais / Cavernes (DD Cueillette : 12-16)
+- **Plante ou Gemme** : [Nom vernaculaire & latin]
+- **Propriétés & Effets** : [Soins, Potion, Poison, Envoûtement]
+- **Dangerosité / Toxicité** : [Sauvegarde Vigueur DD 14 ou Fiasco magique]
+- **Valeur Marchande** : [PO taillée ou UG brute]\n`;
       }
 
       insertMarkdown('', tpl);

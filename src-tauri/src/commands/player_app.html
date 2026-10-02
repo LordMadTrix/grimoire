@@ -243,6 +243,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <button class="tab" onclick="showTab(this,'fiche');renderSheet()">📄 Fiche</button>
     <button class="tab" onclick="showTab(this,'combat')">⚔️ Combat</button>
     <button class="tab" onclick="showTab(this,'equip')">🎒 Équip</button>
+    <button class="tab" onclick="showTab(this,'herbo');renderHerboSatchel()">🌿 Botanique</button>
     <button class="tab" onclick="showTab(this,'des');buildSkillTests()">🎲 Dés</button>
     <button class="tab" onclick="showTab(this,'carte')">🗺️ Carte</button>
     <button class="tab" onclick="showTab(this,'aide')">🤖 Aide</button>
@@ -767,6 +768,82 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="sec">Handouts Reçus</div>
     <div id="recv-list" class="recv-list">
       <div style="text-align:center;color:var(--muted);font-size:13px;padding:24px 0">Aucun handout reçu pour le moment</div>
+    </div>
+  </div>
+
+  <!-- ══ BOTANIQUE & HERBORISTERIE ══ -->
+  <div id="tab-herbo" class="panel">
+    <!-- Poison & Health Status Banner (Idea 4) -->
+    <div id="poison-alert-box" style="display:none;background:rgba(220,38,38,0.2);border:1px solid #ef4444;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:6px;color:#fca5a5;font-weight:700;font-size:13px">
+        <span>💀</span>
+        <span id="poison-name">Intoxication Aiguë</span>
+      </div>
+      <div id="poison-desc" style="font-size:12px;color:#fee2e2;margin-top:2px">Effet : -2 PV/tour si non-traité.</div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button onclick="tryUseAntidote()" style="background:#ef4444;color:#fff;border:none;padding:5px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">💊 Boire un Antidote</button>
+      </div>
+    </div>
+
+    <!-- Active Mystery Specimen (Idea 1: Interactive Identification) -->
+    <div id="mystery-specimen-box" style="display:none;background:rgba(229,168,83,0.12);border:1px dashed var(--accent);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:var(--accent);font-size:13px">🌿 Échantillon Inconnu en cours d'examen</strong>
+        <span style="font-size:10px;color:var(--muted)">Projeté par le MJ</span>
+      </div>
+      <div style="font-size:12px;color:var(--text);margin:4px 0">
+        Tentez d'identifier les composants pour révéler les secrets sur l'écran du groupe !
+      </div>
+      <button onclick="attemptIdentification()" style="width:100%;background:linear-gradient(135deg,#78350f,#b45309);border:none;color:#fff;padding:8px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">
+        🔍 Examiner & Tenter l'Identification (Int)
+      </button>
+    </div>
+
+    <!-- Merchant Market Stall (Idea 5: Troc & Marchand) -->
+    <div id="herbo-market-box" style="display:none;background:rgba(99,102,241,0.12);border:1px solid #6366f1;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:#c7d2fe;font-size:13px">⚖️ Étal de l'Apothicaire / Lapidaire</strong>
+        <button onclick="toggleMarketView()" style="background:none;border:none;color:#a5b4fc;font-size:11px;cursor:pointer">✕ Fermer</button>
+      </div>
+      <div id="market-items-list" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div>
+    </div>
+
+    <!-- Moon & Astral indicator -->
+    <div id="herbo-lunar-banner" style="display:flex;align-items:center;justify-content:space-between;background:rgba(147,51,234,0.12);border:1px solid #a855f7;border-radius:8px;padding:6px 10px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:16px">🌙</span>
+        <span style="font-size:11px;color:#e9d5ff">Influence Lunaire : <strong>Pleine Lune</strong> (+20% puissance magique)</span>
+      </div>
+      <button onclick="toggleProspectingRadar()" id="btn-prospect-radar" style="background:#4c1d95;color:#f3e8ff;border:1px solid #a855f7;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">⛏️ Radar Minier</button>
+    </div>
+
+    <!-- Active Weapon Coating (Enduit d'arme) -->
+    <div id="weapon-coating-banner" style="display:none;background:rgba(34,197,94,0.15);border:1px solid #22c55e;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:#86efac;font-size:12px">⚔️ Arme Enduite : <span id="coating-name">—</span></strong>
+        <span style="font-size:10px;color:var(--muted)" id="coating-charges">3 charges</span>
+      </div>
+      <div style="font-size:11px;color:#dcfce7" id="coating-effect">+1d6 poison sur la prochaine frappe</div>
+    </div>
+
+    <div class="sec">Sacoche Botanique & Alchimie</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">
+      Objets, herbes et décoctions partagés ou découverts durant l'aventure.
+    </div>
+    <div id="herbo-items-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Sacoche vide pour le moment</div>
+    </div>
+
+    <div class="sec" style="margin-top:12px">Actions Rapides de Forêt & Laboratoire</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="sb-btn" onclick="rollHerboCheck('Cueillette')">🌿 Test Cueillette (Int)</button>
+      <button class="sb-btn" onclick="rollHerboCheck('Identification')">🔍 Identifier Herbe</button>
+      <button class="sb-btn" onclick="rollHerboCheck('Alchimie')">⚗️ Brassage Potion</button>
+      <button class="sb-btn" onclick="rollHerboCheck('Prospection')">⛏️ Coup de Pioche (For)</button>
+    </div>
+    <div class="test-result" id="herbo-roll-result" style="display:none;margin-top:10px">
+      <div class="test-roll" id="herbo-roll-num">—</div>
+      <div class="test-verdict" id="herbo-roll-verdict"></div>
     </div>
   </div>
 </div>
@@ -1691,6 +1768,10 @@ function connect(){
         if(!env.data.target_id||env.data.target_id===playerId){
           showPrivateMessage(env.data.message||'');
         }
+      }else if(env.event==='herbo_item_shared'){
+        handleHerboItemShared(env.data);
+      }else if(env.event==='herbo_give_item'){
+        handleHerboGiveItem(env.data);
       }
     }catch(err){}
   };
@@ -2271,6 +2352,300 @@ function sendTokenMove(dx, dy) {
   send('token_move', { dx, dy });
 }
 
+// ── Herboristerie & Sacoche Botanique ─────────────────────────────
+let herboItems = [];
+try {
+  const saved = localStorage.getItem('grimoire_herbo_satchel');
+  if (saved) herboItems = JSON.parse(saved);
+} catch(e) {}
+
+function saveHerboSatchel() {
+  try {
+    localStorage.setItem('grimoire_herbo_satchel', JSON.stringify(herboItems));
+  } catch(e) {}
+}
+
+let currentMysteryItem = null;
+let currentPoison = null;
+let marketCatalog = [];
+
+function handleHerboItemShared(data) {
+  if (!data) return;
+  if (data.type === 'hazard' || data.type === 'poison_inflict') {
+    currentPoison = {
+      name: data.title || data.name || 'Poison Végétal',
+      desc: data.description || 'Dommages toxiques par round.'
+    };
+    const pBox = document.getElementById('poison-alert-box');
+    const pName = document.getElementById('poison-name');
+    const pDesc = document.getElementById('poison-desc');
+    if (pBox && pName && pDesc) {
+      pName.textContent = currentPoison.name;
+      pDesc.textContent = currentPoison.desc;
+      pBox.style.display = 'block';
+    }
+    showToast('💀', 'Empoisonné !', currentPoison.name + ' : ' + currentPoison.desc, 'danger', 10000);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+    return;
+  }
+  if (data.type === 'astral_climate') {
+    showToast('🌙', 'Climat Astral', 'Phase lunaire : ' + data.moonPhase + '. ' + (data.notes||''), 'accent', 8000);
+    return;
+  }
+  if (data.type === 'merchant_open') {
+    marketCatalog = data.catalog || [];
+    renderMarket();
+    const mBox = document.getElementById('herbo-market-box');
+    if (mBox) mBox.style.display = 'block';
+    showToast('⚖️', 'Marchand d\'Apothicaire', 'L\'étal est ouvert ! Consultez le catalogue.', 'accent', 6000);
+    return;
+  }
+
+  const item = data.item || data;
+  const isMystery = !!data.isMystery;
+  currentMysteryItem = isMystery ? item : null;
+  const mBox = document.getElementById('mystery-specimen-box');
+  if (mBox) mBox.style.display = isMystery ? 'block' : 'none';
+
+  const title = isMystery ? 'Plante Mystérieuse Inconnue' : (item.name || 'Découverte Botanique');
+  const desc = isMystery ? 'Le Maître du Jeu a partagé un spécimen non-identifié. Faites un test d\'Herboristerie pour percer ses vertus.' : (item.description || item.notes || '');
+
+  showToast('🌿', 'Découverte Partagée', title + ' : ' + desc.slice(0, 75) + '…', 'accent', 8000);
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+}
+
+function attemptIdentification() {
+  if (!currentMysteryItem) {
+    showToast('🔍', 'Identification', 'Aucun spécimen inconnu sélectionné.', 'info', 3000);
+    return;
+  }
+  const d100 = Math.floor(Math.random() * 100) + 1;
+  const intVal = parseInt(document.getElementById('si-int')?.value || '35', 10) || 35;
+  const success = d100 <= intVal;
+  const degre = Math.floor(intVal / 10) - Math.floor(d100 / 10);
+
+  if (success) {
+    // Generate a progressive clue from item properties
+    const clue = `Famille : ${currentMysteryItem.biome || 'Flore sauvage'} · Vertus : ${currentMysteryItem.effect || 'Propriété revigorante'} (${degre} DR)`;
+    send('herbo_identify_attempt', {
+      success: true,
+      clue: clue,
+      itemId: currentMysteryItem.id,
+      itemName: currentMysteryItem.name,
+      roll: d100,
+      intVal: intVal
+    });
+    showToast('✨', 'Identification Réussie !', 'Indice débloqué et transmis sur la Vue Joueur.', 'success', 5000);
+  } else {
+    send('herbo_identify_attempt', {
+      success: false,
+      itemId: currentMysteryItem.id,
+      roll: d100,
+      intVal: intVal
+    });
+    showToast('❓', 'Échec d\'Analyse', 'Le spécimen résiste à votre expertise pour le moment.', 'warn', 4000);
+  }
+}
+
+function tryUseAntidote() {
+  const antidoteIdx = herboItems.findIndex(i => 
+    (i.name && i.name.toLowerCase().includes('antidote')) ||
+    (i.effects && Array.isArray(i.effects) && i.effects.some(e => e.toLowerCase().includes('poison') || e.toLowerCase().includes('antidote')))
+  );
+
+  if (antidoteIdx >= 0) {
+    const it = herboItems[antidoteIdx];
+    herboItems.splice(antidoteIdx, 1);
+    saveHerboSatchel();
+    renderHerboSatchel();
+    currentPoison = null;
+    const pBox = document.getElementById('poison-alert-box');
+    if (pBox) pBox.style.display = 'none';
+    send('chat', { message: `💊 [Antidote] Utilise ${it.name} et neutralise le poison avec succès !` });
+    showToast('💚', 'Guérison', 'Poison neutralisé grâce à ' + it.name, 'success', 5000);
+  } else {
+    showToast('⚠️', 'Aucun Antidote', 'Vous n\'avez aucun remède ou herbe purificatrice dans votre sacoche !', 'danger', 4000);
+  }
+}
+
+function renderMarket() {
+  const list = document.getElementById('market-items-list');
+  if (!list) return;
+  if (marketCatalog.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted)">L\'étal est vide pour l\'instant.</div>';
+    return;
+  }
+  list.innerHTML = marketCatalog.map((item, idx) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);padding:6px 8px;border-radius:6px;border:1px solid var(--border)">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#c7d2fe">${item.name}</div>
+        <div style="font-size:10px;color:var(--muted)">${item.category || item.biome || ''} · ${item.price} PO</div>
+      </div>
+      <button onclick="buyMarketItem(${idx})" style="background:#4338ca;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">Acheter</button>
+    </div>
+  `).join('');
+}
+
+function buyMarketItem(idx) {
+  const it = marketCatalog[idx];
+  if (!it) return;
+  herboItems.unshift({
+    id: it.id || ('mkt_' + Date.now()),
+    name: it.name,
+    description: it.description || '',
+    effects: it.effects || [it.effect || ''],
+    date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+  saveHerboSatchel();
+  renderHerboSatchel();
+  send('herbo_trade_transaction', { type: 'buy', item: it });
+  showToast('💰', 'Achat Effectué', `${it.name} acquis pour ${it.price} PO`, 'success', 4000);
+}
+
+function toggleMarketView() {
+  const mBox = document.getElementById('herbo-market-box');
+  if (mBox) mBox.style.display = 'none';
+}
+
+function handleHerboGiveItem(data) {
+  if (!data) return;
+  // target_id filter
+  if (data.target_id && data.target_id !== playerId) return;
+  const item = data.item || data;
+  const entry = {
+    id: item.id || ('herbo_' + Date.now()),
+    name: item.name || 'Spécimen Herboriste',
+    type: data.type || item.type || 'Plante',
+    description: item.description || '',
+    effects: item.effects || (item.enchantmentEffect ? [item.enchantmentEffect] : []),
+    date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+  herboItems.unshift(entry);
+  saveHerboSatchel();
+  renderHerboSatchel();
+  showToast('🎁', 'Objet Reçu', entry.name + ' a été placé dans votre Sacoche Botanique !', 'success', 8000);
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 150]);
+}
+
+function renderHerboSatchel() {
+  const container = document.getElementById('herbo-items-list');
+  if (!container) return;
+  if (herboItems.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Sacoche vide pour le moment</div>';
+    return;
+  }
+  container.innerHTML = herboItems.map((item, idx) => `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:var(--accent);font-size:13px">${item.name}</strong>
+        <span style="font-size:10px;color:var(--muted)">${item.date || ''}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text);line-height:1.4">${item.description || 'Spécimen naturel cueilli ou préparé.'}</div>
+      ${item.effects && item.effects.length ? `<div style="font-size:11px;color:#86efac;font-style:italic">✨ Effets : ${Array.isArray(item.effects) ? item.effects.join(' · ') : item.effects}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+        <button onclick="consumeHerboItem(${idx})" style="flex:1;min-width:110px;background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#86efac;padding:6px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">🌿 Utiliser / Boire</button>
+        <button onclick="coatWeaponWithItem(${idx})" style="flex:1;min-width:110px;background:rgba(234,179,8,0.15);border:1px solid #eab308;color:#fde047;padding:6px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">⚔️ Enduire Arme</button>
+        <button onclick="removeHerboItem(${idx})" style="background:none;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+let activeWeaponCoating = null;
+function coatWeaponWithItem(idx) {
+  const it = herboItems[idx];
+  if (!it) return;
+  activeWeaponCoating = {
+    name: it.name,
+    effect: it.effects ? (Array.isArray(it.effects) ? it.effects[0] : it.effects) : (it.description || '+1d6 dégâts toxiques'),
+    charges: 3
+  };
+  herboItems.splice(idx, 1);
+  saveHerboSatchel();
+  renderHerboSatchel();
+  renderWeaponCoating();
+  send('chat', { message: `⚔️ [Enduit] Enduit son arme avec ${it.name} (3 charges actives) !` });
+  showToast('⚔️', 'Arme Enduite', `${it.name} appliqué sur votre arme (3 frappes) !`, 'accent', 5000);
+}
+
+function renderWeaponCoating() {
+  const banner = document.getElementById('weapon-coating-banner');
+  const nameEl = document.getElementById('coating-name');
+  const chargesEl = document.getElementById('coating-charges');
+  const effectEl = document.getElementById('coating-effect');
+  if (!banner || !nameEl || !chargesEl || !effectEl) return;
+  if (activeWeaponCoating && activeWeaponCoating.charges > 0) {
+    nameEl.textContent = activeWeaponCoating.name;
+    chargesEl.textContent = activeWeaponCoating.charges + ' charges';
+    effectEl.textContent = activeWeaponCoating.effect;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+let prospectingActive = false;
+let prospectingInterval = null;
+function toggleProspectingRadar() {
+  prospectingActive = !prospectingActive;
+  const btn = document.getElementById('btn-prospect-radar');
+  if (btn) {
+    btn.style.background = prospectingActive ? '#15803d' : '#4c1d95';
+    btn.textContent = prospectingActive ? '⛏️ Radar Actif…' : '⛏️ Radar Minier';
+  }
+  if (prospectingActive) {
+    showToast('⛏️', 'Radar Minéralogique', 'Balayage du sous-sol en cours…', 'info', 3000);
+    if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+    if (!prospectingInterval) {
+      prospectingInterval = setInterval(() => {
+        if (!prospectingActive) return;
+        // Periodic chance to detect vein
+        if (Math.random() < 0.25) {
+          showToast('💎', 'Filon Détecté !', 'Un éclat de gemme scintille sous la roche ! Cliquez sur "Coup de Pioche".', 'accent', 6000);
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        }
+      }, 7000);
+    }
+  } else {
+    if (prospectingInterval) { clearInterval(prospectingInterval); prospectingInterval = null; }
+  }
+}
+
+function consumeHerboItem(idx) {
+  const it = herboItems[idx];
+  if (!it) return;
+  send('chat', { message: `🌿 [Herboristerie] Utilise ${it.name} : ${it.effects ? (Array.isArray(it.effects) ? it.effects.join(' · ') : it.effects) : (it.description || '')}` });
+  showToast('✨', 'Consommé', 'Vous avez utilisé ' + it.name, 'success', 4000);
+  herboItems.splice(idx, 1);
+  saveHerboSatchel();
+  renderHerboSatchel();
+}
+
+function removeHerboItem(idx) {
+  herboItems.splice(idx, 1);
+  saveHerboSatchel();
+  renderHerboSatchel();
+}
+
+function rollHerboCheck(type) {
+  const d100 = Math.floor(Math.random() * 100) + 1;
+  const intVal = parseInt(document.getElementById('si-int')?.value || '35', 10) || 35;
+  const success = d100 <= intVal;
+  const degre = Math.floor(intVal / 10) - Math.floor(d100 / 10);
+  const resultDiv = document.getElementById('herbo-roll-result');
+  const numDiv = document.getElementById('herbo-roll-num');
+  const verdDiv = document.getElementById('herbo-roll-verdict');
+  if (resultDiv && numDiv && verdDiv) {
+    resultDiv.style.display = 'block';
+    numDiv.textContent = d100;
+    verdDiv.className = 'test-verdict ' + (success ? 'test-success' : 'test-fail');
+    verdDiv.textContent = `${type} vs Int (${intVal}) : ${success ? 'SUCCÈS' : 'ÉCHEC'} (${degre >= 0 ? '+' : ''}${degre} DR)`;
+  }
+  send('roll', {
+    text: `Test de ${type} : ${d100} vs ${intVal} (${success ? 'Réussite' : 'Échec'}, ${degre} DR)`
+  });
+}
+
 // ── Init ───────────────────────────────────────────────────────────────
 buildProf();buildDice();loadChar();
 const sn=localStorage.getItem('grimoire_player_name');
@@ -2280,6 +2655,7 @@ if(sp)document.getElementById('player-password').value=sp;
 document.getElementById('player-name').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
 document.getElementById('player-password').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
 document.getElementById('comp-new').addEventListener('keydown',e=>{if(e.key==='Enter')addComp();});
+renderHerboSatchel();
 
 // Update onmessage to handle AI and Map
 const oldOnMessage = ws.onmessage;

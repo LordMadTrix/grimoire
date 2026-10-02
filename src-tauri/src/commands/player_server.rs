@@ -1303,6 +1303,26 @@ async fn handle_player_message(
                 "id": player_id, "name": player_name, "option": option
             })).await;
         }
+        "herbo_identify_attempt" => {
+            emit_to_gm(state, "player_herbo_identify", serde_json::json!({
+                "id": player_id, "name": player_name, "data": env.data
+            })).await;
+        }
+        "herbo_gather_attempt" => {
+            emit_to_gm(state, "player_herbo_gather", serde_json::json!({
+                "id": player_id, "name": player_name, "data": env.data
+            })).await;
+        }
+        "herbo_trade_transaction" => {
+            emit_to_gm(state, "player_herbo_trade", serde_json::json!({
+                "id": player_id, "name": player_name, "data": env.data
+            })).await;
+        }
+        "herbo_alchemy_coop_step" => {
+            emit_to_gm(state, "player_alchemy_step", serde_json::json!({
+                "id": player_id, "name": player_name, "data": env.data
+            })).await;
+        }
         _ => {}
     }
 }

@@ -22,9 +22,11 @@
   import ApothecarySatchelView from './ApothecarySatchelView.svelte';
   import WildMagicFiascosSurgesView from './WildMagicFiascosSurgesView.svelte';
   import PdfExportView from './PdfExportView.svelte';
+  import HerboPlayerGatewayTab from './HerboPlayerGatewayTab.svelte';
   import PlantDetailModal from './PlantDetailModal.svelte';
   import AddCustomPlantModal from './AddCustomPlantModal.svelte';
   import HandoutGeneratorModal from './HandoutGeneratorModal.svelte';
+  import HerboShareModal from './HerboShareModal.svelte';
   import SoundscapePlayer from './SoundscapePlayer.svelte';
   import GlobalSearchBar from './GlobalSearchBar.svelte';
 
@@ -48,6 +50,7 @@
     | 'astral'
     | 'marche'
     | 'fiascos'
+    | 'passerelle'
     | 'pdf_export';
 
   let visible = $state(false);
@@ -78,6 +81,7 @@
     { id: 'astral', label: 'Astral', icon: '🌙' },
     { id: 'marche', label: 'Marché', icon: '⚖️' },
     { id: 'fiascos', label: 'Fiascos & Chaos', icon: '🎲' },
+    { id: 'passerelle', label: 'Passerelle VTT', icon: '📡' },
     { id: 'pdf_export', label: 'PDF', icon: '🖨️' },
   ];
 
@@ -205,6 +209,8 @@
           <MerchantMarketView />
         {:else if activeTab === 'fiascos'}
           <WildMagicFiascosSurgesView />
+        {:else if activeTab === 'passerelle'}
+          <HerboPlayerGatewayTab />
         {:else if activeTab === 'pdf_export'}
           <PdfExportView
             plants={herboristeStore.plants}
@@ -222,6 +228,8 @@
       <AddCustomPlantModal />
 
       <HandoutGeneratorModal />
+
+      <HerboShareModal />
     </div>
   </div>
 {/if}

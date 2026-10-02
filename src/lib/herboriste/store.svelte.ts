@@ -2,6 +2,13 @@ import type { Plant, Creature } from './types/herb';
 import { INITIAL_PLANTS } from './data/herbalistData';
 import { INITIAL_CREATURES } from './data/bestiaryData';
 
+export interface HerboSharePayload {
+  type: 'plant' | 'gem' | 'potion' | 'poison' | 'jewelry' | 'surge';
+  item: any;
+  isMystery?: boolean;
+  gmNotes?: string;
+}
+
 function loadCustomPlants(): Plant[] {
   try {
     const saved = localStorage.getItem('dnd_herbalist_custom_plants');
@@ -48,6 +55,7 @@ function createHerboristeStore() {
   let selectedGemId = $state<string | null>(null);
   let isAddModalOpen = $state(false);
   let handoutItem = $state<{ type: 'plant' | 'gem'; item: any } | null>(null);
+  let shareModalItem = $state<HerboSharePayload | null>(null);
 
   const plants = $derived<Plant[]>([...customPlants, ...INITIAL_PLANTS]);
   const creatures = $derived<Creature[]>([...customCreatures, ...INITIAL_CREATURES]);
@@ -69,6 +77,12 @@ function createHerboristeStore() {
     set isAddModalOpen(v: boolean) { isAddModalOpen = v; },
     get handoutItem() { return handoutItem; },
     set handoutItem(item: { type: 'plant' | 'gem'; item: any } | null) { handoutItem = item; },
+    get shareModalItem() { return shareModalItem; },
+    set shareModalItem(item: HerboSharePayload | null) { shareModalItem = item; },
+
+    openShareModal(type: HerboSharePayload['type'], item: any, isMystery: boolean = false) {
+      shareModalItem = { type, item, isMystery };
+    },
 
     addCustomPlant(plant: Plant) {
       customPlants = [...customPlants, plant];

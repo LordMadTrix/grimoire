@@ -287,8 +287,18 @@
             </div>
           </div>
 
-          <!-- Actions: Cut in workshop or Generate Handout -->
+          <!-- Actions: Cut in workshop, Projeter / Partager or Generate Handout -->
           <div class="plate-action-row">
+            <button
+              type="button"
+              class="share-action-btn"
+              onclick={() => herboristeStore.openShareModal('gem', selectedGem)}
+              title="Projeter sur Vue Joueur / Diffuser aux Mobiles"
+            >
+              <span>📡</span>
+              <span>Projeter / Partager</span>
+            </button>
+
             <button
               type="button"
               class="cut-action-btn"
@@ -834,6 +844,31 @@
     display: flex;
     gap: 0.5rem;
     margin-top: 0.75rem;
+  }
+
+  .share-action-btn {
+    flex: 1;
+    padding: 0.6rem;
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    color: #c7d2fe;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: bold;
+    font-size: 11px;
+    border: 1px solid #6366f1;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease, filter 0.15s ease;
+  }
+  .share-action-btn:hover {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+    border-color: #a5b4fc;
+    color: #ffffff;
   }
 
   .cut-action-btn {

@@ -239,6 +239,25 @@
             <p class="conservation-text">
               Les feuilles fraîches flétrissent en 3 jours si elles ne sont pas traitées. Le séchage au pressoir prolonge leur efficacité jusqu'à 6 mois, tandis que la macération dans l'huile de lin ou l'alcool de grain conserve les principes actifs pendant 1 à 2 années pleines.
             </p>
+
+            <h3 class="section-title">
+              <span class="section-icon">📡</span>
+              Passerelle VTT, Écran Joueur & Compagnon Mobile
+            </h3>
+            <div class="dd-table">
+              <div class="dd-row">
+                <span class="dd-dc">Vue Joueur</span>
+                <span class="dd-result">Projection cinématique en plein écran façon parchemin d'apothicaire avec cachet de cire.</span>
+              </div>
+              <div class="dd-row">
+                <span class="dd-dc">Mode Mystère</span>
+                <span class="dd-result">Masque les propriétés de la plante jusqu'à ce que les PJ réussissent un test d'Identification.</span>
+              </div>
+              <div class="dd-row">
+                <span class="dd-dc">Mobile</span>
+                <span class="dd-result">Sacoche d'apothicaire synchronisée en direct avec la table : consommation, enduits d'armes, troc et radar minier.</span>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -8,8 +8,10 @@
   import Dice3DOverlay from './components/Dice3DOverlay.svelte';
   import PlayerCombatHUD from './components/PlayerCombatHUD.svelte';
   import CinematicReveal from './components/CinematicReveal.svelte';
+  import HerboPlayerRevealOverlay from './components/herboriste/HerboPlayerRevealOverlay.svelte';
 
   let currentMap     = $state<string | null>(null);
+  let herboReveal    = $state<any>(null);
   let showGrid       = $state(true);
   let isBlackout     = $state(false);
   let fowShapes      = $state<FowShape[]>([]);
@@ -141,6 +143,12 @@
       const { id, title, body } = e.payload;
       sharedNoteQueue = [...sharedNoteQueue, { id, title, body }];
     }).then(fn => unlistens.push(fn));
+    listen('show_herbo_reveal', (e: any) => {
+      herboReveal = e.payload;
+    }).then(fn => unlistens.push(fn));
+    listen('close_herbo_reveal', () => {
+      herboReveal = null;
+    }).then(fn => unlistens.push(fn));
 
     // ── Starfield ────────────────────────────────────────────────
     if (!starfieldCanvas) return () => { unlistens.forEach(fn => fn()); };
@@ -270,6 +278,11 @@
 <CinematicReveal 
   handout={handout} 
   onClose={() => handout = null} 
+/>
+
+<HerboPlayerRevealOverlay
+  reveal={herboReveal}
+  onClose={() => herboReveal = null}
 />
 
 <Dice3DOverlay rollData={externalRoll} />

@@ -40,6 +40,15 @@
       <div class="top-actions">
         <button
           type="button"
+          onclick={() => herboristeStore.openShareModal('plant', plant)}
+          title="Projeter sur Vue Joueur / Diffuser aux Mobiles"
+          class="icon-btn share-pill-btn"
+        >
+          📡 Projeter / Partager
+        </button>
+
+        <button
+          type="button"
           onclick={() => (herboristeStore.handoutItem = { type: 'plant', item: plant })}
           title="Générer une planche parcheminée / Handout Joueur"
           class="icon-btn handout-pill-btn"
@@ -287,6 +296,22 @@
     font-family: 'Crimson Pro', Georgia, serif;
     background: #e8dbc3;
     color: #4a2c11;
+  }
+  .share-pill-btn {
+    width: auto;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: linear-gradient(135deg, #2b1f14, #4a2c11);
+    color: #fef08a;
+    border-color: #d97706;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  .share-pill-btn:hover {
+    background: linear-gradient(135deg, #3d2719, #5c3e29);
+    border-color: #f59e0b;
+    color: #ffffff;
   }
 
   .modal-header {

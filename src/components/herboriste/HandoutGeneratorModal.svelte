@@ -5,6 +5,7 @@
 
   const handout = $derived(herboristeStore.handoutItem);
   let copyFeedback = $state<string | null>(null);
+  let layoutMode = $state<'folio' | 'etiquette'>('folio');
 
   function close() {
     herboristeStore.handoutItem = null;
@@ -42,95 +43,149 @@
   <div class="handout-overlay" onclick={(e) => { if (e.target === e.currentTarget) close(); }}>
     <div class="handout-toolbar no-print">
       <div class="toolbar-title">
-        <span>📜</span> Planche d'Indice & Handout Joueur
+        <span>📜</span> Handout Joueur
+      </div>
+      <div class="mode-toggles">
+        <button
+          type="button"
+          class="btn-mode"
+          class:active={layoutMode === 'folio'}
+          onclick={() => layoutMode = 'folio'}
+        >
+          📜 Grand Folio
+        </button>
+        <button
+          type="button"
+          class="btn-mode"
+          class:active={layoutMode === 'etiquette'}
+          onclick={() => layoutMode = 'etiquette'}
+        >
+          🏷️ Étiquette Fiole
+        </button>
       </div>
       <div class="toolbar-actions">
         <button type="button" class="btn-tool" onclick={copyText}>
-          <span>📋</span> {copyFeedback ?? 'Copier le Texte'}
+          <span>📋</span> {copyFeedback ?? 'Copier'}
         </button>
         <button type="button" class="btn-tool print" onclick={handlePrint}>
-          <span>🖨️</span> Imprimer / PDF
+          <span>🖨️</span> Imprimer
         </button>
         <button type="button" class="btn-close" onclick={close}>✕</button>
       </div>
     </div>
 
-    <div class="parchment-sheet printable">
-      <!-- Vintage Corner Ornaments -->
-      <div class="corner-ornament tl"></div>
-      <div class="corner-ornament tr"></div>
-      <div class="corner-ornament bl"></div>
-      <div class="corner-ornament br"></div>
+    {#if layoutMode === 'folio'}
+      <div class="parchment-sheet printable">
+        <!-- Vintage Corner Ornaments -->
+        <div class="corner-ornament tl"></div>
+        <div class="corner-ornament tr"></div>
+        <div class="corner-ornament bl"></div>
+        <div class="corner-ornament br"></div>
 
-      <!-- Wax Seal -->
-      <div class="wax-seal">
-        <div class="wax-inner">GUILDE DES HERBORISTES DE FANGH</div>
-      </div>
+        <!-- Wax Seal -->
+        <div class="wax-seal">
+          <div class="wax-inner">GUILDE DES HERBORISTES DE FANGH</div>
+        </div>
 
-      <!-- Header -->
-      <div class="sheet-header">
-        <div class="sheet-series">ARCHIVES BOTANIQUES & MINÉRALES · EXTRAIT DU GRIMOIRE</div>
-        <h1 class="sheet-title">{handout.item.name}</h1>
-        {#if handout.type === 'plant' && handout.item.latinName}
-          <div class="sheet-latin">« {handout.item.latinName} »</div>
-        {/if}
-      </div>
-
-      <!-- Main Layout -->
-      <div class="sheet-body">
-        <div class="sheet-illustration-box">
-          {#if handout.type === 'plant'}
-            <BotanicalIllustration plant={handout.item} size="lg" />
-          {:else}
-            <GemIllustration gem={handout.item} size="lg" />
+        <!-- Header -->
+        <div class="sheet-header">
+          <div class="sheet-series">ARCHIVES BOTANIQUES & MINÉRALES · EXTRAIT DU GRIMOIRE</div>
+          <h1 class="sheet-title">{handout.item.name}</h1>
+          {#if handout.type === 'plant' && handout.item.latinName}
+            <div class="sheet-latin">« {handout.item.latinName} »</div>
           {/if}
-          <div class="illustration-caption">
-            Planche n° {Math.floor(Math.random() * 800) + 100} · Dessiné d'après nature
+        </div>
+
+        <!-- Main Layout -->
+        <div class="sheet-body">
+          <div class="sheet-illustration-box">
+            {#if handout.type === 'plant'}
+              <BotanicalIllustration plant={handout.item} size="lg" />
+            {:else}
+              <GemIllustration gem={handout.item} size="lg" />
+            {/if}
+            <div class="illustration-caption">
+              Planche n° {Math.floor(Math.random() * 800) + 100} · Dessiné d'après nature
+            </div>
+          </div>
+
+          <div class="sheet-notes">
+            <div class="notes-section">
+              <h3 class="notes-heading">Observation de Terrain</h3>
+              <p class="notes-text">{handout.item.description}</p>
+            </div>
+
+            {#if handout.type === 'plant'}
+              <div class="notes-section">
+                <h3 class="notes-heading">Propriétés & Concoctions Médicinales</h3>
+                <p class="notes-text highlight">{handout.item.effect}</p>
+                <div class="sub-notes">
+                  <span><strong>Biotopes observés :</strong> {handout.item.biome}</span>
+                  <span>· <strong>Difficulté de récolte :</strong> DD {handout.item.dcHarvest}</span>
+                </div>
+              </div>
+            {:else}
+              <div class="notes-section">
+                <h3 class="notes-heading">Vertus Magiques & Sertissage</h3>
+                <p class="notes-text highlight">{handout.item.enchantmentEffect}</p>
+                <div class="sub-notes">
+                  <span><strong>Affinité :</strong> {handout.item.magicalAffinity}</span>
+                  <span>· <strong>Échelle de Mohs :</strong> {handout.item.hardnessMohs}/10</span>
+                </div>
+              </div>
+
+              <div class="notes-section italic-lore">
+                <h3 class="notes-heading">Rumeurs & Propos d'Aventurier</h3>
+                <p class="notes-text">{handout.item.naheulbeukLore}</p>
+              </div>
+            {/if}
           </div>
         </div>
 
-        <div class="sheet-notes">
-          <div class="notes-section">
-            <h3 class="notes-heading">Observation de Terrain</h3>
-            <p class="notes-text">{handout.item.description}</p>
+        <!-- Footer Stamp -->
+        <div class="sheet-footer">
+          <div class="stamp-box">
+            <span>CERTIFIÉ AUTHENTIQUE</span>
+            <span class="stamp-sub">Corporation des Apothicaires & Joailliers de Fangh</span>
+          </div>
+          <div class="sheet-folio">Folio #{Math.floor(Math.random() * 200) + 12}</div>
+        </div>
+      </div>
+    {:else}
+      <!-- Étiquette d'Apothicaire de Fiole / Boîte de transport (Idea 6) -->
+      <div class="apothecary-label-sheet printable">
+        <div class="label-border-inner">
+          <div class="label-header">
+            <span class="label-icon">⚗️</span>
+            <span class="label-pharma">OFFICINE DES MAÎTRES APOTHICAIRES</span>
+            <span class="label-icon">🌿</span>
           </div>
 
-          {#if handout.type === 'plant'}
-            <div class="notes-section">
-              <h3 class="notes-heading">Propriétés & Concoctions Médicinales</h3>
-              <p class="notes-text highlight">{handout.item.effect}</p>
-              <div class="sub-notes">
-                <span><strong>Biotopes observés :</strong> {handout.item.biome}</span>
-                <span>· <strong>Difficulté de récolte :</strong> DD {handout.item.dcHarvest}</span>
-              </div>
-            </div>
-          {:else}
-            <div class="notes-section">
-              <h3 class="notes-heading">Vertus Magiques & Sertissage</h3>
-              <p class="notes-text highlight">{handout.item.enchantmentEffect}</p>
-              <div class="sub-notes">
-                <span><strong>Affinité :</strong> {handout.item.magicalAffinity}</span>
-                <span>· <strong>Échelle de Mohs :</strong> {handout.item.hardnessMohs}/10</span>
-              </div>
-            </div>
-
-            <div class="notes-section italic-lore">
-              <h3 class="notes-heading">Rumeurs & Propos d'Aventurier</h3>
-              <p class="notes-text">{handout.item.naheulbeukLore}</p>
-            </div>
+          <h2 class="label-title">{handout.item.name}</h2>
+          {#if handout.type === 'plant' && handout.item.latinName}
+            <div class="label-latin">« {handout.item.latinName} »</div>
           {/if}
-        </div>
-      </div>
 
-      <!-- Footer Stamp -->
-      <div class="sheet-footer">
-        <div class="stamp-box">
-          <span>CERTIFIÉ AUTHENTIQUE</span>
-          <span class="stamp-sub">Corporation des Apothicaires & Joailliers de Fangh</span>
+          <div class="label-divider">✦ ✦ ✦</div>
+
+          <div class="label-usage">
+            <strong>Usage & Posologie :</strong>
+            <span>{handout.item.effect || handout.item.enchantmentEffect || 'Décoction / Poudre à infuser'}</span>
+          </div>
+
+          <div class="label-meta-grid">
+            <div><strong>Prép. :</strong> Lot #{Math.floor(Math.random() * 900) + 100}</div>
+            <div><strong>Grade :</strong> {handout.item.rarity || 'Pur'}</div>
+            <div><strong>Conserver :</strong> Au sec</div>
+            <div><strong>Péremption :</strong> 1 an lunaire</div>
+          </div>
+
+          <div class="label-warning">
+            ⚠️ Ne pas administrer aux Gobelins sous peine d'effets imprévisibles.
+          </div>
         </div>
-        <div class="sheet-folio">Folio #{Math.floor(Math.random() * 200) + 12}</div>
       </div>
-    </div>
+    {/if}
   </div>
 {/if}
 
@@ -359,6 +414,104 @@
   .stamp-sub { font-size: 0.55rem; font-weight: normal; }
   .sheet-folio { font-size: 0.75rem; color: #854d0e; font-style: italic; }
 
+  .mode-toggles {
+    display: flex;
+    gap: 0.35rem;
+    background: #120e0a;
+    padding: 0.2rem;
+    border-radius: 0.4rem;
+    border: 1px solid #3d2f25;
+  }
+  .btn-mode {
+    background: none;
+    border: none;
+    color: #a89887;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-mode.active {
+    background: #4a3424;
+    color: #fef08a;
+  }
+
+  /* Apothecary Label Sheet (Idea 6) */
+  .apothecary-label-sheet {
+    background: #faf4e6;
+    border: 4px solid #3d2719;
+    padding: 0.6rem;
+    border-radius: 0.4rem;
+    width: 100%;
+    max-width: 22rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    margin-top: 1rem;
+    color: #2b1810;
+  }
+  .label-border-inner {
+    border: 1.5px dashed #78350f;
+    padding: 1rem;
+    text-align: center;
+  }
+  .label-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .label-pharma {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    font-weight: 900;
+    color: #854d0e;
+    text-transform: uppercase;
+  }
+  .label-title {
+    margin: 0.2rem 0;
+    font-size: 1.25rem;
+    color: #3a1d0f;
+    font-weight: bold;
+  }
+  .label-latin {
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #78350f;
+  }
+  .label-divider {
+    color: #b45309;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    margin: 0.5rem 0;
+  }
+  .label-usage {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    background: #f1e6cf;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+    text-align: left;
+  }
+  .label-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    text-align: left;
+    margin-top: 0.5rem;
+    border-top: 1px solid #d5c4a8;
+    padding-top: 0.4rem;
+    color: #594436;
+  }
+  .label-warning {
+    margin-top: 0.6rem;
+    font-size: 0.65rem;
+    color: #991b1b;
+    font-style: italic;
+  }
+
   @media print {
     .no-print { display: none !important; }
     .handout-overlay {
@@ -367,7 +520,7 @@
       padding: 0;
       backdrop-filter: none;
     }
-    .parchment-sheet {
+    .parchment-sheet, .apothecary-label-sheet {
       box-shadow: none;
       border: 1px solid #000;
       max-width: 100%;
