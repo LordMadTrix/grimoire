@@ -26,6 +26,7 @@
 17. [Boîte à Outils du MJ & Générateurs Aléatoires](#17-boîte-à-outils-du-mj--générateurs-aléatoires)
 18. [Tutoriel Pas à Pas : Préparer et Lancer sa Première Session](#18-tutoriel-pas-à-pas--préparer-et-lancer-sa-première-session)
 19. [Index des Raccourcis Clavier & Astuces Pro](#19-index-des-raccourcis-clavier--astuces-pro)
+20. [Le Guide de l'Herboriste & Lapidaire (Alchimie, Cueillette, Forge)](#20-le-guide-de-lherboriste--lapidaire-alchimie-cueillette-forge)
 
 ---
 
@@ -592,6 +593,38 @@ Voici la check-list idéale pour préparer et mener votre première partie sur G
 | `Molette` | VTT / Map Editor | Zoom avant / arrière |
 | `Espace` | VTT | Recentrer la caméra sur le groupe de tokens |
 | `1` à `9` | Mode Murs | Sélectionner un outil de tracé |
+
+---
+
+## 20. Le Guide de l'Herboriste & Lapidaire (Alchimie, Cueillette, Forge)
+
+Grimoire embarque un **compendium complet d'herboristerie fantastique** : flore médicinale et vénéneuse, alchimie, bestiaire récoltable, minéraux, gemmes et forge. Tout est jouable en séance, avec les jets de dés intégrés.
+
+### 🌿 Ouvrir le Guide
+Dans la barre d'outils de la **Table Virtuelle (VTT)**, ouvrez le menu des outils et cliquez sur **`🌿 Guide de l'Herboriste`**. Une fenêtre plein écran s'ouvre avec 11 onglets.
+
+### 📖 Les 11 Ateliers
+| Onglet | Usage en séance |
+|--------|-----------------|
+| 📖 **Grimoire** | Livre à pages (◀ ▶) : règles de récolte, herbier illustré, recettes — parfait à projeter ou lire à voix haute. |
+| 🌿 **Herbier** | 97 plantes : recherche, filtres par biome/rareté, favoris ❤️, fiche détaillée avec illustration botanique. Bouton **➕ Plante** pour créer vos propres plantes *homebrew* (persistées dans le navigateur). |
+| ⚗️ **Alchimie** | Recettes de potions avec ingrédients cliquables, **jet de concoction d20** contre le DD de la recette, labo avancé (synergies plantes + minéraux) et générateur de tables de potions aléatoires (copie Markdown pour vos notes). |
+| 💀 **Poisons** | Compendium des poisons : vecteurs (contact/ingestion/blessure), conditions infligées, **antidotes liés aux plantes**, prix du marché noir. |
+| 🧭 **Cueillette** | Simulateur de récolte : choisissez biome + météo + durée, lancez le d20, obtenez plantes et rencontres. |
+| 📜 **Guide** | Tables de DD par biome et rareté, les 4 phases de la cueillette, rencontres de fourragement d20 et **sosies toxiques** (la plante qui ressemble à une autre…). |
+| 🐺 **Bestiaire** | 42 créatures dont on récolte des composants (venin, organes, écailles, spores) avec DD et risques en cas d'échec. |
+| ⛏️ **Minéraux** | Catalogue de minerais magiques + simulateur d'extraction (critique au 20, catastrophe au 1). |
+| 🔨 **Forge** | Recettes de forge naine : choix du foyer, trempe, **sertissage de gemmes**, composants de monstres. |
+| 💎 **Lapidaire** | 20 gemmes avec **calculateur de prix en Goltors** (compatible Donjon de Naheulbeuk) et tirage de coffre au trésor. |
+| 🖨️ **PDF** | Exportez un **livret A4 imprimable** (format poche ou grand grimoire) avec vos favoris. |
+
+### 🔍 Recherche Globale
+La barre de recherche dans l'en-tête du Guide fouille **plantes, créatures, gemmes et minéraux** d'un coup — idéale quand un joueur demande *« je peux trouver quoi avec cette racine ? »* au milieu d'une scène.
+
+### 💾 Persistance & Homebrew
+Vos plantes et créatures personnalisées, ainsi que vos favoris, sont **sauvegardés automatiquement** (localStorage) et retrouvés à chaque ouverture.
+
+> 📚 **Source** : la base de plantes s'appuie notamment sur le *Guide to Herbs for RPGs* de Shaun Hately (1996, netbook libre) et sur les tables de gemmes en Goltors du *Donjon de Naheulbeuk*, adaptés en français au format Grimoire.
 
 ---
 

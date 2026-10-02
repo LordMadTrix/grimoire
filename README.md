@@ -145,6 +145,19 @@ Oubliez la multiplication des onglets et des applications : Grimoire combine un 
 - **Contributions Communautaires Encadrées** : Soumettez votre pack via le [template d'issue dédié](https://github.com/LordMadTrix/grimoire/issues/new?template=addon-submission.yml) — un validateur CI vérifie liens, tailles et cohérence avant publication (voir le [guide contributeur](docs/ADDONS-CONTRIBUTING.md)).
 - **Système de Cache Intelligent** : Chargement instantané à 0 ms, catalogue Drive chargé à la demande (manifeste de 400 o + fragments par dossier) et détection automatique des nouveautés.
 
+### 8. 🌿 Guide de l'Herboriste & Lapidaire (Module Intégré)
+Un compendium complet d'herboristerie, d'alchimie et de minéralogie directement accessible depuis la barre d'outils VTT (`🌿 Guide de l'Herboriste`) — 11 ateliers en un seul grimoire :
+- **📖 Grimoire Complet** : Livre à pages navigable (règles de récolte, herbier illustré, recettes) prêt à consulter en séance.
+- **🌿 Herbier & Index** : 97 plantes détaillées (biomes, rareté, DD de récolte et d'alchimie, illustrations botaniques SVG) avec filtres, tri, favoris ❤️ et ajout de plantes *homebrew* persistées.
+- **⚗️ Atelier Alchimie & Labo Avancé** : Recettes de potions/onguents/teintures, creuset avec jet de concoction d20, moteur de synergies plantes + minéraux et table de potions aléatoires (copie Markdown pour vos notes).
+- **💀 Compendium des Poisons** : Vecteurs, conditions, antidotes liés aux plantes, règles de détection et prix du marché noir.
+- **🧭 Simulateur de Cueillette & 📜 Guide du Récolteur** : Jets de récolte avec modificateurs (météo, lune, durée, équipement), tables de rareté d100 par biome, rencontres de fourragement d20 et sosies toxiques.
+- **🐺 Bestiaire Récoltable** : 42 créatures avec composants à prélever (venin, organes, écailles, spores…) et simulateur de jet de récolte.
+- **⛏️ Minéraux & 🔨 Forge Naine** : Catalogue de minerais magiques, simulateur d'extraction, recettes de forge (trempe, sertissage de gemmes, composants de monstres).
+- **💎 Lapidaire de Fangh** : 20 gemmes avec calculateur de prix en Goltors (Naheulbeuk-compatible) et tirage de coffre au trésor.
+- **🖨️ Export PDF A4** : Livret de poche ou grand grimoire imprimable, profil joueur et sélection de favoris.
+- **🔍 Recherche Globale** : Plantes, créatures, gemmes et minéraux accessibles depuis une barre unique.
+
 ---
 
 ## 🧠 Intelligence Artificielle Locale — Nouveautés v0.7.5

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutoriel Guide de l'Herboriste & Lapidaire — Grimoire</title>
+  <meta name="description" content="Guide du module Herboriste de Grimoire : 97 plantes, alchimie, poisons, simulateur de cueillette, bestiaire récoltable, minéraux, forge, gemmes en Goltors et export PDF A4.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            grimoire: {
+              bg: '#0a0c10',
+              card: '#11141b',
+              accent: '#e5a853',
+              accentHover: '#f3c178',
+              accentGlow: 'rgba(229, 168, 83, 0.4)',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0c10; color: #e2e8f0; }
+    .glass { background: rgba(17, 20, 27, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glow-text { text-shadow: 0 0 25px rgba(229, 168, 83, 0.4); }
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(74, 222, 128, 0.45); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e5a853; }
+  </style>
+</head>
+<body class="font-sans antialiased">
+
+  <!-- Header -->
+  <nav class="fixed top-0 w-full z-50 glass border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <span class="text-2xl">🐉</span>
+        <span class="font-black text-white tracking-tight">GRIMOIRE</span>
+      </a>
+      <a href="index.html" class="text-sm text-gray-400 hover:text-grimoire-accent transition-colors">← Tous les tutoriels</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="pt-32 pb-16 px-6 text-center relative overflow-hidden">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(74,222,128,0.08),transparent_60%)]"></div>
+    <div class="relative max-w-4xl mx-auto">
+      <span class="inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase bg-emerald-400/10 text-emerald-400 border border-emerald-400/30 mb-6">Module Intégré · 11 Ateliers</span>
+      <h1 class="text-4xl md:text-6xl font-black text-white mb-6">🌿 Guide de l'Herboriste <span class="text-grimoire-accent glow-text">& Lapidaire</span></h1>
+      <p class="text-lg text-gray-400 max-w-2xl mx-auto">97 plantes, 42 créatures récoltables, 20 gemmes en Goltors, alchimie, poisons, forge naine et export PDF — un compendium complet accessible depuis la Table Virtuelle.</p>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 pb-24 space-y-16">
+
+    <!-- Accès -->
+    <section class="glass rounded-2xl p-8 border border-white/5">
+      <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3"><span>🚀</span> Ouvrir le Guide</h2>
+      <ol class="space-y-3 text-gray-300">
+        <li class="flex gap-3"><span class="text-grimoire-accent font-bold">1.</span> Ouvrez une scène sur la <strong>Table Virtuelle (VTT)</strong>.</li>
+        <li class="flex gap-3"><span class="text-grimoire-accent font-bold">2.</span> Dans la barre d'outils, ouvrez le menu des outils MJ.</li>
+        <li class="flex gap-3"><span class="text-grimoire-accent font-bold">3.</span> Cliquez sur <code>🌿 Guide de l'Herboriste</code> : le grimoire s'ouvre en plein écran.</li>
+      </ol>
+      <p class="mt-4 text-sm text-gray-400">La <strong>barre de recherche globale</strong> dans l'en-tête fouille plantes, créatures, gemmes et minéraux d'un coup.</p>
+    </section>
+
+    <!-- Les 11 ateliers -->
+    <section>
+      <h2 class="text-3xl font-bold text-white mb-8 text-center">Les 11 Ateliers</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>📖</span> Grimoire Complet</h3>
+          <p class="text-gray-400 text-sm mt-2">Livre à pages navigable (◀ ▶) : règles de récolte, herbier illustré 2 fiches par page, recettes. Parfait à lire à voix haute en séance.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>🌿</span> Herbier & Index</h3>
+          <p class="text-gray-400 text-sm mt-2">97 plantes avec biome, rareté, DD de récolte et d'alchimie, illustrations botaniques SVG. Favoris ❤️ et plantes <em>homebrew</em> persistées.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>⚗️</span> Atelier Alchimie</h3>
+          <p class="text-gray-400 text-sm mt-2">Recettes de potions, creuset avec jet de concoction d20, labo avancé (synergies plantes + minéraux) et table de potions aléatoires exportable en Markdown.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>💀</span> Poisons</h3>
+          <p class="text-gray-400 text-sm mt-2">Compendium : vecteurs (contact, ingestion, blessure), conditions, antidotes liés aux plantes, détection et prix du marché noir.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>🧭</span> Simulateur de Cueillette</h3>
+          <p class="text-gray-400 text-sm mt-2">Biome + météo + durée → jet de d20 modifié (avantage des nuits de pleine lune) et butin de plantes généré.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>📜</span> Guide du Récolteur</h3>
+          <p class="text-gray-400 text-sm mt-2">Tables de DD par biome et rareté, les 4 phases de cueillette, rencontres de fourragement d20 et sosies toxiques.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>🐺</span> Bestiaire Récoltable</h3>
+          <p class="text-gray-400 text-sm mt-2">42 créatures avec composants à prélever (venin, organes, écailles, spores), DD de récolte et risques en cas d'échec.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>⛏️</span> Minéraux</h3>
+          <p class="text-gray-400 text-sm mt-2">Catalogue de minerais magiques et simulateur d'extraction : réussite critique au 20, catastrophe au 1.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>🔨</span> Forge Naine</h3>
+          <p class="text-gray-400 text-sm mt-2">Recettes de forge : choix du foyer, trempe, sertissage de gemmes et composants de monstres dans l'acier.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>💎</span> Lapidaire</h3>
+          <p class="text-gray-400 text-sm mt-2">20 gemmes avec calculateur de prix en <strong>Goltors</strong> (compatible Donjon de Naheulbeuk) et tirage de coffre au trésor.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>🖨️</span> Export PDF A4</h3>
+          <p class="text-gray-400 text-sm mt-2">Générez un livret imprimable (format poche ou grand grimoire) avec votre profil joueur et vos favoris.</p>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border border-white/5 card-hover">
+          <h3 class="font-bold text-white flex items-center gap-2"><span>➕</span> Homebrew Persistant</h3>
+          <p class="text-gray-400 text-sm mt-2">Créez vos propres plantes et créatures : elles sont sauvegardées automatiquement et retrouvées à chaque session.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Astuces -->
+    <section class="glass rounded-2xl p-8 border border-emerald-400/20">
+      <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3"><span>💡</span> Astuces de Table</h2>
+      <ul class="space-y-3 text-gray-300 text-sm">
+        <li>🎲 <strong>Tout se lance au dé</strong> : concoctions, cueillettes, extractions et récoltes de monstres ont leur simulateur intégré — plus besoin de quitter Grimoire.</li>
+        <li>🔗 <strong>Navigation croisée</strong> : depuis une fiche de poison ou de créature, cliquez un ingrédient pour ouvrir directement sa fiche plante.</li>
+        <li>❤️ <strong>Préparez vos favoris</strong> avant la session pour un accès instantané aux plantes clés du scénario.</li>
+        <li>📋 <strong>Copie Markdown</strong> : la table de potions aléatoires se copie directement dans vos notes de campagne Grimoire.</li>
+      </ul>
+    </section>
+
+    <!-- Source -->
+    <section class="text-center text-sm text-gray-500">
+      <p>Base de plantes adaptée du <em>Guide to Herbs for RPGs</em> de Shaun Hately (1996, netbook libre) et tables de gemmes inspirées du <em>Donjon de Naheulbeuk</em>.</p>
+      <p class="mt-2"><a href="index.html" class="text-grimoire-accent hover:text-grimoire-accentHover">← Retour aux tutoriels</a></p>
+    </section>
+
+  </main>
+</body>
+</html>
