@@ -1,7 +1,7 @@
 {
-  "version": "0.7.5",
-  "notes": "Les 7 évolutions : mémoire de campagne des PNJ (ils se souviennent des joueurs !), chronique de séance rédigée par l'IA locale, transcription de table hors-ligne (whisper), catalogue Drive chargé à la demande (démarrage allégé), store d'addons communautaire avec validation automatique, portage macOS Apple Silicon et noms d'installateurs normalisés sur toutes les plateformes.",
-  "pub_date": "2026-10-01T05:40:00Z",
+  "version": "0.7.6",
+  "notes": "Nouveau bouton « Signaler un bug » dans le Menu Aide : vos retours ouvrent une issue GitHub pré-remplie (version, système, date) en un clic. Fiabilisation de la CI macOS du bundle de mise à jour automatique.",
+  "pub_date": "2026-10-02T14:23:11Z",
   "platforms": {
     "windows-x86_64": {
       "url": "https://github.com/LordMadTrix/grimoire/releases/latest"
