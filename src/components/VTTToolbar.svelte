@@ -29,6 +29,7 @@
   import CriticalWounds from './CriticalWounds.svelte';
   import ChaosMutations from './ChaosMutations.svelte';
   import MerchantGenerator from './MerchantGenerator.svelte';
+  import HerboristeModal from './herboriste/HerboristeModal.svelte';
   import RumorManager from './RumorManager.svelte';
   import { timeStore, advanceTime, formatImperialDate } from '$lib/stores/timeStore';
   import PlayerMobileManager from './PlayerMobileManager.svelte';
@@ -100,6 +101,7 @@
   let critWounds: any = $state();
   let chaosMuts: any = $state();
   let merchantGen: any = $state();
+  let herboriste: any = $state();
   let rumorMan: any = $state();
 
   // Countdown
@@ -680,6 +682,7 @@
         <button class="dropdown-item" onclick={() => { charCreator?.toggle(); activeMenu = null; }}>⚔️ Créateur de personnage</button>
         <button class="dropdown-item" onclick={() => { soundBoard?.toggle(); activeMenu = null; }}>🎹 SoundBoard</button>
         <button class="dropdown-item" onclick={() => { monsterLib?.toggle(); activeMenu = null; }}>🐉 Monstres</button>
+        <button class="dropdown-item" onclick={() => { herboriste?.toggle(); activeMenu = null; }}>🌿 Guide de l'Herboriste</button>
         <button class="dropdown-item" onclick={() => { advLib?.toggle(); activeMenu = null; }}>🗺️ Aventures</button>
         <button class="dropdown-item" onclick={() => { sessionExport?.toggle(); activeMenu = null; }}>💾 Export Session</button>
 
@@ -740,6 +743,7 @@
   <CriticalWounds bind:this={critWounds} />
   <ChaosMutations bind:this={chaosMuts} />
   <MerchantGenerator bind:this={merchantGen} />
+  <HerboristeModal bind:this={herboriste} />
   <RumorManager bind:this={rumorMan} />
 </div>
 

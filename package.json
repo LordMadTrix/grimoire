@@ -1,7 +1,7 @@
 {
   "name": "grimoire",
   "private": true,
-  "version": "0.7.6",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "vite-dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"vite map-editor --port 5174 --strictPort\"",
@@ -46,6 +46,8 @@
     "d3-force": "^3.0.0",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "nspell": "^2.1.5",
     "pdfjs-dist": "^6.2.108",
     "pixi.js": "^8.18.1",
