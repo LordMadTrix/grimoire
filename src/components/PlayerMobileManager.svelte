@@ -9,6 +9,7 @@
     sendPrivateMessage, startPoll, endPoll,
     emitToPlayerView,
     createDirectory, writeFile, openVault,
+    isTauri,
     type ServerInfo, type PlayerInfo,
   } from '$lib/api';
   import { vttStore } from '$lib/stores/vtt.svelte';
@@ -244,101 +245,103 @@
       handleStart();
     }
 
-    unlistens.push(await listen<any>('player_joined', ({ payload }) => {
-      addLog(payload.name, '🟢 a rejoint la table');
-      refreshPlayers();
-    }));
-    unlistens.push(await listen<any>('player_left', ({ payload }) => {
-      addLog(payload.name, '🔴 a quitté la table');
-      refreshPlayers();
-    }));
-    unlistens.push(await listen<any>('player_roll', ({ payload }) => {
-      const d = payload.data;
-      addLog(payload.name, `🎲 ${d.formula} → ${d.total}`);
-    }));
-    unlistens.push(await listen<any>('player_chat', ({ payload }) => {
-      const prefix = payload.private ? '🔒 ' : payload.group ? '👥 ' : '';
-      addLog(payload.name, prefix + payload.message);
-    }));
-    unlistens.push(await listen<any>('player_character_update', ({ payload }) => {
-      players = players.map(p => p.id === payload.id ? { ...p, character: payload.character } : p);
-    }));
-    unlistens.push(await listen<any>('player_reaction', ({ payload }) => {
-      addLog(payload.name, payload.emoji);
-    }));
-    unlistens.push(await listen<any>('player_initiative', ({ payload }) => {
-      const d = payload.data;
-      addLog(payload.name, `⚡ Initiative ${d.result} (I${d.i_val}+d10:${d.d10})`);
-    }));
-    unlistens.push(await listen<any>('player_xp_request', ({ payload }) => {
-      addLog(payload.name, `💫 demande ${payload.amount} XP`);
-      refreshPlayers();
-    }));
-    unlistens.push(await listen<any>('player_sketch_push', ({ payload }) => {
-      addLog(payload.name, `🎨 a envoyé un croquis`);
-      // Émettre un événement global pour que MapCanvas l'affiche
-      window.dispatchEvent(new CustomEvent('vtt-sketch-push', { detail: payload }));
-    }));
-    unlistens.push(await listen<any>('player_play_sound', ({ payload }) => {
-      addLog(payload.name, `🔊 a joué un son (${payload.sound_id})`);
-    }));
-    unlistens.push(await listen<any>('player_token_move', ({ payload }) => {
-      const gs = vttStore.gridSize || 50;
-      const token = vttStore.tokens.find(t => t.playerId === payload.id || t.name.toLowerCase() === payload.name.toLowerCase());
-      if (token) {
-        token.x += payload.dx * gs;
-        token.y += payload.dy * gs;
-        emitToPlayerView('update_tokens', vttStore.tokens);
-      }
-    }));
-    unlistens.push(await listen<any>('player_poll_vote', ({ payload }) => {
-      const opt = payload.option as string;
-      if (!pollResults[opt]) pollResults[opt] = { count: 0, voters: [] };
-      if (!pollResults[opt].voters.includes(payload.name)) {
-        pollResults[opt].count++;
-        pollResults[opt].voters.push(payload.name);
-        pollResults = { ...pollResults };
-      }
-      addLog(payload.name, `📊 a voté : "${opt}"`);
-    }));
-
-    unlistens.push(await listen<any>('mj_note_received', async ({ payload }) => {
-      const title = payload?.title || 'Note Sans Titre';
-      const content = payload?.content || '';
-      const savedRelPath = payload?.saved_rel_path;
-      const isConflict = payload?.is_conflict ?? false;
-
-      if (isConflict) {
-        addLog('Sécurité MJ', `⚠️ Conflit détecté pour "${title}" : enregistré sous copie séparée (${savedRelPath}) pour protéger vos écrits PC.`);
-      } else {
-        addLog('MJ Mobile', `📝 Note reçue et sécurisée : "${title}" (${savedRelPath || 'Notes/Mobile'})`);
-      }
-
-      const vp = getVaultPath();
-      if (!vp) return;
-
-      if (savedRelPath) {
-        lastNote = { title, filename: savedRelPath };
-      }
-
-      try {
-        // Le backend Rust a déjà enregistré le fichier avec sauvegarde préventive et gestion des conflits
-        const tree = await openVault(vp);
-        setVaultTree(tree);
-
-        // Si la note reçue est celle actuellement ouverte dans l'éditeur :
-        if (savedRelPath && getActiveFile() === savedRelPath) {
-          if (getIsDirty()) {
-            addLog('Sécurité', `⚠️ Note active en cours d'édition sur PC : la version PC est préservée.`);
-          } else if (!isConflict) {
-            // Mettre à jour l'éditeur en direct pour qu'il soit synchronisé
-            setActiveContent(content);
-          }
+    if (isTauri()) {
+      unlistens.push(await listen<any>('player_joined', ({ payload }) => {
+        addLog(payload.name, '🟢 a rejoint la table');
+        refreshPlayers();
+      }));
+      unlistens.push(await listen<any>('player_left', ({ payload }) => {
+        addLog(payload.name, '🔴 a quitté la table');
+        refreshPlayers();
+      }));
+      unlistens.push(await listen<any>('player_roll', ({ payload }) => {
+        const d = payload.data;
+        addLog(payload.name, `🎲 ${d.formula} → ${d.total}`);
+      }));
+      unlistens.push(await listen<any>('player_chat', ({ payload }) => {
+        const prefix = payload.private ? '🔒 ' : payload.group ? '👥 ' : '';
+        addLog(payload.name, prefix + payload.message);
+      }));
+      unlistens.push(await listen<any>('player_character_update', ({ payload }) => {
+        players = players.map(p => p.id === payload.id ? { ...p, character: payload.character } : p);
+      }));
+      unlistens.push(await listen<any>('player_reaction', ({ payload }) => {
+        addLog(payload.name, payload.emoji);
+      }));
+      unlistens.push(await listen<any>('player_initiative', ({ payload }) => {
+        const d = payload.data;
+        addLog(payload.name, `⚡ Initiative ${d.result} (I${d.i_val}+d10:${d.d10})`);
+      }));
+      unlistens.push(await listen<any>('player_xp_request', ({ payload }) => {
+        addLog(payload.name, `💫 demande ${payload.amount} XP`);
+        refreshPlayers();
+      }));
+      unlistens.push(await listen<any>('player_sketch_push', ({ payload }) => {
+        addLog(payload.name, `🎨 a envoyé un croquis`);
+        // Émettre un événement global pour que MapCanvas l'affiche
+        window.dispatchEvent(new CustomEvent('vtt-sketch-push', { detail: payload }));
+      }));
+      unlistens.push(await listen<any>('player_play_sound', ({ payload }) => {
+        addLog(payload.name, `🔊 a joué un son (${payload.sound_id})`);
+      }));
+      unlistens.push(await listen<any>('player_token_move', ({ payload }) => {
+        const gs = vttStore.gridSize || 50;
+        const token = vttStore.tokens.find(t => t.playerId === payload.id || t.name.toLowerCase() === payload.name.toLowerCase());
+        if (token) {
+          token.x += payload.dx * gs;
+          token.y += payload.dy * gs;
+          emitToPlayerView('update_tokens', vttStore.tokens);
         }
-      } catch (err) {
-        console.error('Erreur rafraîchissement note MJ mobile:', err);
-      }
-    }));
+      }));
+      unlistens.push(await listen<any>('player_poll_vote', ({ payload }) => {
+        const opt = payload.option as string;
+        if (!pollResults[opt]) pollResults[opt] = { count: 0, voters: [] };
+        if (!pollResults[opt].voters.includes(payload.name)) {
+          pollResults[opt].count++;
+          pollResults[opt].voters.push(payload.name);
+          pollResults = { ...pollResults };
+        }
+        addLog(payload.name, `📊 a voté : "${opt}"`);
+      }));
+
+      unlistens.push(await listen<any>('mj_note_received', async ({ payload }) => {
+        const title = payload?.title || 'Note Sans Titre';
+        const content = payload?.content || '';
+        const savedRelPath = payload?.saved_rel_path;
+        const isConflict = payload?.is_conflict ?? false;
+
+        if (isConflict) {
+          addLog('Sécurité MJ', `⚠️ Conflit détecté pour "${title}" : enregistré sous copie séparée (${savedRelPath}) pour protéger vos écrits PC.`);
+        } else {
+          addLog('MJ Mobile', `📝 Note reçue et sécurisée : "${title}" (${savedRelPath || 'Notes/Mobile'})`);
+        }
+
+        const vp = getVaultPath();
+        if (!vp) return;
+
+        if (savedRelPath) {
+          lastNote = { title, filename: savedRelPath };
+        }
+
+        try {
+          // Le backend Rust a déjà enregistré le fichier avec sauvegarde préventive et gestion des conflits
+          const tree = await openVault(vp);
+          setVaultTree(tree);
+
+          // Si la note reçue est celle actuellement ouverte dans l'éditeur :
+          if (savedRelPath && getActiveFile() === savedRelPath) {
+            if (getIsDirty()) {
+              addLog('Sécurité', `⚠️ Note active en cours d'édition sur PC : la version PC est préservée.`);
+            } else if (!isConflict) {
+              // Mettre à jour l'éditeur en direct pour qu'il soit synchronisé
+              setActiveContent(content);
+            }
+          }
+        } catch (err) {
+          console.error('Erreur rafraîchissement note MJ mobile:', err);
+        }
+      }));
+    }
   });
 
   onDestroy(() => {
