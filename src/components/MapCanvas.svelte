@@ -1152,12 +1152,14 @@
 
         circleG = new PIXI.Graphics();
         container.addChild(circleG);
+        (container as any).__circleG = circleG;
 
         // Sprite pour l'image (optionnel)
         const tokenSprite = new PIXI.Sprite();
         tokenSprite.anchor.set(0.5);
         tokenSprite.visible = false;
         container.addChild(tokenSprite);
+        (container as any).__tokenSprite = tokenSprite;
 
         textT = new PIXI.Text({
           text: '',
@@ -1170,9 +1172,11 @@
         });
         textT.anchor.set(0.5, 1);
         container.addChild(textT);
+        (container as any).__textT = textT;
 
         hpBar = new PIXI.Graphics();
         container.addChild(hpBar);
+        (container as any).__hpBar = hpBar;
 
         if (isGM) {
           container.eventMode = 'static';
@@ -1206,14 +1210,13 @@
         tokenLayer.addChild(container);
         tokenSprites.set(token.id, container);
       } else {
-        circleG = container.children[0] as PIXI.Graphics;
-        // child 1 is tokenSprite
-        textT = container.children[2] as PIXI.Text;
-        hpBar = container.children[3] as PIXI.Graphics;
+        circleG = (container as any).__circleG || (container.children[0] as PIXI.Graphics);
+        textT = (container as any).__textT || (container.children[2] as PIXI.Text);
+        hpBar = (container as any).__hpBar || (container.children[3] as PIXI.Graphics);
       }
 
       const r = token.size / 2;
-      const tokenSprite = container.children[1] as PIXI.Sprite;
+      const tokenSprite = (container as any).__tokenSprite as PIXI.Sprite;
 
       // Cercle — API PixiJS v8
       circleG.clear();
@@ -1228,11 +1231,13 @@
 
       const color = token.isEnemy ? 0xef4444 : (token.color || 0x3b82f6);
       
-      // Toujours centrer le container et ses enfants
-      tokenSprite.position.set(0, 0);
-      tokenSprite.anchor.set(0.5);
+      // Toujours centrer le sprite s'il existe
+      if (tokenSprite && tokenSprite.anchor) {
+        tokenSprite.position.set(0, 0);
+        tokenSprite.anchor.set(0.5);
+      }
 
-      if (token.imageUrl) {
+      if (token.imageUrl && tokenSprite) {
         const isBuiltin = token.imageUrl.startsWith('/');
         const vPath = vaultPath || getVaultPath();
         if (!vPath && !isBuiltin) { tokenSprite.visible = false; return; }
@@ -1296,14 +1301,15 @@
         // Si chargement en cours : on ne touche pas à visible
         
         // Masque circulaire
-        if (!tokenSprite.mask) {
-           const maskG = new PIXI.Graphics();
-           container.addChild(maskG);
-           tokenSprite.mask = maskG;
+        let maskG = (container as any).__maskG as PIXI.Graphics | undefined;
+        if (!maskG) {
+          maskG = new PIXI.Graphics();
+          container.addChild(maskG);
+          tokenSprite.mask = maskG;
+          (container as any).__maskG = maskG;
         }
-        const m = tokenSprite.mask as PIXI.Graphics;
-        m.clear().circle(0, 0, r).fill(0xffffff);
-        m.position.set(0, 0);
+        maskG.clear().circle(0, 0, r).fill(0xffffff);
+        maskG.position.set(0, 0);
 
         // Fond de secours (si l'image est transparente ou en cours de chargement)
         circleG.circle(0, 0, r).fill({ color: 0x222222, alpha: 0.8 });
