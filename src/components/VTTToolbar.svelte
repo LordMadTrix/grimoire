@@ -56,6 +56,7 @@
   import { soundscape } from '$lib/stores/soundscape.svelte';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import AddonStore from './AddonStore.svelte';
+  import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
 
   let { 
     onRoll,
@@ -384,9 +385,11 @@
         {#if !vttStore.currentMap}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Charger une carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditor(); activeMenu = null; }}>🎨 Créer dans Fantasy Map Editor</button>
+          <button class="dropdown-item" style="color: #f59e0b; font-weight: bold;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Charger Démo Clé en Main (Sanctuaire)</button>
         {:else}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Changer de carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditorWithMap(vttStore.currentMap!, vttStore.currentMapRelPath?.split('/').pop()?.replace(/\.[^.]+$/, '') || 'Carte Active'); activeMenu = null; }}>✏️ Modifier dans le Map Editor</button>
+          <button class="dropdown-item" style="color: #f59e0b; font-weight: bold;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Recharger Démo (Sanctuaire)</button>
           <button class="dropdown-item" onclick={() => { closeMap(); activeMenu = null; }}>✖️ Fermer la carte</button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" class:active={vttStore.mode === 'zoom-rect'} onclick={() => { vttStore.mode = 'zoom-rect'; activeMenu = null; }}>🔍 Zoomer sur une zone</button>

@@ -314,16 +314,29 @@ class OpticalTrackingEngine {
   }
 
   /**
-   * Synchronise les coordonnées détectées avec les tokens du VTT
+   * Synchronise les coordonnées détectées avec les tokens du VTT et les gabarits de sorts
    */
   private syncTokensWithMarkers(detected: DetectedMarker[]) {
     const config = getOpticalTrackingConfig();
-    if (!vttStore.tokens || vttStore.tokens.length === 0) return;
+    const spellMarkersDetected = new Set<string>();
 
     for (const marker of detected) {
-      // Trouver le token associé à cet ID physique
+      // 1. Détection des Gabarits de Sorts Physiques ArUco (ID 40 = Cône de Feu, ID 41 = Boule de Feu, ID 42 = Ligne d'Éclair)
+      if (marker.id >= 40 && marker.id <= 44) {
+        this.handlePhysicalSpellTemplate(marker);
+        spellMarkersDetected.add(`phys_spell_${marker.id}`);
+        continue;
+      }
+
+      // 2. Trouver le token associé à cet ID physique
+      if (!vttStore.tokens || vttStore.tokens.length === 0) continue;
       const token = vttStore.tokens.find(t => t.physicalMarkerId === marker.id);
       if (!token) continue;
+
+      // Mise à jour de l'orientation physique (360°)
+      if (marker.rotationDeg !== undefined) {
+        token.physicalRotation = marker.rotationDeg;
+      }
 
       const currentSmoothed = this.smoothedPositions.get(marker.id) || { x: token.x, y: token.y };
 
@@ -342,7 +355,7 @@ class OpticalTrackingEngine {
         token.y = Math.round(newY);
         this.smoothedPositions.set(marker.id, { x: newX, y: newY });
 
-        // Mise à jour de la vision / brouillard de guerre
+        // Révélation automatique du brouillard de guerre
         if (token.visionRange && token.visionRange > 0) {
           const radiusPx = token.visionRange * 50; // échelle standard cases VTT
           vttStore.fowShapes.push({
@@ -353,6 +366,82 @@ class OpticalTrackingEngine {
             radius: radiusPx
           });
         }
+      }
+    }
+  }
+
+  /**
+   * Active ou met à jour un gabarit de sort physique posé sur la table
+   */
+  private handlePhysicalSpellTemplate(marker: DetectedMarker) {
+    const spellId = `phys_spell_${marker.id}`;
+    const rotRad = (marker.rotationDeg * Math.PI) / 180;
+    
+    let existing = vttStore.spells.find(s => s.id === spellId);
+    if (!existing) {
+      // Configuration selon le type de gabarit
+      if (marker.id === 40) {
+        // Cône de Feu 15ft/30ft
+        existing = {
+          id: spellId,
+          x: marker.mapCenter.x,
+          y: marker.mapCenter.y,
+          type: 'fire',
+          radius: 120,
+          shape: 'cone',
+          angle: rotRad,
+          length: 220,
+          coneAngle: Math.PI / 3,
+          label: '🔥 Souffle Enflammé'
+        };
+      } else if (marker.id === 41) {
+        // Boule de Feu / Sphère 20ft
+        existing = {
+          id: spellId,
+          x: marker.mapCenter.x,
+          y: marker.mapCenter.y,
+          type: 'fire',
+          radius: 110,
+          shape: 'circle',
+          label: '💥 Boule de Feu'
+        };
+      } else if (marker.id === 42) {
+        // Ligne d'Éclair 30ft
+        existing = {
+          id: spellId,
+          x: marker.mapCenter.x,
+          y: marker.mapCenter.y,
+          type: 'lightning',
+          radius: 40,
+          shape: 'line',
+          angle: rotRad,
+          length: 320,
+          label: '⚡ Foudre Linéaire'
+        };
+      } else if (marker.id === 43) {
+        // Cône de Givre
+        existing = {
+          id: spellId,
+          x: marker.mapCenter.x,
+          y: marker.mapCenter.y,
+          type: 'ice',
+          radius: 120,
+          shape: 'cone',
+          angle: rotRad,
+          length: 220,
+          coneAngle: Math.PI / 3,
+          label: '❄️ Cône de Froid'
+        };
+      }
+      if (existing) {
+        vttStore.spells = [...vttStore.spells, existing];
+      }
+    } else {
+      // Mise à jour de la position et de l'orientation en direct
+      existing.x = Math.round(marker.mapCenter.x);
+      existing.y = Math.round(marker.mapCenter.y);
+      if (existing.shape === 'cone' || existing.shape === 'line') {
+        existing.angle = rotRad;
       }
     }
   }

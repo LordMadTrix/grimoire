@@ -196,6 +196,122 @@ export function generateCalibrationCornerStl(): Blob {
   return writer.buildBlob('Grimoire Calibration L-Corner');
 }
 
+/**
+ * Génère un gabarit physique de Sort en Cône 60° (15ft / 30ft) avec logement ArUco
+ */
+export function generateConeSpellTemplateStl(lengthMm: number = 75, angleDeg: number = 60): Blob {
+  const writer = new BinaryStlWriter();
+  const H = 3.0; // 3mm hauteur
+  const halfAngle = ((angleDeg / 2) * Math.PI) / 180;
+  const spreadY = Math.tan(halfAngle) * lengthMm;
+
+  // Triangle principal
+  const pApexBottom: [number, number, number] = [0, 0, 0];
+  const pRightBottom: [number, number, number] = [lengthMm, spreadY, 0];
+  const pLeftBottom: [number, number, number] = [lengthMm, -spreadY, 0];
+
+  const pApexTop: [number, number, number] = [0, 0, H];
+  const pRightTop: [number, number, number] = [lengthMm, spreadY, H];
+  const pLeftTop: [number, number, number] = [lengthMm, -spreadY, H];
+
+  // Face inférieure
+  writer.addTriangle(pApexBottom, pLeftBottom, pRightBottom);
+  // Face supérieure
+  writer.addTriangle(pApexTop, pRightTop, pLeftTop);
+  // Côté gauche
+  writer.addQuad(pApexBottom, pApexTop, pLeftTop, pLeftBottom);
+  // Côté droit
+  writer.addQuad(pApexBottom, pRightBottom, pRightTop, pApexTop);
+  // Face avant
+  writer.addQuad(pLeftBottom, pLeftTop, pRightTop, pRightBottom);
+
+  return writer.buildBlob('Grimoire Cone Spell Template');
+}
+
+/**
+ * Génère un gabarit physique de Sphère / Boule de Feu (20ft) avec logement ArUco
+ */
+export function generateCircleSpellTemplateStl(radiusMm: number = 50): Blob {
+  const writer = new BinaryStlWriter();
+  const segments = 48;
+  const H = 3.0;
+  const rimWidth = 6.0;
+  const innerR = radiusMm - rimWidth;
+
+  // Anneau extérieur fin
+  for (let i = 0; i < segments; i++) {
+    const theta1 = (i / segments) * Math.PI * 2;
+    const theta2 = ((i + 1) / segments) * Math.PI * 2;
+
+    const cos1 = Math.cos(theta1), sin1 = Math.sin(theta1);
+    const cos2 = Math.cos(theta2), sin2 = Math.sin(theta2);
+
+    const ro1: [number, number, number] = [radiusMm * cos1, radiusMm * sin1, 0];
+    const ro2: [number, number, number] = [radiusMm * cos2, radiusMm * sin2, 0];
+    const ri1: [number, number, number] = [innerR * cos1, innerR * sin1, 0];
+    const ri2: [number, number, number] = [innerR * cos2, innerR * sin2, 0];
+
+    const tro1: [number, number, number] = [radiusMm * cos1, radiusMm * sin1, H];
+    const tro2: [number, number, number] = [radiusMm * cos2, radiusMm * sin2, H];
+    const tri1: [number, number, number] = [innerR * cos1, innerR * sin1, H];
+    const tri2: [number, number, number] = [innerR * cos2, innerR * sin2, H];
+
+    // Dessous & Dessus
+    writer.addQuad(ro1, ri1, ri2, ro2);
+    writer.addQuad(tro1, tro2, tri2, tri1);
+    // Paroi extérieure
+    writer.addQuad(ro1, ro2, tro2, tro1);
+    // Paroi intérieure
+    writer.addQuad(ri1, tri1, tri2, ri2);
+  }
+
+  // Barre centrale pour le logement de tag
+  const barW = 18;
+  const p1: [number, number, number] = [-innerR, -barW / 2, 0];
+  const p2: [number, number, number] = [innerR, -barW / 2, 0];
+  const p3: [number, number, number] = [innerR, barW / 2, 0];
+  const p4: [number, number, number] = [-innerR, barW / 2, 0];
+  const tp1: [number, number, number] = [-innerR, -barW / 2, H];
+  const tp2: [number, number, number] = [innerR, -barW / 2, H];
+  const tp3: [number, number, number] = [innerR, barW / 2, H];
+  const tp4: [number, number, number] = [-innerR, barW / 2, H];
+
+  writer.addQuad(p1, p4, p3, p2);
+  writer.addQuad(tp1, tp2, tp3, tp4);
+  writer.addQuad(p1, p2, tp2, tp1);
+  writer.addQuad(p3, p4, tp4, tp3);
+
+  return writer.buildBlob('Grimoire Sphere Spell Template');
+}
+
+/**
+ * Génère un gabarit physique de Ligne d'Éclair 30ft
+ */
+export function generateLineSpellTemplateStl(lengthMm: number = 150, widthMm: number = 25): Blob {
+  const writer = new BinaryStlWriter();
+  const H = 3.0;
+  const halfW = widthMm / 2;
+
+  const p1: [number, number, number] = [0, -halfW, 0];
+  const p2: [number, number, number] = [lengthMm, -halfW, 0];
+  const p3: [number, number, number] = [lengthMm, halfW, 0];
+  const p4: [number, number, number] = [0, halfW, 0];
+
+  const tp1: [number, number, number] = [0, -halfW, H];
+  const tp2: [number, number, number] = [lengthMm, -halfW, H];
+  const tp3: [number, number, number] = [lengthMm, halfW, H];
+  const tp4: [number, number, number] = [0, halfW, H];
+
+  writer.addQuad(p1, p4, p3, p2);
+  writer.addQuad(tp1, tp2, tp3, tp4);
+  writer.addQuad(p1, p2, tp2, tp1);
+  writer.addQuad(p2, p3, tp3, tp2);
+  writer.addQuad(p3, p4, tp4, tp3);
+  writer.addQuad(p4, p1, tp1, tp4);
+
+  return writer.buildBlob('Grimoire Line Spell Template');
+}
+
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { saveBinaryFileToDisk } from '$lib/api';
 
@@ -327,5 +443,29 @@ export const STL_PRESETS: StlPreset[] = [
     badge: 'Calibration Caméra',
     filename: 'grimoire_equerre_calibration.stl',
     generate: () => generateCalibrationCornerStl()
+  },
+  {
+    id: 'spell_cone',
+    name: 'Gabarit de Sort : Cône de Souffle (15/30 ft)',
+    desc: 'Cône triangulaire 60° avec logement pour tag ArUco #40. Posez-le sur la table pour projeter les flammes ou le souffle en direct !',
+    badge: 'Sort Tag #40',
+    filename: 'grimoire_gabarit_cone_souffle.stl',
+    generate: () => generateConeSpellTemplateStl(75, 60)
+  },
+  {
+    id: 'spell_sphere',
+    name: 'Gabarit de Sort : Boule de Feu / Sphère (20 ft)',
+    desc: 'Anneau de rayon 50mm avec logement central pour tag ArUco #41. Déclenche l\'animation d\'explosion sphérique en temps réel.',
+    badge: 'Sort Tag #41',
+    filename: 'grimoire_gabarit_boule_de_feu.stl',
+    generate: () => generateCircleSpellTemplateStl(50)
+  },
+  {
+    id: 'spell_line',
+    name: 'Gabarit de Sort : Ligne d\'Éclair (30 ft)',
+    desc: 'Règle tactique 150mm graduée avec logement pour tag ArUco #42. Projette la foudre linéaire dans la direction exacte du gabarit.',
+    badge: 'Sort Tag #42',
+    filename: 'grimoire_gabarit_ligne_eclair.stl',
+    generate: () => generateLineSpellTemplateStl(150, 25)
   }
 ];

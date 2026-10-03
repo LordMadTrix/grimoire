@@ -1418,6 +1418,55 @@
         container.removeChild(spotRing); spotRing.destroy(); delete (container as any).__spotRing;
       }
 
+      // Halo Lumineux sous le socle pour les Figurines Physiques Réelles (ArUco)
+      let physRing = (container as any).__physRing as PIXI.Graphics | undefined;
+      if (token.physicalMarkerId != null) {
+        if (!physRing) {
+          physRing = new PIXI.Graphics();
+          container.addChildAt(physRing, 0); // sous le token
+          (container as any).__physRing = physRing;
+        }
+        physRing.clear();
+
+        // Calcul de couleur selon la santé
+        let ringCol = 0x10b981; // Émeraude si en pleine forme
+        let ringAlpha = 0.8;
+        if (token.maxHp && token.hp !== undefined) {
+          const hpPct = token.hp / token.maxHp;
+          if (hpPct <= 0.25) {
+            ringCol = 0xef4444; // Rouge critique
+            ringAlpha = 0.95;
+          } else if (hpPct <= 0.5) {
+            ringCol = 0xf59e0b; // Ambre blessé
+            ringAlpha = 0.85;
+          }
+        }
+
+        // Anneau projeté sous le socle
+        physRing.setStrokeStyle({ width: 4, color: ringCol, alpha: ringAlpha });
+        physRing.circle(0, 0, r + 6).stroke();
+        physRing.setStrokeStyle({ width: 1.5, color: ringCol, alpha: 0.35 });
+        physRing.circle(0, 0, r + 12).stroke();
+        physRing.circle(0, 0, r + 6).fill({ color: ringCol, alpha: 0.12 });
+
+        // Flèche / Pointe d'orientation physique (360°)
+        if (token.physicalRotation !== undefined) {
+          const rotRad = ((token.physicalRotation - 90) * Math.PI) / 180;
+          const arrowDist = r + 8;
+          const arrowLen = 14;
+          const tipX = Math.cos(rotRad) * (arrowDist + arrowLen);
+          const tipY = Math.sin(rotRad) * (arrowDist + arrowLen);
+          const leftX = Math.cos(rotRad + 0.35) * arrowDist;
+          const leftY = Math.sin(rotRad + 0.35) * arrowDist;
+          const rightX = Math.cos(rotRad - 0.35) * arrowDist;
+          const rightY = Math.sin(rotRad - 0.35) * arrowDist;
+
+          physRing.poly([tipX, tipY, leftX, leftY, rightX, rightY]).fill({ color: ringCol, alpha: 0.95 });
+        }
+      } else if (physRing) {
+        container.removeChild(physRing); physRing.destroy(); delete (container as any).__physRing;
+      }
+
       // Conditions
       const condStr = (token.conditions ?? []).map(c => CONDITION_EMOJIS[c] ?? '').join('');
       let condText = (container as any).__condText as PIXI.Text | undefined;
