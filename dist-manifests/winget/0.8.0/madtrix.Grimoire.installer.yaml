@@ -1,0 +1,26 @@
+# Created using Grimoire Manifest Generator
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+PackageIdentifier: madtrix.Grimoire
+PackageVersion: 0.8.0
+InstallerType: inno
+Scope: machine
+InstallModes:
+  - interactive
+  - silent
+UpgradeBehavior: install
+Commands:
+  - grimoire
+FileExtensions:
+  - md
+Installers:
+  - Architecture: x64
+    InstallerType: inno
+    InstallerUrl: https://github.com/LordMadTrix/grimoire/releases/download/v0.8.0/Grimoire_V0.8.0_X86.exe
+    InstallerSha256: 7e1d5e114588b49ef4e013f8bbc10a3edf93519829e39854604848859253c2af
+  - Architecture: x64
+    InstallerType: wix
+    InstallerUrl: https://github.com/LordMadTrix/grimoire/releases/download/v0.8.0/Grimoire_V0.8.0_X86.msi
+    InstallerSha256: 305b252b3ae510335200123daf48239ef2aedd53e097027e34971e51dbaa4384
+ManifestType: installer
+ManifestVersion: 1.6.0
