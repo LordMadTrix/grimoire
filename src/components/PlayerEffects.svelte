@@ -10,7 +10,7 @@
   $effect(() => {
     // Generate particles based on weather
     if (weather === 'rain') {
-      particles = Array.from({length: 100}, (_, i) => ({
+      particles = Array.from({length: 25}, (_, i) => ({
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,
@@ -18,7 +18,7 @@
         d: Math.random() * 2
       }));
     } else if (weather === 'snow' || weather === 'ash') {
-      particles = Array.from({length: 50}, (_, i) => ({
+      particles = Array.from({length: 20}, (_, i) => ({
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,

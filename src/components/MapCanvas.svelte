@@ -292,12 +292,15 @@
   let condWheelY = $state(0);
 
   onMount(async () => {
+    const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 1.5) : 1;
     app = new PIXI.Application();
     await app.init({
       resizeTo: canvasContainer,
       backgroundColor: 0x0a0c10,
-      resolution: window.devicePixelRatio || 1,
+      resolution: dpr,
       autoDensity: true,
+      powerPreference: 'high-performance',
+      antialias: false,
     });
 
     canvasContainer.appendChild(app.canvas);
@@ -381,11 +384,17 @@
       document.addEventListener('contextmenu', e => e.preventDefault());
     }
 
+    let lastVisibilityCheck = 0;
+    let lastLightingTime = 0;
+
     // Ticker principal : tour de combat + sorts + météo + shake
     app.ticker.add(() => {
       const now = Date.now();
 
       // ── Token Animations ────────────────────────────────────
+      const shouldCheckVisibility = !isGM && (now - lastVisibilityCheck >= 150);
+      if (shouldCheckVisibility) lastVisibilityCheck = now;
+
       for (const token of tokens) {
         const container = tokenSprites.get(token.id);
         if (!container) continue;
@@ -407,9 +416,6 @@
         if (token.animation === 'hit') {
           const shake = (Math.random() - 0.5) * 10;
           container.pivot.x = shake;
-          const tint = Math.sin(now / 100) > 0 ? 0xff4444 : 0xffffff;
-          // Note: tint requires colorMatrixFilter or similar on Container, 
-          // but we can just clignoter l'alpha
           container.alpha = Math.sin(now / 50) > 0 ? 0.6 : 1;
         } else {
           container.pivot.x = 0;
@@ -417,10 +423,9 @@
           else container.alpha = 1;
         }
 
-        // ── Visibilité brouillard de guerre (joueur uniquement) ──
-        if (!isGM) {
+        // ── Visibilité brouillard de guerre (joueur uniquement - throttlé à 150ms) ──
+        if (shouldCheckVisibility) {
           const gmHidden = token.visible === false;
-          // Un token est visible s'il est dans une zone révélée OU dans la vision d'un autre token joueur
           const inFow = isTokenRevealed(token.x, token.y);
           const inVision = tokens.some(t =>
             !t.isEnemy && t.visionRange && t.visionRange > 0 &&
@@ -482,22 +487,22 @@
         g.circle(0, 0, radius).stroke();
       }
 
-      // ── Fog drift (mouvement subtil du brouillard) ───────────
+      // ── Fog drift (mouvement subtil du brouillard sans invalidation de filtre) ──
       if (fowSprite && fowSprite.visible) {
-        const drift = Math.sin(now / 4000) * 3;
-        const driftY = Math.cos(now / 5500) * 2;
-        fowSprite.x = drift;
-        fowSprite.y = driftY;
-        fowSprite.alpha = isGM
-          ? 0.52 + Math.sin(now / 3200) * 0.04
-          : 0.88 + Math.sin(now / 3200) * 0.05;
+        fowSprite.alpha = isGM ? 0.55 : 0.90;
       }
 
-      // ── Dynamic Lighting & Torch Flicker ───────────────────
-      if (dynamicLightLayer && (tokens.some(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision) || (vttStore.lights && vttStore.lights.length > 0))) {
-        updateDynamicLighting(dynamicLightLayer, tokens, vttStore.lights || [], now / 1000);
-      } else if (dynamicLightLayer) {
-        dynamicLightLayer.clear();
+      // ── Dynamic Lighting & Torch Flicker (throttlé à 30 FPS pour soulager le GPU) ──
+      if (dynamicLightLayer) {
+        const hasLights = tokens.some(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision) || (vttStore.lights && vttStore.lights.length > 0);
+        if (hasLights) {
+          if (now - lastLightingTime >= 33) {
+            lastLightingTime = now;
+            updateDynamicLighting(dynamicLightLayer, tokens, vttStore.lights || [], now / 1000);
+          }
+        } else if (dynamicLightLayer.children.length > 0) {
+          dynamicLightLayer.clear();
+        }
       }
 
 
@@ -922,8 +927,8 @@
       fowTexture = PIXI.RenderTexture.create({ width: texture.width, height: texture.height });
       fowSprite = new PIXI.Sprite(fowTexture);
       fowSprite.alpha = isGM ? 0.55 : 0.92;
-      // Flou sur les bords pour un effet brouillard naturel
-      fowSprite.filters = [new PIXI.BlurFilter({ strength: 18, quality: 3 })];
+      // Flou doux optimisé (quality 1) pour un rendu soyeux sans surcharger le GPU
+      fowSprite.filters = [new PIXI.BlurFilter({ strength: 8, quality: 1 })];
       fogLayer.addChild(fowSprite);
 
       // Light overlay setup (darkness mask with light-radius holes)

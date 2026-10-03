@@ -187,6 +187,12 @@
     }
 
     function draw(ts: number) {
+      // Lorsque la carte est active, le canvas étoilé est masqué : suspendre le dessin
+      if (currentMap && !isBlackout) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
+
       ctx.clearRect(0, 0, W, H);
 
       // Fond dégradé
@@ -520,12 +526,12 @@
   }
 
   @keyframes torch {
-    0%   { opacity: 1.0; transform: scale(1.000); }
-    20%  { opacity: 0.91; transform: scale(1.008); }
-    45%  { opacity: 0.96; transform: scale(0.996); }
-    65%  { opacity: 0.87; transform: scale(1.012); }
-    80%  { opacity: 0.94; transform: scale(0.998); }
-    100% { opacity: 1.0; transform: scale(1.000); }
+    0%   { opacity: 1.0; }
+    20%  { opacity: 0.92; }
+    45%  { opacity: 0.97; }
+    65%  { opacity: 0.88; }
+    80%  { opacity: 0.95; }
+    100% { opacity: 1.0; }
   }
 
   /* ── Scan-lines ───────────────────────────────────────────────── */
