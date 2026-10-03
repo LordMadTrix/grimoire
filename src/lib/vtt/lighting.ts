@@ -1,6 +1,6 @@
 // ── Moteur d'Éclairage Dynamique 2D & Torches PixiJS v8 ───────────────────────
 // Gère le rendu des halos de lumière (torches, lanternes, sorts lumineux, vision dans le noir)
-// avec scintillement dynamique (flicker) et révélation du brouillard de guerre.
+// avec scintillement dynamique (flicker) et rendu Sprite GPU zéro-allocation CPU.
 
 import * as PIXI from 'pixi.js';
 import type { Token, LightSource } from '$lib/stores/vtt.svelte';
@@ -14,117 +14,132 @@ export interface LightHaloConfig {
   flicker?: boolean;
 }
 
+let cachedRadialTexture: PIXI.Texture | null = null;
+
 /**
- * Dessine un halo lumineux doux avec dégradé radial et scintillement
+ * Génère une texture de halo radial doux une seule fois sur le GPU (128x128)
  */
-export function drawLightHalo(
-  g: PIXI.Graphics,
-  config: LightHaloConfig,
-  time: number
-) {
-  const { x, y, radius, color, alpha, flicker } = config;
-  
-  // Calcul du scintillement organique stochastique (3 composantes de fréquence pour torches & flammes vivantes)
-  let actualRadius = radius;
-  let actualAlpha = alpha;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  if (flicker) {
-    const h1 = Math.sin(time * 5.2 + (x * 0.07)) * 0.045;
-    const h2 = Math.sin(time * 12.7 + (y * 0.05)) * 0.025;
-    const h3 = Math.cos(time * 23.1 + ((x + y) * 0.03)) * 0.015;
-    const noise = h1 + h2 + h3;
-
-    actualRadius = radius * (1 + noise);
-    actualAlpha = Math.max(0.08, Math.min(1.0, alpha * (1 + noise * 1.8)));
-
-    // Micro-oscillation du centre de la flamme au gré de l'air
-    offsetX = Math.sin(time * 7.1 + (x * 0.1)) * 1.4;
-    offsetY = Math.cos(time * 8.9 + (y * 0.1)) * 1.1;
+export function getRadialLightTexture(): PIXI.Texture {
+  if (cachedRadialTexture && cachedRadialTexture.source) {
+    return cachedRadialTexture;
   }
-
-  const cx = x + offsetX;
-  const cy = y + offsetY;
-
-  // 1. Cœur incandescent hyper-lumineux (blanc chaud)
-  g.circle(cx, cy, actualRadius * 0.15);
-  g.fill({ color: 0xfffdf5, alpha: actualAlpha * 0.7 });
-
-  // 2. Halo intérieur vibrant
-  g.circle(cx, cy, actualRadius * 0.35);
-  g.fill({ color, alpha: actualAlpha * 0.45 });
-
-  // 3. Diffusion intermédiaire
-  g.circle(cx, cy, actualRadius * 0.60);
-  g.fill({ color, alpha: actualAlpha * 0.25 });
-
-  // 4. Pénombre étendue
-  g.circle(cx, cy, actualRadius * 0.85);
-  g.fill({ color, alpha: actualAlpha * 0.12 });
-
-  // 5. Frange douce d'atténuation
-  g.circle(cx, cy, actualRadius);
-  g.fill({ color, alpha: actualAlpha * 0.04 });
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.2, 'rgba(255, 255, 255, 0.7)');
+    grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
+    grad.addColorStop(0.8, 'rgba(255, 255, 255, 0.05)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 128);
+  }
+  cachedRadialTexture = PIXI.Texture.from(canvas);
+  return cachedRadialTexture;
 }
 
 /**
  * Met à jour le calque d'éclairage complet pour tous les jetons et sources de lumière actives
+ * sans aucune réallocation ni tessellation CPU (Sprites GPU quads avec mise à l'échelle & teinte)
  */
 export function updateDynamicLighting(
-  lightingGraphics: PIXI.Graphics,
+  container: PIXI.Container,
   tokens: Token[],
   customLights: LightSource[] = [],
   timeSeconds: number
 ) {
-  lightingGraphics.clear();
+  const lightTexture = getRadialLightTexture();
+  const activeConfigs: LightHaloConfig[] = [];
 
   // 1. Rendu des torches et lanternes portées par les pions (Tokens)
   for (const token of tokens) {
-    // Si le pion a une torche ou une source de lumière
     if (token.lightRadius && token.lightRadius > 0) {
-      let color = 0xffaa44; // Ambre chaleureux de torche par défaut
+      let color = 0xffaa44; // Ambre chaleureux par défaut
       if (token.lightColor) {
         const parsed = parseInt(token.lightColor.replace('#', ''), 16);
         if (!isNaN(parsed)) color = parsed;
       }
 
-      drawLightHalo(lightingGraphics, {
+      activeConfigs.push({
         x: token.x,
         y: token.y,
         radius: token.lightRadius * 5, // Conversion échelle pixels
         color,
-        alpha: 0.65,
+        alpha: 0.75,
         flicker: token.lightFlicker !== false
-      }, timeSeconds);
+      });
     }
 
-    // Vision dans le noir (Darkvision : halo bleuté/violet subtil)
+    // Vision dans le noir (Darkvision : halo bleuté/violet nocturne)
     if (token.darkvision) {
-      drawLightHalo(lightingGraphics, {
+      activeConfigs.push({
         x: token.x,
         y: token.y,
         radius: (token.visionRange || 60) * 3,
-        color: 0x818cf8, // Violet bleuté nocturne
-        alpha: 0.2,
+        color: 0x818cf8,
+        alpha: 0.25,
         flicker: false
-      }, timeSeconds);
+      });
     }
   }
 
   // 2. Rendu des sources de lumière fixes de la carte
   for (const light of customLights) {
     let color = 0xffb703;
-    if (light.type === 'magical') color = 0x38bdf8; // Bleu magique
-    else if (light.type === 'candle') color = 0xfdba74; // Bougie
+    if (light.type === 'magical') color = 0x38bdf8;
+    else if (light.type === 'candle') color = 0xfdba74;
 
-    drawLightHalo(lightingGraphics, {
+    activeConfigs.push({
       x: light.x,
       y: light.y,
       radius: light.radius,
       color,
       alpha: light.intensity || 0.6,
       flicker: light.flicker ?? true
-    }, timeSeconds);
+    });
+  }
+
+  // Synchronisation du pool de Sprites GPU
+  while (container.children.length < activeConfigs.length) {
+    const sprite = new PIXI.Sprite(lightTexture);
+    sprite.anchor.set(0.5);
+    sprite.blendMode = 'add';
+    container.addChild(sprite);
+  }
+  while (container.children.length > activeConfigs.length) {
+    const removed = container.removeChild(container.children[container.children.length - 1]);
+    removed.destroy();
+  }
+
+  // Mise à jour continue (pure transformation matricielle GPU sans coût CPU)
+  for (let i = 0; i < activeConfigs.length; i++) {
+    const cfg = activeConfigs[i];
+    const sprite = container.children[i] as PIXI.Sprite;
+    let actualRadius = cfg.radius;
+    let actualAlpha = cfg.alpha;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (cfg.flicker) {
+      const h1 = Math.sin(timeSeconds * 5.2 + (cfg.x * 0.07)) * 0.045;
+      const h2 = Math.sin(timeSeconds * 12.7 + (cfg.y * 0.05)) * 0.025;
+      const noise = h1 + h2;
+      actualRadius = cfg.radius * (1 + noise);
+      actualAlpha = Math.max(0.08, Math.min(1.0, cfg.alpha * (1 + noise * 1.8)));
+      offsetX = Math.sin(timeSeconds * 7.1 + (cfg.x * 0.1)) * 1.4;
+      offsetY = Math.cos(timeSeconds * 8.9 + (cfg.y * 0.1)) * 1.1;
+    }
+
+    sprite.x = cfg.x + offsetX;
+    sprite.y = cfg.y + offsetY;
+    const diameter = actualRadius * 2;
+    sprite.width = diameter;
+    sprite.height = diameter;
+    sprite.tint = cfg.color;
+    sprite.alpha = actualAlpha;
+    sprite.visible = true;
   }
 }

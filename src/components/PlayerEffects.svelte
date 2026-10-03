@@ -33,12 +33,6 @@
 </script>
 
 <div class="effects-overlay" class:vignette-critical={partyHealthStatus === 'critical'} class:vignette-corrupt={isCorrupted}>
-  {#if weather === 'fog'}
-    <div class="fog-container">
-      <div class="fog-img fog-img-first"></div>
-      <div class="fog-img fog-img-second"></div>
-    </div>
-  {/if}
 
   {#each particles as p (p.id)}
     <div 

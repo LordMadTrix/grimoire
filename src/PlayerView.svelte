@@ -74,6 +74,11 @@
   let countdownDone  = $state(false);
   let _cdInterval: ReturnType<typeof setInterval> | null = null;
 
+  // ── Télémétrie FPS en continu ────────────────────────────────────
+  let liveFps = $state(60);
+  let fpsFrames = 0;
+  let lastFpsMeasure = performance.now();
+
   // ── Canvas étoilé ────────────────────────────────────────────────
   let starfieldCanvas: HTMLCanvasElement;
 
@@ -82,6 +87,38 @@
 
   onMount(() => {
     const unlistens: (() => void)[] = [];
+
+    // Support navigateur web via BroadcastChannel
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('grimoire-player-bridge');
+        bc.onmessage = (ev) => {
+          const { event, payload } = ev.data || {};
+          if (!event) return;
+          if (event === 'set_player_map') currentMap = payload.url;
+          else if (event === 'sync_vault_path') vaultPath = payload.path;
+          else if (event === 'toggle_player_grid') showGrid = payload.show;
+          else if (event === 'toggle_player_blackout') isBlackout = payload.active;
+          else if (event === 'update_fow') fowShapes = payload;
+          else if (event === 'update_tokens') tokens = payload;
+          else if (event === 'update_pins') pins = payload;
+          else if (event === 'set_weather') weather = payload.weather ?? 'none';
+          else if (event === 'update_spells') spells = payload ?? [];
+          else if (event === 'sync_camera') externalCamera = payload;
+          else if (event === 'fit_camera') playerFitRequest++;
+          else if (event === 'update_draw_paths') drawPaths = payload ?? [];
+          else if (event === 'set_campaign_title') campaignTitle = payload.title ?? '';
+          else if (event === 'toggle_fow') fowEnabled = payload.enabled ?? true;
+          else if (event === 'update_combatants') {
+            combatants = payload.combatants ?? [];
+            combatActive = payload.active ?? false;
+            currentTurn = payload.currentTurn ?? 0;
+            combatRound = payload.combatRound ?? 1;
+          }
+        };
+        unlistens.push(() => bc.close());
+      } catch {}
+    }
 
     listen('set_player_map',         (e: any) => { currentMap    = e.payload.url;           }).then(fn => unlistens.push(fn));
     listen('sync_vault_path',        (e: any) => { vaultPath     = e.payload.path;           }).then(fn => unlistens.push(fn));
@@ -187,6 +224,16 @@
     }
 
     function draw(ts: number) {
+      // Mesure continue du FPS
+      fpsFrames++;
+      if (ts - lastFpsMeasure >= 1000) {
+        const measured = Math.round((fpsFrames * 1000) / (ts - lastFpsMeasure));
+        const vttFps = typeof window !== 'undefined' ? (window as any).__VTT_FPS : undefined;
+        liveFps = vttFps ? vttFps : measured;
+        fpsFrames = 0;
+        lastFpsMeasure = ts;
+      }
+
       // Lorsque la carte est active, le canvas étoilé est masqué : suspendre le dessin
       if (currentMap && !isBlackout) {
         raf = requestAnimationFrame(draw);
@@ -475,10 +522,61 @@
     </div>
   {/if}
 
+  <!-- Télémétrie FPS permanente en direct -->
+  <div class="player-fps-badge" class:fps-low={liveFps < 45} class:fps-mid={liveFps >= 45 && liveFps < 55}>
+    <span class="fps-dot"></span>
+    <span class="fps-val">⚡ {liveFps} FPS</span>
+  </div>
+
 </main>
 
 <style>
   :global(body) { margin: 0; padding: 0; background: #000; overflow: hidden; }
+
+  .player-fps-badge {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 99999;
+    background: rgba(10, 14, 23, 0.92);
+    border: 1px solid rgba(74, 222, 128, 0.45);
+    color: #4ade80;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.5px;
+    user-select: none;
+  }
+  .player-fps-badge .fps-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 6px #4ade80;
+  }
+  .player-fps-badge.fps-mid {
+    border-color: rgba(250, 204, 21, 0.45);
+    color: #facc15;
+  }
+  .player-fps-badge.fps-mid .fps-dot {
+    background: #facc15;
+    box-shadow: 0 0 6px #facc15;
+  }
+  .player-fps-badge.fps-low {
+    border-color: rgba(248, 113, 113, 0.45);
+    color: #f87171;
+  }
+  .player-fps-badge.fps-low .fps-dot {
+    background: #f87171;
+    box-shadow: 0 0 6px #f87171;
+  }
 
   .player-view {
     width: 100vw;
@@ -511,42 +609,21 @@
     z-index: 2;
   }
 
-  /* ── Vignette torche pulsante ─────────────────────────────────── */
+  /* ── Vignette torche statique (zéro composition CPU) ── */
   .vignette {
     position: absolute;
     inset: 0;
     background: radial-gradient(ellipse at 50% 50%,
-      transparent 38%,
-      rgba(0,0,0,0.35) 65%,
-      rgba(0,0,0,0.72) 100%
+      transparent 45%,
+      rgba(0,0,0,0.4) 75%,
+      rgba(0,0,0,0.75) 100%
     );
     pointer-events: none;
     z-index: 10;
-    animation: torch 4.5s ease-in-out infinite;
   }
 
-  @keyframes torch {
-    0%   { opacity: 1.0; }
-    20%  { opacity: 0.92; }
-    45%  { opacity: 0.97; }
-    65%  { opacity: 0.88; }
-    80%  { opacity: 0.95; }
-    100% { opacity: 1.0; }
-  }
-
-  /* ── Scan-lines ───────────────────────────────────────────────── */
   .scanlines {
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(0,0,0,0.045) 3px,
-      rgba(0,0,0,0.045) 4px
-    );
-    pointer-events: none;
-    z-index: 11;
+    display: none;
   }
 
   /* ── Coins ornementés ─────────────────────────────────────────── */

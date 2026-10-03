@@ -110,7 +110,7 @@
   // Light overlay (above tokens — darkness with holes per lightRadius)
   let lightTexture: PIXI.RenderTexture | null = null;
   let lightSprite: PIXI.Sprite | null = null;
-  let dynamicLightLayer: PIXI.Graphics;
+  let dynamicLightLayer: PIXI.Container;
 
   let tokenLayer: PIXI.Container;
   let tokenSprites: Map<string, PIXI.Container> = new Map();
@@ -219,7 +219,10 @@
     if (scheduledLayerRenders.has(key)) return;
     const frameId = requestAnimationFrame(() => {
       scheduledLayerRenders.delete(key);
+      const t0 = performance.now();
       render();
+      const t1 = performance.now();
+      if (t1 - t0 > 4) console.warn(`[RENDER SLOW: ${key}] ${(t1 - t0).toFixed(1)}ms`);
     });
     scheduledLayerRenders.set(key, frameId);
   }
@@ -290,6 +293,7 @@
   let condWheelTokenId = $state<string | null>(null);
   let condWheelX = $state(0);
   let condWheelY = $state(0);
+  let currentFps = $state(60);
 
   onMount(async () => {
     const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 1.5) : 1;
@@ -362,7 +366,7 @@
     previewShape = new PIXI.Graphics();
     worldContainer.addChild(previewShape);
 
-    dynamicLightLayer = new PIXI.Graphics();
+    dynamicLightLayer = new PIXI.Container();
     dynamicLightLayer.blendMode = 'add';
     worldContainer.addChild(dynamicLightLayer);
 
@@ -386,10 +390,18 @@
 
     let lastVisibilityCheck = 0;
     let lastLightingTime = 0;
+    let lastFpsCalc = 0;
 
     // Ticker principal : tour de combat + sorts + météo + shake
     app.ticker.add(() => {
       const now = Date.now();
+      const tStart = performance.now();
+      if (now - lastFpsCalc >= 2000) {
+        lastFpsCalc = now;
+        currentFps = Math.round(app.ticker.FPS);
+        if (typeof window !== 'undefined') (window as any).__VTT_FPS = currentFps;
+        console.warn(`[VTT TELEMETRY] FPS: ${currentFps} | Delta: ${app.ticker.deltaMS.toFixed(1)}ms | Screen: ${app.screen.width}x${app.screen.height}`);
+      }
 
       // ── Glissement fluide des pions vers leur position cible (Lerp 60 FPS) ──
       for (const [, c] of tokenSprites) {
@@ -505,7 +517,7 @@
             updateDynamicLighting(dynamicLightLayer, tokens, vttStore.lights || [], now / 1000);
           }
         } else if (dynamicLightLayer.children.length > 0) {
-          dynamicLightLayer.clear();
+          dynamicLightLayer.removeChildren().forEach(c => c.destroy());
         }
       }
 
@@ -643,6 +655,11 @@
           mCtx.fillStyle = 'rgba(229,168,83,0.06)';
           mCtx.fillRect(vx, vy, vw, vh);
         }
+      }
+
+      const tEnd = performance.now();
+      if (tEnd - tStart > 5) {
+        console.warn(`[TICKER SLOW] ${(tEnd - tStart).toFixed(1)}ms`);
       }
     });
 
@@ -3262,6 +3279,11 @@
     <div class="error-overlay">{errorMessage}</div>
   {/if}
 
+  <!-- Télémétrie FPS en direct -->
+  <div class="vtt-fps-badge" class:fps-low={currentFps < 30} class:fps-mid={currentFps >= 30 && currentFps < 55}>
+    ⚡ {currentFps} FPS
+  </div>
+
   {#if vttStore.lightningFlash}
     <div class="vtt-lightning-flash"></div>
   {:else if vttStore.ambientLight === 'dusk'}
@@ -3387,4 +3409,24 @@
     font-size: 18px;
     background: rgba(10,12,16,0.85);
   }
+
+  .vtt-fps-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: rgba(10, 14, 23, 0.90);
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    color: #4ade80;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 1000;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  .vtt-fps-badge.fps-mid { color: #facc15; }
+  .vtt-fps-badge.fps-low { color: #ef4444; }
 </style>
