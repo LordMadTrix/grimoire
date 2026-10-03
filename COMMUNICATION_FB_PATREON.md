@@ -1,5 +1,7 @@
 # 📢 Grimoire — Kit de Communication & Promotion (Facebook & Patreon)
 
+> 🖼️ **Visuel d'illustration inclus** : `docs/grimoire_promo_cover.jpg` (Format 16:9 haute résolution, idéal pour la couverture d'article Patreon et les posts illustrés Facebook).
+
 ---
 
 ## 📱 PARTIE 1 : Publication Facebook (Prête à poster)
