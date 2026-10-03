@@ -16,9 +16,6 @@ fn main() {
       if std::env::var("__VK_LAYER_NV_optimus").is_err() {
         std::env::set_var("__VK_LAYER_NV_optimus", "NVIDIA_only");
       }
-      if std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").is_err() {
-        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-      }
     }
   }
 

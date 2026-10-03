@@ -79,16 +79,6 @@
   let fpsFrames = 0;
   let lastFpsMeasure = performance.now();
 
-  // ── Étoiles fixes GPU (zéro CPU, zéro recalcul) ──
-  const STARS = Array.from({ length: 90 }, (_, i) => {
-    const seed = i * 1337 + 42;
-    const x = ((seed * 9301 + 49297) % 233280) / 233280 * 1920;
-    const y = (((seed + 7) * 9301 + 49297) % 233280) / 233280 * 1080;
-    const r = (i % 5 === 0) ? 2.2 : (i % 2 === 0) ? 1.5 : 1.0;
-    const speedClass = (i % 3 === 0) ? 'star-fast' : (i % 2 === 0) ? 'star-med' : 'star-slow';
-    const fill = (i % 7 === 0) ? '#fef08a' : (i % 5 === 0) ? '#bfdbfe' : '#ffffff';
-    return { x: Math.round(x), y: Math.round(y), r, speedClass, fill };
-  });
 
   onMount(() => {
     const unlistens: (() => void)[] = [];
@@ -258,14 +248,10 @@
 
 <main class="player-view">
 
-  <!-- ── Fond étoilé GPU (accéléré matériellement, 0% CPU) ── -->
+  <!-- ── Fond étoilé GPU pur (0% CPU, couches de textures composites GPU) ── -->
   <div class="starfield" class:hidden={!!currentMap && !isBlackout}>
-    <svg class="starfield-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
-      {#each STARS as s}
-        <circle cx={s.x} cy={s.y} r={s.r} fill={s.fill} class="star {s.speedClass}" />
-      {/each}
-    </svg>
-    <div class="shooting-star"></div>
+    <div class="star-layer star-layer-1"></div>
+    <div class="star-layer star-layer-2"></div>
   </div>
 
   {#if isBlackout}
@@ -519,50 +505,59 @@
   }
   .starfield.hidden { opacity: 0; pointer-events: none; }
 
-  .starfield-svg {
+  .star-layer {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
     pointer-events: none;
-  }
-
-  .star {
-    opacity: 0.35;
     will-change: opacity;
-  }
-  .star-slow {
-    animation: twinkle 4.2s ease-in-out infinite;
-  }
-  .star-med {
-    animation: twinkle 2.8s ease-in-out infinite 0.9s;
-  }
-  .star-fast {
-    animation: twinkle 1.8s ease-in-out infinite 1.4s;
-  }
-  @keyframes twinkle {
-    0%, 100% { opacity: 0.25; }
-    50%       { opacity: 0.95; }
+    transform: translateZ(0);
   }
 
-  .shooting-star {
-    position: absolute;
-    top: 20%;
-    left: -150px;
-    width: 140px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #c9a84c 60%, #fff 100%);
-    border-radius: 999px;
-    opacity: 0;
-    pointer-events: none;
-    will-change: transform, opacity;
-    animation: meteor 9s linear infinite;
+  .star-layer-1 {
+    background-image:
+      radial-gradient(1.5px 1.5px at 120px 80px, #ffffff, transparent),
+      radial-gradient(1px 1px at 280px 320px, #fef08a, transparent),
+      radial-gradient(2px 2px at 450px 150px, #bfdbfe, transparent),
+      radial-gradient(1px 1px at 620px 480px, #ffffff, transparent),
+      radial-gradient(1.5px 1.5px at 780px 220px, #fef08a, transparent),
+      radial-gradient(2px 2px at 940px 90px, #ffffff, transparent),
+      radial-gradient(1px 1px at 1100px 390px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 1260px 180px, #ffffff, transparent),
+      radial-gradient(2px 2px at 1420px 420px, #fef08a, transparent),
+      radial-gradient(1px 1px at 1580px 260px, #ffffff, transparent),
+      radial-gradient(1.5px 1.5px at 1740px 110px, #bfdbfe, transparent),
+      radial-gradient(2px 2px at 1880px 340px, #ffffff, transparent),
+      radial-gradient(1px 1px at 200px 720px, #ffffff, transparent),
+      radial-gradient(2px 2px at 520px 850px, #fef08a, transparent),
+      radial-gradient(1.5px 1.5px at 840px 690px, #ffffff, transparent),
+      radial-gradient(1px 1px at 1180px 810px, #bfdbfe, transparent),
+      radial-gradient(2px 2px at 1480px 730px, #ffffff, transparent),
+      radial-gradient(1.5px 1.5px at 1800px 880px, #fef08a, transparent);
+    background-size: 1920px 1080px;
+    opacity: 0.85;
   }
-  @keyframes meteor {
-    0%, 75% { transform: translate3d(0, 0, 0) rotate(22deg); opacity: 0; }
-    76%      { opacity: 0.85; }
-    81%      { transform: translate3d(120vw, 55vh, 0) rotate(22deg); opacity: 0; }
-    100%     { transform: translate3d(120vw, 55vh, 0) rotate(22deg); opacity: 0; }
+
+  .star-layer-2 {
+    background-image:
+      radial-gradient(1px 1px at 80px 240px, #ffffff, transparent),
+      radial-gradient(2px 2px at 390px 440px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 710px 380px, #fef08a, transparent),
+      radial-gradient(1px 1px at 1020px 290px, #ffffff, transparent),
+      radial-gradient(2px 2px at 1340px 140px, #ffffff, transparent),
+      radial-gradient(1px 1px at 1660px 480px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 340px 620px, #ffffff, transparent),
+      radial-gradient(2px 2px at 670px 790px, #fef08a, transparent),
+      radial-gradient(1px 1px at 1050px 640px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 1380px 920px, #ffffff, transparent),
+      radial-gradient(2px 2px at 1690px 670px, #ffffff, transparent);
+    background-size: 1920px 1080px;
+    opacity: 0.6;
+    animation: star-pulse 4.5s ease-in-out infinite;
+  }
+
+  @keyframes star-pulse {
+    0%, 100% { opacity: 0.45; }
+    50%       { opacity: 0.85; }
   }
 
   /* ── Wrapper carte ────────────────────────────────────────────── */
