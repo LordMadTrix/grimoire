@@ -391,7 +391,24 @@
     app.ticker.add(() => {
       const now = Date.now();
 
-      // ── Token Animations ────────────────────────────────────
+      // ── Glissement fluide des pions vers leur position cible (Lerp 60 FPS) ──
+      for (const [, c] of tokenSprites) {
+        const tx = (c as any).__targetX;
+        const ty = (c as any).__targetY;
+        if (tx !== undefined && ty !== undefined) {
+          const dx = tx - c.x;
+          const dy = ty - c.y;
+          if (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8) {
+            c.x += dx * 0.25;
+            c.y += dy * 0.25;
+          } else {
+            c.x = tx;
+            c.y = ty;
+          }
+        }
+      }
+
+      // ── Animations actives des Tokens ───────────────────────
       const shouldCheckVisibility = !isGM && (now - lastVisibilityCheck >= 150);
       if (shouldCheckVisibility) lastVisibilityCheck = now;
 
@@ -399,26 +416,21 @@
         const container = tokenSprites.get(token.id);
         if (!container) continue;
 
-        // Idle oscillation
-        if (token.animation !== 'attack' && token.animation !== 'hit') {
-          const idleY = Math.sin(now / 1000 + token.x) * 4;
-          container.pivot.y = idleY;
-        }
-
-        // Attack animation
+        // Animations actives ciblées (sans osciller inutilement tous les pions inactifs)
         if (token.animation === 'attack') {
-          const progress = (now % 600) / 600;
-          const jump = Math.sin(progress * Math.PI) * 15;
+          const progress = (now % 350) / 350;
+          const jump = Math.sin(progress * Math.PI) * 14;
           container.pivot.y = jump;
-        }
-
-        // Hit animation (shake + tint)
-        if (token.animation === 'hit') {
-          const shake = (Math.random() - 0.5) * 10;
+        } else if (token.animation === 'hit' || (token as any).animation === 'shake' || (token as any).animation === 'damage') {
+          const shake = (Math.random() - 0.5) * 8;
           container.pivot.x = shake;
-          container.alpha = Math.sin(now / 50) > 0 ? 0.6 : 1;
+          container.alpha = Math.sin(now / 40) > 0 ? 0.6 : 1;
+        } else if ((token as any).animation === 'cast') {
+          const levitate = Math.sin(now / 150) * 8;
+          container.pivot.y = -6 + levitate;
         } else {
           container.pivot.x = 0;
+          container.pivot.y = 0;
           if (isGM) container.alpha = token.visible === false ? 0.45 : 1;
           else container.alpha = 1;
         }
@@ -927,8 +939,6 @@
       fowTexture = PIXI.RenderTexture.create({ width: texture.width, height: texture.height });
       fowSprite = new PIXI.Sprite(fowTexture);
       fowSprite.alpha = isGM ? 0.55 : 0.92;
-      // Flou doux optimisé (quality 1) pour un rendu soyeux sans surcharger le GPU
-      fowSprite.filters = [new PIXI.BlurFilter({ strength: 8, quality: 1 })];
       fogLayer.addChild(fowSprite);
 
       // Light overlay setup (darkness mask with light-radius holes)
@@ -1000,17 +1010,6 @@
       .rect(0, 0, backgroundSprite.texture.width, backgroundSprite.texture.height)
       .fill(0x0a0e1a);
     container.addChild(bg);
-
-    // Couche de texture brouillard (cercles semi-transparents aléatoires)
-    for (let i = 0; i < 80; i++) {
-      const fx = Math.random() * backgroundSprite.texture.width;
-      const fy = Math.random() * backgroundSprite.texture.height;
-      const fr = 40 + Math.random() * 120;
-      const fg2 = new PIXI.Graphics()
-        .circle(fx, fy, fr)
-        .fill({ color: 0x1a2540, alpha: 0.18 + Math.random() * 0.15 });
-      container.addChild(fg2);
-    }
 
     fowShapes.forEach(shape => {
       const g = new PIXI.Graphics();
@@ -1541,8 +1540,12 @@
         container.removeChild(condText); condText.destroy(); delete (container as any).__condText;
       }
 
-      container.x = token.x;
-      container.y = token.y;
+      if ((container as any).__targetX === undefined) {
+        container.x = token.x;
+        container.y = token.y;
+      }
+      (container as any).__targetX = token.x;
+      (container as any).__targetY = token.y;
     });
   }
 

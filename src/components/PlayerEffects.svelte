@@ -130,24 +130,23 @@
     height: 100%;
     overflow: hidden;
     z-index: 1;
-    opacity: 0.6;
-    mix-blend-mode: screen;
+    opacity: 0.3;
+    pointer-events: none;
   }
   .fog-img {
     position: absolute;
-    height: 100vh;
-    width: 300vw;
-    background: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png') repeat-x;
-    background-size: contain;
-    animation: fog 60s linear infinite;
+    height: 100%;
+    width: 200%;
+    background: radial-gradient(ellipse at 50% 50%, rgba(180, 195, 220, 0.2) 0%, transparent 70%);
+    animation: fog 40s linear infinite;
+    will-change: transform;
   }
   .fog-img-first {
-    animation-duration: 60s;
+    animation-duration: 45s;
   }
   .fog-img-second {
-    background: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog2.png') repeat-x;
-    background-size: contain;
-    animation-duration: 40s;
+    animation-duration: 30s;
+    opacity: 0.5;
   }
 
   @keyframes fog {

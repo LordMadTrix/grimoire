@@ -74,7 +74,7 @@ export type Token = {
   auraColor?: number;
   linkedNote?: string;
   playerId?: string;
-  animation?: 'none' | 'attack' | 'hit';
+  animation?: 'none' | 'attack' | 'hit' | 'shake' | 'damage' | 'cast';
   physicalMarkerId?: number | null;
   physicalRotation?: number;
 };
