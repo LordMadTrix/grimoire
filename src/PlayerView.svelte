@@ -79,11 +79,16 @@
   let fpsFrames = 0;
   let lastFpsMeasure = performance.now();
 
-  // ── Canvas étoilé ────────────────────────────────────────────────
-  let starfieldCanvas: HTMLCanvasElement;
-
-  interface Star   { x: number; y: number; r: number; base: number; speed: number; phase: number }
-  interface Meteor { x: number; y: number; vx: number; vy: number; life: number; maxLife: number }
+  // ── Étoiles fixes GPU (zéro CPU, zéro recalcul) ──
+  const STARS = Array.from({ length: 90 }, (_, i) => {
+    const seed = i * 1337 + 42;
+    const x = ((seed * 9301 + 49297) % 233280) / 233280 * 1920;
+    const y = (((seed + 7) * 9301 + 49297) % 233280) / 233280 * 1080;
+    const r = (i % 5 === 0) ? 2.2 : (i % 2 === 0) ? 1.5 : 1.0;
+    const speedClass = (i % 3 === 0) ? 'star-fast' : (i % 2 === 0) ? 'star-med' : 'star-slow';
+    const fill = (i % 7 === 0) ? '#fef08a' : (i % 5 === 0) ? '#bfdbfe' : '#ffffff';
+    return { x: Math.round(x), y: Math.round(y), r, speedClass, fill };
+  });
 
   onMount(() => {
     const unlistens: (() => void)[] = [];
@@ -187,107 +192,20 @@
       herboReveal = null;
     }).then(fn => unlistens.push(fn));
 
-    // ── Starfield ────────────────────────────────────────────────
-    if (!starfieldCanvas) return () => { unlistens.forEach(fn => fn()); };
-    const ctxRaw = starfieldCanvas.getContext('2d');
-    if (!ctxRaw) return () => { unlistens.forEach(fn => fn()); };
-    const ctx: CanvasRenderingContext2D = ctxRaw;
-
-    const W = starfieldCanvas.width  = window.innerWidth;
-    const H = starfieldCanvas.height = window.innerHeight;
-
-    const stars: Star[] = Array.from({ length: 200 }, () => ({
-      x:     Math.random() * W,
-      y:     Math.random() * H,
-      r:     Math.random() * 1.4 + 0.3,
-      base:  Math.random() * 0.7 + 0.15,
-      speed: Math.random() * 0.8 + 0.2,
-      phase: Math.random() * Math.PI * 2,
-    }));
-
-    const meteors: Meteor[] = [];
-    let lastMeteor = 0;
+    // ── Boucle de télémétrie FPS ultra-légère (zéro CPU, mesure du taux réel de rafraîchissement) ──
     let raf: number;
-
-    function spawnMeteor(now: number) {
-      if (now - lastMeteor < 6000 + Math.random() * 8000) return;
-      lastMeteor = now;
-      const angle = (Math.random() * 30 + 15) * Math.PI / 180;
-      meteors.push({
-        x: Math.random() * W * 0.8,
-        y: Math.random() * H * 0.3,
-        vx: Math.cos(angle) * 9,
-        vy: Math.sin(angle) * 9,
-        life: 0,
-        maxLife: 55 + Math.random() * 30,
-      });
-    }
-
-    function draw(ts: number) {
-      // Mesure continue du FPS
+    function measureLoop(ts: number) {
       fpsFrames++;
-      if (ts - lastFpsMeasure >= 1000) {
+      if (ts - lastFpsMeasure >= 500) {
         const measured = Math.round((fpsFrames * 1000) / (ts - lastFpsMeasure));
         const vttFps = currentMap && !isBlackout && typeof window !== 'undefined' ? (window as any).__VTT_FPS : undefined;
         liveFps = vttFps || measured;
         fpsFrames = 0;
         lastFpsMeasure = ts;
       }
-
-      // Lorsque la carte est active, le canvas étoilé est masqué : suspendre le dessin
-      if (currentMap && !isBlackout) {
-        raf = requestAnimationFrame(draw);
-        return;
-      }
-
-      ctx.clearRect(0, 0, W, H);
-
-      // Étoiles (rendu groupé en 2 passes sans recalcul de gradients)
-      const t = ts / 1000;
-
-      // Passe 1 : Étoiles calmes
-      ctx.fillStyle = 'rgba(190, 210, 255, 0.45)';
-      ctx.beginPath();
-      for (let i = 0; i < 140; i++) {
-        const s = stars[i];
-        ctx.rect(s.x, s.y, s.r * 1.5, s.r * 1.5);
-      }
-      ctx.fill();
-
-      // Passe 2 : Étoiles scintillantes
-      ctx.fillStyle = 'rgba(240, 245, 255, 0.9)';
-      ctx.beginPath();
-      for (let i = 140; i < stars.length; i++) {
-        const s = stars[i];
-        if (Math.sin(t * s.speed + s.phase) > -0.2) {
-          ctx.rect(s.x, s.y, s.r * 2, s.r * 2);
-        }
-      }
-      ctx.fill();
-
-      // Étoiles filantes
-      spawnMeteor(ts);
-      if (meteors.length > 0) {
-        ctx.strokeStyle = 'rgba(255, 245, 200, 0.85)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        for (let i = meteors.length - 1; i >= 0; i--) {
-          const m = meteors[i];
-          const len = 60 + m.life * 2;
-          ctx.moveTo(m.x - m.vx * (len / 9), m.y - m.vy * (len / 9));
-          ctx.lineTo(m.x, m.y);
-          m.x += m.vx;
-          m.y += m.vy;
-          m.life++;
-          if (m.life >= m.maxLife || m.x > W || m.y > H) meteors.splice(i, 1);
-        }
-        ctx.stroke();
-      }
-
-      raf = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(measureLoop);
     }
-
-    raf = requestAnimationFrame(draw);
+    raf = requestAnimationFrame(measureLoop);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -340,8 +258,15 @@
 
 <main class="player-view">
 
-  <!-- ── Fond étoilé (toujours présent, visible seulement si pas de carte) ── -->
-  <canvas bind:this={starfieldCanvas} class="starfield" class:hidden={!!currentMap && !isBlackout}></canvas>
+  <!-- ── Fond étoilé GPU (accéléré matériellement, 0% CPU) ── -->
+  <div class="starfield" class:hidden={!!currentMap && !isBlackout}>
+    <svg class="starfield-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+      {#each STARS as s}
+        <circle cx={s.x} cy={s.y} r={s.r} fill={s.fill} class="star {s.speedClass}" />
+      {/each}
+    </svg>
+    <div class="shooting-star"></div>
+  </div>
 
   {#if isBlackout}
     <div class="blackout">
@@ -580,7 +505,7 @@
     overflow: hidden;
   }
 
-  /* ── Fond étoilé ─────────────────────────────────────────────── */
+  /* ── Fond étoilé GPU ─────────────────────────────────────────── */
   .starfield {
     position: absolute;
     inset: 0;
@@ -588,9 +513,57 @@
     height: 100%;
     z-index: 1;
     transition: opacity 0.8s ease;
-    background: radial-gradient(ellipse at 50% 50%, #0d1020 0%, #020408 100%);
+    background: radial-gradient(ellipse at 50% 50%, #0d1222 0%, #04060c 65%, #010204 100%);
+    overflow: hidden;
+    pointer-events: none;
   }
   .starfield.hidden { opacity: 0; pointer-events: none; }
+
+  .starfield-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .star {
+    opacity: 0.35;
+    will-change: opacity;
+  }
+  .star-slow {
+    animation: twinkle 4.2s ease-in-out infinite;
+  }
+  .star-med {
+    animation: twinkle 2.8s ease-in-out infinite 0.9s;
+  }
+  .star-fast {
+    animation: twinkle 1.8s ease-in-out infinite 1.4s;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.25; }
+    50%       { opacity: 0.95; }
+  }
+
+  .shooting-star {
+    position: absolute;
+    top: 20%;
+    left: -150px;
+    width: 140px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #c9a84c 60%, #fff 100%);
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation: meteor 9s linear infinite;
+  }
+  @keyframes meteor {
+    0%, 75% { transform: translate3d(0, 0, 0) rotate(22deg); opacity: 0; }
+    76%      { opacity: 0.85; }
+    81%      { transform: translate3d(120vw, 55vh, 0) rotate(22deg); opacity: 0; }
+    100%     { transform: translate3d(120vw, 55vh, 0) rotate(22deg); opacity: 0; }
+  }
 
   /* ── Wrapper carte ────────────────────────────────────────────── */
   .map-wrapper {
@@ -662,6 +635,8 @@
     align-items: center;
     gap: 28px;
     text-align: center;
+    will-change: transform;
+    transform: translateZ(0);
   }
 
   .waiting-campaign {
@@ -675,24 +650,26 @@
       0 0 30px rgba(201,168,76,0.6),
       0 0 60px rgba(201,168,76,0.25),
       0 2px 8px rgba(0,0,0,0.9);
+    will-change: opacity;
     animation: glow-pulse 3.5s ease-in-out infinite;
   }
 
   @keyframes glow-pulse {
-    0%, 100% { text-shadow: 0 0 30px rgba(201,168,76,0.6), 0 0 60px rgba(201,168,76,0.25), 0 2px 8px rgba(0,0,0,0.9); }
-    50%       { text-shadow: 0 0 50px rgba(201,168,76,0.9), 0 0 90px rgba(201,168,76,0.4), 0 2px 8px rgba(0,0,0,0.9); }
+    0%, 100% { opacity: 0.82; }
+    50%       { opacity: 1; }
   }
 
   .waiting-emblem {
     font-size: 56px;
-    opacity: 0.55;
+    opacity: 0.7;
+    will-change: transform;
     animation: float 5s ease-in-out infinite;
-    filter: drop-shadow(0 0 20px rgba(201,168,76,0.3));
+    text-shadow: 0 0 24px rgba(201,168,76,0.45);
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0px); opacity: 0.55; }
-    50%       { transform: translateY(-8px); opacity: 0.75; }
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%       { transform: translate3d(0, -8px, 0); }
   }
 
   .waiting-text {
@@ -701,14 +678,15 @@
     font-weight: 300;
     letter-spacing: 5px;
     text-transform: uppercase;
-    color: rgba(180, 160, 120, 0.5);
+    color: rgba(180, 160, 120, 0.6);
     margin: 0;
+    will-change: opacity;
     animation: fade-in-out 4s ease-in-out infinite;
   }
 
   @keyframes fade-in-out {
-    0%, 100% { opacity: 0.4; }
-    50%       { opacity: 0.7; }
+    0%, 100% { opacity: 0.45; }
+    50%       { opacity: 0.8; }
   }
 
   /* ── Blackout ─────────────────────────────────────────────────── */

@@ -337,6 +337,13 @@ free_ports
 
 if [ "$TARGET_LAUNCH" = "desktop" ]; then
     echo -e "${GREEN}${BOLD}🚀 Lancement de Grimoire en mode Desktop (Tauri v2)...${NC}"
+    if [ -f "/proc/driver/nvidia/version" ]; then
+        echo -e "${CYAN}⚡ GPU NVIDIA détecté : activation de PRIME offload (RTX) et accélération matérielle WebKit...${NC}"
+        export __NV_PRIME_RENDER_OFFLOAD=1
+        export __GLX_VENDOR_LIBRARY_NAME=nvidia
+        export __VK_LAYER_NV_optimus=NVIDIA_only
+        export WEBKIT_DISABLE_DMABUF_RENDERER=1
+    fi
     echo -e "${DIM}Commande : npm run tauri dev${NC}"
     echo ""
     exec npm run tauri dev
