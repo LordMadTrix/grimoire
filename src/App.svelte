@@ -29,6 +29,8 @@
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
   import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
+  import { gameSessionDemo } from '$lib/vtt/gameSessionDemoStore.svelte';
+  import LiveSessionDemoPlayer from './components/vtt/LiveSessionDemoPlayer.svelte';
   import {
     vttStore,
     addGmFowShape, updateGmToken, replaceGmToken, removeGmToken, addGmToken,
@@ -545,13 +547,12 @@
   async function handleQuickDemo() {
     try {
       isLoading = true;
-      statusMessage = 'Chargement de la démo (Sanctuaire Oublié)...';
+      statusMessage = 'Lancement de la Démo de Session Live...';
       if (!getVaultPath()) {
         await loadVault('Sanctuaire-Oublie');
       }
-      loadSanctuaryDemo();
-      notifStore.add('🏰', 'Sanctuaire Oublié', 'Démo clé en main chargée avec succès !', 'success', 5000);
-      statusMessage = 'Démo chargée !';
+      gameSessionDemo.start();
+      statusMessage = 'Session Démo Live lancée !';
       setTimeout(() => { statusMessage = ''; }, 3000);
     } catch (err) {
       console.error('Failed to load demo:', err);
@@ -803,10 +804,10 @@
 
         <div class="welcome-cards">
           <button class="welcome-card welcome-card-demo" onclick={handleQuickDemo} disabled={isLoading}>
-            <span class="card-icon">🏰</span>
+            <span class="card-icon">🎭</span>
             <div class="card-text">
-              <strong>Démo Immédiate (Sanctuaire)</strong>
-              <small>Explorez la battlemap, les tokens ArUco, la brume et l'éclairage en 1 clic.</small>
+              <strong>Démo Live : Session de Jeu</strong>
+              <small>Session animée interactive : infiltration, combat d20, boule de feu & trésor !</small>
             </div>
           </button>
 
@@ -873,6 +874,7 @@
         {/if}
         <div class="vtt-viewport">
           <SessionDashboard />
+          <LiveSessionDemoPlayer />
           <PlayerQuickDock bind:visible={showPlayerQuickDock} />
           <MapCanvas
             mapUrl={vttStore.currentMap}
