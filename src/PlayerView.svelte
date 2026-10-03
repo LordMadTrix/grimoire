@@ -228,8 +228,8 @@
       fpsFrames++;
       if (ts - lastFpsMeasure >= 1000) {
         const measured = Math.round((fpsFrames * 1000) / (ts - lastFpsMeasure));
-        const vttFps = typeof window !== 'undefined' ? (window as any).__VTT_FPS : undefined;
-        liveFps = vttFps ? vttFps : measured;
+        const vttFps = currentMap && !isBlackout && typeof window !== 'undefined' ? (window as any).__VTT_FPS : undefined;
+        liveFps = vttFps || measured;
         fpsFrames = 0;
         lastFpsMeasure = ts;
       }
@@ -242,56 +242,46 @@
 
       ctx.clearRect(0, 0, W, H);
 
-      // Fond dégradé
-      const bg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
-      bg.addColorStop(0, '#0d1020');
-      bg.addColorStop(1, '#020408');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, W, H);
-
-      // Nébuleuse subtile
-      const neb = ctx.createRadialGradient(W * 0.3, H * 0.4, 0, W * 0.3, H * 0.4, W * 0.35);
-      neb.addColorStop(0, 'rgba(80,40,120,0.08)');
-      neb.addColorStop(1, 'transparent');
-      ctx.fillStyle = neb;
-      ctx.fillRect(0, 0, W, H);
-
-      const neb2 = ctx.createRadialGradient(W * 0.7, H * 0.6, 0, W * 0.7, H * 0.6, W * 0.3);
-      neb2.addColorStop(0, 'rgba(20,60,100,0.07)');
-      neb2.addColorStop(1, 'transparent');
-      ctx.fillStyle = neb2;
-      ctx.fillRect(0, 0, W, H);
-
-      // Étoiles
+      // Étoiles (rendu groupé en 2 passes sans recalcul de gradients)
       const t = ts / 1000;
-      for (const s of stars) {
-        const alpha = s.base + Math.sin(t * s.speed + s.phase) * 0.25;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,210,255,${Math.max(0, Math.min(1, alpha))})`;
-        ctx.fill();
+
+      // Passe 1 : Étoiles calmes
+      ctx.fillStyle = 'rgba(190, 210, 255, 0.45)';
+      ctx.beginPath();
+      for (let i = 0; i < 140; i++) {
+        const s = stars[i];
+        ctx.rect(s.x, s.y, s.r * 1.5, s.r * 1.5);
       }
+      ctx.fill();
+
+      // Passe 2 : Étoiles scintillantes
+      ctx.fillStyle = 'rgba(240, 245, 255, 0.9)';
+      ctx.beginPath();
+      for (let i = 140; i < stars.length; i++) {
+        const s = stars[i];
+        if (Math.sin(t * s.speed + s.phase) > -0.2) {
+          ctx.rect(s.x, s.y, s.r * 2, s.r * 2);
+        }
+      }
+      ctx.fill();
 
       // Étoiles filantes
       spawnMeteor(ts);
-      for (let i = meteors.length - 1; i >= 0; i--) {
-        const m = meteors[i];
-        const pct = m.life / m.maxLife;
-        const alpha = pct < 0.3 ? pct / 0.3 : 1 - (pct - 0.3) / 0.7;
-        const len = 80 + m.life * 2;
-        const grd = ctx.createLinearGradient(m.x - m.vx * (len / 9), m.y - m.vy * (len / 9), m.x, m.y);
-        grd.addColorStop(0, 'transparent');
-        grd.addColorStop(1, `rgba(255,245,200,${alpha * 0.9})`);
-        ctx.beginPath();
-        ctx.moveTo(m.x - m.vx * (len / 9), m.y - m.vy * (len / 9));
-        ctx.lineTo(m.x, m.y);
-        ctx.strokeStyle = grd;
+      if (meteors.length > 0) {
+        ctx.strokeStyle = 'rgba(255, 245, 200, 0.85)';
         ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = meteors.length - 1; i >= 0; i--) {
+          const m = meteors[i];
+          const len = 60 + m.life * 2;
+          ctx.moveTo(m.x - m.vx * (len / 9), m.y - m.vy * (len / 9));
+          ctx.lineTo(m.x, m.y);
+          m.x += m.vx;
+          m.y += m.vy;
+          m.life++;
+          if (m.life >= m.maxLife || m.x > W || m.y > H) meteors.splice(i, 1);
+        }
         ctx.stroke();
-        m.x += m.vx;
-        m.y += m.vy;
-        m.life++;
-        if (m.life >= m.maxLife || m.x > W || m.y > H) meteors.splice(i, 1);
       }
 
       raf = requestAnimationFrame(draw);
@@ -598,6 +588,7 @@
     height: 100%;
     z-index: 1;
     transition: opacity 0.8s ease;
+    background: radial-gradient(ellipse at 50% 50%, #0d1020 0%, #020408 100%);
   }
   .starfield.hidden { opacity: 0; pointer-events: none; }
 
