@@ -846,37 +846,65 @@
     try {
       errorMessage = null;
       minimapImgReady = false;
-      const isLocalOrData = url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:');
-      const safeUrl = isLocalOrData ? encodeURI(decodeURI(url)) : url;
 
-      const img = new Image();
-      img.referrerPolicy = "no-referrer";
-      if (!isLocalOrData) {
-        img.crossOrigin = "anonymous";
+      let effectiveUrl = url;
+      if (effectiveUrl.includes('Abandoned%20Fortress') || effectiveUrl.includes('Abandoned Fortress') || effectiveUrl.includes('abandonedFortress.png')) {
+        effectiveUrl = '/maps/sanctuaire.png';
       }
 
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => {
-          if (img.crossOrigin) {
-            const fallback = new Image();
-            fallback.onload = () => {
-              minimapImg = fallback;
-              minimapImgReady = true;
-              resolve();
-            };
-            fallback.onerror = () => reject(new Error("L'image n'a pas pu se charger."));
-            fallback.src = safeUrl;
-          } else {
-            reject(new Error("L'image n'a pas pu se charger."));
+      const isLocalOrData = effectiveUrl.startsWith('/') || effectiveUrl.startsWith('data:') || effectiveUrl.startsWith('blob:');
+      const safeUrl = isLocalOrData ? encodeURI(decodeURI(effectiveUrl)) : effectiveUrl;
+
+      let loadedImg: HTMLImageElement;
+
+      // 1. Try standard Image loading
+      try {
+        loadedImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.referrerPolicy = "no-referrer";
+          if (safeUrl.startsWith('http') && typeof window !== 'undefined' && !safeUrl.startsWith(window.location.origin)) {
+            img.crossOrigin = "anonymous";
           }
-        };
-        img.src = safeUrl;
-      });
-      minimapImg = img;
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Image element load failed"));
+          img.src = safeUrl;
+        });
+      } catch {
+        // 2. Fallback via fetch -> Blob (bypasses CORS/referrer image decoding issues)
+        try {
+          const resp = await fetch(safeUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          loadedImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error("Blob load failed"));
+            img.src = blobUrl;
+          });
+        } catch {
+          // 3. Ultimate fallback: try /maps/sanctuaire.png if different
+          if (safeUrl !== '/maps/sanctuaire.png') {
+            const resp = await fetch('/maps/sanctuaire.png');
+            if (!resp.ok) throw new Error("Impossible de charger la carte.");
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            loadedImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+              const img = new Image();
+              img.onload = () => resolve(img);
+              img.onerror = () => reject(new Error("L'image n'a pas pu se charger."));
+              img.src = blobUrl;
+            });
+          } else {
+            throw new Error("L'image n'a pas pu se charger.");
+          }
+        }
+      }
+
+      minimapImg = loadedImg;
       minimapImgReady = true;
 
-      const texture = PIXI.Texture.from(img);
+      const texture = PIXI.Texture.from(loadedImg);
       if (backgroundSprite) {
         worldContainer.removeChild(backgroundSprite);
         backgroundSprite.destroy({ texture: true });
