@@ -846,13 +846,32 @@
     try {
       errorMessage = null;
       minimapImgReady = false;
+      const isLocalOrData = url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:');
+      const safeUrl = isLocalOrData ? encodeURI(decodeURI(url)) : url;
+
       const img = new Image();
       img.referrerPolicy = "no-referrer";
-      img.crossOrigin = "anonymous";
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error("L'image n'a pas pu se charger."));
-        img.src = url;
+      if (!isLocalOrData) {
+        img.crossOrigin = "anonymous";
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => {
+          if (img.crossOrigin) {
+            const fallback = new Image();
+            fallback.onload = () => {
+              minimapImg = fallback;
+              minimapImgReady = true;
+              resolve();
+            };
+            fallback.onerror = () => reject(new Error("L'image n'a pas pu se charger."));
+            fallback.src = safeUrl;
+          } else {
+            reject(new Error("L'image n'a pas pu se charger."));
+          }
+        };
+        img.src = safeUrl;
       });
       minimapImg = img;
       minimapImgReady = true;
