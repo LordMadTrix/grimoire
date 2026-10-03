@@ -153,8 +153,7 @@
     left: 16px;
     right: 16px;
     z-index: 85;
-    background: rgba(15, 23, 42, 0.94);
-    backdrop-filter: blur(16px);
+    background: #0f172ae6;
     border: 1px solid rgba(245, 158, 11, 0.45);
     border-radius: 14px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 30px rgba(245, 158, 11, 0.15);
@@ -203,9 +202,9 @@
   }
 
   @keyframes livePulse {
-    0% { transform: scale(0.9); opacity: 0.7; }
-    50% { transform: scale(1.3); opacity: 1; }
-    100% { transform: scale(0.9); opacity: 0.7; }
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
   }
 
   .demo-titles h3 {

@@ -474,29 +474,21 @@
         const token = tokens.find(t => t.id === activeId);
         if (container && token) {
           let ring = (container as any).__turnRing as PIXI.Graphics | undefined;
-          if (!ring) { ring = new PIXI.Graphics(); container.addChildAt(ring, 0); (container as any).__turnRing = ring; }
-          const r = token.size / 2;
-          const pulse = 0.45 + 0.55 * Math.sin(now / 320);
-          ring.clear();
-          ring.setStrokeStyle({ width: 5, color: 0xfbbf24, alpha: pulse });
-          ring.circle(0, 0, r + 7).stroke();
+          if (!ring) {
+            ring = new PIXI.Graphics();
+            const r = token.size / 2;
+            ring.setStrokeStyle({ width: 5, color: 0xfbbf24, alpha: 1 });
+            ring.circle(0, 0, r + 7).stroke();
+            container.addChildAt(ring, 0);
+            (container as any).__turnRing = ring;
+          }
+          ring.alpha = 0.45 + 0.55 * Math.sin(now / 320);
         }
       }
 
-      // ── Spell glow ───────────────────────────────────────────
+      // ── Spell glow (Modulation alpha GPU pure sans aucune réallocation) ──
       for (const [, c] of spellContainers) {
-        const g = c.children[0] as PIXI.Graphics;
-        if (!g) continue;
-        const radius = (c as any).__spellRadius as number;
-        const color = (c as any).__spellColor as number;
-        const pulse = 0.3 + 0.15 * Math.sin(now / 400);
-        const outer = 0.12 + 0.08 * Math.sin(now / 600 + 1);
-        g.clear();
-        g.circle(0, 0, radius).fill({ color, alpha: 0.15 + pulse * 0.08 });
-        g.setStrokeStyle({ width: 3, color, alpha: 0.55 + pulse * 0.45 });
-        g.circle(0, 0, radius).stroke();
-        g.setStrokeStyle({ width: 10, color, alpha: outer });
-        g.circle(0, 0, radius).stroke();
+        c.alpha = 0.75 + 0.25 * Math.sin(now / 350);
       }
 
       // ── Fog drift (mouvement subtil du brouillard sans invalidation de filtre) ──
