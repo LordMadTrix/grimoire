@@ -1,0 +1,8 @@
+# Created using Grimoire Manifest Generator
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
+
+PackageIdentifier: madtrix.Grimoire
+PackageVersion: 0.8.3
+DefaultLocale: fr-FR
+ManifestType: version
+ManifestVersion: 1.6.0
