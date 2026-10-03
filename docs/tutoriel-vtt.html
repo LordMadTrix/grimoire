@@ -340,6 +340,76 @@
       </div>
     </section>
 
+    <!-- Section Tracking Optique & Figurines 3D (Webcam / Rétroprojecteur) -->
+    <section id="tracking-optique" class="space-y-6 scroll-mt-24">
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-xs uppercase tracking-wider font-bold text-amber-400">Réalité Augmentée & Matériel Réel</span>
+          <h2 class="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+            <span>📷</span> Tracking Optique Table & Figurines 3D (ArUco)
+          </h2>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40">
+          PROJECTION PHYSIQUE
+        </span>
+      </div>
+
+      <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+        Jouez-vous avec un <strong>vidéoprojecteur zénithal</strong> au-dessus de votre table ou un <strong>écran couché à plat</strong> ? Vous pouvez désormais poser vos <strong>vraies figurines de collection</strong> sur la table : une simple webcam détecte leur position au millimètre près, synchronise vos tokens virtuels et <strong>dissipe le brouillard de guerre sous leurs pas</strong> !
+      </p>
+
+      <!-- 4 étapes visuelles -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Étape 1 -->
+        <div class="glass p-6 rounded-2xl border border-amber-400/30 space-y-3 bg-gradient-to-b from-amber-950/20 to-transparent">
+          <div class="w-10 h-10 rounded-xl bg-amber-400 text-black font-black flex items-center justify-center text-lg shadow-lg shadow-amber-400/20">1</div>
+          <h3 class="font-bold text-white text-base">Imprimerie ArUco 4x4</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Dans la barre VTT, cliquez sur <code>📷 Caméra → 🖨️ Imprimer les Marqueurs</code>. Choisissez la taille (15mm, 20mm ou 25mm). La planche A4 s'ouvre dans votre navigateur par défaut pour une impression 100% à l'échelle.
+          </p>
+        </div>
+
+        <!-- Étape 2 -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 text-white font-black flex items-center justify-center text-lg">2</div>
+          <h3 class="font-bold text-white text-base">Fichiers STL 3D Prêts</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Téléchargez les modèles 3D en 1 clic : <strong>Bagues Clipsables</strong> (25.4mm standard, 28.5mm, 32mm, 50.8mm grand format) ou <strong>Cornières de Calibration</strong>. Collez votre gommette ArUco au sommet !
+          </p>
+        </div>
+
+        <!-- Étape 3 -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 text-white font-black flex items-center justify-center text-lg">3</div>
+          <h3 class="font-bold text-white text-base">Calibration Homographique</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Activez la caméra. Cliquez sur les 4 coins de votre zone de jeu projetée dans la fenêtre vidéo (Haut-Gauche, Haut-Droit, Bas-Droit, Bas-Gauche). Le solveur matriciel corrige instantanément la distorsion de trapèze.
+          </p>
+        </div>
+
+        <!-- Étape 4 -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 text-white font-black flex items-center justify-center text-lg">4</div>
+          <h3 class="font-bold text-white text-base">Liaison Pion & Fog of War</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Dans les propriétés d'un token virtuel (ex: ID #1 pour le Paladin), entrez <code>ID ArUco: 1</code>. Déplacez votre figurine sur la table : le pion virtuel suit le mouvement sans à-coups et révèle le donjon !
+          </p>
+        </div>
+      </div>
+
+      <!-- Astuces d'atelier 3D -->
+      <div class="glass p-6 rounded-2xl border border-white/10 bg-black/40 space-y-3">
+        <h4 class="text-amber-300 font-bold text-sm flex items-center gap-2">
+          <span>💡</span> Conseils d'Impression 3D & Éclairage pour Maître du Jeu
+        </h4>
+        <ul class="text-xs text-gray-300 space-y-1.5 list-disc list-inside">
+          <li><strong>Impression FDM (PLA)</strong> : Hauteur de couche 0.20mm, 2 périmètres, pas besoin de support ni de bordure. Temps d'impression : ~8 minutes par bague.</li>
+          <li><strong>Impression Résine (SLA)</strong> : Rendu ultra-net des chanfreins et clipsage parfait sur les socles Games Workshop / Reaper / WizKids.</li>
+          <li><strong>Éclairage de la pièce</strong> : Privilégiez un éclairage d'ambiance indirect ou diffuseur pour éviter les reflets violents de la lumière du projecteur sur le papier blanc des gommettes.</li>
+        </ul>
+      </div>
+    </section>
+
     <!-- Navigation Hub Footer -->
     <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
       <a href="tutoriel-interface.html" class="text-sm text-gray-400 hover:text-grimoire-accent flex items-center gap-2">

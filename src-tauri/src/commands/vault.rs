@@ -79,7 +79,59 @@ pub fn read_file_base64(path: String) -> Result<String, String> {
     Ok(general_purpose::STANDARD.encode(bytes))
 }
 
-/// Écrit des données base64 (ex: image PNG générée par le Map Editor) dans un fichier du vault
+/// Lit un fichier binaire et le retourne sous forme de buffer brut IPC (zéro encodage base64, streaming natif)
+#[tauri::command]
+pub fn read_file_binary(path: String) -> Result<tauri::ipc::Response, String> {
+    let p = Path::new(&path);
+    if !p.exists() {
+        return Err(format!("Fichier non trouvé: {}", path));
+    }
+    if !p.is_file() {
+        return Err(format!("Le chemin n'est pas un fichier: {}", path));
+    }
+    let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+use std::io::Write;
+
+/// Écriture atomique anti-corruption : écriture dans un .tmp adjacent, fsync matériel puis rename atomique de l'OS
+pub fn write_atomic(target_path: &Path, data: &[u8]) -> Result<(), String> {
+    let parent = target_path
+        .parent()
+        .ok_or_else(|| "Dossier parent invalide".to_string())?;
+    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+
+    let tmp_file_name = format!(".tmp_{}", uuid::Uuid::new_v4());
+    let tmp_path = parent.join(tmp_file_name);
+
+    {
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp_path)
+            .map_err(|e| format!("Erreur création fichier temporaire : {}", e))?;
+
+        file.write_all(data).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp_path);
+            format!("Erreur écriture fichier temporaire : {}", e)
+        })?;
+
+        file.sync_all().map_err(|e| {
+            let _ = std::fs::remove_file(&tmp_path);
+            format!("Erreur fsync matériel : {}", e)
+        })?;
+    }
+
+    std::fs::rename(&tmp_path, target_path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp_path);
+        format!("Erreur swap atomique du fichier : {}", e)
+    })?;
+
+    Ok(())
+}
+
+/// Écrit des données base64 (ex: image PNG générée par le Map Editor) dans un fichier du vault de façon atomique
 #[tauri::command]
 pub fn write_file_base64(vault_path: String, relative_path: String, base64_content: String) -> Result<(), String> {
     let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
@@ -92,11 +144,7 @@ pub fn write_file_base64(vault_path: String, relative_path: String, base64_conte
 
     let bytes = general_purpose::STANDARD.decode(clean_b64).map_err(|e| format!("Invalid base64: {}", e))?;
 
-    if let Some(parent) = full_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-
-    std::fs::write(&full_path, bytes).map_err(|e| e.to_string())
+    write_atomic(&full_path, &bytes)
 }
 
 fn get_history_dir(vault_path: &str, relative_path: &str) -> PathBuf {
@@ -121,7 +169,7 @@ fn save_snapshot(vault_path: &str, relative_path: &str, content: &str) {
 
     let file_name = format!("{timestamp}.md");
     let snapshot_file = hist_dir.join(file_name);
-    let _ = std::fs::write(&snapshot_file, content);
+    let _ = write_atomic(&snapshot_file, content.as_bytes());
 
     // Garder seulement les 10 snapshots les plus récents
     if let Ok(entries) = std::fs::read_dir(&hist_dir) {
@@ -183,20 +231,30 @@ pub fn get_file_history(vault_path: String, relative_path: String) -> Result<Vec
 }
 
 #[tauri::command]
-pub fn restore_file_snapshot(vault_path: String, relative_path: String, snapshot_id: String) -> Result<String, String> {
+pub fn restore_file_snapshot(
+    db: tauri::State<'_, crate::commands::search::DbState>,
+    vault_path: String,
+    relative_path: String,
+    snapshot_id: String,
+) -> Result<String, String> {
     let hist_dir = get_history_dir(&vault_path, &relative_path);
     let snapshot_file = hist_dir.join(format!("{}.md", snapshot_id));
     if !snapshot_file.exists() {
         return Err("Snapshot introuvable".to_string());
     }
     let content = std::fs::read_to_string(&snapshot_file).map_err(|e| e.to_string())?;
-    write_file(vault_path, relative_path, content.clone())?;
+    write_file(db, vault_path, relative_path, content.clone())?;
     Ok(content)
 }
 
-/// Écrit du contenu dans un fichier du vault
+/// Écrit du contenu dans un fichier du vault de manière atomique et met à jour l'index FTS5 en temps réel
 #[tauri::command]
-pub fn write_file(vault_path: String, relative_path: String, content: String) -> Result<(), String> {
+pub fn write_file(
+    db: tauri::State<'_, crate::commands::search::DbState>,
+    vault_path: String,
+    relative_path: String,
+    content: String,
+) -> Result<(), String> {
     let full_path = Path::new(&vault_path).join(sanitize_relative_path(&relative_path));
 
     // Si le fichier existe déjà et que c'est un fichier markdown (.md), sauvegarder un snapshot
@@ -208,12 +266,16 @@ pub fn write_file(vault_path: String, relative_path: String, content: String) ->
         }
     }
 
-    // Créer les dossiers parents si nécessaire
-    if let Some(parent) = full_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    write_atomic(&full_path, content.as_bytes())?;
+
+    // Indexation incrémentale immédiate dans SQLite FTS5 (< 2ms)
+    if relative_path.ends_with(".md") {
+        if let Ok(conn) = db.0.lock() {
+            let _ = crate::indexer::index_single_file(&conn, &relative_path, &content);
+        }
     }
 
-    std::fs::write(&full_path, content).map_err(|e| e.to_string())
+    Ok(())
 }
 
 /// Crée un nouveau dossier dans le vault
@@ -223,9 +285,13 @@ pub fn create_directory(vault_path: String, relative_path: String) -> Result<(),
     std::fs::create_dir_all(&full_path).map_err(|e| e.to_string())
 }
 
-/// Supprime un fichier du vault
+/// Supprime un fichier du vault et le retire de l'index FTS5
 #[tauri::command]
-pub fn delete_file(vault_path: String, relative_path: String) -> Result<(), String> {
+pub fn delete_file(
+    db: tauri::State<'_, crate::commands::search::DbState>,
+    vault_path: String,
+    relative_path: String,
+) -> Result<(), String> {
     let full_path = Path::new(&vault_path).join(&relative_path);
 
     let vault_canonical = Path::new(&vault_path).canonicalize().map_err(|e| e.to_string())?;
@@ -235,15 +301,29 @@ pub fn delete_file(vault_path: String, relative_path: String) -> Result<(), Stri
     }
 
     if full_path.is_dir() {
-        std::fs::remove_dir_all(&full_path).map_err(|e| e.to_string())
+        std::fs::remove_dir_all(&full_path).map_err(|e| e.to_string())?;
     } else {
-        std::fs::remove_file(&full_path).map_err(|e| e.to_string())
+        std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
     }
+
+    // Retrait immédiat de l'index FTS5
+    if relative_path.ends_with(".md") {
+        if let Ok(conn) = db.0.lock() {
+            let _ = crate::indexer::remove_from_index(&conn, &relative_path);
+        }
+    }
+
+    Ok(())
 }
 
-/// Renomme un fichier ou dossier
+/// Renomme un fichier ou dossier et synchronise l'index FTS5
 #[tauri::command]
-pub fn rename_entry(vault_path: String, old_path: String, new_path: String) -> Result<(), String> {
+pub fn rename_entry(
+    db: tauri::State<'_, crate::commands::search::DbState>,
+    vault_path: String,
+    old_path: String,
+    new_path: String,
+) -> Result<(), String> {
     let old_full = Path::new(&vault_path).join(sanitize_relative_path(&old_path));
     let new_full = Path::new(&vault_path).join(sanitize_relative_path(&new_path));
 
@@ -252,7 +332,19 @@ pub fn rename_entry(vault_path: String, old_path: String, new_path: String) -> R
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
-    std::fs::rename(&old_full, &new_full).map_err(|e| e.to_string())
+    std::fs::rename(&old_full, &new_full).map_err(|e| e.to_string())?;
+
+    // Mettre à jour l'index FTS5 si c'est un fichier markdown
+    if new_path.ends_with(".md") {
+        if let Ok(conn) = db.0.lock() {
+            let _ = crate::indexer::remove_from_index(&conn, &old_path);
+            if let Ok(content) = std::fs::read_to_string(&new_full) {
+                let _ = crate::indexer::index_single_file(&conn, &new_path, &content);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -323,3 +415,35 @@ pub fn open_url(url: String) -> Result<(), String> {
     }
     opener::open_browser(&url).map_err(|e| e.to_string())
 }
+
+/// Sauvegarde un fichier binaire (STL, zip, etc.) sur le disque à l'emplacement choisi par l'utilisateur
+#[tauri::command]
+pub fn save_binary_file_to_disk(file_path: String, base64_content: String) -> Result<(), String> {
+    use base64::{engine::general_purpose, Engine as _};
+    let clean_b64 = if let Some(idx) = base64_content.find(',') {
+        &base64_content[idx + 1..]
+    } else {
+        &base64_content
+    };
+    let bytes = general_purpose::STANDARD.decode(clean_b64).map_err(|e| format!("Invalid base64: {}", e))?;
+    std::fs::write(&file_path, bytes).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Ouvre un fichier ou chemin local dans l'application par défaut de l'OS (navigateur, slicer 3D, etc.)
+#[tauri::command]
+pub fn open_file_in_os(path: String) -> Result<(), String> {
+    opener::open(&path).map_err(|e| e.to_string())
+}
+
+/// Écrit un fichier HTML temporaire et l'ouvre directement dans le navigateur par défaut pour impression
+#[tauri::command]
+pub fn save_temp_html_and_open(filename: String, html_content: String) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+    let file_path = temp_dir.join(&filename);
+    std::fs::write(&file_path, html_content).map_err(|e| e.to_string())?;
+    let path_str = file_path.to_string_lossy().to_string();
+    opener::open(&path_str).map_err(|e| e.to_string())?;
+    Ok(path_str)
+}
+

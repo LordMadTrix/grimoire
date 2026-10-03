@@ -5,9 +5,12 @@
   import { vttStore, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone, setDungeonTile, pushDungeonUndo } from '$lib/stores/vtt.svelte';
   import ConditionWheel from './ConditionWheel.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
-  import { readFileBase64, emitToPlayerView } from '$lib/api';
+  import { readFileBase64, fetchBinaryAssetUrl, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
   import { updateDynamicLighting } from '$lib/vtt/lighting';
+  import { TextureCacheManager } from '$lib/vtt/TextureCacheManager';
+  import { opticalEngine } from '$lib/vtt/OpticalTrackingEngine';
+  import { getOpticalTrackingConfig } from '$lib/vtt/opticalTrackingStore.svelte';
   import { emit } from '@tauri-apps/api/event';
 
   // Svelte 5 — $props() obligatoire (pas export let)
@@ -312,12 +315,14 @@
     worldContainer.addChild(fogLayer);
 
     tokenLayer = new PIXI.Container();
+    tokenLayer.cullable = true;
     worldContainer.addChild(tokenLayer);
 
     pingLayer = new PIXI.Container();
     worldContainer.addChild(pingLayer);
 
     wallLayer = new PIXI.Container();
+    wallLayer.cullable = true;
     worldContainer.addChild(wallLayer);
 
     audioZoneLayer = new PIXI.Container();
@@ -327,9 +332,11 @@
     worldContainer.addChild(terrainLayer);
 
     pinLayer = new PIXI.Container();
+    pinLayer.cullable = true;
     worldContainer.addChild(pinLayer);
 
     spellLayer = new PIXI.Container();
+    spellLayer.cullable = true;
     worldContainer.addChild(spellLayer);
 
     drawLayer = new PIXI.Container();
@@ -353,6 +360,7 @@
     worldContainer.addChild(previewShape);
 
     dynamicLightLayer = new PIXI.Graphics();
+    dynamicLightLayer.blendMode = 'add';
     worldContainer.addChild(dynamicLightLayer);
 
     movePathG = new PIXI.Graphics();
@@ -633,7 +641,18 @@
     if (mapUrl) await loadMap(mapUrl);
   });
 
+  // Cycle de vie du tracking optique physique (Webcam + ArUco)
+  $effect(() => {
+    const config = getOpticalTrackingConfig();
+    if (appReady && config.enabled && !opticalEngine.isActive()) {
+      opticalEngine.start();
+    } else if (!config.enabled && opticalEngine.isActive()) {
+      opticalEngine.stop();
+    }
+  });
+
   onDestroy(() => {
+    opticalEngine.stop();
     window.removeEventListener('resize', handleResize);
     if (_emitCameraTimer) clearTimeout(_emitCameraTimer);
     for (const frameId of scheduledLayerRenders.values()) cancelAnimationFrame(frameId);
@@ -644,6 +663,7 @@
     if (fowTexture) fowTexture.destroy(true);
     if (lightTexture) lightTexture.destroy(true);
     if (app) app.destroy(true, { children: true, texture: true });
+    TextureCacheManager.purgeAll();
     for (const audio of zoneAudioObjects.values()) {
       audio.pause();
       audio.src = '';
@@ -2220,12 +2240,13 @@
     }
   }
 
-  function spawnPing(x: number, y: number) {
+  function spawnPing(x: number, y: number, color?: number | string) {
     if (!pingLayer) return;
     const g = new PIXI.Graphics();
     pingLayer.addChild(g);
     pingMarkers.push({ g, born: Date.now() });
-    animatePing(g, x, y);
+    const col = typeof color === 'string' ? parseInt(color.replace('#', ''), 16) : (color ?? 0x38bdf8);
+    animatePing(g, x, y, col);
   }
 
   function renderPins() {
@@ -2951,14 +2972,21 @@
       // On évite de recharger si c'est déjà la même source (en stockant le path sur l'objet audio)
       if ((audio as any)._grimoirePath !== fullPath) {
         (audio as any)._grimoirePath = fullPath;
-        readFileBase64(fullPath).then(b64 => {
-          const ext = zone.audioSrc.split('.').pop()?.toLowerCase();
-          let mime = 'audio/mpeg';
-          if (ext === 'wav') mime = 'audio/wav';
-          else if (ext === 'ogg') mime = 'audio/ogg';
-          audio!.src = `data:${mime};base64,${b64}`;
+        const ext = zone.audioSrc.split('.').pop()?.toLowerCase();
+        let mime = 'audio/mpeg';
+        if (ext === 'wav') mime = 'audio/wav';
+        else if (ext === 'ogg') mime = 'audio/ogg';
+
+        // Streaming binaire natif direct vers Blob URL (évite l'overhead mémoire Base64)
+        fetchBinaryAssetUrl(fullPath, mime).then(blobUrl => {
+          audio!.src = blobUrl;
           audio!.play().catch(() => {});
-        }).catch(() => {});
+        }).catch(() => {
+          readFileBase64(fullPath).then(b64 => {
+            audio!.src = `data:${mime};base64,${b64}`;
+            audio!.play().catch(() => {});
+          }).catch(() => {});
+        });
       }
     }
   }
@@ -2997,20 +3025,55 @@
     return () => clearInterval(interval);
   });
 
-  function animatePing(g: PIXI.Graphics, x: number, y: number) {
+  function animatePing(g: PIXI.Graphics, x: number, y: number, colorNum: number = 0x38bdf8) {
     let start = 0;
-    const duration = 2200;
+    const duration = 2000;
     function step(ts: number) {
       if (!start) start = ts;
       const t = Math.min((ts - start) / duration, 1);
       g.clear();
-      const r = 8 + t * 34;
+
+      // Easing cubic out pour propagation d'onde naturelle
+      const ease = 1 - Math.pow(1 - t, 3);
       const alpha = 1 - t;
-      g.setStrokeStyle({ width: 3, color: 0xffcc00, alpha });
-      g.circle(x, y, r).stroke();
-      g.circle(x, y, 6).fill({ color: 0xffcc00, alpha: Math.max(0, 1 - t * 2) });
-      if (t < 1) requestAnimationFrame(step);
-      else { pingLayer?.removeChild(g); g.destroy(); }
+
+      // 1. Onde de choc principale expansive
+      const r1 = 8 + ease * 46;
+      g.setStrokeStyle({ width: 3 * (1 - t * 0.4), color: colorNum, alpha });
+      g.circle(x, y, r1).stroke();
+
+      // 2. Onde secondaire en écho avec léger retard temporel
+      if (t > 0.12) {
+        const t2 = (t - 0.12) / 0.88;
+        const ease2 = 1 - Math.pow(1 - t2, 2.5);
+        const r2 = 6 + ease2 * 34;
+        g.setStrokeStyle({ width: 1.5, color: colorNum, alpha: (1 - t2) * 0.6 });
+        g.circle(x, y, r2).stroke();
+      }
+
+      // 3. Réticule tactique (4 mires cardinaux N/S/E/W)
+      const tickInner = r1 + 3;
+      const tickOuter = r1 + 8;
+      g.setStrokeStyle({ width: 2, color: colorNum, alpha: alpha * 0.75 });
+      g.moveTo(x - tickOuter, y).lineTo(x - tickInner, y).stroke();
+      g.moveTo(x + tickInner, y).lineTo(x + tickOuter, y).stroke();
+      g.moveTo(x, y - tickOuter).lineTo(x, y - tickInner).stroke();
+      g.moveTo(x, y + tickInner).lineTo(x, y + tickOuter).stroke();
+
+      // 4. Balise centrale éclatante (décroissance rapide)
+      const coreAlpha = Math.max(0, 1 - t * 3.5);
+      if (coreAlpha > 0) {
+        g.circle(x, y, 6).fill({ color: 0xffffff, alpha: coreAlpha });
+        g.circle(x, y, 11).fill({ color: colorNum, alpha: coreAlpha * 0.5 });
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        pingLayer?.removeChild(g);
+        g.destroy();
+        pingMarkers = pingMarkers.filter(m => m.g !== g);
+      }
     }
     requestAnimationFrame(step);
   }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Token } from '$lib/stores/vtt.svelte';
   import { getVaultTree } from '$lib/stores/vault.svelte';
+  import { getArucoDataUrl } from '$lib/vtt/arucoGenerator';
 
   const CONDITIONS = [
     { id: 'poisoned',   emoji: '🤢', label: 'Empoisonné' },
@@ -271,6 +272,36 @@
             👁️ Vision Nocturne
           </label>
         </div>
+      </div>
+
+      <!-- Marqueur physique 3D ArUco -->
+      <div class="form-group">
+        <label for="t-physical-id">🏷️ Marqueur physique 3D (ArUco ID pour webcam)</label>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <input
+            type="number"
+            id="t-physical-id"
+            min="0"
+            max="49"
+            placeholder="— Aucun tag — (ex: 4)"
+            value={editToken.physicalMarkerId ?? ''}
+            oninput={(e) => {
+              if (!editToken) return;
+              const val = parseInt((e.target as HTMLInputElement).value);
+              editToken.physicalMarkerId = isNaN(val) ? null : val;
+            }}
+            style="flex: 1;"
+          />
+          {#if editToken.physicalMarkerId !== null && editToken.physicalMarkerId !== undefined && editToken.physicalMarkerId >= 0 && editToken.physicalMarkerId <= 49}
+            <div style="display:flex;align-items:center;gap:6px;background:var(--bg-secondary);padding:4px 8px;border-radius:4px;border:1px solid var(--border);" title="Tag ArUco #{editToken.physicalMarkerId}">
+              <img src={getArucoDataUrl(editToken.physicalMarkerId, 24)} alt="Tag #{editToken.physicalMarkerId}" style="width:24px;height:24px;border:1px solid #000;background:#fff;" />
+              <span style="font-size:11px;font-weight:bold;color:var(--accent);">ID #{editToken.physicalMarkerId}</span>
+            </div>
+          {/if}
+        </div>
+        <small style="font-size:11px;color:var(--text-muted);">
+          Associez ce pion à une bague 3D physique pour qu'il suive vos mouvements sur la table en direct.
+        </small>
       </div>
 
       <div class="form-group">

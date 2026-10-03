@@ -745,8 +745,8 @@
             🔄 Mises à jour
           </button>
         </div>
-        <button onclick={() => showFeedback = true} class="footer-btn" title="Laisser un message aux développeurs">
-          📝 Signaler un bug
+        <button onclick={() => showFeedback = true} class="footer-btn" title="Laisser un message aux développeurs ou signaler un bug">
+          💬 Message aux développeurs
         </button>
       </div>
     {:else}
@@ -771,6 +771,14 @@
             <div class="card-text">
               <strong>Ouvrir un Dossier</strong>
               <small>Sélectionnez un dossier existant sur votre ordinateur.</small>
+            </div>
+          </button>
+
+          <button class="welcome-card" onclick={() => showFeedback = true} disabled={isLoading}>
+            <span class="card-icon">💬</span>
+            <div class="card-text">
+              <strong>Message aux Développeurs</strong>
+              <small>Signalez un bug ou proposez une suggestion d'amélioration.</small>
             </div>
           </button>
         </div>

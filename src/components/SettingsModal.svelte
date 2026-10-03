@@ -13,6 +13,7 @@
     getCustomWords, addCustomWord, removeCustomWord
   } from '$lib/spellcheck/spellcheckStore.svelte';
   import type { SpellcheckLang } from '$lib/spellcheck/spellcheckStore.svelte';
+  import OpticalTrackingSettingsView from './vtt/OpticalTrackingSettingsView.svelte';
 
   let { onClose = () => {}, onTriggerOnboarding = () => {} }: { onClose: () => void, onTriggerOnboarding: () => void } = $props();
 
@@ -190,6 +191,9 @@
       {/if}
     </section>
 
+    <!-- Tracking Optique & Figurines 3D -->
+    <OpticalTrackingSettingsView />
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick={onClose}>Annuler</button>
       <button class="btn-save" onclick={saveAndClose}>Enregistrer</button>
@@ -215,7 +219,9 @@
     border-radius: 8px;
     padding: 24px;
     width: 90%;
-    max-width: 500px;
+    max-width: 640px;
+    max-height: 88vh;
+    overflow-y: auto;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
   }
 

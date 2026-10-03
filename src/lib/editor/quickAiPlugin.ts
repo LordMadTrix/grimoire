@@ -14,11 +14,17 @@ export const quickAiPlugin = ViewPlugin.fromClass(
 
     update(update: ViewUpdate) {
       if (update.selectionSet || update.docChanged) {
-        this.checkSelection();
+        requestAnimationFrame(() => {
+          this.checkSelection();
+        });
       }
     }
 
     checkSelection() {
+      if (!this.view.dom.isConnected) {
+        this.destroyToolbar();
+        return;
+      }
       const state = this.view.state;
       const sel = state.selection.main;
 
@@ -33,8 +39,12 @@ export const quickAiPlugin = ViewPlugin.fromClass(
         return;
       }
 
-      // Afficher / repositionner la barre d'actions rapide
-      this.renderToolbar(text, sel.from, sel.to);
+      // Afficher / repositionner la barre d'actions rapide de manière protégée
+      try {
+        this.renderToolbar(text, sel.from, sel.to);
+      } catch {
+        // En cas de cycle de mesure DOM désynchronisé
+      }
     }
 
     renderToolbar(selectedText: string, from: number, to: number) {
@@ -63,13 +73,17 @@ export const quickAiPlugin = ViewPlugin.fromClass(
         });
       });
 
-      // Positionnement au-dessus de la sélection
-      const coords = this.view.coordsAtPos(from);
-      if (coords) {
-        const top = Math.max(10, coords.top - 40);
-        const left = Math.max(10, coords.left);
-        this.toolbar.style.top = `${top}px`;
-        this.toolbar.style.left = `${left}px`;
+      // Positionnement au-dessus de la sélection avec garde-fou DOM
+      try {
+        const coords = this.view.coordsAtPos(from);
+        if (coords) {
+          const top = Math.max(10, coords.top - 40);
+          const left = Math.max(10, coords.left);
+          this.toolbar.style.top = `${top}px`;
+          this.toolbar.style.left = `${left}px`;
+        }
+      } catch {
+        // Ignorer si la coordonnée n'a pas pu être mesurée
       }
     }
 

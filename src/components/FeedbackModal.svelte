@@ -35,6 +35,20 @@
     ].join('\n');
   }
 
+  let copied = $state(false);
+
+  async function handleCopy() {
+    if (!message.trim()) return;
+    try {
+      await navigator.clipboard.writeText(buildIssueBody());
+      copied = true;
+      notifStore.add('📋', 'Copié !', 'Le message et les détails système ont été copiés dans le presse-papier.', 'info', 3000);
+      setTimeout(() => (copied = false), 2500);
+    } catch (e) {
+      console.error('Failed to copy', e);
+    }
+  }
+
   async function handleSubmit() {
     if (!message.trim()) {
       notifStore.add('⚠️', 'Formulaire invalide', 'Veuillez écrire un message.', 'warn', 3000);
@@ -48,12 +62,21 @@
 
     try {
       await invoke('open_url', { url });
-    } catch {
-      window.open(url, '_blank');
+      notifStore.add('📝', 'Merci !', 'Votre message s\'ouvre dans GitHub. Échangeons ensemble.', 'success', 5000);
+      onClose();
+    } catch (e) {
+      console.warn('invoke open_url failed, falling back to window.open', e);
+      try {
+        window.open(url, '_blank');
+        notifStore.add('📝', 'Merci !', 'Votre message s\'ouvre dans GitHub. Échangeons ensemble.', 'success', 5000);
+        onClose();
+      } catch (err) {
+        console.error('window.open also failed', err);
+        notifStore.add('⚠️', 'Erreur d\'ouverture', 'Impossible d\'ouvrir le navigateur. Vous pouvez copier le message avec le bouton "Copier".', 'warn', 5000);
+      }
+    } finally {
+      isSubmitting = false;
     }
-
-    notifStore.add('📝', 'Merci !', 'Votre message s\'ouvre dans GitHub. Réponson ensemble.', 'success', 5000);
-    onClose();
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -86,6 +109,9 @@
 
     <div class="modal-actions">
       <button class="btn-cancel" onclick={onClose}>Annuler</button>
+      <button class="btn-copy" onclick={handleCopy} disabled={!message.trim()} title="Copier le message et les informations système dans le presse-papier">
+        {copied ? '✅ Copié !' : '📋 Copier'}
+      </button>
       <button class="btn-save" onclick={handleSubmit} disabled={!message.trim() || isSubmitting}>
         {isSubmitting ? 'Ouverture…' : '📤 Envoyer sur GitHub'}
       </button>
@@ -178,6 +204,19 @@
     color: var(--text-secondary);
   }
   .btn-cancel:hover { background: var(--bg-hover); }
+
+  .btn-copy {
+    background: rgba(229, 168, 83, 0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+  .btn-copy:hover:not(:disabled) {
+    background: rgba(229, 168, 83, 0.2);
+  }
+  .btn-copy:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   .btn-save {
     background: var(--accent);

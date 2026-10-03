@@ -11,6 +11,7 @@
 
   <p>
     <a href="#features">Fonctionnalités</a> •
+    <a href="#tracking-optique">Tracking 3D / Webcam</a> •
     <a href="#installation">Installation</a> •
     <a href="#mobile">Mobile HUB</a> •
     <a href="#soutenir">Soutenir</a> •
@@ -175,6 +176,53 @@ Un compendium complet d'herboristerie, d'alchimie, de lapidaire et de minéralog
 - **🎧 Ambiances Procédurales Web Audio** : Soundscapes sonores générés en temps réel sans aucun fichier audio externe (Forêt, Torrent, Mine, Alchimie).
 - **🖨️ Export PDF A4 & Handouts** : Livret de poche ou grand grimoire imprimable, profil joueur et sélection de favoris.
 - **🔍 Recherche Globale** : Plantes, créatures, gemmes et minéraux accessibles instantanément depuis une barre unique.
+
+### 9. 🎥 Tracking Optique Table & Figurines 3D (Webcam & Rétroprojecteur)
+Transformez n'importe quelle table avec vidéoprojecteur en véritable table de jeu augmentée :
+- **Détection des Figurines Physiques par Webcam** : Suivi optique en temps réel des figurines sur la table via des marqueurs fiduciaires ArUco 4×4 discrets.
+- **Fichiers 3D (STL) Inclus & Téléchargeables** :
+  - **Bagues adaptatrices clipsables** (25.4 mm / 1 pouce, 28.5 mm Wargame, 32.5 mm Infanterie lourde, 50.8 mm Grandes créatures). Zéro colle sur vos figurines peintes : la figurine s'encliquette par friction dans la bague amovible.
+  - **Équerres de calibration d'angle L-Bracket** : À poser aux 4 coins de la table pour calibrer la caméra en quelques secondes.
+- **Planche d'Étiquettes A4 Vectorielle Prête à Imprimer** : 24 marqueurs ArUco distincts (PJ, PNJ, Sbires, Boss) à imprimer à l'échelle 100% avec ouverture automatique dans votre navigateur système (Firefox/Chrome/Edge) ou export HTML.
+- **Révélation Automatique du Brouillard de Guerre** : Déplacez votre figurine physique sur la table : le brouillard de guerre s'ouvre dynamiquement sous vos yeux et la torche éclaire le donjon en direct.
+- **Filtrage Anti-Tremblement & Homographie Projective** : Algorithme EMA (Exponential Moving Average) et deadband de précision pour un mouvement fluide sans aucun jitter de caméra.
+- **Activation en 1 Clic dans les Réglages** : Activez ou coupez la caméra à tout moment dans `⚙️ Réglages > Tracking Optique`.
+
+---
+
+<h2 id="tracking-optique">🚀 Guide Pas-à-Pas : Tracking Optique & Impression 3D</h2>
+
+Pour installer votre table de jeu physique augmentée en 4 étapes simples :
+
+```
+       [ Rétroprojecteur ]            [ Webcam USB (1080p) ]
+               \                                /
+                \                              /
+                 ▼                            ▼
+        ┌───────────────────────────────────────────────┐
+        │  Table de jeu physique (Carte projetée)       │
+        │                                               │
+        │        🧙 Figurines montées sur bagues 3D     │
+        │           avec étiquettes ArUco               │
+        └───────────────────────────────────────────────┘
+```
+
+1. **Étape 1 : Imprimer les socles en 3D** :
+   - Ouvrez `⚙️ Réglages` dans Grimoire et descendez à **Tracking Optique**.
+   - Cliquez sur `⬇️ STL` (ou `⬇️ Télécharger tout le pack STL`) pour obtenir vos fichiers `.stl` (25 mm, 28.5 mm, 32.5 mm, 50.8 mm).
+   - Tranchez en PLA avec 20% de remplissage et 0.20 mm de couche (aucun support requis).
+   - Cl測psez vos figurines dans les bagues : elles restent 100% amovibles et intactes !
+2. **Étape 2 : Imprimer et coller les étiquettes ArUco** :
+   - Cliquez sur `🖨️ Imprimer la planche (A4)` puis sur `🌐 Ouvrir dans le navigateur`.
+   - Imprimez la planche à l'échelle **100% (taille réelle)** sur papier standard ou vinyle autocollant.
+   - Découpez les carrés et collez-les dans la gorge supérieure de chaque bague.
+3. **Étape 3 : Fixer la webcam et calibrer** :
+   - Placez une webcam 1080p au plafond ou sur le rétroprojecteur, orientée vers le bas.
+   - Activez l'interrupteur dans les réglages et sélectionnez votre webcam.
+   - Cliquez sur `🎯 Calibrer 4 coins` et cliquez successivement sur les 4 coins de la zone projetée.
+4. **Étape 4 : Associer vos figurines et jouer !** :
+   - Sur la carte du Grimoire, ouvrez les paramètres du pion et renseignez son `Marqueur physique 3D (ArUco ID)`.
+   - Déplacez votre figurine sur la table : le pion virtuel et la lumière dynamique s'animent en direct !
 
 ---
 

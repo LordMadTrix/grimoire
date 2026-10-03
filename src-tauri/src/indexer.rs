@@ -147,6 +147,67 @@ pub fn reindex_vault(vault_path: &Path, db: &Connection) -> Result<usize, Box<dy
     }
 }
 
+/// Indexe ou met à jour un fichier Markdown unique dans l'index FTS5 et la table des liens (delta sync instantané)
+pub fn index_single_file(db: &Connection, rel_path: &str, content: &str) -> Result<(), rusqlite::Error> {
+    let clean_rel = rel_path.replace('\\', "/");
+
+    // Supprimer les entrées existantes pour ce fichier
+    let _ = db.execute("DELETE FROM entities WHERE path = ?1", params![clean_rel]);
+    let _ = db.execute("DELETE FROM links WHERE source_path = ?1", params![clean_rel]);
+
+    let (title, entity_type, tags, body) = parse_frontmatter(content, &clean_rel);
+
+    // Insérer dans FTS5
+    db.execute(
+        "INSERT INTO entities (path, title, entity_type, tags, content) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![clean_rel, title, entity_type, tags, body],
+    )?;
+
+    // Extraire les liens [[...]]
+    let mut stmt_link = db.prepare_cached(
+        "INSERT OR IGNORE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,?3,'','')"
+    )?;
+    for cap in LINK_REGEX.captures_iter(content) {
+        if let Some(target) = cap.get(1) {
+            let target_str = target.as_str().trim();
+            if !target_str.is_empty() {
+                let context = extract_context(content, cap.get(0).unwrap().start());
+                let _ = stmt_link.execute(params![clean_rel, target_str, context]);
+            }
+        }
+    }
+
+    // Relations YAML
+    if let Some(caps) = FRONTMATTER_REGEX.captures(content) {
+        let yaml_str = caps.get(1).unwrap().as_str();
+        if let Ok(yaml) = serde_yaml::from_str::<serde_yaml::Value>(yaml_str) {
+            if let Some(relations) = yaml.get("relations").and_then(|v| v.as_sequence()) {
+                let mut stmt_rel = db.prepare_cached(
+                    "INSERT OR REPLACE INTO links (source_path, target_path, context, label, rel_type) VALUES (?1,?2,'',?3,?4)"
+                )?;
+                for rel in relations {
+                    let target = rel.get("target").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                    let label = rel.get("label").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                    let rel_type = rel.get("type").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                    if !target.is_empty() {
+                        let _ = stmt_rel.execute(params![clean_rel, target, label, rel_type]);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Supprime un fichier de l'index FTS5 et des liens
+pub fn remove_from_index(db: &Connection, rel_path: &str) -> Result<(), rusqlite::Error> {
+    let clean_rel = rel_path.replace('\\', "/");
+    db.execute("DELETE FROM entities WHERE path = ?1", params![clean_rel])?;
+    db.execute("DELETE FROM links WHERE source_path = ?1", params![clean_rel])?;
+    Ok(())
+}
+
 /// Sanitise une requête utilisateur pour FTS5 — évite les crashes sur caractères spéciaux
 fn sanitize_fts_query(raw: &str) -> String {
     raw.split_whitespace()
@@ -169,7 +230,7 @@ pub fn search(db: &Connection, query: &str, limit: usize) -> Result<Vec<SearchRe
     let mut stmt = db.prepare(
         "SELECT path, title, entity_type, tags,
                 snippet(entities, 4, '<mark>', '</mark>', '…', 32) as snippet,
-                rank
+                bm25(entities, 3.0, 10.0, 1.0, 5.0, 1.0) as rank
          FROM entities
          WHERE entities MATCH ?1
          ORDER BY rank

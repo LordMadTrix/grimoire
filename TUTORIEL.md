@@ -27,6 +27,7 @@
 18. [Tutoriel Pas à Pas : Préparer et Lancer sa Première Session](#18-tutoriel-pas-à-pas--préparer-et-lancer-sa-première-session)
 19. [Index des Raccourcis Clavier & Astuces Pro](#19-index-des-raccourcis-clavier--astuces-pro)
 20. [Le Guide de l'Herboriste & Lapidaire (Alchimie, Cueillette, Forge)](#20-le-guide-de-lherboriste--lapidaire-alchimie-cueillette-forge)
+21. [Tracking Optique Table & Figurines 3D (Webcam, ArUco & Anneaux STL)](#21-tracking-optique-table--figurines-3d-webcam-aruco--anneaux-stl)
 
 ---
 
@@ -635,6 +636,71 @@ La barre de recherche dans l'en-tête du Guide fouille **plantes, créatures, ge
 Vos plantes et créatures personnalisées, ainsi que vos favoris, sont **sauvegardés automatiquement** (localStorage) et retrouvés à chaque ouverture.
 
 > 📚 **Source** : la base de plantes s'appuie notamment sur le *Guide to Herbs for RPGs* de Shaun Hately (1996, netbook libre) et sur les tables de gemmes en Goltors du *Donjon de Naheulbeuk*, adaptés en français au format Grimoire.
+
+---
+
+## 21. Tracking Optique Table & Figurines 3D (Webcam, ArUco & Anneaux STL)
+
+Grimoire permet d'allier le plaisir du jeu sur table réelle (vos figurines physiques peintes à la main) et les super-pouvoirs du numérique (brouillard de guerre dynamique, vision nocturne, effets de sorts).
+
+Grâce à une webcam zénithale (placée au-dessus de la table ou sur votre vidéoprojecteur), le système détecte la position de vos figurines physiques par **marqueurs optiques ArUco 4x4** et synchronise les pions virtuels en temps réel.
+
+```
+       [ Webcam au Zénith ou Rétroprojecteur ]
+                         │  (Flux vidéo USB)
+                         ▼
+        ┌───────────────────────────────────┐
+        │   Grimoire VTT (Tracking Optique) │
+        │    • Calibration Homographique 4-pts
+        │    • Détection ArUco 4x4 (0-49)   │
+        │    • Lissage EMA + Deadband       │
+        └─────────────────┬─────────────────┘
+                          │ (Position x, y sur la map)
+                          ▼
+       [ Table Réelle : Figurines + Bagues 3D ]
+          └── Révélation instantanée du Brouillard de Guerre !
+```
+
+### 1. Imprimer les Marqueurs ArUco
+1. Sur la Table Virtuelle VTT, ouvrez le panneau de tracking optique via **`📷 Caméra`** ou **`Options VTT → Tracking Optique`**.
+2. Cliquez sur **`🖨️ Imprimer Marqueurs ArUco`**.
+3. Choisissez le diamètre adapté à vos socles :
+   - **15 mm** : Idéal pour figurines de 25mm / socles compacts.
+   - **20 mm** : Standard universel (D&D, Pathfinder, Warhammer).
+   - **25 mm** : Grands monstres, cavaliers et boss (socles 40-50mm).
+4. Cliquez sur **`🌐 Ouvrir dans le Navigateur`** (ou *Enregistrer HTML*).
+5. Imprimez la page avec une échelle à **100%** (sans mise à l'échelle automatique de l'imprimante) sur du papier blanc mat standard ou adhésif.
+
+### 2. Télécharger & Imprimer les Bagues STL 3D
+Si vous disposez d'une imprimante 3D (FDM ou Résine) :
+1. Dans le panneau de tracking optique, descendez à la section **`Modèles 3D (.STL)`**.
+2. Cliquez sur **`💾 Télécharger le Pack Complet (5 fichiers STL)`** ou téléchargez individuellement :
+   - `bague_figurine_25mm.stl` (Diamètre intérieur 25.4mm - socle Medium standard).
+   - `bague_figurine_28mm.stl` (Diamètre intérieur 28.5mm - socle Heroic standard).
+   - `bague_figurine_32mm.stl` (Diamètre intérieur 32.5mm - socle Large).
+   - `bague_figurine_50mm.stl` (Diamètre intérieur 50.8mm - socle Huge/Monster).
+   - `corniere_calibration_table.stl` (Cornière en L avec encoche pour étalonner les 4 coins de la table).
+3. **Paramètres d'impression recommandés** :
+   - Matériau : PLA (ou résine standard).
+   - Hauteur de couche : `0.20 mm`.
+   - Remplissage : `15% à 20%` (Gyroid ou Grille).
+   - Pas de supports requis ! Temps d'impression : ~8 minutes par bague.
+4. Découpez une gommette ArUco et collez-la sur le plat supérieur de la bague. Clippez la bague sous votre figurine.
+
+### 3. Calibration de la Caméra en 4 Clics
+1. Dans Grimoire, cochez **`Activer le Tracking Optique`** et sélectionnez votre webcam dans la liste.
+2. Cliquez sur **`🎯 Étalonner la Table (4 Coins)`**.
+3. Dans la fenêtre de retour vidéo, cliquez successivement sur les 4 coins de votre surface projetée :
+   1. Coin Haut-Gauche (Coin 1)
+   2. Coin Haut-Droit (Coin 2)
+   3. Coin Bas-Droit (Coin 3)
+   4. Coin Bas-Gauche (Coin 4)
+4. La matrice d'homographie est calculée instantanément via l'algorithme Gauss-Jordan : même si votre webcam est inclinée ou désaxée, les coordonnées sont parfaitement recalées sur la grille de votre carte !
+
+### 4. Lier une Figurine Physique à un Pion Virtuel
+1. Sur la carte VTT, faites un double-clic ou clic droit sur un pion (ex: *Paladin*) pour ouvrir ses propriétés.
+2. Dans le champ **`Marqueur Physique (ID ArUco)`**, entrez l'ID de la gommette collée sous la figurine (ex: `1`). L'icône ArUco correspondante s'affiche en aperçu direct.
+3. Cochez **`Révéler Fog of War automatiquement`** si vous souhaitez que la figurine dissipe les ténèbres au fur et à mesure que le joueur la déplace avec ses mains sur la table !
 
 ---
 

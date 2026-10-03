@@ -24,27 +24,48 @@ export function drawLightHalo(
 ) {
   const { x, y, radius, color, alpha, flicker } = config;
   
-  // Calcul du scintillement organique (bruit pseudo-naturel pour torches)
+  // Calcul du scintillement organique stochastique (3 composantes de fréquence pour torches & flammes vivantes)
   let actualRadius = radius;
   let actualAlpha = alpha;
+  let offsetX = 0;
+  let offsetY = 0;
 
   if (flicker) {
-    const noise = Math.sin(time * 8 + (x % 17)) * 0.04 + Math.cos(time * 13 + (y % 19)) * 0.03;
+    const h1 = Math.sin(time * 5.2 + (x * 0.07)) * 0.045;
+    const h2 = Math.sin(time * 12.7 + (y * 0.05)) * 0.025;
+    const h3 = Math.cos(time * 23.1 + ((x + y) * 0.03)) * 0.015;
+    const noise = h1 + h2 + h3;
+
     actualRadius = radius * (1 + noise);
-    actualAlpha = Math.max(0.1, Math.min(1.0, alpha * (1 + noise * 1.5)));
+    actualAlpha = Math.max(0.08, Math.min(1.0, alpha * (1 + noise * 1.8)));
+
+    // Micro-oscillation du centre de la flamme au gré de l'air
+    offsetX = Math.sin(time * 7.1 + (x * 0.1)) * 1.4;
+    offsetY = Math.cos(time * 8.9 + (y * 0.1)) * 1.1;
   }
 
-  // 1. Cercle central chaud et intense
-  g.circle(x, y, actualRadius * 0.35);
+  const cx = x + offsetX;
+  const cy = y + offsetY;
+
+  // 1. Cœur incandescent hyper-lumineux (blanc chaud)
+  g.circle(cx, cy, actualRadius * 0.15);
+  g.fill({ color: 0xfffdf5, alpha: actualAlpha * 0.7 });
+
+  // 2. Halo intérieur vibrant
+  g.circle(cx, cy, actualRadius * 0.35);
   g.fill({ color, alpha: actualAlpha * 0.45 });
 
-  // 2. Halo intermédiaire
-  g.circle(x, y, actualRadius * 0.7);
+  // 3. Diffusion intermédiaire
+  g.circle(cx, cy, actualRadius * 0.60);
   g.fill({ color, alpha: actualAlpha * 0.25 });
 
-  // 3. Pénombre extérieure douce
-  g.circle(x, y, actualRadius);
-  g.fill({ color, alpha: actualAlpha * 0.1 });
+  // 4. Pénombre étendue
+  g.circle(cx, cy, actualRadius * 0.85);
+  g.fill({ color, alpha: actualAlpha * 0.12 });
+
+  // 5. Frange douce d'atténuation
+  g.circle(cx, cy, actualRadius);
+  g.fill({ color, alpha: actualAlpha * 0.04 });
 }
 
 /**

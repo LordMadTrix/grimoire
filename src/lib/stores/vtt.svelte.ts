@@ -75,6 +75,8 @@ export type Token = {
   linkedNote?: string;
   playerId?: string;
   animation?: 'none' | 'attack' | 'hit';
+  physicalMarkerId?: number | null;
+  physicalRotation?: number;
 };
 
 export type LightSource = {

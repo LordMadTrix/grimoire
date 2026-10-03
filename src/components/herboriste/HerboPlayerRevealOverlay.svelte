@@ -11,6 +11,7 @@
       item: any;
       isMystery?: boolean;
       gmNotes?: string;
+      clues?: string[];
     } | null;
     onClose: () => void;
   } = $props();

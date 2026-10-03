@@ -53,6 +53,18 @@ export async function writeFileBase64(vaultPath: string, relativePath: string, b
   return invoke('write_file_base64', { vaultPath, relativePath, base64Content });
 }
 
+export async function saveBinaryFileToDisk(filePath: string, base64Content: string): Promise<void> {
+  return invoke('save_binary_file_to_disk', { filePath, base64Content });
+}
+
+export async function openFileInOs(path: string): Promise<void> {
+  return invoke('open_file_in_os', { path });
+}
+
+export async function saveTempHtmlAndOpen(filename: string, htmlContent: string): Promise<string> {
+  return invoke('save_temp_html_and_open', { filename, htmlContent });
+}
+
 export async function createDirectory(vaultPath: string, relativePath: string): Promise<void> {
   return invoke('create_directory', { vaultPath, relativePath });
 }
@@ -345,3 +357,20 @@ export async function getCurrentVersion(): Promise<string> {
 export async function openUrl(url: string): Promise<void> {
   return invoke<void>('open_url', { url });
 }
+
+/**
+ * Lit un fichier binaire depuis le backend natif sous forme de buffer brut (zéro overhead Base64)
+ */
+export async function readFileBinary(path: string): Promise<ArrayBuffer> {
+  return invoke<ArrayBuffer>('read_file_binary', { path });
+}
+
+/**
+ * Charge un asset binaire brut et produit une ObjectURL pour affichage immédiat
+ */
+export async function fetchBinaryAssetUrl(path: string, mimeType: string = 'image/png'): Promise<string> {
+  const buffer = await readFileBinary(path);
+  const blob = new Blob([buffer], { type: mimeType });
+  return URL.createObjectURL(blob);
+}
+

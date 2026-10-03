@@ -1,4 +1,5 @@
 mod commands;
+mod events;
 mod indexer;
 
 use commands::search::DbState;
@@ -25,17 +26,23 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(DbState(Mutex::new(db)))
         .invoke_handler(tauri::generate_handler![
+            // Events bus typé
+            events::broadcast_event,
             // Vault filesystem
             commands::vault::open_vault,
             commands::vault::list_directory,
             commands::vault::read_file,
             commands::vault::read_file_base64,
+            commands::vault::read_file_binary,
             commands::vault::write_file,
             commands::vault::write_file_base64,
             commands::vault::create_directory,
             commands::vault::delete_file,
             commands::vault::rename_entry,
             commands::vault::open_url,
+            commands::vault::save_binary_file_to_disk,
+            commands::vault::open_file_in_os,
+            commands::vault::save_temp_html_and_open,
             commands::vault::get_file_history,
             commands::vault::restore_file_snapshot,
             // Game config (addon system)

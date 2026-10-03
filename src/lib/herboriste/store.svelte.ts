@@ -1,12 +1,15 @@
 import type { Plant, Creature } from './types/herb';
+import type { Gem } from './types/gem';
 import { INITIAL_PLANTS } from './data/herbalistData';
 import { INITIAL_CREATURES } from './data/bestiaryData';
+import { GEMS_LIST } from './data/gemData';
 
 export interface HerboSharePayload {
   type: 'plant' | 'gem' | 'potion' | 'poison' | 'jewelry' | 'surge';
   item: any;
   isMystery?: boolean;
   gmNotes?: string;
+  clues?: string[];
 }
 
 function loadCustomPlants(): Plant[] {
@@ -77,6 +80,9 @@ function createHerboristeStore() {
     set isAddModalOpen(v: boolean) { isAddModalOpen = v; },
     get handoutItem() { return handoutItem; },
     set handoutItem(item: { type: 'plant' | 'gem'; item: any } | null) { handoutItem = item; },
+    get gems(): Gem[] { return GEMS_LIST; },
+    get currentMoonPhase(): string { return 'Pleine Lune'; },
+    get satchel(): { plantId: string; plantName: string; quantity: number }[] { return []; },
     get shareModalItem() { return shareModalItem; },
     set shareModalItem(item: HerboSharePayload | null) { shareModalItem = item; },
 
