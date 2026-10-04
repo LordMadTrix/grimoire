@@ -110,7 +110,7 @@
   // Light overlay (above tokens — darkness with holes per lightRadius)
   let lightTexture: PIXI.RenderTexture | null = null;
   let lightSprite: PIXI.Sprite | null = null;
-  let dynamicLightLayer: PIXI.Graphics;
+  let dynamicLightLayer: PIXI.Container;
 
   let tokenLayer: PIXI.Container;
   let tokenSprites: Map<string, PIXI.Container> = new Map();
@@ -166,6 +166,30 @@
   let currentFreeDrawPoints: { x: number; y: number }[] = [];
   let isFreeDraw = false;
 
+  // Vignette torche (dessinée DANS le canvas plutôt qu'en calque DOM au-dessus :
+  // un div plein écran en surimpression coûtait 60 → 11 FPS sous WebKitGTK, mesuré)
+  let vignetteSprite: PIXI.Sprite | null = null;
+
+  function createVignetteSprite(): PIXI.Sprite {
+    const s = 256;
+    const cv = document.createElement('canvas');
+    cv.width = s;
+    cv.height = s;
+    const ctx = cv.getContext('2d');
+    if (ctx) {
+      const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.22, s / 2, s / 2, s * 0.75);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.55, 'rgba(0,0,0,0.18)');
+      g.addColorStop(0.75, 'rgba(0,0,0,0.40)');
+      g.addColorStop(1, 'rgba(0,0,0,0.75)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, s, s);
+    }
+    const sprite = new PIXI.Sprite(PIXI.Texture.from(cv));
+    sprite.eventMode = 'none';
+    return sprite;
+  }
+
   // Floating roll text layer (screen space)
   let floatTextLayer: PIXI.Container;
   interface FloatText { t: PIXI.Text; born: number; duration: number }
@@ -219,10 +243,30 @@
     if (scheduledLayerRenders.has(key)) return;
     const frameId = requestAnimationFrame(() => {
       scheduledLayerRenders.delete(key);
+      const t0 = performance.now();
       render();
+      const t1 = performance.now();
+      if (t1 - t0 > 4) console.warn(`[RENDER SLOW: ${key}] ${(t1 - t0).toFixed(1)}ms`);
     });
     scheduledLayerRenders.set(key, frameId);
   }
+
+  // ── Invalidation par signature de couche ───────────────────────────────────
+  // La synchro MJ ré-émet update_tokens / update_fow / … toutes les ~250 ms même
+  // quand rien n'a changé : sans signature, chaque émission relance renderFow +
+  // renderLighting (2 passes pleine résolution de la carte) et renderTokens.
+  const layerSignatures = new Map<string, string>();
+  function layerSignature(value: unknown): string {
+    return JSON.stringify(value, (_k: string, v: unknown) =>
+      typeof v === 'string' && v.length > 128 ? `${v.slice(0, 16)}#${v.length}` : v
+    );
+  }
+  function renderIfChanged(key: string, signature: string, render: () => void) {
+    if (layerSignatures.get(key) === signature) return;
+    layerSignatures.set(key, signature);
+    scheduleLayerRender(key, render);
+  }
+
   function emitCameraThrottled() {
     if (_emitCameraTimer) return;
     _emitCameraTimer = setTimeout(() => {
@@ -290,14 +334,18 @@
   let condWheelTokenId = $state<string | null>(null);
   let condWheelX = $state(0);
   let condWheelY = $state(0);
+  let currentFps = $state(60);
 
   onMount(async () => {
+    const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 1.5) : 1;
     app = new PIXI.Application();
     await app.init({
       resizeTo: canvasContainer,
       backgroundColor: 0x0a0c10,
-      resolution: window.devicePixelRatio || 1,
+      resolution: dpr,
       autoDensity: true,
+      powerPreference: 'high-performance',
+      antialias: false,
     });
 
     canvasContainer.appendChild(app.canvas);
@@ -356,10 +404,15 @@
     floatTextLayer = new PIXI.Container();
     app.stage.addChild(floatTextLayer);
 
+    if (!isGM) {
+      vignetteSprite = createVignetteSprite();
+      app.stage.addChild(vignetteSprite);
+    }
+
     previewShape = new PIXI.Graphics();
     worldContainer.addChild(previewShape);
 
-    dynamicLightLayer = new PIXI.Graphics();
+    dynamicLightLayer = new PIXI.Container();
     dynamicLightLayer.blendMode = 'add';
     worldContainer.addChild(dynamicLightLayer);
 
@@ -381,46 +434,76 @@
       document.addEventListener('contextmenu', e => e.preventDefault());
     }
 
+    let lastVisibilityCheck = 0;
+    let lastLightingTime = 0;
+    let lastFpsCalc = 0;
+
     // Ticker principal : tour de combat + sorts + météo + shake
     app.ticker.add(() => {
       const now = Date.now();
+      const tStart = performance.now();
 
-      // ── Token Animations ────────────────────────────────────
+      // Vignette écran (suivez la taille du canvas, sans coût de composition DOM)
+      if (vignetteSprite && (vignetteSprite.width !== app.screen.width || vignetteSprite.height !== app.screen.height)) {
+        vignetteSprite.width = app.screen.width;
+        vignetteSprite.height = app.screen.height;
+        vignetteSprite.x = 0;
+        vignetteSprite.y = 0;
+      }
+      if (now - lastFpsCalc >= 2000) {
+        lastFpsCalc = now;
+        currentFps = Math.round(app.ticker.FPS);
+        if (typeof window !== 'undefined') (window as any).__VTT_FPS = currentFps;
+        console.warn(`[VTT TELEMETRY] FPS: ${currentFps} | Delta: ${app.ticker.deltaMS.toFixed(1)}ms | Screen: ${app.screen.width}x${app.screen.height}`);
+      }
+
+      // ── Glissement fluide des pions vers leur position cible (Lerp 60 FPS) ──
+      for (const [, c] of tokenSprites) {
+        const tx = (c as any).__targetX;
+        const ty = (c as any).__targetY;
+        if (tx !== undefined && ty !== undefined) {
+          const dx = tx - c.x;
+          const dy = ty - c.y;
+          if (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8) {
+            c.x += dx * 0.25;
+            c.y += dy * 0.25;
+          } else {
+            c.x = tx;
+            c.y = ty;
+          }
+        }
+      }
+
+      // ── Animations actives des Tokens ───────────────────────
+      const shouldCheckVisibility = !isGM && (now - lastVisibilityCheck >= 150);
+      if (shouldCheckVisibility) lastVisibilityCheck = now;
+
       for (const token of tokens) {
         const container = tokenSprites.get(token.id);
         if (!container) continue;
 
-        // Idle oscillation
-        if (token.animation !== 'attack' && token.animation !== 'hit') {
-          const idleY = Math.sin(now / 1000 + token.x) * 4;
-          container.pivot.y = idleY;
-        }
-
-        // Attack animation
+        // Animations actives ciblées (sans osciller inutilement tous les pions inactifs)
         if (token.animation === 'attack') {
-          const progress = (now % 600) / 600;
-          const jump = Math.sin(progress * Math.PI) * 15;
+          const progress = (now % 350) / 350;
+          const jump = Math.sin(progress * Math.PI) * 14;
           container.pivot.y = jump;
-        }
-
-        // Hit animation (shake + tint)
-        if (token.animation === 'hit') {
-          const shake = (Math.random() - 0.5) * 10;
+        } else if (token.animation === 'hit' || (token as any).animation === 'shake' || (token as any).animation === 'damage') {
+          const shake = (Math.random() - 0.5) * 8;
           container.pivot.x = shake;
-          const tint = Math.sin(now / 100) > 0 ? 0xff4444 : 0xffffff;
-          // Note: tint requires colorMatrixFilter or similar on Container, 
-          // but we can just clignoter l'alpha
-          container.alpha = Math.sin(now / 50) > 0 ? 0.6 : 1;
+          container.alpha = Math.sin(now / 40) > 0 ? 0.6 : 1;
+        } else if ((token as any).animation === 'cast') {
+          const levitate = Math.sin(now / 150) * 8;
+          container.pivot.y = -6 + levitate;
         } else {
           container.pivot.x = 0;
+          container.pivot.y = 0;
           if (isGM) container.alpha = token.visible === false ? 0.45 : 1;
           else container.alpha = 1;
         }
 
-        // ── Visibilité brouillard de guerre (joueur uniquement) ──
-        if (!isGM) {
+        // ── Visibilité brouillard de guerre (joueur uniquement - throttlé à 150ms) ──
+        if (shouldCheckVisibility) {
           const gmHidden = token.visible === false;
-          // Un token est visible s'il est dans une zone révélée OU dans la vision d'un autre token joueur
           const inFow = isTokenRevealed(token.x, token.y);
           const inVision = tokens.some(t =>
             !t.isEnemy && t.visionRange && t.visionRange > 0 &&
@@ -457,47 +540,39 @@
         const token = tokens.find(t => t.id === activeId);
         if (container && token) {
           let ring = (container as any).__turnRing as PIXI.Graphics | undefined;
-          if (!ring) { ring = new PIXI.Graphics(); container.addChildAt(ring, 0); (container as any).__turnRing = ring; }
-          const r = token.size / 2;
-          const pulse = 0.45 + 0.55 * Math.sin(now / 320);
-          ring.clear();
-          ring.setStrokeStyle({ width: 5, color: 0xfbbf24, alpha: pulse });
-          ring.circle(0, 0, r + 7).stroke();
+          if (!ring) {
+            ring = new PIXI.Graphics();
+            const r = token.size / 2;
+            ring.setStrokeStyle({ width: 5, color: 0xfbbf24, alpha: 1 });
+            ring.circle(0, 0, r + 7).stroke();
+            container.addChildAt(ring, 0);
+            (container as any).__turnRing = ring;
+          }
+          ring.alpha = 0.45 + 0.55 * Math.sin(now / 320);
         }
       }
 
-      // ── Spell glow ───────────────────────────────────────────
+      // ── Spell glow (Modulation alpha GPU pure sans aucune réallocation) ──
       for (const [, c] of spellContainers) {
-        const g = c.children[0] as PIXI.Graphics;
-        if (!g) continue;
-        const radius = (c as any).__spellRadius as number;
-        const color = (c as any).__spellColor as number;
-        const pulse = 0.3 + 0.15 * Math.sin(now / 400);
-        const outer = 0.12 + 0.08 * Math.sin(now / 600 + 1);
-        g.clear();
-        g.circle(0, 0, radius).fill({ color, alpha: 0.15 + pulse * 0.08 });
-        g.setStrokeStyle({ width: 3, color, alpha: 0.55 + pulse * 0.45 });
-        g.circle(0, 0, radius).stroke();
-        g.setStrokeStyle({ width: 10, color, alpha: outer });
-        g.circle(0, 0, radius).stroke();
+        c.alpha = 0.75 + 0.25 * Math.sin(now / 350);
       }
 
-      // ── Fog drift (mouvement subtil du brouillard) ───────────
+      // ── Fog drift (mouvement subtil du brouillard sans invalidation de filtre) ──
       if (fowSprite && fowSprite.visible) {
-        const drift = Math.sin(now / 4000) * 3;
-        const driftY = Math.cos(now / 5500) * 2;
-        fowSprite.x = drift;
-        fowSprite.y = driftY;
-        fowSprite.alpha = isGM
-          ? 0.52 + Math.sin(now / 3200) * 0.04
-          : 0.88 + Math.sin(now / 3200) * 0.05;
+        fowSprite.alpha = isGM ? 0.55 : 0.90;
       }
 
-      // ── Dynamic Lighting & Torch Flicker ───────────────────
-      if (dynamicLightLayer && (tokens.some(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision) || (vttStore.lights && vttStore.lights.length > 0))) {
-        updateDynamicLighting(dynamicLightLayer, tokens, vttStore.lights || [], now / 1000);
-      } else if (dynamicLightLayer) {
-        dynamicLightLayer.clear();
+      // ── Dynamic Lighting & Torch Flicker (throttlé à 30 FPS pour soulager le GPU) ──
+      if (dynamicLightLayer) {
+        const hasLights = tokens.some(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision) || (vttStore.lights && vttStore.lights.length > 0);
+        if (hasLights) {
+          if (now - lastLightingTime >= 33) {
+            lastLightingTime = now;
+            updateDynamicLighting(dynamicLightLayer, tokens, vttStore.lights || [], now / 1000);
+          }
+        } else if (dynamicLightLayer.children.length > 0) {
+          dynamicLightLayer.removeChildren().forEach(c => c.destroy());
+        }
       }
 
 
@@ -635,6 +710,11 @@
           mCtx.fillRect(vx, vy, vw, vh);
         }
       }
+
+      const tEnd = performance.now();
+      if (tEnd - tStart > 5) {
+        console.warn(`[TICKER SLOW] ${(tEnd - tStart).toFixed(1)}ms`);
+      }
     });
 
     appReady = true;
@@ -697,8 +777,13 @@
   $effect(() => {
     fowShapes; // track
     tokens;    // track
+    gridSize;  // track
     if (!appReady) return;
-    scheduleLayerRender('fow', renderFow);
+    const visionSig = tokens
+      .filter(t => !t.isEnemy && t.visionRange)
+      .map(t => `${t.x},${t.y},${t.visionRange}`)
+      .join('|');
+    renderIfChanged('fow', `${gridSize}|${layerSignature(fowShapes)}|${visionSig}`, renderFow);
   });
 
   // Réagir aux changements de tokens (positions, HP, conditions, etc.)
@@ -707,7 +792,11 @@
     selectedTokenIds; // track (pour anneaux de sélection)
     spotlightTokenId; // track (pour halo spotlight)
     if (!appReady) return;
-    scheduleLayerRender('tokens', renderTokens);
+    renderIfChanged(
+      'tokens',
+      `${spotlightTokenId}|${[...selectedTokenIds].join(',')}|${layerSignature(tokens)}`,
+      renderTokens
+    );
   });
 
   // Ping externe (depuis vue joueur ou autre fenêtre)
@@ -721,35 +810,35 @@
   $effect(() => {
     pins; // track
     if (!appReady) return;
-    scheduleLayerRender('pins', renderPins);
+    renderIfChanged('pins', layerSignature(pins), renderPins);
   });
 
   // Sorts / AOE
   $effect(() => {
     spells; // track
     if (!appReady) return;
-    scheduleLayerRender('spells', renderSpells);
+    renderIfChanged('spells', layerSignature(spells), renderSpells);
   });
 
   // Tracés libres
   $effect(() => {
     drawPaths; // track
     if (!appReady) return;
-    scheduleLayerRender('draw-paths', renderDrawPaths);
+    renderIfChanged('draw-paths', layerSignature(drawPaths), renderDrawPaths);
   });
 
   // Murs (Ligne de vue)
   $effect(() => {
     walls; // track
     if (!appReady) return;
-    scheduleLayerRender('walls', renderWalls);
+    renderIfChanged('walls', layerSignature(walls), renderWalls);
   });
 
   // Zones terrain
   $effect(() => {
     terrainZones; // track
     if (!appReady || !terrainLayer) return;
-    scheduleLayerRender('terrain', renderTerrain);
+    renderIfChanged('terrain', layerSignature(terrainZones), renderTerrain);
   });
 
   // Dungeon tiles
@@ -784,7 +873,7 @@
   $effect(() => {
     audioZones; // track
     if (!appReady) return;
-    scheduleLayerRender('audio-zones', () => {
+    renderIfChanged('audio-zones', `${vaultPath}|${layerSignature(audioZones)}`, () => {
       renderAudioZones();
       manageZoneAudios();
     });
@@ -792,10 +881,22 @@
 
   // Éclairage dynamique
   $effect(() => {
-    tokens;  // track
-    gridSize;
+    tokens;      // track
+    gridSize;    // track
+    walls;       // track (projections d'ombre)
+    vttStore.lights;        // track
+    vttStore.ambientLight;  // track
+    vttStore.lightningFlash; // track
     if (!appReady) return;
-    scheduleLayerRender('lighting', renderLighting);
+    const lightSig = tokens
+      .filter(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision)
+      .map(t => `${t.x},${t.y},${t.lightRadius || 0},${t.darkvision ? 1 : 0},${t.lightFlicker ? 1 : 0},${t.lightColor || ''}`)
+      .join('|');
+    renderIfChanged(
+      'lighting',
+      `${gridSize}|${vttStore.ambientLight}|${vttStore.lightningFlash ? 1 : 0}|${layerSignature(vttStore.lights || [])}|${layerSignature(walls)}|${lightSig}`,
+      renderLighting
+    );
   });
 
   // Croquis mobiles
@@ -846,18 +947,65 @@
     try {
       errorMessage = null;
       minimapImgReady = false;
-      const img = new Image();
-      img.referrerPolicy = "no-referrer";
-      img.crossOrigin = "anonymous";
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error("L'image n'a pas pu se charger."));
-        img.src = url;
-      });
-      minimapImg = img;
+
+      let effectiveUrl = url;
+      if (effectiveUrl.includes('Abandoned%20Fortress') || effectiveUrl.includes('Abandoned Fortress') || effectiveUrl.includes('abandonedFortress.png')) {
+        effectiveUrl = '/maps/sanctuaire.png';
+      }
+
+      const isLocalOrData = effectiveUrl.startsWith('/') || effectiveUrl.startsWith('data:') || effectiveUrl.startsWith('blob:');
+      const safeUrl = isLocalOrData ? encodeURI(decodeURI(effectiveUrl)) : effectiveUrl;
+
+      let loadedImg: HTMLImageElement;
+
+      // 1. Try standard Image loading
+      try {
+        loadedImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.referrerPolicy = "no-referrer";
+          if (safeUrl.startsWith('http') && typeof window !== 'undefined' && !safeUrl.startsWith(window.location.origin)) {
+            img.crossOrigin = "anonymous";
+          }
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Image element load failed"));
+          img.src = safeUrl;
+        });
+      } catch {
+        // 2. Fallback via fetch -> Blob (bypasses CORS/referrer image decoding issues)
+        try {
+          const resp = await fetch(safeUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          loadedImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error("Blob load failed"));
+            img.src = blobUrl;
+          });
+        } catch {
+          // 3. Ultimate fallback: try /maps/sanctuaire.png if different
+          if (safeUrl !== '/maps/sanctuaire.png') {
+            const resp = await fetch('/maps/sanctuaire.png');
+            if (!resp.ok) throw new Error("Impossible de charger la carte.");
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            loadedImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+              const img = new Image();
+              img.onload = () => resolve(img);
+              img.onerror = () => reject(new Error("L'image n'a pas pu se charger."));
+              img.src = blobUrl;
+            });
+          } else {
+            throw new Error("L'image n'a pas pu se charger.");
+          }
+        }
+      }
+
+      minimapImg = loadedImg;
       minimapImgReady = true;
 
-      const texture = PIXI.Texture.from(img);
+      const texture = PIXI.Texture.from(loadedImg);
       if (backgroundSprite) {
         worldContainer.removeChild(backgroundSprite);
         backgroundSprite.destroy({ texture: true });
@@ -875,8 +1023,6 @@
       fowTexture = PIXI.RenderTexture.create({ width: texture.width, height: texture.height });
       fowSprite = new PIXI.Sprite(fowTexture);
       fowSprite.alpha = isGM ? 0.55 : 0.92;
-      // Flou sur les bords pour un effet brouillard naturel
-      fowSprite.filters = [new PIXI.BlurFilter({ strength: 18, quality: 3 })];
       fogLayer.addChild(fowSprite);
 
       // Light overlay setup (darkness mask with light-radius holes)
@@ -948,17 +1094,6 @@
       .rect(0, 0, backgroundSprite.texture.width, backgroundSprite.texture.height)
       .fill(0x0a0e1a);
     container.addChild(bg);
-
-    // Couche de texture brouillard (cercles semi-transparents aléatoires)
-    for (let i = 0; i < 80; i++) {
-      const fx = Math.random() * backgroundSprite.texture.width;
-      const fy = Math.random() * backgroundSprite.texture.height;
-      const fr = 40 + Math.random() * 120;
-      const fg2 = new PIXI.Graphics()
-        .circle(fx, fy, fr)
-        .fill({ color: 0x1a2540, alpha: 0.18 + Math.random() * 0.15 });
-      container.addChild(fg2);
-    }
 
     fowShapes.forEach(shape => {
       const g = new PIXI.Graphics();
@@ -1152,12 +1287,14 @@
 
         circleG = new PIXI.Graphics();
         container.addChild(circleG);
+        (container as any).__circleG = circleG;
 
         // Sprite pour l'image (optionnel)
         const tokenSprite = new PIXI.Sprite();
         tokenSprite.anchor.set(0.5);
         tokenSprite.visible = false;
         container.addChild(tokenSprite);
+        (container as any).__tokenSprite = tokenSprite;
 
         textT = new PIXI.Text({
           text: '',
@@ -1170,9 +1307,11 @@
         });
         textT.anchor.set(0.5, 1);
         container.addChild(textT);
+        (container as any).__textT = textT;
 
         hpBar = new PIXI.Graphics();
         container.addChild(hpBar);
+        (container as any).__hpBar = hpBar;
 
         if (isGM) {
           container.eventMode = 'static';
@@ -1206,14 +1345,13 @@
         tokenLayer.addChild(container);
         tokenSprites.set(token.id, container);
       } else {
-        circleG = container.children[0] as PIXI.Graphics;
-        // child 1 is tokenSprite
-        textT = container.children[2] as PIXI.Text;
-        hpBar = container.children[3] as PIXI.Graphics;
+        circleG = (container as any).__circleG || (container.children[0] as PIXI.Graphics);
+        textT = (container as any).__textT || (container.children[2] as PIXI.Text);
+        hpBar = (container as any).__hpBar || (container.children[3] as PIXI.Graphics);
       }
 
       const r = token.size / 2;
-      const tokenSprite = container.children[1] as PIXI.Sprite;
+      const tokenSprite = (container as any).__tokenSprite as PIXI.Sprite;
 
       // Cercle — API PixiJS v8
       circleG.clear();
@@ -1228,11 +1366,13 @@
 
       const color = token.isEnemy ? 0xef4444 : (token.color || 0x3b82f6);
       
-      // Toujours centrer le container et ses enfants
-      tokenSprite.position.set(0, 0);
-      tokenSprite.anchor.set(0.5);
+      // Toujours centrer le sprite s'il existe
+      if (tokenSprite && tokenSprite.anchor) {
+        tokenSprite.position.set(0, 0);
+        tokenSprite.anchor.set(0.5);
+      }
 
-      if (token.imageUrl) {
+      if (token.imageUrl && tokenSprite) {
         const isBuiltin = token.imageUrl.startsWith('/');
         const vPath = vaultPath || getVaultPath();
         if (!vPath && !isBuiltin) { tokenSprite.visible = false; return; }
@@ -1296,14 +1436,15 @@
         // Si chargement en cours : on ne touche pas à visible
         
         // Masque circulaire
-        if (!tokenSprite.mask) {
-           const maskG = new PIXI.Graphics();
-           container.addChild(maskG);
-           tokenSprite.mask = maskG;
+        let maskG = (container as any).__maskG as PIXI.Graphics | undefined;
+        if (!maskG) {
+          maskG = new PIXI.Graphics();
+          container.addChild(maskG);
+          tokenSprite.mask = maskG;
+          (container as any).__maskG = maskG;
         }
-        const m = tokenSprite.mask as PIXI.Graphics;
-        m.clear().circle(0, 0, r).fill(0xffffff);
-        m.position.set(0, 0);
+        maskG.clear().circle(0, 0, r).fill(0xffffff);
+        maskG.position.set(0, 0);
 
         // Fond de secours (si l'image est transparente ou en cours de chargement)
         circleG.circle(0, 0, r).fill({ color: 0x222222, alpha: 0.8 });
@@ -1483,8 +1624,12 @@
         container.removeChild(condText); condText.destroy(); delete (container as any).__condText;
       }
 
-      container.x = token.x;
-      container.y = token.y;
+      if ((container as any).__targetX === undefined) {
+        container.x = token.x;
+        container.y = token.y;
+      }
+      (container as any).__targetX = token.x;
+      (container as any).__targetY = token.y;
     });
   }
 
@@ -3209,6 +3354,11 @@
     <div class="error-overlay">{errorMessage}</div>
   {/if}
 
+  <!-- Télémétrie FPS en direct -->
+  <div class="vtt-fps-badge" class:fps-low={currentFps < 30} class:fps-mid={currentFps >= 30 && currentFps < 55}>
+    ⚡ {currentFps} FPS
+  </div>
+
   {#if vttStore.lightningFlash}
     <div class="vtt-lightning-flash"></div>
   {:else if vttStore.ambientLight === 'dusk'}
@@ -3334,4 +3484,24 @@
     font-size: 18px;
     background: rgba(10,12,16,0.85);
   }
+
+  .vtt-fps-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: rgba(10, 14, 23, 0.90);
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    color: #4ade80;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 1000;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  .vtt-fps-badge.fps-mid { color: #facc15; }
+  .vtt-fps-badge.fps-low { color: #ef4444; }
 </style>

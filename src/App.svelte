@@ -25,9 +25,12 @@
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
   import { getAiModel, setAiModel } from '$lib/stores/settings.svelte';
-  import { openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath } from '$lib/api';
+  import { isTauri, openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath } from '$lib/api';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
+  import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
+  import { gameSessionDemo } from '$lib/vtt/gameSessionDemoStore.svelte';
+  import LiveSessionDemoPlayer from './components/vtt/LiveSessionDemoPlayer.svelte';
   import {
     vttStore,
     addGmFowShape, updateGmToken, replaceGmToken, removeGmToken, addGmToken,
@@ -255,92 +258,6 @@
 
       window.addEventListener('focus', syncOllamaModel);
 
-      _unlistenApp.push(await listen<string>('ollama-model-active', (event) => {
-        if (event.payload) {
-          setAiModel(event.payload);
-        }
-      }));
-      _unlistenApp.push(await listen('visual_dice_roll', (event: any) => {
-        const { name, roll } = event.payload;
-        handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
-        notifStore.add('🎲', name, `Jet : ${roll.total}${roll.formula ? ' ('+roll.formula+')' : ''}`, 'info', 4000);
-      }));
-      _unlistenApp.push(await listen('player_sketch_push', (e: any) => {
-        const { data, name } = e.payload;
-        window.dispatchEvent(new CustomEvent('vtt-sketch-push', {
-          detail: { points: data.points, color: data.color, name }
-        }));
-        notifStore.add('✏️', name, 'A envoyé un sketch', 'info', 3000);
-      }));
-      _unlistenApp.push(await listen('player_spawn_token', (e: any) => {
-        const { id, name, image } = e.payload;
-        addGmToken({
-          id: Math.random().toString(36).slice(2),
-          name: name || 'Joueur',
-          x: 500, y: 500,
-          size: 50,
-          imageUrl: image || undefined,
-          visible: true,
-          playerId: id
-        });
-        notifStore.add('🎭', name, 'Veut placer son pion sur la carte', 'info', 5000);
-      }));
-      _unlistenApp.push(await listen('player_joined', (e: any) => {
-        notifStore.add('👤', 'Joueur connecté', e.payload.name, 'success', 5000);
-      }));
-      _unlistenApp.push(await listen('player_left', (e: any) => {
-        notifStore.add('👤', 'Joueur déconnecté', e.payload.name, 'warn', 4000);
-      }));
-      _unlistenApp.push(await listen('player_chat', (e: any) => {
-        const { name, message, private: priv, group } = e.payload;
-        if (priv) notifStore.add('🔒', `Chuchotement — ${name}`, message, 'warn', 8000);
-        else if (!group) notifStore.add('💬', name, message, 'info', 5000);
-      }));
-      _unlistenApp.push(await listen('player_xp_request', (e: any) => {
-        const { name, amount } = e.payload;
-        notifStore.add('✨', 'Demande XP', `${name} demande ${amount} XP`, 'warn', 0);
-      }));
-      _unlistenApp.push(await listen('player_poll_vote', (e: any) => {
-        notifStore.add('📊', 'Vote', `${e.payload.name} : ${e.payload.option}`, 'info', 3000);
-      }));
-      _unlistenApp.push(await listen('player_initiative', (e: any) => {
-        const { name, data } = e.payload;
-        notifStore.add('⚡', 'Initiative', `${name} : ${data?.result ?? '?'}`, 'info', 4000);
-      }));
-      _unlistenApp.push(await listen('player_roll', (e: any) => {
-        const { name, data } = e.payload;
-        let rollText = '';
-        if (data && typeof data === 'object') {
-          if (data.formula && data.total !== undefined) {
-            rollText = `Résultat : ${data.total} (${data.formula})`;
-          } else if (data.total !== undefined) {
-            rollText = `Résultat : ${data.total}`;
-          } else if (data.result !== undefined) {
-            rollText = `Résultat : ${data.result}`;
-          } else {
-            rollText = JSON.stringify(data);
-          }
-        } else {
-          rollText = String(data || '');
-        }
-        notifStore.add('🎲', name, rollText, 'info', 5000);
-        addCombatLogEntry({
-          type: 'info',
-          actor: name,
-          detail: `🎲 ${rollText}`,
-        });
-      }));
-
-      _unlistenApp.push(await listen('player_character_update', (e: any) => {
-        const { name, character } = e.payload;
-        if (character && character.hp !== undefined) {
-          const hp = Number(character.hp);
-          if (!isNaN(hp)) {
-            updatePlayerHpByName(name, hp);
-          }
-        }
-      }));
-
       // ── Pont Bidirectionnel Map Editor -> Grimoire VTT ──
       async function handleMapFromEditor(payload: any, switchScene = true) {
         if (!payload || !payload.dataUrl) return;
@@ -392,13 +309,101 @@
         }
       }
 
-      _unlistenApp.push(await listen('map-send-to-grimoire', (e: any) => {
-        handleMapFromEditor(e.payload, true);
-      }));
+      if (isTauri()) {
+        _unlistenApp.push(await listen<string>('ollama-model-active', (event) => {
+          if (event.payload) {
+            setAiModel(event.payload);
+          }
+        }));
+        _unlistenApp.push(await listen('visual_dice_roll', (event: any) => {
+          const { name, roll } = event.payload;
+          handleDiceRoll(roll.total, `${name} rolls ${roll.formula || 'd' + roll.die}`);
+          notifStore.add('🎲', name, `Jet : ${roll.total}${roll.formula ? ' ('+roll.formula+')' : ''}`, 'info', 4000);
+        }));
+        _unlistenApp.push(await listen('player_sketch_push', (e: any) => {
+          const { data, name } = e.payload;
+          window.dispatchEvent(new CustomEvent('vtt-sketch-push', {
+            detail: { points: data.points, color: data.color, name }
+          }));
+          notifStore.add('✏️', name, 'A envoyé un sketch', 'info', 3000);
+        }));
+        _unlistenApp.push(await listen('player_spawn_token', (e: any) => {
+          const { id, name, image } = e.payload;
+          addGmToken({
+            id: Math.random().toString(36).slice(2),
+            name: name || 'Joueur',
+            x: 500, y: 500,
+            size: 50,
+            imageUrl: image || undefined,
+            visible: true,
+            playerId: id
+          });
+          notifStore.add('🎭', name, 'Veut placer son pion sur la carte', 'info', 5000);
+        }));
+        _unlistenApp.push(await listen('player_joined', (e: any) => {
+          notifStore.add('👤', 'Joueur connecté', e.payload.name, 'success', 5000);
+        }));
+        _unlistenApp.push(await listen('player_left', (e: any) => {
+          notifStore.add('👤', 'Joueur déconnecté', e.payload.name, 'warn', 4000);
+        }));
+        _unlistenApp.push(await listen('player_chat', (e: any) => {
+          const { name, message, private: priv, group } = e.payload;
+          if (priv) notifStore.add('🔒', `Chuchotement — ${name}`, message, 'warn', 8000);
+          else if (!group) notifStore.add('💬', name, message, 'info', 5000);
+        }));
+        _unlistenApp.push(await listen('player_xp_request', (e: any) => {
+          const { name, amount } = e.payload;
+          notifStore.add('✨', 'Demande XP', `${name} demande ${amount} XP`, 'warn', 0);
+        }));
+        _unlistenApp.push(await listen('player_poll_vote', (e: any) => {
+          notifStore.add('📊', 'Vote', `${e.payload.name} : ${e.payload.option}`, 'info', 3000);
+        }));
+        _unlistenApp.push(await listen('player_initiative', (e: any) => {
+          const { name, data } = e.payload;
+          notifStore.add('⚡', 'Initiative', `${name} : ${data?.result ?? '?'}`, 'info', 4000);
+        }));
+        _unlistenApp.push(await listen('player_roll', (e: any) => {
+          const { name, data } = e.payload;
+          let rollText = '';
+          if (data && typeof data === 'object') {
+            if (data.formula && data.total !== undefined) {
+              rollText = `Résultat : ${data.total} (${data.formula})`;
+            } else if (data.total !== undefined) {
+              rollText = `Résultat : ${data.total}`;
+            } else if (data.result !== undefined) {
+              rollText = `Résultat : ${data.result}`;
+            } else {
+              rollText = JSON.stringify(data);
+            }
+          } else {
+            rollText = String(data || '');
+          }
+          notifStore.add('🎲', name, rollText, 'info', 5000);
+          addCombatLogEntry({
+            type: 'info',
+            actor: name,
+            detail: `🎲 ${rollText}`,
+          });
+        }));
 
-      _unlistenApp.push(await listen('map-save-to-vault', (e: any) => {
-        handleMapFromEditor(e.payload, false);
-      }));
+        _unlistenApp.push(await listen('player_character_update', (e: any) => {
+          const { name, character } = e.payload;
+          if (character && character.hp !== undefined) {
+            const hp = Number(character.hp);
+            if (!isNaN(hp)) {
+              updatePlayerHpByName(name, hp);
+            }
+          }
+        }));
+
+        _unlistenApp.push(await listen('map-send-to-grimoire', (e: any) => {
+          handleMapFromEditor(e.payload, true);
+        }));
+
+        _unlistenApp.push(await listen('map-save-to-vault', (e: any) => {
+          handleMapFromEditor(e.payload, false);
+        }));
+      }
 
       // Support fallback via BroadcastChannel (web / multi-onglets)
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -464,6 +469,16 @@
 
   async function handleOpenVault() {
     try {
+      if (!isTauri()) {
+        isLoading = true;
+        statusMessage = 'Ouverture du Vault démo...';
+        await loadVault('Campagne-Grimoire');
+        notifStore.add('🌐', 'Mode Navigateur Web', 'Coffre démo chargé ! Pour parcourir vos dossiers locaux sur le disque, lancez l\'application Grimoire de bureau.', 'info', 6000);
+        statusMessage = 'Vault démo chargé';
+        setTimeout(() => { statusMessage = ''; }, 3000);
+        return;
+      }
+
       const selected = await open({
         directory: true,
         multiple: false,
@@ -493,6 +508,18 @@
       isLoading = true;
       statusMessage = 'Initialisation de la nouvelle aventure...';
 
+      if (!isTauri()) {
+        const name = window.prompt('Nom de votre campagne :', 'Ma Campagne Web');
+        if (!name) return;
+        const vaultPath = `Grimoire/${name}`;
+        await writeFile(vaultPath, 'Bienvenue.md', `# Bienvenue dans ${name} !\n\nCeci est votre Grimoire en mode Web.\nPour sauvegarder vos fichiers sur votre disque local, utilisez l'application native Grimoire.`);
+        await loadVault(vaultPath);
+        statusMessage = 'Nouveau vault créé !';
+        notifStore.add('✨', name, 'Nouvelle campagne initialisée dans le navigateur', 'success', 4000);
+        setTimeout(() => { statusMessage = ''; }, 3000);
+        return;
+      }
+
       const docs = await documentDir();
       const baseDir = await join(docs, 'Grimoire');
       const name = window.prompt('Nom de votre campagne :', 'Ma Campagne');
@@ -511,6 +538,24 @@
       setTimeout(() => { statusMessage = ''; }, 3000);
     } catch (err) {
       console.error('Failed to create vault:', err);
+      statusMessage = `Erreur: ${err}`;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function handleQuickDemo() {
+    try {
+      isLoading = true;
+      statusMessage = 'Lancement de la Démo de Session Live...';
+      if (!getVaultPath()) {
+        await loadVault('Sanctuaire-Oublie');
+      }
+      gameSessionDemo.start();
+      statusMessage = 'Session Démo Live lancée !';
+      setTimeout(() => { statusMessage = ''; }, 3000);
+    } catch (err) {
+      console.error('Failed to load demo:', err);
       statusMessage = `Erreur: ${err}`;
     } finally {
       isLoading = false;
@@ -758,6 +803,14 @@
         </div>
 
         <div class="welcome-cards">
+          <button class="welcome-card welcome-card-demo" onclick={handleQuickDemo} disabled={isLoading}>
+            <span class="card-icon">🎭</span>
+            <div class="card-text">
+              <strong>Démo Live : Session de Jeu</strong>
+              <small>Session animée interactive : infiltration, combat d20, boule de feu & trésor !</small>
+            </div>
+          </button>
+
           <button class="welcome-card" onclick={handleCreateNewVault} disabled={isLoading}>
             <span class="card-icon">✨</span>
             <div class="card-text">
@@ -821,6 +874,7 @@
         {/if}
         <div class="vtt-viewport">
           <SessionDashboard />
+          <LiveSessionDemoPlayer />
           <PlayerQuickDock bind:visible={showPlayerQuickDock} />
           <MapCanvas
             mapUrl={vttStore.currentMap}
@@ -1092,6 +1146,16 @@
     border-color: var(--accent);
     transform: translateY(-2px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .welcome-card-demo {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, var(--bg-tertiary) 100%);
+  }
+
+  .welcome-card-demo:hover:not(:disabled) {
+    border-color: #f59e0b;
+    box-shadow: 0 4px 24px rgba(245, 158, 11, 0.25);
   }
 
   .card-icon {

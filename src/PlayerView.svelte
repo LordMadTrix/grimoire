@@ -74,14 +74,47 @@
   let countdownDone  = $state(false);
   let _cdInterval: ReturnType<typeof setInterval> | null = null;
 
-  // ── Canvas étoilé ────────────────────────────────────────────────
-  let starfieldCanvas: HTMLCanvasElement;
+  // ── Télémétrie FPS en continu ────────────────────────────────────
+  let liveFps = $state(60);
+  let fpsFrames = 0;
+  let lastFpsMeasure = performance.now();
+  let lastMeasured = 0;
 
-  interface Star   { x: number; y: number; r: number; base: number; speed: number; phase: number }
-  interface Meteor { x: number; y: number; vx: number; vy: number; life: number; maxLife: number }
 
   onMount(() => {
     const unlistens: (() => void)[] = [];
+
+    // Support navigateur web via BroadcastChannel
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('grimoire-player-bridge');
+        bc.onmessage = (ev) => {
+          const { event, payload } = ev.data || {};
+          if (!event) return;
+          if (event === 'set_player_map') currentMap = payload.url;
+          else if (event === 'sync_vault_path') vaultPath = payload.path;
+          else if (event === 'toggle_player_grid') showGrid = payload.show;
+          else if (event === 'toggle_player_blackout') isBlackout = payload.active;
+          else if (event === 'update_fow') fowShapes = payload;
+          else if (event === 'update_tokens') tokens = payload;
+          else if (event === 'update_pins') pins = payload;
+          else if (event === 'set_weather') weather = payload.weather ?? 'none';
+          else if (event === 'update_spells') spells = payload ?? [];
+          else if (event === 'sync_camera') externalCamera = payload;
+          else if (event === 'fit_camera') playerFitRequest++;
+          else if (event === 'update_draw_paths') drawPaths = payload ?? [];
+          else if (event === 'set_campaign_title') campaignTitle = payload.title ?? '';
+          else if (event === 'toggle_fow') fowEnabled = payload.enabled ?? true;
+          else if (event === 'update_combatants') {
+            combatants = payload.combatants ?? [];
+            combatActive = payload.active ?? false;
+            currentTurn = payload.currentTurn ?? 0;
+            combatRound = payload.combatRound ?? 1;
+          }
+        };
+        unlistens.push(() => bc.close());
+      } catch {}
+    }
 
     listen('set_player_map',         (e: any) => { currentMap    = e.payload.url;           }).then(fn => unlistens.push(fn));
     listen('sync_vault_path',        (e: any) => { vaultPath     = e.payload.path;           }).then(fn => unlistens.push(fn));
@@ -150,101 +183,21 @@
       herboReveal = null;
     }).then(fn => unlistens.push(fn));
 
-    // ── Starfield ────────────────────────────────────────────────
-    if (!starfieldCanvas) return () => { unlistens.forEach(fn => fn()); };
-    const ctxRaw = starfieldCanvas.getContext('2d');
-    if (!ctxRaw) return () => { unlistens.forEach(fn => fn()); };
-    const ctx: CanvasRenderingContext2D = ctxRaw;
-
-    const W = starfieldCanvas.width  = window.innerWidth;
-    const H = starfieldCanvas.height = window.innerHeight;
-
-    const stars: Star[] = Array.from({ length: 200 }, () => ({
-      x:     Math.random() * W,
-      y:     Math.random() * H,
-      r:     Math.random() * 1.4 + 0.3,
-      base:  Math.random() * 0.7 + 0.15,
-      speed: Math.random() * 0.8 + 0.2,
-      phase: Math.random() * Math.PI * 2,
-    }));
-
-    const meteors: Meteor[] = [];
-    let lastMeteor = 0;
+    // ── Boucle de télémétrie FPS ultra-légère (zéro CPU, mesure du taux réel de rafraîchissement) ──
     let raf: number;
-
-    function spawnMeteor(now: number) {
-      if (now - lastMeteor < 6000 + Math.random() * 8000) return;
-      lastMeteor = now;
-      const angle = (Math.random() * 30 + 15) * Math.PI / 180;
-      meteors.push({
-        x: Math.random() * W * 0.8,
-        y: Math.random() * H * 0.3,
-        vx: Math.cos(angle) * 9,
-        vy: Math.sin(angle) * 9,
-        life: 0,
-        maxLife: 55 + Math.random() * 30,
-      });
-    }
-
-    function draw(ts: number) {
-      ctx.clearRect(0, 0, W, H);
-
-      // Fond dégradé
-      const bg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
-      bg.addColorStop(0, '#0d1020');
-      bg.addColorStop(1, '#020408');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, W, H);
-
-      // Nébuleuse subtile
-      const neb = ctx.createRadialGradient(W * 0.3, H * 0.4, 0, W * 0.3, H * 0.4, W * 0.35);
-      neb.addColorStop(0, 'rgba(80,40,120,0.08)');
-      neb.addColorStop(1, 'transparent');
-      ctx.fillStyle = neb;
-      ctx.fillRect(0, 0, W, H);
-
-      const neb2 = ctx.createRadialGradient(W * 0.7, H * 0.6, 0, W * 0.7, H * 0.6, W * 0.3);
-      neb2.addColorStop(0, 'rgba(20,60,100,0.07)');
-      neb2.addColorStop(1, 'transparent');
-      ctx.fillStyle = neb2;
-      ctx.fillRect(0, 0, W, H);
-
-      // Étoiles
-      const t = ts / 1000;
-      for (const s of stars) {
-        const alpha = s.base + Math.sin(t * s.speed + s.phase) * 0.25;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,210,255,${Math.max(0, Math.min(1, alpha))})`;
-        ctx.fill();
+    function measureLoop(ts: number) {
+      fpsFrames++;
+      if (ts - lastFpsMeasure >= 500) {
+        const measured = Math.round((fpsFrames * 1000) / (ts - lastFpsMeasure));
+        const vttFps = currentMap && !isBlackout && typeof window !== 'undefined' ? (window as any).__VTT_FPS : undefined;
+        liveFps = vttFps || measured;
+        lastMeasured = measured;
+        fpsFrames = 0;
+        lastFpsMeasure = ts;
       }
-
-      // Étoiles filantes
-      spawnMeteor(ts);
-      for (let i = meteors.length - 1; i >= 0; i--) {
-        const m = meteors[i];
-        const pct = m.life / m.maxLife;
-        const alpha = pct < 0.3 ? pct / 0.3 : 1 - (pct - 0.3) / 0.7;
-        const len = 80 + m.life * 2;
-        const grd = ctx.createLinearGradient(m.x - m.vx * (len / 9), m.y - m.vy * (len / 9), m.x, m.y);
-        grd.addColorStop(0, 'transparent');
-        grd.addColorStop(1, `rgba(255,245,200,${alpha * 0.9})`);
-        ctx.beginPath();
-        ctx.moveTo(m.x - m.vx * (len / 9), m.y - m.vy * (len / 9));
-        ctx.lineTo(m.x, m.y);
-        ctx.strokeStyle = grd;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        m.x += m.vx;
-        m.y += m.vy;
-        m.life++;
-        if (m.life >= m.maxLife || m.x > W || m.y > H) meteors.splice(i, 1);
-      }
-
-      raf = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(measureLoop);
     }
-
-    raf = requestAnimationFrame(draw);
+    raf = requestAnimationFrame(measureLoop);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -297,8 +250,11 @@
 
 <main class="player-view">
 
-  <!-- ── Fond étoilé (toujours présent, visible seulement si pas de carte) ── -->
-  <canvas bind:this={starfieldCanvas} class="starfield" class:hidden={!!currentMap && !isBlackout}></canvas>
+  <!-- ── Fond étoilé GPU pur (0% CPU, couches de textures composites GPU) ── -->
+  <div class="starfield" class:hidden={!!currentMap && !isBlackout}>
+    <div class="star-layer star-layer-1"></div>
+    <div class="star-layer star-layer-2"></div>
+  </div>
 
   {#if isBlackout}
     <div class="blackout">
@@ -330,13 +286,8 @@
         spotlightTokenId={spotlightTokenId}
       />
 
-      <!-- Vignette torche pulsante -->
-      <div class="vignette"></div>
-
-      <!-- Scan-lines -->
-      <div class="scanlines"></div>
-
-      <!-- Coins ornementés -->
+      <!-- Coins ornementés. La vignette torche est désormais dessinée DANS le canvas
+           Pixi : un div plein écran au-dessus du canvas coûtait 60 → 11 FPS (mesuré). -->
       <div class="corner corner-tl">{@html cornerSvg}</div>
       <div class="corner corner-tr">{@html cornerSvg}</div>
       <div class="corner corner-bl">{@html cornerSvg}</div>
@@ -469,10 +420,61 @@
     </div>
   {/if}
 
+  <!-- Télémétrie FPS permanente en direct -->
+  <div class="player-fps-badge" class:fps-low={liveFps < 45} class:fps-mid={liveFps >= 45 && liveFps < 55}>
+    <span class="fps-dot"></span>
+    <span class="fps-val">⚡ {liveFps} FPS</span>
+  </div>
+
 </main>
 
 <style>
   :global(body) { margin: 0; padding: 0; background: #000; overflow: hidden; }
+
+  .player-fps-badge {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 99999;
+    background: rgba(10, 14, 23, 0.92);
+    border: 1px solid rgba(74, 222, 128, 0.45);
+    color: #4ade80;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.5px;
+    user-select: none;
+  }
+  .player-fps-badge .fps-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 6px #4ade80;
+  }
+  .player-fps-badge.fps-mid {
+    border-color: rgba(250, 204, 21, 0.45);
+    color: #facc15;
+  }
+  .player-fps-badge.fps-mid .fps-dot {
+    background: #facc15;
+    box-shadow: 0 0 6px #facc15;
+  }
+  .player-fps-badge.fps-low {
+    border-color: rgba(248, 113, 113, 0.45);
+    color: #f87171;
+  }
+  .player-fps-badge.fps-low .fps-dot {
+    background: #f87171;
+    box-shadow: 0 0 6px #f87171;
+  }
 
   .player-view {
     width: 100vw;
@@ -486,7 +488,7 @@
     overflow: hidden;
   }
 
-  /* ── Fond étoilé ─────────────────────────────────────────────── */
+  /* ── Fond étoilé GPU ─────────────────────────────────────────── */
   .starfield {
     position: absolute;
     inset: 0;
@@ -494,8 +496,61 @@
     height: 100%;
     z-index: 1;
     transition: opacity 0.8s ease;
+    background: radial-gradient(ellipse at 50% 50%, #0d1222 0%, #04060c 65%, #010204 100%);
+    overflow: hidden;
+    pointer-events: none;
   }
   .starfield.hidden { opacity: 0; pointer-events: none; }
+
+  .star-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .star-layer-1 {
+    background-image:
+      radial-gradient(1.5px 1.5px at 120px 80px, #ffffff, transparent),
+      radial-gradient(1px 1px at 280px 320px, #fef08a, transparent),
+      radial-gradient(2px 2px at 450px 150px, #bfdbfe, transparent),
+      radial-gradient(1px 1px at 620px 480px, #ffffff, transparent),
+      radial-gradient(1.5px 1.5px at 780px 220px, #fef08a, transparent),
+      radial-gradient(2px 2px at 940px 90px, #ffffff, transparent),
+      radial-gradient(1px 1px at 1100px 390px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 1260px 180px, #ffffff, transparent),
+      radial-gradient(2px 2px at 1420px 420px, #fef08a, transparent),
+      radial-gradient(1px 1px at 1580px 260px, #ffffff, transparent),
+      radial-gradient(1.5px 1.5px at 1740px 110px, #bfdbfe, transparent),
+      radial-gradient(2px 2px at 1880px 340px, #ffffff, transparent),
+      radial-gradient(1px 1px at 200px 720px, #ffffff, transparent),
+      radial-gradient(2px 2px at 520px 850px, #fef08a, transparent),
+      radial-gradient(1.5px 1.5px at 840px 690px, #ffffff, transparent),
+      radial-gradient(1px 1px at 1180px 810px, #bfdbfe, transparent),
+      radial-gradient(2px 2px at 1480px 730px, #ffffff, transparent),
+      radial-gradient(1.5px 1.5px at 1800px 880px, #fef08a, transparent);
+    background-size: 1920px 1080px;
+    opacity: 0.85;
+  }
+
+  .star-layer-2 {
+    background-image:
+      radial-gradient(1px 1px at 80px 240px, #ffffff, transparent),
+      radial-gradient(2px 2px at 390px 440px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 710px 380px, #fef08a, transparent),
+      radial-gradient(1px 1px at 1020px 290px, #ffffff, transparent),
+      radial-gradient(2px 2px at 1340px 140px, #ffffff, transparent),
+      radial-gradient(1px 1px at 1660px 480px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 340px 620px, #ffffff, transparent),
+      radial-gradient(2px 2px at 670px 790px, #fef08a, transparent),
+      radial-gradient(1px 1px at 1050px 640px, #bfdbfe, transparent),
+      radial-gradient(1.5px 1.5px at 1380px 920px, #ffffff, transparent),
+      radial-gradient(2px 2px at 1690px 670px, #ffffff, transparent);
+    background-size: 1920px 1080px;
+    opacity: 0.6;
+    /* Pas d'animation d'opacité sur cette couche : sous WebKitGTK, animer une
+       couche de dégradé plein écran fait chuter requestAnimationFrame à ~4 FPS
+       (mesuré : 62 FPS sans animation, 4 FPS avec star-pulse). */
+  }
 
   /* ── Wrapper carte ────────────────────────────────────────────── */
   .map-wrapper {
@@ -505,43 +560,7 @@
     z-index: 2;
   }
 
-  /* ── Vignette torche pulsante ─────────────────────────────────── */
-  .vignette {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at 50% 50%,
-      transparent 38%,
-      rgba(0,0,0,0.35) 65%,
-      rgba(0,0,0,0.72) 100%
-    );
-    pointer-events: none;
-    z-index: 10;
-    animation: torch 4.5s ease-in-out infinite;
-  }
-
-  @keyframes torch {
-    0%   { opacity: 1.0; transform: scale(1.000); }
-    20%  { opacity: 0.91; transform: scale(1.008); }
-    45%  { opacity: 0.96; transform: scale(0.996); }
-    65%  { opacity: 0.87; transform: scale(1.012); }
-    80%  { opacity: 0.94; transform: scale(0.998); }
-    100% { opacity: 1.0; transform: scale(1.000); }
-  }
-
-  /* ── Scan-lines ───────────────────────────────────────────────── */
-  .scanlines {
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(0,0,0,0.045) 3px,
-      rgba(0,0,0,0.045) 4px
-    );
-    pointer-events: none;
-    z-index: 11;
-  }
+  /* ── Vignette torche : dessinée dans le canvas Pixi (voir MapCanvas) ── */
 
   /* ── Coins ornementés ─────────────────────────────────────────── */
   .corner {
@@ -551,7 +570,6 @@
     pointer-events: none;
     z-index: 12;
     opacity: 0.75;
-    filter: drop-shadow(0 0 6px rgba(201,168,76,0.4));
     transition: opacity 0.3s;
   }
   .map-wrapper:hover .corner { opacity: 0.9; }
@@ -588,6 +606,8 @@
     align-items: center;
     gap: 28px;
     text-align: center;
+    will-change: transform;
+    transform: translateZ(0);
   }
 
   .waiting-campaign {
@@ -601,24 +621,26 @@
       0 0 30px rgba(201,168,76,0.6),
       0 0 60px rgba(201,168,76,0.25),
       0 2px 8px rgba(0,0,0,0.9);
+    will-change: opacity;
     animation: glow-pulse 3.5s ease-in-out infinite;
   }
 
   @keyframes glow-pulse {
-    0%, 100% { text-shadow: 0 0 30px rgba(201,168,76,0.6), 0 0 60px rgba(201,168,76,0.25), 0 2px 8px rgba(0,0,0,0.9); }
-    50%       { text-shadow: 0 0 50px rgba(201,168,76,0.9), 0 0 90px rgba(201,168,76,0.4), 0 2px 8px rgba(0,0,0,0.9); }
+    0%, 100% { opacity: 0.82; }
+    50%       { opacity: 1; }
   }
 
   .waiting-emblem {
     font-size: 56px;
-    opacity: 0.55;
+    opacity: 0.7;
+    will-change: transform;
     animation: float 5s ease-in-out infinite;
-    filter: drop-shadow(0 0 20px rgba(201,168,76,0.3));
+    text-shadow: 0 0 24px rgba(201,168,76,0.45);
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0px); opacity: 0.55; }
-    50%       { transform: translateY(-8px); opacity: 0.75; }
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%       { transform: translate3d(0, -8px, 0); }
   }
 
   .waiting-text {
@@ -627,14 +649,15 @@
     font-weight: 300;
     letter-spacing: 5px;
     text-transform: uppercase;
-    color: rgba(180, 160, 120, 0.5);
+    color: rgba(180, 160, 120, 0.6);
     margin: 0;
+    will-change: opacity;
     animation: fade-in-out 4s ease-in-out infinite;
   }
 
   @keyframes fade-in-out {
-    0%, 100% { opacity: 0.4; }
-    50%       { opacity: 0.7; }
+    0%, 100% { opacity: 0.45; }
+    50%       { opacity: 0.8; }
   }
 
   /* ── Blackout ─────────────────────────────────────────────────── */
@@ -670,7 +693,7 @@
     position: absolute;
     top: 14px;
     right: 14px;
-    background: rgba(0,0,0,0.72);
+    background: rgba(0,0,0,0.86);
     border: 1px solid rgba(229,168,83,0.35);
     border-radius: 8px;
     padding: 8px 10px;
@@ -680,7 +703,6 @@
     pointer-events: none;
     z-index: 500;
     min-width: 150px;
-    backdrop-filter: blur(4px);
   }
   .init-title {
     font-size: 10px;
@@ -760,7 +782,6 @@
     pointer-events: none;
     z-index: 600;
     animation: ambientFade 6s ease forwards;
-    backdrop-filter: blur(6px);
   }
   @keyframes ambientFade {
     0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
@@ -818,11 +839,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(0,0,0,0.65);
+    background: rgba(0,0,0,0.86);
     border: 1px solid rgba(201,168,76,0.2);
     border-radius: 6px;
     padding: 4px 8px;
-    backdrop-filter: blur(4px);
   }
   .party-name {
     font-size: 12px;
@@ -851,8 +871,7 @@
   .shared-note-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.82);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -919,7 +938,7 @@
   }
 
   .remote-member {
-    background: rgba(13, 17, 23, 0.6);
+    background: rgba(13, 17, 23, 0.9);
     border: 1px solid rgba(229, 168, 83, 0.2);
     border-radius: 12px;
     padding: 10px 14px;
@@ -927,7 +946,6 @@
     flex-direction: column;
     gap: 6px;
     min-width: 160px;
-    backdrop-filter: blur(8px);
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     animation: slideLeft 0.5s ease-out;

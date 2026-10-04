@@ -7,8 +7,8 @@ import { notifStore } from '$lib/stores/notifications.svelte';
 
 export function loadSanctuaryDemo() {
   // 1. Image de la Battlemap
-  vttStore.currentMap = '/maps/Abandoned Fortress Battlemap/abandonedFortress.png';
-  vttStore.currentMapRelPath = 'maps/Abandoned Fortress Battlemap/abandonedFortress.png';
+  vttStore.currentMap = '/maps/sanctuaire.png';
+  vttStore.currentMapRelPath = 'maps/sanctuaire.png';
   vttStore.gridSize = 70;
   vttStore.showGrid = true;
 

@@ -854,7 +854,6 @@
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    backdrop-filter: blur(8px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     transition: transform 0.15s, background 0.15s;
   }
@@ -880,10 +879,9 @@
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    background: rgba(14, 17, 24, 0.96);
+    background: rgba(14, 17, 24, 0.98);
     border: 1px solid var(--border, #2e384d);
     border-radius: 10px;
-    backdrop-filter: blur(12px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
     overflow: hidden;
     user-select: none;

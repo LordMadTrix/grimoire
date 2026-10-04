@@ -337,6 +337,17 @@ free_ports
 
 if [ "$TARGET_LAUNCH" = "desktop" ]; then
     echo -e "${GREEN}${BOLD}🚀 Lancement de Grimoire en mode Desktop (Tauri v2)...${NC}"
+    # PRIME offload : uniquement en session X11 native.
+    # Sous Wayland/XWayland, ce forcage impose une copie inter-GPU à chaque frame
+    # et fait tomber la fenêtre à ~6–9 FPS (mesuré) ; on retire donc les variables.
+    if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+        unset __NV_PRIME_RENDER_OFFLOAD __GLX_VENDOR_LIBRARY_NAME __VK_LAYER_NV_optimus
+    elif [ -f "/proc/driver/nvidia/version" ]; then
+        echo -e "${CYAN}⚡ GPU NVIDIA détecté : activation de PRIME offload (RTX)...${NC}"
+        export __NV_PRIME_RENDER_OFFLOAD=1
+        export __GLX_VENDOR_LIBRARY_NAME=nvidia
+        export __VK_LAYER_NV_optimus=NVIDIA_only
+    fi
     echo -e "${DIM}Commande : npm run tauri dev${NC}"
     echo ""
     exec npm run tauri dev

@@ -57,6 +57,7 @@
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import AddonStore from './AddonStore.svelte';
   import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
+  import { gameSessionDemo } from '$lib/vtt/gameSessionDemoStore.svelte';
 
   let { 
     onRoll,
@@ -385,11 +386,13 @@
         {#if !vttStore.currentMap}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Charger une carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditor(); activeMenu = null; }}>🎨 Créer dans Fantasy Map Editor</button>
-          <button class="dropdown-item" style="color: #f59e0b; font-weight: bold;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Charger Démo Clé en Main (Sanctuaire)</button>
+          <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
+          <button class="dropdown-item" style="color: #f59e0b;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Charger Démo Clé en Main (Sanctuaire)</button>
         {:else}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Changer de carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditorWithMap(vttStore.currentMap!, vttStore.currentMapRelPath?.split('/').pop()?.replace(/\.[^.]+$/, '') || 'Carte Active'); activeMenu = null; }}>✏️ Modifier dans le Map Editor</button>
-          <button class="dropdown-item" style="color: #f59e0b; font-weight: bold;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Recharger Démo (Sanctuaire)</button>
+          <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
+          <button class="dropdown-item" style="color: #f59e0b;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Recharger Carte Sanctuaire</button>
           <button class="dropdown-item" onclick={() => { closeMap(); activeMenu = null; }}>✖️ Fermer la carte</button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" class:active={vttStore.mode === 'zoom-rect'} onclick={() => { vttStore.mode = 'zoom-rect'; activeMenu = null; }}>🔍 Zoomer sur une zone</button>
@@ -411,6 +414,16 @@
         </button>
       </div>
     </div>
+
+    <!-- Bouton Accès Rapide Démo Live -->
+    <button
+      class="menu-btn demo-live-nav-btn"
+      class:active={gameSessionDemo.isActive}
+      onclick={() => gameSessionDemo.start()}
+      title="Lancer une démonstration interactive animée d'une vraie session de jeu rôliste"
+    >
+      🎭 Démo Live
+    </button>
 
     <!-- 2. Outils interactifs -->
     {#if vttStore.currentMap}
@@ -1295,6 +1308,24 @@
     background: rgba(251, 191, 36, 0.15) !important;
     color: #fef08a !important;
   }
-  .float-panel-header button:hover { color: var(--text-primary); }
+  .demo-live-nav-btn {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.35) 100%) !important;
+    border: 1px solid #f59e0b !important;
+    color: #fef3c7 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px;
+  }
+  .demo-live-nav-btn:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.45) 0%, rgba(217, 119, 6, 0.55) 100%) !important;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+    color: #ffffff !important;
+    transform: translateY(-1px);
+  }
+  .demo-live-nav-btn.active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(5, 150, 105, 0.45) 100%) !important;
+    border-color: #10b981 !important;
+    color: #a7f3d0 !important;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+  }
 
   </style>

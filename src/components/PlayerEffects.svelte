@@ -10,7 +10,7 @@
   $effect(() => {
     // Generate particles based on weather
     if (weather === 'rain') {
-      particles = Array.from({length: 100}, (_, i) => ({
+      particles = Array.from({length: 25}, (_, i) => ({
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,
@@ -18,7 +18,7 @@
         d: Math.random() * 2
       }));
     } else if (weather === 'snow' || weather === 'ash') {
-      particles = Array.from({length: 50}, (_, i) => ({
+      particles = Array.from({length: 20}, (_, i) => ({
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,
@@ -33,12 +33,6 @@
 </script>
 
 <div class="effects-overlay" class:vignette-critical={partyHealthStatus === 'critical'} class:vignette-corrupt={isCorrupted}>
-  {#if weather === 'fog'}
-    <div class="fog-container">
-      <div class="fog-img fog-img-first"></div>
-      <div class="fog-img fog-img-second"></div>
-    </div>
-  {/if}
 
   {#each particles as p (p.id)}
     <div 
@@ -130,24 +124,23 @@
     height: 100%;
     overflow: hidden;
     z-index: 1;
-    opacity: 0.6;
-    mix-blend-mode: screen;
+    opacity: 0.3;
+    pointer-events: none;
   }
   .fog-img {
     position: absolute;
-    height: 100vh;
-    width: 300vw;
-    background: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png') repeat-x;
-    background-size: contain;
-    animation: fog 60s linear infinite;
+    height: 100%;
+    width: 200%;
+    background: radial-gradient(ellipse at 50% 50%, rgba(180, 195, 220, 0.2) 0%, transparent 70%);
+    animation: fog 40s linear infinite;
+    will-change: transform;
   }
   .fog-img-first {
-    animation-duration: 60s;
+    animation-duration: 45s;
   }
   .fog-img-second {
-    background: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog2.png') repeat-x;
-    background-size: contain;
-    animation-duration: 40s;
+    animation-duration: 30s;
+    opacity: 0.5;
   }
 
   @keyframes fog {
