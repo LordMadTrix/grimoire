@@ -78,6 +78,7 @@
   let liveFps = $state(60);
   let fpsFrames = 0;
   let lastFpsMeasure = performance.now();
+  let lastMeasured = 0;
 
 
   onMount(() => {
@@ -190,6 +191,7 @@
         const measured = Math.round((fpsFrames * 1000) / (ts - lastFpsMeasure));
         const vttFps = currentMap && !isBlackout && typeof window !== 'undefined' ? (window as any).__VTT_FPS : undefined;
         liveFps = vttFps || measured;
+        lastMeasured = measured;
         fpsFrames = 0;
         lastFpsMeasure = ts;
       }
@@ -284,13 +286,8 @@
         spotlightTokenId={spotlightTokenId}
       />
 
-      <!-- Vignette torche pulsante -->
-      <div class="vignette"></div>
-
-      <!-- Scan-lines -->
-      <div class="scanlines"></div>
-
-      <!-- Coins ornementés -->
+      <!-- Coins ornementés. La vignette torche est désormais dessinée DANS le canvas
+           Pixi : un div plein écran au-dessus du canvas coûtait 60 → 11 FPS (mesuré). -->
       <div class="corner corner-tl">{@html cornerSvg}</div>
       <div class="corner corner-tr">{@html cornerSvg}</div>
       <div class="corner corner-bl">{@html cornerSvg}</div>
@@ -509,8 +506,6 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    will-change: opacity;
-    transform: translateZ(0);
   }
 
   .star-layer-1 {
@@ -552,12 +547,9 @@
       radial-gradient(2px 2px at 1690px 670px, #ffffff, transparent);
     background-size: 1920px 1080px;
     opacity: 0.6;
-    animation: star-pulse 4.5s ease-in-out infinite;
-  }
-
-  @keyframes star-pulse {
-    0%, 100% { opacity: 0.45; }
-    50%       { opacity: 0.85; }
+    /* Pas d'animation d'opacité sur cette couche : sous WebKitGTK, animer une
+       couche de dégradé plein écran fait chuter requestAnimationFrame à ~4 FPS
+       (mesuré : 62 FPS sans animation, 4 FPS avec star-pulse). */
   }
 
   /* ── Wrapper carte ────────────────────────────────────────────── */
@@ -568,22 +560,7 @@
     z-index: 2;
   }
 
-  /* ── Vignette torche statique (zéro composition CPU) ── */
-  .vignette {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at 50% 50%,
-      transparent 45%,
-      rgba(0,0,0,0.4) 75%,
-      rgba(0,0,0,0.75) 100%
-    );
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  .scanlines {
-    display: none;
-  }
+  /* ── Vignette torche : dessinée dans le canvas Pixi (voir MapCanvas) ── */
 
   /* ── Coins ornementés ─────────────────────────────────────────── */
   .corner {
@@ -593,7 +570,6 @@
     pointer-events: none;
     z-index: 12;
     opacity: 0.75;
-    filter: drop-shadow(0 0 6px rgba(201,168,76,0.4));
     transition: opacity 0.3s;
   }
   .map-wrapper:hover .corner { opacity: 0.9; }
@@ -717,7 +693,7 @@
     position: absolute;
     top: 14px;
     right: 14px;
-    background: rgba(0,0,0,0.72);
+    background: rgba(0,0,0,0.86);
     border: 1px solid rgba(229,168,83,0.35);
     border-radius: 8px;
     padding: 8px 10px;
@@ -727,7 +703,6 @@
     pointer-events: none;
     z-index: 500;
     min-width: 150px;
-    backdrop-filter: blur(4px);
   }
   .init-title {
     font-size: 10px;
@@ -807,7 +782,6 @@
     pointer-events: none;
     z-index: 600;
     animation: ambientFade 6s ease forwards;
-    backdrop-filter: blur(6px);
   }
   @keyframes ambientFade {
     0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
@@ -865,11 +839,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(0,0,0,0.65);
+    background: rgba(0,0,0,0.86);
     border: 1px solid rgba(201,168,76,0.2);
     border-radius: 6px;
     padding: 4px 8px;
-    backdrop-filter: blur(4px);
   }
   .party-name {
     font-size: 12px;
@@ -898,8 +871,7 @@
   .shared-note-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.82);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -966,7 +938,7 @@
   }
 
   .remote-member {
-    background: rgba(13, 17, 23, 0.6);
+    background: rgba(13, 17, 23, 0.9);
     border: 1px solid rgba(229, 168, 83, 0.2);
     border-radius: 12px;
     padding: 10px 14px;
@@ -974,7 +946,6 @@
     flex-direction: column;
     gap: 6px;
     min-width: 160px;
-    backdrop-filter: blur(8px);
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     animation: slideLeft 0.5s ease-out;

@@ -166,6 +166,30 @@
   let currentFreeDrawPoints: { x: number; y: number }[] = [];
   let isFreeDraw = false;
 
+  // Vignette torche (dessinée DANS le canvas plutôt qu'en calque DOM au-dessus :
+  // un div plein écran en surimpression coûtait 60 → 11 FPS sous WebKitGTK, mesuré)
+  let vignetteSprite: PIXI.Sprite | null = null;
+
+  function createVignetteSprite(): PIXI.Sprite {
+    const s = 256;
+    const cv = document.createElement('canvas');
+    cv.width = s;
+    cv.height = s;
+    const ctx = cv.getContext('2d');
+    if (ctx) {
+      const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.22, s / 2, s / 2, s * 0.75);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.55, 'rgba(0,0,0,0.18)');
+      g.addColorStop(0.75, 'rgba(0,0,0,0.40)');
+      g.addColorStop(1, 'rgba(0,0,0,0.75)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, s, s);
+    }
+    const sprite = new PIXI.Sprite(PIXI.Texture.from(cv));
+    sprite.eventMode = 'none';
+    return sprite;
+  }
+
   // Floating roll text layer (screen space)
   let floatTextLayer: PIXI.Container;
   interface FloatText { t: PIXI.Text; born: number; duration: number }
@@ -226,6 +250,23 @@
     });
     scheduledLayerRenders.set(key, frameId);
   }
+
+  // ── Invalidation par signature de couche ───────────────────────────────────
+  // La synchro MJ ré-émet update_tokens / update_fow / … toutes les ~250 ms même
+  // quand rien n'a changé : sans signature, chaque émission relance renderFow +
+  // renderLighting (2 passes pleine résolution de la carte) et renderTokens.
+  const layerSignatures = new Map<string, string>();
+  function layerSignature(value: unknown): string {
+    return JSON.stringify(value, (_k: string, v: unknown) =>
+      typeof v === 'string' && v.length > 128 ? `${v.slice(0, 16)}#${v.length}` : v
+    );
+  }
+  function renderIfChanged(key: string, signature: string, render: () => void) {
+    if (layerSignatures.get(key) === signature) return;
+    layerSignatures.set(key, signature);
+    scheduleLayerRender(key, render);
+  }
+
   function emitCameraThrottled() {
     if (_emitCameraTimer) return;
     _emitCameraTimer = setTimeout(() => {
@@ -363,6 +404,11 @@
     floatTextLayer = new PIXI.Container();
     app.stage.addChild(floatTextLayer);
 
+    if (!isGM) {
+      vignetteSprite = createVignetteSprite();
+      app.stage.addChild(vignetteSprite);
+    }
+
     previewShape = new PIXI.Graphics();
     worldContainer.addChild(previewShape);
 
@@ -396,6 +442,14 @@
     app.ticker.add(() => {
       const now = Date.now();
       const tStart = performance.now();
+
+      // Vignette écran (suivez la taille du canvas, sans coût de composition DOM)
+      if (vignetteSprite && (vignetteSprite.width !== app.screen.width || vignetteSprite.height !== app.screen.height)) {
+        vignetteSprite.width = app.screen.width;
+        vignetteSprite.height = app.screen.height;
+        vignetteSprite.x = 0;
+        vignetteSprite.y = 0;
+      }
       if (now - lastFpsCalc >= 2000) {
         lastFpsCalc = now;
         currentFps = Math.round(app.ticker.FPS);
@@ -723,8 +777,13 @@
   $effect(() => {
     fowShapes; // track
     tokens;    // track
+    gridSize;  // track
     if (!appReady) return;
-    scheduleLayerRender('fow', renderFow);
+    const visionSig = tokens
+      .filter(t => !t.isEnemy && t.visionRange)
+      .map(t => `${t.x},${t.y},${t.visionRange}`)
+      .join('|');
+    renderIfChanged('fow', `${gridSize}|${layerSignature(fowShapes)}|${visionSig}`, renderFow);
   });
 
   // Réagir aux changements de tokens (positions, HP, conditions, etc.)
@@ -733,7 +792,11 @@
     selectedTokenIds; // track (pour anneaux de sélection)
     spotlightTokenId; // track (pour halo spotlight)
     if (!appReady) return;
-    scheduleLayerRender('tokens', renderTokens);
+    renderIfChanged(
+      'tokens',
+      `${spotlightTokenId}|${[...selectedTokenIds].join(',')}|${layerSignature(tokens)}`,
+      renderTokens
+    );
   });
 
   // Ping externe (depuis vue joueur ou autre fenêtre)
@@ -747,35 +810,35 @@
   $effect(() => {
     pins; // track
     if (!appReady) return;
-    scheduleLayerRender('pins', renderPins);
+    renderIfChanged('pins', layerSignature(pins), renderPins);
   });
 
   // Sorts / AOE
   $effect(() => {
     spells; // track
     if (!appReady) return;
-    scheduleLayerRender('spells', renderSpells);
+    renderIfChanged('spells', layerSignature(spells), renderSpells);
   });
 
   // Tracés libres
   $effect(() => {
     drawPaths; // track
     if (!appReady) return;
-    scheduleLayerRender('draw-paths', renderDrawPaths);
+    renderIfChanged('draw-paths', layerSignature(drawPaths), renderDrawPaths);
   });
 
   // Murs (Ligne de vue)
   $effect(() => {
     walls; // track
     if (!appReady) return;
-    scheduleLayerRender('walls', renderWalls);
+    renderIfChanged('walls', layerSignature(walls), renderWalls);
   });
 
   // Zones terrain
   $effect(() => {
     terrainZones; // track
     if (!appReady || !terrainLayer) return;
-    scheduleLayerRender('terrain', renderTerrain);
+    renderIfChanged('terrain', layerSignature(terrainZones), renderTerrain);
   });
 
   // Dungeon tiles
@@ -810,7 +873,7 @@
   $effect(() => {
     audioZones; // track
     if (!appReady) return;
-    scheduleLayerRender('audio-zones', () => {
+    renderIfChanged('audio-zones', `${vaultPath}|${layerSignature(audioZones)}`, () => {
       renderAudioZones();
       manageZoneAudios();
     });
@@ -818,10 +881,22 @@
 
   // Éclairage dynamique
   $effect(() => {
-    tokens;  // track
-    gridSize;
+    tokens;      // track
+    gridSize;    // track
+    walls;       // track (projections d'ombre)
+    vttStore.lights;        // track
+    vttStore.ambientLight;  // track
+    vttStore.lightningFlash; // track
     if (!appReady) return;
-    scheduleLayerRender('lighting', renderLighting);
+    const lightSig = tokens
+      .filter(t => (t.lightRadius && t.lightRadius > 0) || t.darkvision)
+      .map(t => `${t.x},${t.y},${t.lightRadius || 0},${t.darkvision ? 1 : 0},${t.lightFlicker ? 1 : 0},${t.lightColor || ''}`)
+      .join('|');
+    renderIfChanged(
+      'lighting',
+      `${gridSize}|${vttStore.ambientLight}|${vttStore.lightningFlash ? 1 : 0}|${layerSignature(vttStore.lights || [])}|${layerSignature(walls)}|${lightSig}`,
+      renderLighting
+    );
   });
 
   // Croquis mobiles

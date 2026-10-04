@@ -66,9 +66,12 @@ pub async fn open_player_view(app: AppHandle, monitor_index: usize) -> Result<()
     .build()
     .map_err(|e| e.to_string())?;
 
-    // Mettre en plein écran et afficher
-    window.set_fullscreen(true).map_err(|e| e.to_string())?;
+    // Afficher puis activer la fenêtre AVANT le plein écran : sous Wayland, la
+    // fenêtre doit être mappée pour que WebKitGTK considère la page comme visible
+    // et active (sinon requestAnimationFrame est bridé à ~1 FPS par WebKit).
     window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    window.set_fullscreen(true).map_err(|e| e.to_string())?;
 
     Ok(())
 }
