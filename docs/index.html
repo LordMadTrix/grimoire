@@ -375,10 +375,40 @@
             </div>
         </section>
 
+        <!-- Nouveautés v0.8.4 -->
+        <section class="max-w-7xl mx-auto px-4 py-16 reveal">
+            <div class="flex items-center gap-3 mb-8">
+                <span class="px-3 py-1 rounded-full bg-grimoire-accent text-black text-xs font-black">NOUVEAU — v0.8.4</span>
+                <h2 class="text-3xl font-black text-white">La Vue Joueurs passe de 1 FPS à 60 FPS</h2>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🎮</div>
+                    <h3 class="font-bold text-white text-sm">60 FPS garantis</h3>
+                    <p class="text-gray-400 text-xs mt-1">La fenêtre joueurs plafonnait à 1–7 FPS sous Wayland (copie inter-GPU PRIME). Correctif complet : 56–71 FPS mesurés en pleine partie.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🚀</div>
+                    <h3 class="font-bold text-white text-sm">Rendu 100% matériel</h3>
+                    <p class="text-gray-400 text-xs mt-1">Accélération WebKitGTK (DMABUF) réactivée et vérifiée : aucun rendu logiciel, CPU au repos ~1%.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🖼️</div>
+                    <h3 class="font-bold text-white text-sm">Compositing allégé</h3>
+                    <p class="text-gray-400 text-xs mt-1">Animations plein écran, backdrop-filters et vignettes CSS retirés — la vignette est rendue par PixiJS dans le canvas.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🔥</div>
+                    <h3 class="font-bold text-white text-sm">Rendu par signature</h3>
+                    <p class="text-gray-400 text-xs mt-1">Brouillard de guerre et éclairage ne se relancent que si la scène change : zéro re-rendu inutile pendant la synchro MJ.</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Nouveautés v0.7.5 -->
         <section class="max-w-7xl mx-auto px-4 py-16 reveal">
             <div class="flex items-center gap-3 mb-8">
-                <span class="px-3 py-1 rounded-full bg-grimoire-accent text-black text-xs font-black">NOUVEAU — v0.7.5</span>
+                <span class="px-3 py-1 rounded-full bg-grimoire-accent text-black text-xs font-black">v0.7.5</span>
                 <h2 class="text-3xl font-black text-white">Les 7 évolutions qui changent la table</h2>
             </div>
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

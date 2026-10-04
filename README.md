@@ -226,6 +226,18 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## ⚡ Nouveautés v0.8.4 — Vue Joueurs ultra-fluide (60 FPS)
+
+- **🎮 De ~1 FPS à 60 FPS** : la fenêtre *Vue Joueurs* était plafonnée à 1–7 FPS sur les machines NVIDIA sous Wayland (copie inter-GPU imposée par le forcage PRIME à chaque image). Ce forcage n'est désormais activé qu'en session X11 native : **56–71 FPS mesurés en pleine synchronisation MJ**, 62 FPS au repos.
+- **🖼️ Compositing plein écran allégé** : animation `star-pulse`, 5 `backdrop-filter`, vignette/scanlines CSS et ombres plein écran retirés — la vignette est désormais rendue par PixiJS dans le canvas.
+- **🔥 Rendu par signature** : les passes Brouillard de Guerre et Éclairage ne se relancent que si leur contenu a réellement changé ; les émissions de synchro MJ identiques ne consomment plus rien.
+- **🚀 Accélération matérielle vérifiée** : renderer DMABUF de WebKitGTK réactivé (20 → 47 FPS sur contrôle plein écran), aucun rendu logiciel, CPU au repos ~1 %.
+- **🪟 Ouverture de fenêtre** : show → focus → fullscreen (fini la fenêtre joueurs cachée derrière le jeu).
+
+> 💡 La fenêtre reste cadencée par WebKitGTK (~60 FPS max, limite du moteur) : la puissance de la carte n'est plus le facteur limitant.
+
+---
+
 ## 🧠 Intelligence Artificielle Locale — Nouveautés v0.7.5
 
 - **🧠 Mémoire de Campagne des PNJ** : Les PNJ récurrents se souviennent des joueurs ! Chaque interaction est résumée localement (`.grimoire/npc-memory.json`), et l'IA réinjecte ce passé dans ses répliques : dettes, griefs, secrets partagés… Vos joueurs seront pris de court.
