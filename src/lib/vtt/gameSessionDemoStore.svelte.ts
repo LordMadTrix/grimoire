@@ -293,7 +293,7 @@ class GameSessionDemoStore {
         }, 300);
 
         addCombatLogEntry({
-          type: 'attack',
+          type: 'damage',
           actor: 'Sir Gareth',
           detail: '🛡️ Frappe du Paladin : d20 (14) + 6 = 20 au toucher ! Dégâts : 12 tranchants. Le Squelette #1 vacille à 2 PV !',
         });
@@ -309,7 +309,7 @@ class GameSessionDemoStore {
           id: 'demo_fireball_spell',
           x: 710,
           y: 500,
-          type: 'fireball',
+          type: 'fire',
           shape: 'circle',
           radius: 120,
         });
@@ -334,7 +334,7 @@ class GameSessionDemoStore {
         }, 500);
 
         addCombatLogEntry({
-          type: 'spell',
+          type: 'damage',
           actor: 'Dame Elanor',
           detail: '🔥 Boule de Feu dévastatrice : 28 dégâts de feu ! Les sentinelles sont carbonisées.',
         });
@@ -342,7 +342,7 @@ class GameSessionDemoStore {
 
       case 4: // Acte 5 : Exploration de la Crypte et Trésor
         stopCombat();
-        setWeather('clear');
+        setWeather('none');
 
         // Varis avance dans la crypte
         updateGmToken('token_ranger', 920, 420);
@@ -370,7 +370,7 @@ class GameSessionDemoStore {
         });
 
         addCombatLogEntry({
-          type: 'reward',
+          type: 'info',
           actor: 'Système',
           detail: '👑 Victoire ! Corridor sécurisé. Trésor déverrouillé. +350 XP attribués à chaque héros.',
         });
