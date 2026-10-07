@@ -23,7 +23,7 @@ export interface CelestialCatalog {
 const DB_NAME = 'GrimoireCelestialMapDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'catalog_store';
-const KEY_DATA = 'catalog_v1';
+const KEY_DATA = 'catalog_v3'; // v3 : URLs média via proxy (Content-Type rétabli pour <audio>)
 
 let memoryCatalog: CelestialCatalog | null = null;
 
@@ -32,13 +32,44 @@ function anyAudioExt(filename: string): boolean {
   return l.endsWith('.mp3') || l.endsWith('.ogg') || l.endsWith('.wav') || l.endsWith('.flac') || l.endsWith('.m4a');
 }
 
+function anyVideoExt(filename: string): boolean {
+  const l = filename.toLowerCase();
+  return l.endsWith('.mp4') || l.endsWith('.webm');
+}
+
+/**
+ * URL de lecture d'un média Drive (audio/vidéo).
+ * Drive sert les fichiers en `application/octet-stream` + `Content-Disposition: attachment`,
+ * ce que <audio>/<video> refusent de lire. On passe par un relais qui rétablit le
+ * bon Content-Type : proxy Vite `/drive-media` en dev, protocole custom
+ * `grimoiremedia` dans l'app Tauri (voir src-tauri/src/media_proxy.rs).
+ */
+function driveMediaUrl(id: string, filename: string): string {
+  const ext = (filename.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const mediaPath = `/drive-media/${id}.${ext}`;
+  const w = typeof window !== 'undefined'
+    ? (window as unknown as { __TAURI_INTERNALS__?: unknown; navigator?: Navigator; location?: Location })
+    : undefined;
+  if (!w) return mediaPath;
+  if ('__TAURI_INTERNALS__' in w) {
+    const ua = w.navigator?.userAgent || '';
+    return /Windows|Android/i.test(ua)
+      ? `http://grimoiremedia.localhost${mediaPath}`
+      : `grimoiremedia://localhost${mediaPath}`;
+  }
+  const origin = w.location?.origin || '';
+  return /^https?:\/\//.test(origin) ? `${origin}${mediaPath}` : mediaPath;
+}
+
 export function detectDestination(path: string): string {
   const clean = path.replace(/\\/g, '/').toLowerCase();
   if (clean.endsWith('.pdf') || clean.includes('/pdf') || clean.includes('/livres') || clean.includes('/books') || clean.includes('/scenarios')) {
     return 'books';
   }
   if (clean.includes('/textures') || clean.startsWith('textures')) return 'tiles/custom';
-  if (clean.includes('/stamps') || clean.includes('/tokens') || clean.startsWith('stamps') || clean.startsWith('tokens')) return 'tokens';
+  // Le dossier Drive s'appelle « Token » (singulier) : couvrir les deux graphies, sinon ces
+  // fichiers retombent sur 'maps' et apparaissent comme des cartes de bataille.
+  if (clean.includes('/stamps') || clean.includes('/tokens') || clean.startsWith('stamps') || clean.startsWith('tokens') || clean.startsWith('token/') || clean.includes('/token/')) return 'tokens';
   if (anyAudioExt(clean) || clean.includes('/audio') || clean.includes('/ambiance') || clean.includes('/sound') || clean.includes('/musique')) {
     return 'assets/audio';
   }
@@ -61,13 +92,15 @@ function parseCatalogJson(json: any): CelestialCatalog {
       const parts = cleanP.split('/');
       const dest = detectDestination(cleanP);
       const isAudio = dest === 'assets/audio' || anyAudioExt(filename);
+      const isVideo = anyVideoExt(filename);
 
       const isGoogleDriveId = id && !id.startsWith('audio_') && !id.startsWith('local_') && !id.startsWith('drive_');
-      const fileUrl = isAudio
-        ? (isGoogleDriveId ? `https://drive.usercontent.google.com/download?id=${id}&export=download` : `/${cleanP}`)
+      // lh3.googleusercontent.com ne sert que des images : audio/vidéo passent par l'endpoint de téléchargement Drive
+      const fileUrl = (isAudio || isVideo)
+        ? (isGoogleDriveId ? driveMediaUrl(id, filename) : `/${cleanP}`)
         : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}` : `/${cleanP}`);
 
-      const highRes = isAudio ? fileUrl : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}=w2560` : fileUrl);
+      const highRes = (isAudio || isVideo) ? fileUrl : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}=w2560` : fileUrl);
       const thumb = isAudio ? '' : (isGoogleDriveId ? `https://drive.google.com/thumbnail?id=${id}&sz=w400` : fileUrl);
 
       collected.push({

@@ -1,6 +1,7 @@
 mod commands;
 mod events;
 mod indexer;
+mod media_proxy;
 
 use commands::search::DbState;
 use rusqlite::Connection;
@@ -111,6 +112,19 @@ pub fn run() {
             commands::transcribe::transcribe_open_bin_folder,
             commands::transcribe::transcribe_audio,
         ])
+        // Relais média Drive : rétablit le Content-Type pour <audio>/<video>
+        // (Drive répond en application/octet-stream, illisible par le webview).
+        .register_asynchronous_uri_scheme_protocol("grimoiremedia", |_app, request, responder| {
+            let path = request.uri().path().to_string();
+            let range = request
+                .headers()
+                .get("range")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string());
+            tauri::async_runtime::spawn(async move {
+                responder.respond(media_proxy::handle(&path, range).await);
+            });
+        })
         .run(tauri::generate_context!())
         .expect("error while running Grimoire");
 }
