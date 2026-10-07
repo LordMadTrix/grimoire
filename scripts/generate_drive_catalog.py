@@ -18,7 +18,8 @@ AUDIO_MANIFEST = os.path.join(PUBLIC_DIR, 'assets', 'audio', 'Grimoire_Audio', '
 
 ALLOWED_EXTENSIONS = (
     '.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif',
-    '.pdf', '.mp3', '.ogg', '.wav', '.flac', '.m4a', '.md', '.txt'
+    '.pdf', '.mp3', '.ogg', '.wav', '.flac', '.m4a', '.md', '.txt',
+    '.mp4', '.webm',
 )
 
 def format_readable_name(filename):
@@ -95,9 +96,10 @@ def build_catalog(fetch_drive=False):
             files_list = [f for f in existing['files'] if not f[1].startswith('assets/audio/')]
         print(f"📦 {len(files_list)} fichiers Drive conservés du catalogue actuel.")
 
-    # Ajouter Grimoire Audio
-    audio_files = load_grimoire_audio()
-    files_list.extend(audio_files)
+    # NOTE : les pistes Grimoire Audio LOCALES (assets/audio/, ids « audio_* ») ne sont plus
+    # injectées : ce dossier est gitignoré, donc ces entrées pointaient vers des fichiers
+    # absents (1 576 liens morts) et doublonaient le dossier Drive « Grimoire_Audio » qui,
+    # lui, possède de vrais identifiants. On ne conserve que la source Drive.
 
     # Statistiques
     pdf_count = sum(1 for f in files_list if f[1].lower().endswith('.pdf'))

@@ -63,3 +63,11 @@ refactor.cjs
 refactor.py
 scratch_ollama.js
 mapper-rpg-extracted/
+
+# Secrets locaux (clé API Google Drive, etc.) — jamais committés
+.env
+.env.*
+!.env.example
+
+# État interne du client Freebuff (non versionné)
+.freebuff/
