@@ -33,6 +33,7 @@
   import RumorManager from './RumorManager.svelte';
   import { timeStore, advanceTime, formatImperialDate } from '$lib/stores/timeStore';
   import PlayerMobileManager from './PlayerMobileManager.svelte';
+  import { mobileServerStore } from '$lib/stores/mobileServer.svelte';
   import AdventureLibrary from './AdventureLibrary.svelte';
   import CharacterCreator from './CharacterCreator.svelte';
   import DiceRoller from './DiceRoller.svelte';
@@ -643,7 +644,25 @@
         <button class="dropdown-item" onclick={() => { onTogglePlayerQuickDock?.(); activeMenu = null; }}>🪟 Volet Joueurs Express (HUD)</button>
         <button class="dropdown-item" onclick={() => { onTogglePlayerManager?.(); activeMenu = null; }}>📝 Gestionnaire de Groupe</button>
         <button class="dropdown-item" onclick={() => { onTogglePlayerHub?.(); activeMenu = null; }}>📱 Hub des Joueurs</button>
-        <button class="dropdown-item" onclick={() => { onTogglePlayerMobileManager?.(); activeMenu = null; }}>📲 Serveur Mobile (QR)</button>
+        
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Serveur Mobile (iPad & Android)</div>
+        <div class="mobile-menu-control-row">
+          <div class="mobile-menu-status">
+            <span class="mobile-status-dot" class:online={mobileServerStore.isRunning}></span>
+            <span class="mobile-status-text">
+              {mobileServerStore.starting ? 'Démarrage…' : mobileServerStore.isRunning ? `Actif (:${mobileServerStore.serverInfo?.port})` : 'Désactivé'}
+            </span>
+          </div>
+          <button 
+            class="mobile-menu-toggle-btn"
+            class:active-btn={mobileServerStore.isRunning}
+            onclick={async (e) => { e.stopPropagation(); await mobileServerStore.toggle(); }}
+            disabled={mobileServerStore.starting}>
+            {mobileServerStore.starting ? '⏳' : mobileServerStore.isRunning ? '⏹ Arrêter' : '🚀 Activer'}
+          </button>
+        </div>
+        <button class="dropdown-item" onclick={() => { onTogglePlayerMobileManager?.(); activeMenu = null; }}>📲 QR Codes & Carnet MJ</button>
         
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" onclick={() => { showHandoutPicker = true; activeMenu = null; }}>📤 Envoyer un Handout</button>
@@ -730,11 +749,25 @@
       title="Soundboard SFX instantané (Raccourcis: Pavé 1-8)">
       🔊 SFX
     </button>
-    <button class="mobile-quick-btn"
-      onclick={() => onTogglePlayerMobileManager?.()}
-      title="Ouvrir le Hub Mobile & Carnet MJ (QR Code)">
-      📱 Mobile
-    </button>
+    <div class="mobile-quick-group">
+      <button class="mobile-quick-btn" class:active-server={mobileServerStore.isRunning}
+        onclick={() => onTogglePlayerMobileManager?.()}
+        title="Ouvrir le Hub Mobile & Carnet MJ (QR Code iPad / Android)">
+        <span class="mobile-status-dot" class:online={mobileServerStore.isRunning}></span>
+        📱 Mobile
+        {#if mobileServerStore.playerCount > 0}
+          <span class="mobile-badge">{mobileServerStore.playerCount}</span>
+        {/if}
+      </button>
+      <button 
+        class="mobile-quick-toggle"
+        class:is-on={mobileServerStore.isRunning}
+        onclick={async (e) => { e.stopPropagation(); await mobileServerStore.toggle(); }}
+        disabled={mobileServerStore.starting}
+        title={mobileServerStore.isRunning ? 'Désactiver le serveur mobile' : 'Activer le serveur mobile'}>
+        {mobileServerStore.starting ? '⏳' : mobileServerStore.isRunning ? 'ON' : 'OFF'}
+      </button>
+    </div>
     <div class="separator"></div>
     <div class="time-widget" style="display:flex; align-items:center; gap:4px; font-size:11px; background:var(--bg-secondary); padding:2px 8px; border-radius:4px; border:1px solid var(--border);">
       <span style="color:var(--text-secondary)">🕒 {$timeStore ? formatImperialDate($timeStore) : ''}</span>
@@ -1243,24 +1276,107 @@
     z-index: 9500;
     width: 320px;
   }
+  .mobile-quick-group {
+    display: flex;
+    align-items: center;
+    background: rgba(229,168,83,0.08);
+    border: 1px solid rgba(229,168,83,0.3);
+    border-radius: 4px;
+    padding: 1px 2px;
+    gap: 3px;
+    transition: all 0.2s;
+  }
+  .mobile-quick-group:hover {
+    border-color: var(--accent);
+    background: rgba(229,168,83,0.15);
+  }
   .mobile-quick-btn {
-    background: rgba(229,168,83,0.12);
-    border: 1px solid rgba(229,168,83,0.35);
+    background: transparent;
+    border: none;
     color: var(--accent);
     font-size: 11px;
     font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: 2px 5px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 4px;
-    transition: all 0.15s;
   }
-  .mobile-quick-btn:hover {
-    background: rgba(229,168,83,0.25);
-    border-color: var(--accent);
-    box-shadow: 0 0 8px rgba(229,168,83,0.35);
+  .mobile-quick-toggle {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    background: rgba(255,255,255,0.08);
+    color: #94a3b8;
+  }
+  .mobile-quick-toggle.is-on {
+    background: #22c55e;
+    color: #022c22;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+  }
+  .mobile-quick-toggle:hover:not(:disabled) {
+    transform: scale(1.05);
+  }
+  .mobile-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #64748b;
+    display: inline-block;
+    transition: all 0.3s;
+  }
+  .mobile-status-dot.online {
+    background: #22c55e;
+    box-shadow: 0 0 7px #22c55e;
+  }
+  .mobile-badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 0 4px;
+    border-radius: 8px;
+  }
+  .mobile-menu-control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    margin: 3px 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    gap: 8px;
+  }
+  .mobile-menu-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .mobile-menu-toggle-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    transition: all 0.2s;
+  }
+  .mobile-menu-toggle-btn.active-btn {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+  .mobile-menu-toggle-btn:hover:not(:disabled) {
+    filter: brightness(1.15);
   }
   .sound-badge {
     background: #38bdf8;

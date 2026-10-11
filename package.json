@@ -1,10 +1,10 @@
 {
   "name": "grimoire",
   "private": true,
-  "version": "0.8.4",
+  "version": "0.8.5",
   "type": "module",
   "scripts": {
-    "vite-dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"vite map-editor --port 5174 --strictPort\"",
+    "vite-dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"npm run dev --prefix map-editor -- --port 5174 --strictPort\"",
     "launch": "./launch.sh",
     "dev": "npm run tauri dev",
     "build": "vite build && npm run build --prefix map-editor",

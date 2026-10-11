@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:," />
+<title>🎬 Téléchargeur YouTube — Grimoire</title>
+<style>
+  :root {
+    --bg: #070c16; --panel: #0c1424; --panel2: #111c31; --line: #1e2b45;
+    --txt: #dbe7f7; --dim: #8aa0bf; --sky: #38bdf8; --sky2: #0284c7;
+    --green: #34d399; --red: #f87171; --amber: #fbbf24; --violet: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #10203a 0%, var(--bg) 55%);
+    color: var(--txt); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; min-height: 100vh;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 26px 18px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+  h1 { font-size: 1.45rem; margin: 0; letter-spacing: .3px; }
+  h1 small { display: block; font-size: .78rem; color: var(--dim); font-weight: 400; }
+  .chip { font-size: .75rem; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel2); color: var(--dim); white-space: nowrap; }
+  .chip.ok { color: var(--green); border-color: rgba(52,211,153,.4); }
+  .chip.ko { color: var(--red); border-color: rgba(248,113,113,.4); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+  .card h2 { margin: 0 0 14px; font-size: 1rem; color: var(--sky); display: flex; align-items: center; gap: 8px; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  input[type=text], input[type=url] {
+    flex: 1 1 320px; background: var(--panel2); border: 1px solid var(--line); color: var(--txt);
+    border-radius: 9px; padding: 11px 13px; font-size: .95rem; outline: none; min-width: 0;
+  }
+  input[type=text]:focus, input[type=url]:focus { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(56,189,248,.15); }
+
+  button {
+    background: var(--panel2); border: 1px solid var(--line); color: var(--txt); border-radius: 9px;
+    padding: 10px 16px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: .15s; white-space: nowrap;
+  }
+  button:hover:not(:disabled) { border-color: var(--sky); color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: linear-gradient(135deg, var(--sky2), #0369a1); border-color: var(--sky); color: #fff; }
+  button.primary:hover:not(:disabled) { box-shadow: 0 4px 18px rgba(2,132,199,.45); }
+  button.danger:hover { border-color: var(--red); color: var(--red); }
+
+  .preview { display: none; gap: 14px; margin-top: 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 12px; }
+  .preview.show { display: flex; }
+  .preview img { width: 168px; height: 95px; object-fit: cover; border-radius: 8px; background: #000; flex-shrink: 0; }
+  .preview .p-title { font-weight: 700; margin-bottom: 4px; }
+  .preview .p-meta { color: var(--dim); font-size: .82rem; }
+
+  .formats { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+  .fmt { position: relative; }
+  .fmt input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .fmt span {
+    display: inline-block; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel2); font-size: .85rem; font-weight: 600; color: var(--dim); transition: .15s;
+  }
+  .fmt input:checked + span { background: rgba(56,189,248,.14); border-color: var(--sky); color: var(--sky); }
+  .fmt input:focus-visible + span { box-shadow: 0 0 0 3px rgba(56,189,248,.25); }
+
+  .checks { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 14px; }
+  .checks label { display: flex; gap: 9px; align-items: flex-start; color: var(--dim); font-size: .88rem; cursor: pointer; }
+  .checks input { margin-top: 3px; accent-color: var(--sky); }
+
+  .hint { font-size: .78rem; color: var(--dim); margin-top: 8px; }
+  .hint b { color: var(--amber); }
+
+  #jobs { display: flex; flex-direction: column; gap: 12px; }
+  .empty { color: var(--dim); text-align: center; padding: 18px 0; font-size: .9rem; }
+  .job { display: flex; gap: 13px; background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 12px; }
+  .job-thumb { width: 116px; height: 66px; object-fit: cover; border-radius: 7px; background: #05080f; flex-shrink: 0; }
+  .job-thumb.placeholder { display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+  .job-main { flex: 1; min-width: 0; }
+  .job-title { font-weight: 700; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .job-meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 6px 0; font-size: .78rem; color: var(--dim); }
+  .badge { padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: .72rem; border: 1px solid; }
+  .badge.attente { color: var(--dim); border-color: var(--line); }
+  .badge.cours { color: var(--sky); border-color: rgba(56,189,248,.5); animation: pulse 1.2s infinite alternate; }
+  .badge.termine { color: var(--green); border-color: rgba(52,211,153,.5); }
+  .badge.erreur { color: var(--red); border-color: rgba(248,113,113,.5); }
+  .badge.annule { color: var(--amber); border-color: rgba(251,191,36,.5); }
+  @keyframes pulse { from { opacity: .65; } to { opacity: 1; } }
+  .bar { height: 8px; background: #05080f; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--sky2), var(--sky)); transition: width .4s; }
+  .job.termine .bar i { background: linear-gradient(90deg, #059669, var(--green)); }
+  .job.erreur .bar i { background: linear-gradient(90deg, #b91c1c, var(--red)); }
+  .job-file { font-size: .76rem; color: var(--dim); margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .job-note { font-size: .76rem; color: var(--green); margin-top: 4px; }
+  .job-err { font-size: .78rem; color: var(--red); margin-top: 6px; word-break: break-word; }
+  .job-hint { font-size: .78rem; color: var(--amber); margin-top: 6px; line-height: 1.45; background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.25); border-radius: 8px; padding: 7px 9px; }
+  .job-actions { display: flex; flex-direction: column; gap: 7px; }
+  .job-actions button { padding: 6px 11px; font-size: .78rem; }
+  details.log { margin-top: 8px; }
+  details.log summary { cursor: pointer; color: var(--dim); font-size: .76rem; }
+  details.log pre {
+    max-height: 190px; overflow: auto; background: #05080f; border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px; font-size: .72rem; color: #9fb6d6; white-space: pre-wrap; word-break: break-all;
+  }
+
+  #toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #0f1a2e; border: 1px solid var(--sky); color: var(--txt); padding: 11px 18px;
+    border-radius: 10px; font-size: .88rem; opacity: 0; pointer-events: none; transition: .25s; z-index: 50;
+    max-width: 90vw; text-align: center; white-space: pre-line;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { border-color: var(--red); }
+  @media (max-width: 620px) {
+    .preview img { width: 100%; height: auto; }
+    .preview { flex-direction: column; }
+    .job { flex-wrap: wrap; }
+    .job-actions { flex-direction: row; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎬 Téléchargeur YouTube <small>Grimoire — mp4, mp3, playlists & extraction PNG</small></h1>
+    <span id="status" class="chip">chargement…</span>
+  </header>
+
+  <section class="card">
+    <h2>📥 Nouveau téléchargement</h2>
+    <div class="row">
+      <input id="url" type="url" placeholder="Collez une URL YouTube (vidéo, playlist, chaîne)…" autofocus />
+      <button id="btnAnalyze">🔍 Analyser</button>
+    </div>
+
+    <div id="preview" class="preview">
+      <img id="pThumb" alt="" />
+      <div>
+        <div class="p-title" id="pTitle"></div>
+        <div class="p-meta" id="pMeta"></div>
+      </div>
+    </div>
+
+    <div class="formats" id="formats"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="optPlaylist" /> 📚 Télécharger toute la playlist / tout le résultat de recherche (sinon : la vidéo seule)</label>
+      <label><input type="checkbox" id="optPng" /> 🖼️ Après le téléchargement, extraire une image PNG à mi-parcours (idéal pour cartes animées Warbux)</label>
+    </div>
+    <div class="row" id="rangeRow" style="display:none">
+      <input id="range" type="text" placeholder="Plage (optionnel) : 1-5 ou 2,4,6-8 — laisser vide pour TOUTE la playlist" />
+    </div>
+
+    <div class="row">
+      <input id="output" type="text" placeholder="Dossier de sortie…" />
+      <button id="btnOpenFolder" title="Ouvrir le dossier de sortie">📂 Ouvrir</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="cookies" type="text" placeholder="🍪 Cookies (optionnel) : chemin vers un cookies.txt exporté du navigateur…" />
+      <select id="ckBrowser" title="Ou lire les cookies directement dans le navigateur (le navigateur doit être FERMÉ)">
+        <option value="">🍪 sans cookies</option>
+        <option value="edge">Cookies du navigateur : Edge</option>
+        <option value="chrome">Cookies du navigateur : Chrome</option>
+        <option value="brave">Cookies du navigateur : Brave</option>
+      </select>
+    </div>
+    <div class="hint">Si YouTube affiche <b>« Sign in to confirm you're not a bot »</b> : soit exportez vos cookies dans un <b>cookies.txt</b> (extension type « Get cookies.txt ») et donnez son chemin — <b>marche avec le navigateur ouvert</b> — soit choisissez <b>cookies du navigateur</b> avec <b>ce navigateur-là fermé</b> (l'interface peut rester ouverte dans un AUTRE navigateur : Edge, Firefox, ou l'onglet Navigateur de Freebuff).</div>
+    <div class="hint">Astuce : <b>MP4 480p</b> est très léger pour les cartes animées ; <b>MP3</b> sert à l'audio seul.</div>
+
+    <div class="row" style="margin-top:14px">
+      <button id="btnDownload" class="primary">⬇️ Télécharger</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>⏳ File de travail</h2>
+    <div id="jobs"><div class="empty">Aucun téléchargement pour l'instant.</div></div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let analyzed = null;
+let formatLabels = {};
+let openLogs = new Set();
+let lastJobsJson = '';
+
+function toast(msg, isErr = false, ms = 3800) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => (t.className = ''), ms);
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = new Error(data.error || `HTTP ${res.status}`);
+    e.hint = data.hint || '';
+    throw e;
+  }
+  return data;
+}
+
+// ── Configuration ───────────────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const cfg = await api('/api/config');
+    formatLabels = cfg.formats;
+    $('formats').innerHTML = Object.entries(cfg.formats)
+      .map(([key, label], i) =>
+        `<label class="fmt"><input type="radio" name="fmt" value="${key}" ${key === 'mp4-1080' ? 'checked' : ''}><span>${label}</span></label>`
+      )
+      .join('');
+    $('output').value = cfg.defaultOutput;
+    const chip = $('status');
+    if (cfg.ytdlpOk && cfg.version) {
+      chip.textContent = `✅ yt-dlp v${cfg.version}`;
+      chip.className = 'chip ok';
+    } else if (cfg.ytdlpOk) {
+      chip.textContent = '✅ yt-dlp présent';
+      chip.className = 'chip ok';
+    } else {
+      chip.textContent = '⚠ yt-dlp introuvable';
+      chip.className = 'chip ko';
+      toast('yt-dlp introuvable — installez-le dans %LOCALAPPDATA%\\grimoire-tools', true);
+    }
+  } catch (e) {
+    toast('Configuration impossible : ' + e.message, true);
+  }
+}
+
+// ── Analyse ─────────────────────────────────────────────────────────────────
+async function analyze() {
+  const url = $('url').value.trim();
+  if (!url) return toast('Collez d\'abord une URL.', true);
+  const btn = $('btnAnalyze');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyse…';
+  try {
+    const info = await api('/api/analyze', { method: 'POST', body: { url } });
+    analyzed = info;
+    if (info.isPlaylist) {
+      // URL de playlist détectée → on coche automatiquement la case
+      $('optPlaylist').checked = true;
+      syncRange();
+    }
+    $('pThumb').src = info.thumbnail || '';
+    $('pThumb').style.display = info.thumbnail ? '' : 'none';
+    if (info.isPlaylist) {
+      $('pTitle').textContent = `📚 ${info.count} vidéos — ${info.title || 'Playlist'}`;
+      $('pMeta').textContent = [info.channel, 'Playlist YouTube'].filter(Boolean).join(' • ');
+    } else {
+      $('pTitle').textContent = info.title || url;
+      $('pMeta').textContent = [info.channel, info.duration, info.views != null ? info.views.toLocaleString('fr-FR') + ' vues' : '']
+        .filter(Boolean).join(' • ');
+    }
+    $('preview').classList.add('show');
+  } catch (e) {
+    toast('Analyse impossible : ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Analyser';
+  }
+}
+
+// ── Téléchargement ──────────────────────────────────────────────────────────
+async function download() {
+  const url = $('url').value.trim();
+  if (!url) return toast('Collez d\'abord une URL.', true);
+  const fmt = document.querySelector('input[name=fmt]:checked')?.value || 'mp4-1080';
+  const output = $('output').value.trim();
+  try {
+    await api('/api/jobs', {
+      method: 'POST',
+      body: {
+        url,
+        format: fmt,
+        playlist: $('optPlaylist').checked,
+        png: $('optPng').checked,
+        output,
+        cookies: $('cookies').value.trim(),
+        browserCookies: $('ckBrowser').value,
+        range: $('range').value.trim(),
+        title: analyzed && analyzed.url === url ? analyzed.title : '',
+        thumb: analyzed && analyzed.url === url ? analyzed.thumbnail : '',
+      },
+    });
+    toast(`⬇️ Téléchargement lancé (${formatLabels[fmt] || fmt})`);
+    await refreshJobs(true);
+  } catch (e) {
+    toast('Impossible de lancer : ' + e.message + (e.hint ? '\n💡 ' + e.hint : ''), true, e.hint ? 9000 : 4500);
+  }
+}
+
+// ── File de travail ─────────────────────────────────────────────────────────
+const STATUS = {
+  attente: ['⏳ En attente', 'attente'],
+  cours: ['⬇️ En cours', 'cours'],
+  'terminé': ['✅ Terminé', 'termine'],
+  erreur: ['❌ Erreur', 'erreur'],
+  'annulé': ['⏹ Annulé', 'annule'],
+};
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderJobs(jobs) {
+  const box = $('jobs');
+  if (!jobs.length) {
+    box.innerHTML = '<div class="empty">Aucun téléchargement pour l\'instant.</div>';
+    return;
+  }
+  box.innerHTML = jobs
+    .map((j) => {
+      const [label, cls] = STATUS[j.status] || ['?', 'attente'];
+      const pct = Math.max(0, Math.min(100, j.percent || 0));
+      const active = j.status === 'cours';
+      const thumb = j.thumb
+        ? `<img class="job-thumb" src="${escapeHtml(j.thumb)}" alt="" loading="lazy">`
+        : `<div class="job-thumb placeholder">🎬</div>`;
+      const meta = [
+        `<span class="badge ${cls}">${label}</span>`,
+        j.phase ? `<span>${escapeHtml(j.phase)}</span>` : '',
+        active || j.status === 'terminé' ? `<span>${pct.toFixed(1).replace('.', ',')} %</span>` : '',
+        active && j.speed ? `<span>${escapeHtml(j.speed)}</span>` : '',
+        active && j.eta && j.eta !== 'Unknown' ? `<span>ETA ${escapeHtml(j.eta)}</span>` : '',
+      ]
+        .filter(Boolean)
+        .join('');
+      const file = j.file ? `<div class="job-file" title="${escapeHtml(j.file)}">📄 ${escapeHtml(shortPath(j.file))}</div>` : '';
+      const note = j.note ? `<div class="job-note">🖼️ ${escapeHtml(j.note)}</div>` : '';
+      const err = j.error ? `<div class="job-err">⚠ ${escapeHtml(j.error)}</div>` : '';
+      const hint = j.hint ? `<div class="job-hint">💡 ${escapeHtml(j.hint)}</div>` : '';
+      const logOpen = openLogs.has(j.id) ? 'open' : '';
+      const log = `<details class="log" data-log="${j.id}" ${logOpen}><summary>📜 journal (${j.log.length} lignes)</summary><pre>${escapeHtml(j.log.join('\n'))}</pre></details>`;
+      const actions = [
+        active ? `<button data-act="cancel" data-id="${j.id}">⏹ Annuler</button>` : '',
+        j.file || j.output ? `<button data-act="open" data-id="${j.id}">📂 Ouvrir dossier</button>` : '',
+        !active ? `<button class="danger" data-act="del" data-id="${j.id}">🗑 Effacer</button>` : '',
+      ]
+        .filter(Boolean)
+        .join('');
+      return `<div class="job ${cls}">${thumb}
+        <div class="job-main">
+          <div class="job-title" title="${escapeHtml(j.title || j.url)}">${escapeHtml(j.title || j.url)}</div>
+          <div class="job-meta">${meta}</div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          ${file}${note}${err}${hint}${log}
+        </div>
+        <div class="job-actions">${actions}</div>
+      </div>`;
+    })
+    .join('');
+}
+
+function shortPath(p) {
+  const parts = String(p).split(/[\\/]/);
+  return parts.slice(-2).join('/');
+}
+
+async function refreshJobs(force = false) {
+  try {
+    const jobs = await api('/api/jobs');
+    const jsonStr = JSON.stringify(jobs);
+    if (!force && jsonStr === lastJobsJson) return;
+    lastJobsJson = jsonStr;
+    renderJobs(jobs);
+  } catch {}
+}
+
+$('jobs').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  try {
+    if (btn.dataset.act === 'cancel') await api(`/api/jobs/${id}/cancel`, { method: 'POST' });
+    else if (btn.dataset.act === 'del') await api(`/api/jobs/${id}`, { method: 'DELETE' });
+    else if (btn.dataset.act === 'open') {
+      const jobs = await api('/api/jobs');
+      const j = jobs.find((x) => x.id === id);
+      await api('/api/open-folder', { method: 'POST', body: { path: j.file ? j.file.replace(/[\\/][^\\/]+$/, '') : j.output } });
+      return;
+    }
+    await refreshJobs(true);
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+$('jobs').addEventListener('toggle', (e) => {
+  const d = e.target.closest('details[data-log]');
+  if (!d) return;
+  d.open ? openLogs.add(d.dataset.log) : openLogs.delete(d.dataset.log);
+}, true);
+
+// ── Événements ──────────────────────────────────────────────────────────────
+$('btnAnalyze').addEventListener('click', analyze);
+$('btnDownload').addEventListener('click', download);
+function syncRange() {
+  const on = $('optPlaylist').checked;
+  $('rangeRow').style.display = on ? '' : 'none';
+  if (!on) $('range').value = '';
+}
+$('optPlaylist').addEventListener('change', syncRange);
+$('btnOpenFolder').addEventListener('click', async () => {
+  try {
+    await api('/api/open-folder', { method: 'POST', body: { path: $('output').value.trim() } });
+  } catch (e) {
+    toast(e.message, true);
+  }
+});
+$('url').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') analyze();
+});
+
+loadConfig();
+refreshJobs(true);
+setInterval(refreshJobs, 900);
+</script>
+</body>
+</html>

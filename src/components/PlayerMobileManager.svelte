@@ -17,10 +17,12 @@
   import { getVaultPath, setVaultTree, setActiveFile, getActiveFile, setActiveContent, getIsDirty } from '$lib/stores/vault.svelte';
   import { invoke } from '@tauri-apps/api/core';
 
+  import { mobileServerStore } from '$lib/stores/mobileServer.svelte';
+
   let visible     = $state(false);
-  let serverInfo  = $state<ServerInfo | null>(null);
+  let serverInfo  = $derived(mobileServerStore.serverInfo);
+  let starting    = $derived(mobileServerStore.starting);
   let players     = $state<PlayerInfo[]>([]);
-  let starting    = $state(false);
   let chatLog     = $state<{ from: string; msg: string; time: string }[]>([]);
   let gmMessage   = $state('');
   let showLog     = $state(true);
@@ -179,25 +181,20 @@
   }
 
   async function handleStart() {
-    starting = true;
     try {
-      serverInfo = await startPlayerServer();
-      const cfg = getGameConfig();
-      if (cfg) try { await invoke('set_game_config', { config: cfg }); } catch {}
-      const vp = getVaultPath();
-      if (vp) try { await setServerVaultPath(vp); } catch {}
-      startPolling();
-      addLog('Système', `🚀 Serveur démarré — ${serverInfo.ip}:${serverInfo.port}`);
+      const info = await mobileServerStore.start();
+      if (info) {
+        startPolling();
+        addLog('Système', `🚀 Serveur démarré — ${info.ip}:${info.port}`);
+        refreshPlayers();
+      }
     } catch (e) {
       addLog('Erreur', String(e));
-    } finally {
-      starting = false;
     }
   }
 
   async function handleStop() {
-    await stopPlayerServer();
-    serverInfo = null;
+    await mobileServerStore.stop();
     players = [];
     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
     addLog('Système', '⏹ Serveur arrêté');
@@ -205,7 +202,7 @@
 
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(refreshPlayers, 5000);
+    pollInterval = setInterval(refreshPlayers, 4000);
   }
 
   async function refreshPlayers() {
@@ -232,13 +229,11 @@
 
   onMount(async () => {
     try {
-      serverInfo = await getServerStatus();
-      if (serverInfo) {
+      await mobileServerStore.init();
+      if (mobileServerStore.serverInfo) {
         startPolling();
-        const vp = getVaultPath();
-        if (vp) try { await setServerVaultPath(vp); } catch {}
+        refreshPlayers();
       } else {
-        // Auto-démarrage pour être immédiatement détectable par le carnet mobile GSM sur le réseau Wi-Fi
         handleStart();
       }
     } catch {

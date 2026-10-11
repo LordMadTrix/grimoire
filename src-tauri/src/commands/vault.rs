@@ -440,7 +440,14 @@ pub fn open_file_in_os(path: String) -> Result<(), String> {
 #[tauri::command]
 pub fn save_temp_html_and_open(filename: String, html_content: String) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
-    let file_path = temp_dir.join(&filename);
+    // Basename uniquement : un nom fourni avec des séparateurs (`../` ou un
+    // chemin absolu) ne doit pas écrire hors du dossier temporaire.
+    let safe_name = Path::new(&filename)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| "grimoire-impression.html".to_string());
+    let file_path = temp_dir.join(safe_name);
     std::fs::write(&file_path, html_content).map_err(|e| e.to_string())?;
     let path_str = file_path.to_string_lossy().to_string();
     opener::open(&path_str).map_err(|e| e.to_string())?;

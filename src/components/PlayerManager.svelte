@@ -314,6 +314,19 @@
     refreshData();
   }
 
+  /** Retire le mot de passe d'un compte (le backend traite une chaîne vide comme une suppression). */
+  async function removeAccountPassword(p: PlayerInfo | PlayerAccountSummary) {
+    if (!confirm(`Retirer le mot de passe du compte « ${p.name} » ? Tout joueur pourra alors rejoindre la session sans mot de passe.`)) return;
+    try {
+      await savePlayerAccount(p.name, null, '', p.character ?? null, p.character_path || null);
+      statusMessage = `Mot de passe de ${p.name} retiré.`;
+      setTimeout(() => statusMessage = '', 3000);
+    } catch (err) {
+      console.error('Remove password error:', err);
+    }
+    refreshData();
+  }
+
   async function updateSingleField(p: PlayerInfo | PlayerAccountSummary, field: string, value: any) {
     const baseChar = p.character && typeof p.character === 'object' ? { ...p.character } : {};
     const updatedChar = { ...baseChar, [field]: value };
@@ -524,9 +537,11 @@
                       <div class="name-row">
                         <span class="name">{p.name}</span>
                         {#if p.has_password}
-                          <span class="pwd-badge locked" title="Compte protégé par mot de passe">🔒 Protégé</span>
+                          <span class="pwd-badge locked" title="Compte protégé par mot de passe">🔐 Défini</span>
+                          <button class="pwd-action" onclick={() => removeAccountPassword(p)} title="Retirer le mot de passe de ce compte">Réinit.</button>
                         {:else}
-                          <span class="pwd-badge open" title="Compte sans mot de passe">🔓 Libre</span>
+                          <span class="pwd-badge open" title="Compte sans mot de passe">🔐 Non défini</span>
+                          <button class="pwd-action" onclick={() => startEdit(p)} title="Définir un mot de passe (champ « Mot de passe du compte » dans le formulaire)">Définir</button>
                         {/if}
                       </div>
                       <span class="status {p.is_online ? 'online' : 'offline'}">
@@ -850,6 +865,8 @@
   .pwd-badge { font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
   .pwd-badge.locked { background: rgba(229,168,83,0.15); color: #e5a853; border: 1px solid rgba(229,168,83,0.3); }
   .pwd-badge.open { background: rgba(88,166,255,0.15); color: #58a6ff; border: 1px solid rgba(88,166,255,0.3); }
+  .pwd-action { font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 600; background: transparent; border: 1px dashed rgba(255,255,255,0.25); color: #8b949e; cursor: pointer; transition: all 0.15s; }
+  .pwd-action:hover { color: #e5a853; border-color: rgba(229,168,83,0.5); }
   .status { font-size: 10px; color: #3fb950; display: flex; align-items: center; gap: 5px; }
   .status.offline { color: #8b949e; }
   .status.offline .dot { background: #8b949e; }

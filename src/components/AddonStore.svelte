@@ -6,7 +6,7 @@
   import { openVault } from '$lib/api';
   import { getVaultPath, setVaultTree } from '$lib/stores/vault.svelte';
   import { addMapScene, replaceActiveScene, updateGmAudio, updateGmAudio2 } from '$lib/stores/vtt.svelte';
-  import { getCelestialCatalog, checkForCatalogUpdates, subscribeToCelestialUpdates, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
+  import { getCelestialCatalog, checkForCatalogUpdates, subscribeToCelestialUpdates, ensureCelestialFolders, type DriveFile, type TreeNode } from '$lib/stores/celestialCache';
   import PdfReaderModal from './PdfReaderModal.svelte';
 
   const { onclose } = $props<{ onclose: () => void }>();
@@ -90,12 +90,65 @@
     return l.endsWith('.mp3') || l.endsWith('.ogg') || l.endsWith('.wav') || l.endsWith('.flac') || l.endsWith('.m4a');
   }
 
+  function anyVideo(fn: string): boolean {
+    const l = (fn || '').toLowerCase();
+    return l.endsWith('.mp4') || l.endsWith('.webm');
+  }
+
+  // ── Aperçu vidéo animé au survol ──────────────────────────────────────────
+  // Une seule vignette à la fois : survol → délai de 300 ms (évite de lancer un
+  // flux MP4 au passage rapide de la souris) → lecture muette en boucle.
+  let previewingVideoId = $state<string | null>(null);
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleVideoPreview(file: DriveFile) {
+    stopVideoPreview();
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      previewingVideoId = file.id;
+    }, 300);
+  }
+
+  function stopVideoPreview() {
+    if (previewTimer) {
+      clearTimeout(previewTimer);
+      previewTimer = null;
+    }
+    previewingVideoId = null;
+  }
+
+  /**
+   * Action sur l'élément <video> de l'aperçu : muted est forcé en PROPRIÉTÉ
+   * avant play() (la politique d'autoplay du navigateur lit la propriété, pas
+   * l'attribut), et le flux réseau est coupé au démontage pour ne pas laisser
+   * un MP4 de plusieurs mégaoctets se télécharger en arrière-plan.
+   */
+  function startPreviewPlayback(el: HTMLVideoElement) {
+    el.defaultMuted = true;
+    el.muted = true;
+    el.play().catch(() => {
+      // Autoplay refusé : la vignette statique reste visible.
+    });
+    return {
+      destroy() {
+        el.pause();
+        el.removeAttribute('src');
+        el.load();
+      }
+    };
+  }
+
   let booksCount = $derived(
     rawFiles.filter(f => f.destination === 'books' || f.path.toLowerCase().endsWith('.pdf') || f.name.toLowerCase().endsWith('.pdf')).length
   );
 
   let audioCount = $derived(
     rawFiles.filter(f => f.destination === 'assets/audio' || f.destination === 'audio' || anyAudio(f.filename) || anyAudio(f.path)).length
+  );
+
+  // Racine du dossier « Token » sur Drive (graphie variable : Token / tokens / stamps)
+  const tokenRootKey = $derived(
+    ['Token', 'tokens'].find((k) => rootTree.subfolders[k]) ?? ''
   );
 
   function toggleAudioPreview(file: DriveFile) {
@@ -211,6 +264,7 @@
   }
 
   function openPreview(file: DriveFile) {
+    stopVideoPreview();
     if (file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')) {
       openPdfReader(file);
       return;
@@ -345,6 +399,7 @@
       if (part === 'maps') label = '🗺️ Cartes';
       else if (part === 'textures') label = '🧱 Textures';
       else if (part === 'stamps') label = '🎨 Tampons';
+      else if (part === 'Token' || part === 'token') label = '🧙 Tokens';
       else if (part === 'audio' || part === 'Grimoire_Audio') label = '🎵 Grimoire Audio';
       else if (part === 'Musiques_et_Ambiances') label = '🎼 Musiques & Ambiances';
       else if (part === 'Bruitages_SFX') label = '🔊 Bruitages & SFX';
@@ -361,33 +416,77 @@
     return list;
   });
 
+  // ── Filtres média : 🎬 Animées (vidéos) / 🖼️ Statiques (images) ─────────
+  // Les audio et PDF n'appartiennent ni à l'un ni à l'autre : ils ne sont
+  // visibles qu'avec le filtre inactif.
+  let mediaFilter = $state<'all' | 'video' | 'static'>('all');
+
+  const isStaticImage = (f: DriveFile) => /\.(png|jpe?g|webp|gif|svg)$/i.test(f.filename);
+
+  const matchesMediaFilter = (f: DriveFile) =>
+    mediaFilter === 'all'
+      ? true
+      : mediaFilter === 'video'
+        ? anyVideo(f.filename)
+        : isStaticImage(f);
+
+  function toggleMediaFilter(kind: 'video' | 'static') {
+    mediaFilter = mediaFilter === kind ? 'all' : kind;
+  }
+
+  // Un nœud du manifeste non encore téléchargé (stamps/*) est une feuille vide :
+  // ni fichiers, ni sous-dossiers, mais un total > 0. Son contenu est inconnu,
+  // on le garde visible plutôt que de le masquer à tort. Les dossiers
+  // intermédiaires (files vides mais sous-dossiers présents) sont, eux,
+  // évalués récursivement.
+  function nodeMatchesMediaFilter(node: TreeNode): boolean {
+    const hasSubfolders = Object.keys(node.subfolders).length > 0;
+    if (node.files.length === 0 && !hasSubfolders && node.totalFiles > 0) return true;
+    if (node.files.some(matchesMediaFilter)) return true;
+    return Object.values(node.subfolders).some(nodeMatchesMediaFilter);
+  }
+
   // Subfolders in current node (sorted alphabetically)
-  const currentSubfolders = $derived(
-    Object.values(currentNode.subfolders).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-  );
+  const currentSubfolders = $derived.by(() => {
+    const subs = Object.values(currentNode.subfolders).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return mediaFilter === 'all' ? subs : subs.filter(nodeMatchesMediaFilter);
+  });
 
   // Files in current node
-  const currentFiles = $derived(currentNode.files);
+  const currentFiles = $derived(
+    mediaFilter === 'all' ? currentNode.files : currentNode.files.filter(matchesMediaFilter)
+  );
 
   // Search results across whole tree if searchQuery is active
   const searchResults = $derived.by(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     return rawFiles.filter(f =>
-      f.name.toLowerCase().includes(q) ||
-      f.filename.toLowerCase().includes(q) ||
-      f.path.toLowerCase().includes(q)
+      matchesMediaFilter(f) &&
+      (f.name.toLowerCase().includes(q) ||
+        f.filename.toLowerCase().includes(q) ||
+        f.path.toLowerCase().includes(q))
     ).slice(0, 150); // Limit to top 150 for smooth UI rendering
   });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  // Les fragments « stamps » (3,6 Mo, 83 % du catalogue) ne sont téléchargés qu'au moment
+  // utile : navigation dans un dossier tampon ou recherche dans toute la bibliothèque.
+  $effect(() => {
+    if (currentPath.startsWith('stamps') || searchQuery.trim()) {
+      ensureCelestialFolders(['stamps']).catch(() => {});
+    }
+  });
+
   function isFileOnDisk(file: DriveFile): boolean {
     const cleanPath = file.path.replace(/\\/g, '/').replace(/^\/+/, '');
     const cleanNoRoot = cleanPath.split('/').slice(1).join('/');
-    return localFilesOnDisk.has(cleanPath) ||
-      localFilesOnDisk.has(cleanNoRoot) ||
-      localFilesOnDisk.has(file.filename);
+    // Comparaison insensible à la casse : « Token » (Drive) ≠ « tokens » (public/)
+    const lc = (s: string) => s.toLowerCase();
+    return localFilesOnDisk.has(lc(cleanPath)) ||
+      localFilesOnDisk.has(lc(cleanNoRoot)) ||
+      localFilesOnDisk.has(lc(file.filename));
   }
 
   function isNodeDownloaded(node: TreeNode): boolean {
@@ -472,7 +571,7 @@
         diskSet.add(`Grimoire_Audio/${f}`);
         diskSet.add(f);
       }
-      localFilesOnDisk = diskSet;
+      localFilesOnDisk = new Set([...diskSet].map((p) => p.toLowerCase()));
     } catch (e) {
       console.warn('Erreur vérification fichiers locaux:', e);
     }
@@ -719,6 +818,7 @@
 
   onDestroy(() => {
     stopAudioPreview();
+    stopVideoPreview();
     unlisten?.();
     unsubUpdates?.();
     if (toastTimer) clearTimeout(toastTimer);
@@ -798,9 +898,14 @@
             <button class="nav-pill" class:active-pill={currentPath === 'textures'} onclick={() => { currentPath = 'textures'; searchQuery = ''; }}>
               🧱 Textures ({rootTree.subfolders['textures']?.totalFiles ?? 0})
             </button>
-            <button class="nav-pill" class:active-pill={currentPath === 'stamps' || currentPath === 'tokens'} onclick={() => { currentPath = rootTree.subfolders['stamps'] ? 'stamps' : 'tokens'; searchQuery = ''; }}>
-              🎨 Tampons ({rootTree.subfolders['stamps']?.totalFiles ?? (rootTree.subfolders['tokens']?.totalFiles ?? 0)})
+            <button class="nav-pill" class:active-pill={currentPath === 'stamps' || (!rootTree.subfolders['stamps'] && currentPath === tokenRootKey)} onclick={() => { currentPath = rootTree.subfolders['stamps'] ? 'stamps' : tokenRootKey; searchQuery = ''; }}>
+              🎨 Tampons ({rootTree.subfolders['stamps']?.totalFiles ?? (rootTree.subfolders[tokenRootKey]?.totalFiles ?? 0)})
             </button>
+            {#if tokenRootKey && rootTree.subfolders['stamps']}
+              <button class="nav-pill" class:active-pill={currentPath === tokenRootKey} onclick={() => { currentPath = tokenRootKey; searchQuery = ''; }}>
+                🧙 Tokens ({rootTree.subfolders[tokenRootKey]?.totalFiles ?? 0})
+              </button>
+            {/if}
             <button class="nav-pill" class:active-pill={currentPath === '' && !searchQuery} onclick={() => { currentPath = ''; searchQuery = ''; }}>
               🌌 Toutes les Archives ({rootTree.totalFiles})
             </button>
@@ -851,6 +956,35 @@
                 </button>
               {/each}
             </div>
+          </div>
+
+          <!-- Media Type Filters: animated / static -->
+          <div class="media-filter-pills" role="group" aria-label="Filtrer par type de média">
+            <button
+              class="nav-pill"
+              class:active-pill={mediaFilter === 'video'}
+              onclick={() => toggleMediaFilter('video')}
+              title="N'afficher que les cartes animées (vidéos MP4/WebM)"
+            >
+              🎬 Animées
+            </button>
+            <button
+              class="nav-pill"
+              class:active-pill={mediaFilter === 'static'}
+              onclick={() => toggleMediaFilter('static')}
+              title="N'afficher que les images statiques (PNG/JPG…). Les audios et PDF sont masqués."
+            >
+              🖼️ Statiques
+            </button>
+            {#if mediaFilter !== 'all'}
+              <button
+                class="filter-reset"
+                onclick={() => mediaFilter = 'all'}
+                title="Retirer le filtre"
+              >
+                ✕ Tout afficher
+              </button>
+            {/if}
           </div>
 
           <!-- Search input -->
@@ -934,14 +1068,25 @@
           <!-- Search Mode Results -->
           {:else if searchQuery.trim()}
             <div class="section-title">
-              🔍 Résultats de recherche pour « {searchQuery} » ({searchResults.length} résultats)
+              🔍 Résultats de recherche pour « {searchQuery} » ({searchResults.length} résultats){mediaFilter === 'video' ? ' — 🎬 animées uniquement' : mediaFilter === 'static' ? ' — 🖼️ statiques uniquement' : ''}
             </div>
 
             {#if searchResults.length === 0}
               <div class="empty-box">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem">🔍</div>
-                <div>Aucun fichier ne correspond à votre recherche.</div>
-                <button class="btn-reset" onclick={() => searchQuery = ''}>Effacer la recherche</button>
+                <div>
+                  {#if mediaFilter !== 'all'}
+                    Aucun fichier {mediaFilter === 'video' ? 'animé' : 'statique'} ne correspond à votre recherche.
+                  {:else}
+                    Aucun fichier ne correspond à votre recherche.
+                  {/if}
+                </div>
+                <div class="empty-actions">
+                  <button class="btn-reset" onclick={() => searchQuery = ''}>Effacer la recherche</button>
+                  {#if mediaFilter !== 'all'}
+                    <button class="btn-reset" onclick={() => mediaFilter = 'all'}>Retirer le filtre</button>
+                  {/if}
+                </div>
               </div>
             {:else}
               <div class="files-grid">
@@ -950,6 +1095,7 @@
                   {@const isDl = downloadingFiles.has(file.id)}
                   {@const isPdf = file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')}
                   {@const isAudio = file.destination === 'assets/audio' || file.destination === 'audio' || anyAudio(file.filename)}
+                  {@const isVideo = anyVideo(file.filename)}
                   {@const isPlayingThis = playingAudio?.id === file.id && playingAudio?.isPlaying}
                   <div class="file-card" class:file-on-disk={onDisk} class:file-is-pdf={isPdf} class:file-is-audio={isAudio}>
                     <div class="file-thumb-wrap" role="button" tabindex="0" onclick={() => openPreview(file)} onkeydown={(e) => e.key === 'Enter' && openPreview(file)}>
@@ -972,14 +1118,40 @@
                           </div>
                           <span class="audio-format-tag">{file.filename.split('.').pop()?.toUpperCase() || 'MP3'}</span>
                         </div>
+                      {:else if isVideo}
+                        <div
+                          class="video-card-cover"
+                          class:video-previewing={previewingVideoId === file.id}
+                          style={file.thumbUrl ? `background-image:url('${file.thumbUrl}')` : ''}
+                          onmouseenter={() => scheduleVideoPreview(file)}
+                          onmouseleave={stopVideoPreview}
+                          role="presentation"
+                        >
+                          {#if previewingVideoId === file.id}
+                            <video
+                              class="video-preview-el"
+                              src={file.url}
+                              loop
+                              playsinline
+                              preload="auto"
+                              use:startPreviewPlayback
+                            >
+                              <track kind="captions" />
+                            </video>
+                            <span class="video-preview-tag">● APERÇU</span>
+                          {:else}
+                            <div class="video-play-round">🎬</div>
+                          {/if}
+                          <span class="video-format-tag">{(file.filename.split('.').pop() || 'MP4').toUpperCase()}</span>
+                        </div>
                       {:else}
                         <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
                       {/if}
                       {#if onDisk}
                         <div class="badge-on-disk">✓ Sur PC</div>
                       {/if}
-                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Liseuse PDF' : isAudio ? 'Écouter l\'audio' : 'Inspecter en plein écran'}>
-                        {isPdf ? '📖 Liseuse' : isAudio ? (isPlayingThis ? '⏸ Pause' : '▶ Écouter') : '🔍 HD'}
+                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Liseuse PDF' : isAudio ? 'Écouter l\'audio' : isVideo ? 'Lire la vidéo' : 'Inspecter en plein écran'}>
+                        {isPdf ? '📖 Liseuse' : isAudio ? (isPlayingThis ? '⏸ Pause' : '▶ Écouter') : isVideo ? '🎬 Lire' : '🔍 HD'}
                       </button>
                       <button class="btn-jump-folder" onclick={(e) => {
                         e.stopPropagation();
@@ -1014,7 +1186,7 @@
                         <button class="btn-file-pdf" onclick={() => openPdfReader(file)} title="Ouvrir dans la Liseuse Vocale">
                           🗣️ Liseuse
                         </button>
-                      {:else if file.destination === 'maps'}
+                      {:else if file.destination === 'maps' && !isVideo}
                         <button class="btn-file-vtt" onclick={() => loadIntoVTT(file, false)} title="Charger sur la VTT">
                           🎮 VTT
                         </button>
@@ -1117,7 +1289,7 @@
             <!-- 2. Files Section in current folder (if any) -->
             {#if currentFiles.length > 0}
               <div class="section-title" style="margin-top: {currentSubfolders.length > 0 ? '1.5rem' : '0'}">
-                📄 Fichiers dans ce dossier ({currentFiles.length})
+                📄 Fichiers dans ce dossier ({currentFiles.length}{mediaFilter === 'video' ? ', 🎬 animés' : mediaFilter === 'static' ? ', 🖼️ statiques' : ''})
               </div>
               <div class="files-grid">
                 {#each currentFiles as file (file.id)}
@@ -1125,6 +1297,7 @@
                   {@const isDl = downloadingFiles.has(file.id)}
                   {@const isPdf = file.destination === 'books' || file.filename.toLowerCase().endsWith('.pdf')}
                   {@const isAudio = file.destination === 'assets/audio' || file.destination === 'audio' || anyAudio(file.filename)}
+                  {@const isVideo = anyVideo(file.filename)}
                   {@const isPlayingThis = playingAudio?.id === file.id && playingAudio?.isPlaying}
                   <div class="file-card" class:file-on-disk={onDisk} class:file-is-pdf={isPdf} class:file-is-audio={isAudio}>
                     <div class="file-thumb-wrap" role="button" tabindex="0" onclick={() => openPreview(file)} onkeydown={(e) => e.key === 'Enter' && openPreview(file)}>
@@ -1147,14 +1320,40 @@
                           </div>
                           <span class="audio-format-tag">{file.filename.split('.').pop()?.toUpperCase() || 'MP3'}</span>
                         </div>
+                      {:else if isVideo}
+                        <div
+                          class="video-card-cover"
+                          class:video-previewing={previewingVideoId === file.id}
+                          style={file.thumbUrl ? `background-image:url('${file.thumbUrl}')` : ''}
+                          onmouseenter={() => scheduleVideoPreview(file)}
+                          onmouseleave={stopVideoPreview}
+                          role="presentation"
+                        >
+                          {#if previewingVideoId === file.id}
+                            <video
+                              class="video-preview-el"
+                              src={file.url}
+                              loop
+                              playsinline
+                              preload="auto"
+                              use:startPreviewPlayback
+                            >
+                              <track kind="captions" />
+                            </video>
+                            <span class="video-preview-tag">● APERÇU</span>
+                          {:else}
+                            <div class="video-play-round">🎬</div>
+                          {/if}
+                          <span class="video-format-tag">{(file.filename.split('.').pop() || 'MP4').toUpperCase()}</span>
+                        </div>
                       {:else}
                         <img src={file.thumbUrl || file.url} alt={file.name} class="file-thumb" loading="lazy" referrerpolicy="no-referrer" />
                       {/if}
                       {#if onDisk}
                         <div class="badge-on-disk">✓ Sur PC</div>
                       {/if}
-                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Ouvrir dans la Liseuse PDF & Voix' : isAudio ? 'Écouter l\'audio' : 'Inspecter en plein écran (Zoom & Pan)'}>
-                        {isPdf ? '📖 Liseuse' : isAudio ? (isPlayingThis ? '⏸ Pause' : '▶ Écouter') : '🔍 HD'}
+                      <button class="btn-inspect-hd" onclick={(e) => { e.stopPropagation(); openPreview(file); }} title={isPdf ? 'Ouvrir dans la Liseuse PDF & Voix' : isAudio ? 'Écouter l\'audio' : isVideo ? 'Lire la vidéo (Zoom & Pan)' : 'Inspecter en plein écran (Zoom & Pan)'}>
+                        {isPdf ? '📖 Liseuse' : isAudio ? (isPlayingThis ? '⏸ Pause' : '▶ Écouter') : isVideo ? '🎬 Lire' : '🔍 HD'}
                       </button>
                     </div>
                     <div class="file-info">
@@ -1181,7 +1380,7 @@
                         <button class="btn-file-pdf" onclick={() => openPdfReader(file)} title="Ouvrir dans la Liseuse Vocale intégrée">
                           🗣️ Liseuse
                         </button>
-                      {:else if file.destination === 'maps'}
+                      {:else if file.destination === 'maps' && !isVideo}
                         <button class="btn-file-vtt" onclick={() => loadIntoVTT(file, false)} title="Charger cette carte directement sur la VTT">
                           🎮 VTT
                         </button>
@@ -1195,8 +1394,16 @@
             {#if currentSubfolders.length === 0 && currentFiles.length === 0}
               <div class="empty-box">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem">📂</div>
-                <div>Ce dossier est vide.</div>
-                <button class="btn-reset" onclick={navigateUp}>Retour au dossier parent</button>
+                {#if mediaFilter !== 'all'}
+                  <div>
+                    Aucun fichier {mediaFilter === 'video' ? 'animé' : 'statique'} dans ce dossier
+                    {#if searchQuery.trim()} ni dans les résultats de recherche{/if}.
+                  </div>
+                  <button class="btn-reset" onclick={() => mediaFilter = 'all'}>Tout afficher</button>
+                {:else}
+                  <div>Ce dossier est vide.</div>
+                  <button class="btn-reset" onclick={navigateUp}>Retour au dossier parent</button>
+                {/if}
               </div>
             {/if}
           {/if}
@@ -1409,12 +1616,14 @@
 {#if previewFile}
   {@const isDl = downloadingFiles.has(previewFile.id)}
   {@const onDisk = isFileOnDisk(previewFile)}
+  {@const isVideo = anyVideo(previewFile.filename)}
   <div class="lightbox-overlay" role="dialog" aria-modal="true" tabindex="-1">
     <!-- Top Header -->
     <div class="lightbox-header">
       <div class="lightbox-title-wrap">
         <span class="lightbox-badge">
-          {#if previewFile.destination === 'maps'}🗺️ CARTE
+          {#if isVideo}🎬 VIDÉO
+          {:else if previewFile.destination === 'maps'}🗺️ CARTE
           {:else if previewFile.destination === 'tiles/custom'}🧱 TEXTURE
           {:else}🎨 TAMPON{/if}
         </span>
@@ -1447,13 +1656,25 @@
         class="lightbox-canvas"
         style="transform: translate({previewPan.x}px, {previewPan.y}px) scale({previewZoom}); cursor: {isDraggingPreview ? 'grabbing' : 'grab'}"
       >
-        <img
-          src={previewFile.highResUrl || previewFile.url}
-          alt={previewFile.name}
-          class="lightbox-img"
-          referrerpolicy="no-referrer"
-          draggable="false"
-        />
+        {#if isVideo}
+          <video
+            class="lightbox-video"
+            src={previewFile.highResUrl || previewFile.url}
+            controls
+            preload="metadata"
+            onmousedown={(e) => e.stopPropagation()}
+          >
+            Votre navigateur ne prend pas en charge la lecture vidéo.
+          </video>
+        {:else}
+          <img
+            src={previewFile.highResUrl || previewFile.url}
+            alt={previewFile.name}
+            class="lightbox-img"
+            referrerpolicy="no-referrer"
+            draggable="false"
+          />
+        {/if}
       </div>
 
       <!-- Navigation Arrows -->
@@ -1487,7 +1708,7 @@
           {:else}⬇️ Télécharger sur PC{/if}
         </button>
 
-        {#if previewFile.destination === 'maps'}
+        {#if previewFile.destination === 'maps' && !isVideo}
           <button class="btn-hd-vtt" onclick={() => previewFile && loadIntoVTT(previewFile, false)}>
             🎮 Projeter sur la Table Virtuelle
           </button>
@@ -1601,6 +1822,14 @@
   }
   .nav-pill:hover { background: #1e293b; color: #fff; }
   .active-pill { background: #0369a1; border-color: #38bdf8; color: #fff; }
+
+  .media-filter-pills { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .filter-reset {
+    background: transparent; border: 1px dashed #475569; color: #94a3b8;
+    border-radius: 6px; padding: 4px 8px; font-size: 0.72rem; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-reset:hover { color: #f87171; border-color: #f87171; }
 
   .banner-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .folder-quick-links { display: flex; gap: 4px; }
@@ -1799,6 +2028,7 @@
   .file-name-cut { max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Loading & Empty States */
+  .empty-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
   .loading-box, .empty-box, .error-box {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 60px 20px; text-align: center; color: #94a3b8; gap: 12px;
@@ -2038,6 +2268,62 @@
     transition: all 0.15s;
   }
   .btn-file-pdf:hover { background: #4f46e5; color: #fff; box-shadow: 0 0 10px rgba(99,102,241,0.4); }
+
+  /* ── Video Card ─────────────────────────────────────────────────────────── */
+  .video-card-cover {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #0b1a33 0%, #0d1222 60%, #12203a 100%);
+    background-size: cover; background-position: center;
+    position: relative; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; overflow: hidden; border: 1px solid rgba(56, 189, 248, 0.25);
+    cursor: pointer;
+  }
+  .video-play-round {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(2, 6, 23, 0.65); border: 2px solid rgba(255, 255, 255, 0.8);
+    color: #fff; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); z-index: 2; transition: all 0.15s;
+  }
+  .video-card-cover:hover .video-play-round {
+    transform: scale(1.1); border-color: #38bdf8; box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+  }
+  .video-format-tag {
+    position: absolute; bottom: 8px; right: 8px; z-index: 2;
+    font-size: 0.62rem; font-weight: 800; letter-spacing: 0.5px;
+    color: #9ae6ff; background: rgba(0, 0, 0, 0.65); padding: 2px 6px; border-radius: 4px;
+  }
+  /* Aperçu animé : la vidéo muette recouvre la vignette statique au survol */
+  .video-preview-el {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    background: #000;
+    z-index: 1;
+  }
+  .video-card-cover.video-previewing {
+    border-color: rgba(56, 189, 248, 0.75);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+  }
+  .video-preview-tag {
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 0.5px;
+    color: #020617; background: #38bdf8; padding: 2px 6px; border-radius: 4px;
+    animation: preview-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes preview-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  /* L'aperçu au survol reste disponible (geste utilisateur explicite), mais on
+     respecte prefers-reduced-motion sur les animations purement décoratives. */
+  @media (prefers-reduced-motion: reduce) {
+    .video-preview-tag { animation: none; }
+  }
+  .lightbox-video {
+    max-width: 88vw; max-height: 78vh;
+    border-radius: 6px; background: #000;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+  }
 
   /* ── Audio Card & Waveform Animations ───────────────────────────────────── */
   .file-is-audio {

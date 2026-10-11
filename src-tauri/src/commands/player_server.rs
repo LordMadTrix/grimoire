@@ -8,6 +8,7 @@ use axum::{
     Router,
 };
 use tower_http::cors::CorsLayer;
+use axum::http::{header, HeaderValue, Method};
 use walkdir::WalkDir;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, net::SocketAddr, sync::OnceLock};
@@ -182,7 +183,7 @@ pub async fn start_player_server(
         .route("/api/mj/vault_notes", get(handle_mj_vault_notes))
         .route("/api/mj/read_note", get(handle_mj_read_note))
         .route("/ws", get(ws_handler))
-        .layer(CorsLayer::permissive())
+        .layer(hub_cors())
         .with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind(&addr)
@@ -262,8 +263,10 @@ pub async fn apply_damage_to_player(player_id: String, damage: i32) -> Result<()
     let (msg, p_name, char_data) = {
         let mut players = srv.players.lock().await;
         let p = players.get_mut(&player_id).ok_or("Joueur introuvable")?;
-        let cur = p.character.get("bless").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-        let new_val = (cur - damage).max(-10);
+        // Saturating + bornes : un message WS corrompu ou malveillant ne doit
+        // jamais faire déborder l'arithmétique ni faire exploser les PV/blessures.
+        let cur = p.character.get("bless").and_then(|v| v.as_i64()).unwrap_or(0);
+        let new_val = (cur - i64::from(damage)).clamp(-10, 9999);
         if let Some(obj) = p.character.as_object_mut() {
             obj.insert("bless".into(), serde_json::json!(new_val));
         }
@@ -360,7 +363,7 @@ pub async fn approve_xp_request(player_id: String, amount: u32) -> Result<(), St
         let p = players.get_mut(&player_id).ok_or("Joueur introuvable")?;
         p.pending_xp = None;
         let cur_xp = p.character.get("xp").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let new_xp = cur_xp + amount;
+        let new_xp = cur_xp.saturating_add(amount);
         if let Some(obj) = p.character.as_object_mut() {
             obj.insert("xp".into(), serde_json::json!(new_xp));
         }
@@ -648,6 +651,48 @@ pub async fn delete_player_account(account_name: String) -> Result<(), String> {
 
 // ── HTTP handlers ─────────────────────────────────────────────────────────────
 
+/// CORS restreint du hub mobile. Seules les origines de confiance (dev Vite
+/// local, carnet MJ hébergé sur GitHub Pages) peuvent lire les réponses en
+/// cross-origin. Les pages servies par le hub lui-même (mobile, carnet) sont
+/// même-origine et n'ont pas besoin de CORS. Sans cette liste blanche, n'importe
+/// quel site web ouvert sur le PC du MJ pouvait lire le vault
+/// (notes, comptes joueurs) via http://localhost:7438 avec `permissive`.
+fn hub_cors() -> CorsLayer {
+    let trusted_origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "https://lordmadtrix.github.io",
+    ];
+    let origins: Vec<HeaderValue> = trusted_origins
+        .iter()
+        .filter_map(|o| HeaderValue::from_str(o).ok())
+        .collect();
+    CorsLayer::new()
+        .allow_origin(origins)
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([header::CONTENT_TYPE])
+}
+
+/// Défense en profondeur : le chemin résolu (symlinks compris) doit rester
+/// dans le vault. `sanitize_relative_path` bloque déjà `..` et les racines ;
+/// ce contrôle protège contre un fichier du vault qui serait un lien
+/// symbolique pointant ailleurs sur le disque. Fonctionne aussi quand le
+/// fichier n'existe pas encore (écriture) en remontant aux ancêtres existants.
+fn path_inside_vault(vault_path: &str, candidate: &std::path::Path) -> bool {
+    let Ok(base) = std::path::Path::new(vault_path).canonicalize() else {
+        return false;
+    };
+    let mut probe = candidate;
+    while !probe.exists() {
+        match probe.parent() {
+            Some(p) if p != probe => probe = p,
+            _ => break,
+        }
+    }
+    matches!(probe.canonicalize(), Ok(resolved) if resolved.starts_with(&base))
+}
+
 async fn serve_player_app() -> impl IntoResponse {
     Html(PLAYER_APP_HTML)
 }
@@ -745,6 +790,18 @@ async fn save_mj_note_internal(state: &std::sync::Arc<ServerInner>, payload: &se
         let _ = std::fs::create_dir_all(&target_dir);
         target_dir.join(format!("{}.md", slugify_clean(title)))
     };
+
+    // 0. Défense en profondeur : refuser toute écriture dont le chemin résolu
+    // (symlinks compris) sortirait du vault.
+    if !path_inside_vault(&vault_path, &target_file) {
+        return MjSaveResult {
+            success: false,
+            error: Some("Sécurité : chemin hors du vault refusé.".to_string()),
+            path: None,
+            conflict: false,
+            message: String::new(),
+        };
+    }
 
     // 1. Protection anti-effacement : refuser d'écraser un fichier existant par du vide
     if content.trim().is_empty() && target_file.exists() {
@@ -944,14 +1001,18 @@ async fn handle_mj_read_note(
         let sanitized = crate::commands::addons::sanitize_relative_path(&query.path);
         let full_path = std::path::Path::new(&vault_path).join(sanitized);
 
-        if let Ok(content) = std::fs::read_to_string(&full_path) {
-            let title = full_path.file_stem().and_then(|s| s.to_str()).unwrap_or("Note").to_string();
-            return axum::Json(serde_json::json!({
-                "success": true,
-                "path": query.path,
-                "title": title,
-                "content": content
-            }));
+        // Défense en profondeur : refuser la lecture si le chemin résolu sort
+        // du vault (lien symbolique pointant hors du coffre, par exemple).
+        if path_inside_vault(&vault_path, &full_path) {
+            if let Ok(content) = std::fs::read_to_string(&full_path) {
+                let title = full_path.file_stem().and_then(|s| s.to_str()).unwrap_or("Note").to_string();
+                return axum::Json(serde_json::json!({
+                    "success": true,
+                    "path": query.path,
+                    "title": title,
+                    "content": content
+                }));
+            }
         }
     }
     axum::Json(serde_json::json!({ "success": false, "error": "Fichier introuvable ou vault non configuré" }))

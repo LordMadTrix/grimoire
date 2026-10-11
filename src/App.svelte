@@ -25,7 +25,8 @@
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
   import { getAiModel, setAiModel } from '$lib/stores/settings.svelte';
-  import { isTauri, openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath } from '$lib/api';
+  import { isTauri, openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath, getServerStatus, getPlayerConnections } from '$lib/api';
+  import { mobileServerStore } from '$lib/stores/mobileServer.svelte';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
   import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
@@ -154,6 +155,37 @@
   let playerManagerRef = $state<any>(null);
   let playerMobileManagerRef = $state<any>(null);
   let updateModalRef = $state<any>(null);
+
+  // ── État du hub mobile (serveur joueurs) — indicateur permanent sidebar ──
+  let hubStatus = $state<{ port: number; players: number } | null>(null);
+  let hubPollTimer: ReturnType<typeof setInterval> | null = null;
+  let mapBridgeChannel: BroadcastChannel | null = null;
+
+  async function refreshHubStatus() {
+    if (!isTauri()) return;
+    try {
+      const status = await getServerStatus();
+      if (!status) {
+        hubStatus = null;
+        return;
+      }
+      const conns = await getPlayerConnections();
+      hubStatus = { port: status.port, players: conns.length };
+    } catch {
+      hubStatus = null;
+    }
+  }
+
+  // Indicateur d'état du hub : rafraîchi toutes les 5 s (invoke local léger)
+  onMount(() => {
+    if (!isTauri()) return;
+    mobileServerStore.init();
+    refreshHubStatus();
+    hubPollTimer = setInterval(refreshHubStatus, 5000);
+    return () => {
+      if (hubPollTimer) clearInterval(hubPollTimer);
+    };
+  });
 
   function handleDiceRoll(result: number, label: string) {
     const text = `🎲 ${label} = ${result}`;
@@ -406,9 +438,9 @@
       }
 
       // Support fallback via BroadcastChannel (web / multi-onglets)
-      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-        const bc = new BroadcastChannel('grimoire-map-bridge');
-        bc.onmessage = (ev) => {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window && !mapBridgeChannel) {
+        mapBridgeChannel = new BroadcastChannel('grimoire-map-bridge');
+        mapBridgeChannel.onmessage = (ev) => {
           if (ev.data?.type === 'map-send-to-grimoire') {
             handleMapFromEditor(ev.data.payload, true);
           } else if (ev.data?.type === 'map-save-to-vault') {
@@ -450,6 +482,10 @@
       _unlistenApp.forEach(fn => fn());
       if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
       if (playerSyncTimer) clearTimeout(playerSyncTimer);
+      if (mapBridgeChannel) {
+        mapBridgeChannel.close();
+        mapBridgeChannel = null;
+      }
     };
   });
 
@@ -782,6 +818,19 @@
         <button onclick={handleOpenVault} class="footer-btn" title="Changer de vault">
           📂 Changer de Vault
         </button>
+        {#if isTauri()}
+          {#if hubStatus}
+            <div class="hub-status on" title="Serveur mobile des joueurs actif sur le port {hubStatus.port}">
+              <span class="hub-dot"></span>
+              Hub :{hubStatus.port} · {hubStatus.players} joueur{hubStatus.players > 1 ? 's' : ''}
+            </div>
+          {:else}
+            <div class="hub-status off" title="Le serveur mobile est arrêté — cliquez sur « Hub Mobile & Carnet MJ » pour le démarrer">
+              <span class="hub-dot"></span>
+              Hub mobile arrêté
+            </div>
+          {/if}
+        {/if}
         <div class="footer-row">
           <button onclick={() => showSettings = true} class="footer-btn half" title="Réglages">
             ⚙️ Réglages
@@ -1064,6 +1113,30 @@
     transition: all var(--transition-fast);
   }
   .footer-btn.half { flex: 1; width: auto; margin-bottom: 0; }
+
+  /* ── Hub mobile : indicateur d'état permanent ───────────────── */
+
+  .hub-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 2px 4px 7px;
+    user-select: none;
+  }
+  .hub-status.on { color: var(--text-secondary); }
+  .hub-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #6b7280;
+    flex-shrink: 0;
+  }
+  .hub-status.on .hub-dot {
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+  }
   .footer-btn:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
