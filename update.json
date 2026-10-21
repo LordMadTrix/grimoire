@@ -1,6 +1,6 @@
 {
-  "version": "0.7.6",
-  "changelog": "Nouveau bouton « Signaler un bug » dans le Menu Aide : vos retours ouvrent une issue GitHub pré-remplie (version, système, date) en un clic. Fiabilisation de la CI macOS du bundle de mise à jour automatique.",
+  "version": "0.8.7",
+  "changelog": "Éditeur de Tokens Personnalisés & Frises VTT, corrections de mise en page CSS scoped et accès direct haute performance à la Bibliothèque Céleste dans l'Éditeur de Cartes.",
   "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-10-02"
+  "release_date": "2026-10-21"
 }

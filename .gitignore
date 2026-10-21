@@ -50,6 +50,8 @@ public/assets/
 # Fichiers de test temporaires
 test*.jpg
 test*.png
+test*.mp3
+scratch*.mp3
 
 # Outils de dev locaux et fichiers de travail (non versionnés)
 .claude/
