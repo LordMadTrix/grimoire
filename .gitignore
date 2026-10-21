@@ -71,3 +71,6 @@ mapper-rpg-extracted/
 
 # État interne du client Freebuff (non versionné)
 .freebuff/
+
+# Superpowers temporary sessions
+.superpowers/

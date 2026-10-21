@@ -21,6 +21,7 @@
   import UpdateModal from './components/UpdateModal.svelte';
   import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
   import AddonStore from './components/AddonStore.svelte';
+  import TokenEditorModal from './components/TokenEditorModal.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
@@ -140,6 +141,7 @@
   let showSettings = $state(false);
   let showOllamaOnboarding = $state(false);
   let showAddonStore = $state(false);
+  let showTokenEditor = $state(false);
   let showFeedback = $state(false);
   let showPlayerQuickDock = $state(true);
   let monitors = $state<MonitorInfo[]>([]);
@@ -801,6 +803,9 @@
         <button onclick={handleOpenMapEditor} class="footer-btn vtt-btn" title="Ouvrir l'éditeur de cartes dédié">
           🗺️ Éditeur de Cartes
         </button>
+        <button onclick={() => showTokenEditor = true} class="footer-btn vtt-btn" style="color: #e6b450; font-weight: 700; border-color: rgba(230, 180, 80, 0.4);" title="Ouvrir l'éditeur de tokens personnalisé">
+          🪙 Éditeur de Tokens
+        </button>
         <button onclick={launchPlayerView} class="footer-btn vtt-btn" title="Ouvrir la vue Joueurs sur un autre écran">
           🖥️ Lancer Vue Joueurs
         </button>
@@ -1000,6 +1005,7 @@
 
 <UpdateModal bind:this={updateModalRef} />
 <NotificationToast />
+<TokenEditorModal isOpen={showTokenEditor} onclose={() => showTokenEditor = false} />
 
 <style>
   .app-layout {

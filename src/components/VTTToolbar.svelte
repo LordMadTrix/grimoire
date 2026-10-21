@@ -57,8 +57,9 @@
   import { soundscape } from '$lib/stores/soundscape.svelte';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import AddonStore from './AddonStore.svelte';
-  import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
   import { gameSessionDemo } from '$lib/vtt/gameSessionDemoStore.svelte';
+  import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
+  import TokenEditorModal from './TokenEditorModal.svelte';
 
   let { 
     onRoll,
@@ -86,6 +87,7 @@
   let showSoundscapeMixer = $state(false);
   let showHandoutPicker = $state(false);
   let showTokenPicker = $state(false);
+  let showTokenEditor = $state(false);
   let showSharedLibrary = $state(false);
   let showAddonStore = $state(false);
   let showNarrativeAssistant = $state(false);
@@ -528,6 +530,7 @@
           {/if}
 
           <div class="dropdown-divider"></div>
+          <button class="dropdown-item" style="color: #e6b450; font-weight: bold;" onclick={() => { showTokenEditor = true; activeMenu = null; }}>🪙 Éditeur de Tokens (Studio)</button>
           <button class="dropdown-item" onclick={() => { showTokenPicker = true; tokenPickerSearch = ''; activeMenu = null; }}>🖼️ Token image</button>
           <button class="dropdown-item" onclick={createTestToken}>👹 Token basique (test)</button>
         </div>
@@ -711,6 +714,7 @@
         
         <div class="dropdown-divider"></div>
         <div class="dropdown-title">Bibliothèques & Éditeurs</div>
+        <button class="dropdown-item" style="color: #e6b450; font-weight: bold;" onclick={() => { showTokenEditor = true; activeMenu = null; }}>🪙 Éditeur de Tokens (Studio)</button>
         <button class="dropdown-item" onclick={() => { showAddonStore = true; activeMenu = null; }}>🌌 Bibliothèque Céleste (Cartes, Audio, PDF)</button>
         <button class="dropdown-item" onclick={() => { showSharedLibrary = true; activeMenu = null; }}>📚 Bibliothèque partagée</button>
         
@@ -734,6 +738,9 @@
   <!-- Élément permanent à droite -->
   <div class="toolbar-permanent">
     <DiceRoller onRoll={handleDiceRoll} />
+    <button class="token-quick-btn" onclick={() => showTokenEditor = true} title="Éditeur de Tokens Grimoire">
+      🪙 Tokens
+    </button>
     <button class="btn icon-btn combat-btn ml-1" class:active={vttStore.combatActive}
       onclick={() => vttStore.combatActive ? stopCombat() : startCombat()}
       title={vttStore.combatActive ? 'Terminer le combat' : 'Démarrer le tracker de combat'}>
@@ -1058,6 +1065,7 @@
 {#if showAddonStore}
   <AddonStore onclose={() => showAddonStore = false} />
 {/if}
+<TokenEditorModal isOpen={showTokenEditor} onclose={() => showTokenEditor = false} />
 
 <style>
   
@@ -1442,6 +1450,27 @@
     border-color: #10b981 !important;
     color: #a7f3d0 !important;
     box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+  }
+  .token-quick-btn {
+    background: linear-gradient(135deg, rgba(230, 180, 80, 0.2) 0%, rgba(184, 134, 11, 0.25) 100%);
+    border: 1px solid rgba(230, 180, 80, 0.5);
+    color: #ffd700;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+    margin-left: 4px;
+  }
+  .token-quick-btn:hover {
+    background: linear-gradient(135deg, rgba(230, 180, 80, 0.35) 0%, rgba(184, 134, 11, 0.4) 100%);
+    border-color: #ffd700;
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px rgba(230, 180, 80, 0.3);
   }
 
   </style>
