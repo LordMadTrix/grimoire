@@ -1,7 +1,7 @@
 {
-  "version": "0.7.6",
-  "notes": "Nouveau bouton « Signaler un bug » dans le Menu Aide : vos retours ouvrent une issue GitHub pré-remplie (version, système, date) en un clic. Fiabilisation de la CI macOS du bundle de mise à jour automatique.",
-  "pub_date": "2026-10-02T14:23:11Z",
+  "version": "0.8.7",
+  "notes": "Correctifs de l'Éditeur de Tokens (CSS scoped, proportions, clics sur les presets) et de la Bibliothèque Céleste dans l'Éditeur de Cartes (exclusion des PDF hors-sujet, chargement instantané des miniatures via Google CDN no-referrer).",
+  "pub_date": "2026-10-21T15:52:00Z",
   "platforms": {
     "windows-x86_64": {
       "url": "https://github.com/LordMadTrix/grimoire/releases/latest"

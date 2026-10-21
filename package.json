@@ -1,7 +1,7 @@
 {
   "name": "grimoire",
   "private": true,
-  "version": "0.8.6",
+  "version": "0.8.7",
   "type": "module",
   "scripts": {
     "vite-dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"npm run dev --prefix map-editor -- --port 5174 --strictPort\"",
