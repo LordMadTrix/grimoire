@@ -171,6 +171,7 @@
     if (fileSrc) {
       dynamicLoadingAssets.add(cacheKey);
       const img = new Image();
+      img.referrerPolicy = 'no-referrer';
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         // Supprimer le fond blanc (Chroma Keying) pour le canevas si possible
@@ -279,6 +280,7 @@
     const url = mapStore.backgroundImageUrl;
     if (url) {
       const img = new Image();
+      img.referrerPolicy = 'no-referrer';
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         assetCache.set('bg_user_image', img);

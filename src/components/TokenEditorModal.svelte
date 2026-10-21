@@ -390,6 +390,8 @@
                 <img 
                   src={design.imageUrl} 
                   alt={design.name}
+                  referrerpolicy="no-referrer"
+                  crossorigin="anonymous"
                   class="token-art-img"
                   style:transform={`translate(${design.imagePan.x}px, ${design.imagePan.y}px) scale(${design.imageScale})`}
                 />

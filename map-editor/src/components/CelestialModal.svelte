@@ -449,6 +449,7 @@
                       src={file.thumbUrl || file.url}
                       alt={file.name}
                       loading="lazy"
+                      referrerpolicy="no-referrer"
                       class="thumbnail-img"
                       onerror={(e) => {
                         const t = e.currentTarget as HTMLImageElement;
@@ -578,6 +579,7 @@
         <img
           src={previewFile.highResUrl || previewFile.url}
           alt={previewFile.name}
+          referrerpolicy="no-referrer"
           class="lightbox-img"
           style="transform: translate({previewPan.x}px, {previewPan.y}px) scale({previewZoom});"
           draggable="false"

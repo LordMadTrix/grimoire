@@ -217,6 +217,7 @@
                 alt={item.name} 
                 class="art-img"
                 loading="lazy"
+                referrerpolicy="no-referrer"
               />
             </div>
             <span class="art-name">
