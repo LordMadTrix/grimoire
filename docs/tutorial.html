@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grimoire v0.6.7 — Guide Encyclopédique Interactif de A à Z</title>
+<title>Grimoire v0.8.6 — Guide Encyclopédique Interactif de A à Z</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono&display=swap" rel="stylesheet">
@@ -103,7 +103,7 @@
 
       <!-- Hero Header -->
       <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card to-transparent">
-        <h1 class="text-4xl md:text-5xl font-black text-white mb-4">Manuel Complet de Grimoire (v0.6.7)</h1>
+        <h1 class="text-4xl md:text-5xl font-black text-white mb-4">Manuel Complet de Grimoire (v0.8.6)</h1>
         <p class="text-gray-400 text-lg leading-relaxed mb-6">
           Ce tutoriel exhaustif vous explique de A à Z comment exploiter toute la puissance de Grimoire : Wiki de Lore, Éditeur Rôliste Ultime, Table Virtuelle (VTT) avec éclairage dynamique et météo IA, Liseuse PDF 2.0 vivante, Studio Audio Céleste et Fantasy Map Editor.
         </p>
@@ -351,9 +351,35 @@
         </div>
       </section>
 
-      <!-- Chapitre 9 -->
+      <!-- Chapitre 9 : Tokens, Éditeur Personnalisé & ConditionWheel -->
+      <section id="tokens" class="scroll-mt-24 space-y-4">
+        <h2 class="text-2xl font-bold text-grimoire-accent border-b border-gray-800 pb-2">9. Gestion des Tokens & Éditeur Créatif (v0.8.6)</h2>
+        <p class="text-gray-300 leading-relaxed">
+          Les pions sur la table virtuelle de Grimoire ne sont pas de simples images statiques : ils bénéficient d'un <strong>Atelier de Création complet</strong> et d'interactions réactives en combat.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div class="glass p-5 rounded-2xl border border-yellow-500/20">
+            <h4 class="font-bold text-yellow-300 mb-1">🪙 Éditeur de Tokens Dédié</h4>
+            <p class="text-gray-400 text-xs">Atelier intégré dans la barre VTT (menu PNJ ou <code>🪙 Créer un Token</code>) avec presets éditables, frises polygonales (Hexagone, Bouclier, Rond) et 5 métaux de prestige.</p>
+          </div>
+          <div class="glass p-5 rounded-2xl border border-yellow-500/20">
+            <h4 class="font-bold text-yellow-300 mb-1">🖐️ Repositionnement Libre</h4>
+            <p class="text-gray-400 text-xs">L'étiquette du nom se déplace librement à la souris et reste toujours 100% visible sans rognage. Pan et zoom de l'image à la molette.</p>
+          </div>
+          <div class="glass p-5 rounded-2xl border border-white/5">
+            <h4 class="font-bold text-grimoire-accent mb-1">🎡 ConditionWheel (Roue Radiale)</h4>
+            <p class="text-gray-400 text-xs">Clic droit sur un token pour appliquer instantanément une condition (Hémorragie, Inconscient, Empoisonné, Enflammé...) avec halo synchronisé.</p>
+          </div>
+          <div class="glass p-5 rounded-2xl border border-white/5">
+            <h4 class="font-bold text-grimoire-accent mb-1">🎯 Placement VTT Instantané</h4>
+            <p class="text-gray-400 text-xs">Sauvegarde automatique dans votre coffre MJ (<code>tokens/</code> en PNG HD) et instanciation immédiate sur la carte active.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chapitre 10 -->
       <section id="combat" class="scroll-mt-24 space-y-4">
-        <h2 class="text-2xl font-bold text-grimoire-accent border-b border-gray-800 pb-2">9. Moteur de Combat & Résolution des Tests Opposés (SL Net)</h2>
+        <h2 class="text-2xl font-bold text-grimoire-accent border-b border-gray-800 pb-2">10. Moteur de Combat & Résolution des Tests Opposés (SL Net)</h2>
         <p class="text-gray-300 leading-relaxed">
           Le combat dans Warhammer Fantasy (WFRP) est résolu en quelques secondes avec le calculateur de combat intégré :
         </p>

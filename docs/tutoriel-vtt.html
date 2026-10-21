@@ -410,6 +410,115 @@
       </div>
     </section>
 
+    <!-- Section Éditeur de Tokens & Frises Ciselées (v0.8.6) -->
+    <section id="editeur-tokens" class="space-y-6 scroll-mt-24">
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-xs uppercase tracking-wider font-bold text-yellow-400">Atelier Créatif VTT</span>
+          <h2 class="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+            <span>🪙</span> Éditeur de Tokens Personnalisés & Frises Ciselées (v0.8.6)
+          </h2>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">
+          NOUVEAUTÉ v0.8.6
+        </span>
+      </div>
+
+      <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+        Besoin d'ajouter à la volée un aubergiste, un capitaine de la garde ou un chef gobelin pendant la partie ? Grimoire intègre un <strong>Éditeur de Tokens complet</strong> accessible depuis la barre d'outils VTT (menu PNJ ou raccourci <code>🪙 Créer un Token</code>). Créez des pions de qualité professionnelle aux bordures polygonales sculptées en quelques secondes.
+      </p>
+
+      <!-- 4 Piliers Clés de l'Éditeur -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Pilier 1: Formes & Frises -->
+        <div class="glass p-6 rounded-2xl border border-yellow-500/30 space-y-3 bg-gradient-to-b from-yellow-950/20 to-transparent">
+          <div class="w-10 h-10 rounded-xl bg-yellow-400 text-black font-black flex items-center justify-center text-lg shadow-lg shadow-yellow-400/20">⬡</div>
+          <h3 class="font-bold text-white text-base">3 Formes Polygonales</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            <strong>Hexagone (⬡)</strong> à 6 facettes et rivets martelés, <strong>Écu héraldique (🛡️)</strong> médiéval ou <strong>Rond classique (⚪)</strong>. La frise ornée s'adapte mathématiquement à la géométrie de chaque pion.
+          </p>
+        </div>
+
+        <!-- Pilier 2: Métaux Ciselés -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 text-yellow-300 font-black flex items-center justify-center text-lg">👑</div>
+          <h3 class="font-bold text-white text-base">5 Métaux & Dégradés</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Finitions de prestige : <strong>Or royal</strong> ciselé avec reflets lumineux, <strong>Acier poli</strong> de chevalier, <strong>Runes violettes</strong> arcaniques, <strong>Cuivre patiné</strong> et <strong>Obsidienne sombre</strong>.
+          </p>
+        </div>
+
+        <!-- Pilier 3: Repositionnement & Cadrage -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 text-white font-black flex items-center justify-center text-lg">🖐️</div>
+          <h3 class="font-bold text-white text-base">Drag & Drop du Nom & Pan</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            L'étiquette du nom se déplace librement à la souris et reste toujours 100% visible sans rognage. Le portrait s'ajuste au doigt et à l'œil : glissez pour recadrer et zoomez de 50% à 250% à la molette.
+          </p>
+        </div>
+
+        <!-- Pilier 4: Placement VTT Direct -->
+        <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 text-emerald-400 font-black flex items-center justify-center text-lg">⚡</div>
+          <h3 class="font-bold text-white text-base">Coffre MJ & VTT Instantané</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            En un clic sur <code>🎯 Placer sur la Carte</code>, le token apparaît immédiatement sur votre plan de bataille à l'échelle choisie (1x1 ou 2x2 grand format) et s'enregistre en PNG HD dans votre dossier <code>tokens/</code>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Toggles & Options d'Affichage -->
+      <div class="glass p-6 rounded-2xl border border-white/10 bg-black/40 space-y-4">
+        <h4 class="text-yellow-300 font-bold text-sm flex items-center gap-2">
+          <span>⚙️</span> Contrôle Total des Couches d'Affichage (On / Off Indépendants)
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs text-gray-300">
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-2.5">
+            <span class="text-base">🏷️</span>
+            <div>
+              <strong class="text-white block">Étiquette Nom & Titre</strong>
+              Position libre, centrage automatique ou masquage pour un pion 100% graphique.
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-2.5">
+            <span class="text-base">❤️</span>
+            <div>
+              <strong class="text-white block">Jauge de Vie en Arc</strong>
+              Arc supérieur discret teinté de vert à rouge selon les points de santé restants.
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-2.5">
+            <span class="text-base">🛡️</span>
+            <div>
+              <strong class="text-white block">Pastille d'Allégeance</strong>
+              Allié (vert), Neutre / PNJ (ambre), Ennemi (rouge) ou Boss ★ (violet).
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-2.5">
+            <span class="text-base">🔥</span>
+            <div>
+              <strong class="text-white block">Auras Magiques Animées</strong>
+              Halos rayonnants de Flammes, Arcanes stellaires ou Lumière sacrée divine.
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-2.5">
+            <span class="text-base">🌌</span>
+            <div>
+              <strong class="text-white block">Bibliothèque Céleste Directe</strong>
+              Accès immédiat à l'ensemble des portraits, tampons et monstres de votre collection.
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-2.5">
+            <span class="text-base">📐</span>
+            <div>
+              <strong class="text-white block">Taille de Grille Automatique</strong>
+              Dimensionnement standard (1 case) ou grand format Boss / Dragon (2×2 cases).
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Navigation Hub Footer -->
     <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
       <a href="tutoriel-interface.html" class="text-sm text-gray-400 hover:text-grimoire-accent flex items-center gap-2">

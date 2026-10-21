@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.7.2)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.6)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Table Virtuelle PixiJS v8 · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio · Wiki Markdown & FTS5 · Compagnon Mobile PWA & Bouclier Anti-Perte · IA Locale Ollama*
+> *Table Virtuelle PixiJS v8 · Éditeur de Tokens Personnalisés & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile PWA & Bouclier Anti-Perte · IA Locale Ollama*
 
 ---
 
@@ -402,6 +402,41 @@ La Liseuse de PDF de Grimoire transforme vos modules et livres de règles en une
 - **Gestion des PV en 1 Clic** : Boutons rapides `[-5]`, `[-1]`, `[+1]`, `[+5]` pour ajuster la santé en plein combat avec mise à jour temps réel sur les fiches mobiles des joueurs.
 - **Tiroir d'Édition Express (`✏️`)** : Modifiez à la volée les PV max, caractéristiques ou mot de passe sans quitter la vue tactique.
 - **Persistance Définitive des Comptes (`.grimoire/player_accounts.json`)** : Sauvegarde permanente et restauration automatique de l'ensemble des fiches et de l'avancement des joueurs sur disque.
+
+### 🪙 Éditeur de Tokens Personnalisés & Frises Ciselées (v0.8.6)
+
+Grimoire intègre un **Éditeur de Tokens complet** (accessible depuis la barre d'outils VTT > menu PNJ ou via le raccourci `🪙 Créer un Token`), conçu comme un atelier créatif autonome semblable au Map Editor.
+
+#### 1. Frises Vectorielles & Formes Adaptatives
+- **Hexagone Impérial (⬡)** : Frise géométrique à 6 pans dotée de rivets martelés et bordures biseautées.
+- **Écu / Bouclier Héraldique (🛡️)** : Forme en ogive médiévale avec chanfreins d'acier ou d'or.
+- **Rond Classique (⚪)** : Anneau ciselé parfait pour les pions de monstres ou de créatures rondes.
+- **5 Finitions Métalliques** :
+  - 👑 *Or Ciselé* (dégradés dorés et reflets de lumière royale).
+  - ⚔️ *Acier Poli* (éclat d'argent bleuté pour combattants et gardes).
+  - 🔮 *Runes Violettes* (symboles arcaniques mystiques pour mages et prêtres).
+  - 🏺 *Cuivre Ancien* (patine antique martelée pour gobelins et mercenaires).
+  - 🩸 *Obsidienne Sombre* (pointes et reflets pourpres pour créatures du chaos et boss).
+
+#### 2. Positionnement & Cadrage Interactif Libre
+- **Étiquette du Nom Déplaçable** : Cliquez et glissez librement le bandeau du nom sur n'importe quel emplacement autour du pion. Le nom reste toujours 100% visible et prioritaire, sans être tronqué par les bords. Vous disposez aussi de boutons d'ancrage rapide (*En bas*, *En haut*, *Au centre*, *Incrusté*).
+- **Cadrage de l'Illustration (Pan & Zoom)** : Glissez le portrait à la souris dans le pion pour cadrer le visage ou la posture. Ajustez l'échelle de 50% à 250% via la molette de la souris ou la jauge de zoom.
+
+#### 3. Bibliothèque Céleste & Émojis Instantanés
+- Cliquez sur **🌌 Choisir dans la Bibliothèque Céleste** pour piocher instantanément dans vos portraits, stamps et tokens téléchargés ou en cache.
+- Émojis rapides d'un clic (🍺, ⚔️, 🛡️, 🏹, 🔮, 👑, 🐺, 🐉, 💀, 🧙, etc.) pour créer un pion en 3 secondes chrono.
+
+#### 4. Options d'Affichage & Toggles Indépendants
+Chaque couche visuelle possède son commutateur On/Off individuel :
+- **Nom du pion** (afficher ou masquer l'étiquette).
+- **Frise métallique** (pour un pion orné ou un pion minimaliste sans bordure).
+- **Jauge de PV en arc** (arc de cercle supérieur teinté selon la vie : vert > orange > rouge).
+- **Pastille d'allégeance** (*Allié* vert, *Neutre* ambre, *Ennemi* rouge, *Boss ★* violet).
+- **Aura Magique** (halo rayonnant *Feu*, *Arcane* ou *Sacré*).
+
+#### 5. Sauvegarde Coffre & Placement Direct sur Carte
+- **💾 Enregistrer dans le Coffre** : Exporte un fichier PNG haute résolution (512×512) et son schéma JSON dans le dossier `tokens/` de votre coffre MJ.
+- **🎯 Placer sur la Carte active** : Insère instantanément le nouveau token sur votre scène VTT active en un clic pour jouer sans attendre.
 
 ---
 
