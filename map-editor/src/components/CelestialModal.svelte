@@ -9,7 +9,7 @@
   let error = $state<string | null>(null);
 
   // Filtres
-  let selectedTab = $state<'all' | 'maps' | 'tokens' | 'tiles/custom' | 'assets/audio' | 'books'>('all');
+  let selectedTab = $state<'all' | 'maps' | 'tokens' | 'tiles/custom' | 'assets/audio'>('all');
   let selectedSubfolder = $state<string>('all');
   let searchQuery = $state('');
 
@@ -451,9 +451,12 @@
                       loading="lazy"
                       class="thumbnail-img"
                       onerror={(e) => {
-                        // Fallback image si thumbnail google drive indisponible
                         const t = e.currentTarget as HTMLImageElement;
-                        if (file.url && t.src !== file.url) t.src = file.url;
+                        if (file.url && t.src !== file.url) {
+                          t.src = file.url;
+                        } else if (file.id && !t.src.includes('drive.google.com/thumbnail')) {
+                          t.src = `https://drive.google.com/thumbnail?id=${file.id}&sz=w400`;
+                        }
                       }}
                     />
                     <div class="hover-overlay">

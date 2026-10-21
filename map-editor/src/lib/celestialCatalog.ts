@@ -23,7 +23,7 @@ export interface CelestialCatalog {
 const DB_NAME = 'GrimoireCelestialMapDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'catalog_store';
-const KEY_DATA = 'catalog_v3'; // v3 : URLs média via proxy (Content-Type rétabli pour <audio>)
+const KEY_DATA = 'catalog_v4'; // v4 : filtre hors-sujet books (PDF) + CDN direct lh3
 
 let memoryCatalog: CelestialCatalog | null = null;
 
@@ -91,24 +91,30 @@ function parseCatalogJson(json: any): CelestialCatalog {
       }
       const parts = cleanP.split('/');
       const dest = detectDestination(cleanP);
+
+      // Dans l'Éditeur de Cartes, on ne charge que les assets cartographiques (Cartes, Tampons, Textures, Audio)
+      if (dest === 'books') {
+        continue;
+      }
+
       const isAudio = dest === 'assets/audio' || anyAudioExt(filename);
       const isVideo = anyVideoExt(filename);
 
       const isGoogleDriveId = id && !id.startsWith('audio_') && !id.startsWith('local_') && !id.startsWith('drive_');
-      // lh3.googleusercontent.com ne sert que des images : audio/vidéo passent par l'endpoint de téléchargement Drive
+      // lh3.googleusercontent.com sert les images ultra-rapidement via le CDN mondial Google
       const fileUrl = (isAudio || isVideo)
         ? (isGoogleDriveId ? driveMediaUrl(id, filename) : `/${cleanP}`)
         : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}` : `/${cleanP}`);
 
       const highRes = (isAudio || isVideo) ? fileUrl : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}=w2560` : fileUrl);
-      const thumb = isAudio ? '' : (isGoogleDriveId ? `https://drive.google.com/thumbnail?id=${id}&sz=w400` : fileUrl);
+      const thumb = isAudio ? '' : (isGoogleDriveId ? `https://lh3.googleusercontent.com/d/${id}=s400` : fileUrl);
 
       collected.push({
         id,
         name,
         filename,
         path: cleanP,
-        category: parts[1] || (dest === 'books' ? 'Livres & Scénarios' : isAudio ? 'Grimoire Audio' : dest === 'tiles/custom' ? 'Textures' : dest === 'tokens' ? 'Tampons' : 'Cartes'),
+        category: parts[1] || (isAudio ? 'Grimoire Audio' : dest === 'tiles/custom' ? 'Textures' : dest === 'tokens' ? 'Tampons' : 'Cartes'),
         destination: dest,
         subfolder: parts.slice(0, -1).join('/'),
         url: fileUrl,

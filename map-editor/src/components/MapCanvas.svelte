@@ -279,6 +279,7 @@
     const url = mapStore.backgroundImageUrl;
     if (url) {
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
         assetCache.set('bg_user_image', img);
       };
