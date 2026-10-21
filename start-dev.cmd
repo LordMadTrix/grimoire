@@ -146,7 +146,8 @@ echo   Lancement de Grimoire en mode Desktop [Tauri dev]...
 echo ===============================================================================
 echo.
 
-:: Libération des ports 5173 / 5174 si déjà occupés
+:: Fermeture des anciennes instances et libération des ports 5173 / 5174 si déjà occupés
+taskkill /F /IM grimoire.exe >nul 2>&1
 for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr ":5173 :5174"') do (
     taskkill /F /PID %%a >nul 2>&1
 )

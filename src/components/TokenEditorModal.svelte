@@ -1,4 +1,4 @@
-<script lang="ts">
+`<script lang="ts">
   import { onMount } from 'svelte';
   import type { TokenDesignData, TokenShape, TokenMetal, TokenStatus, TokenAura, NamePositionPreset, StatusPosition } from '$lib/types/tokenEditor';
   import { getMetalGradients, getBorderSvgPath, getClipPathD, exportTokenToBlob, exportTokenToDataUrl } from '$lib/utils/tokenRenderer';
@@ -195,28 +195,26 @@
 </script>
 
 {#if isOpen}
-<div class="fixed inset-0 bg-black/85 backdrop-blur-md z-[9990] flex items-center justify-center p-3 sm:p-5 select-none animate-fadeIn">
+<div class="token-modal-overlay">
   
-  <div class="bg-[#14151c] border border-[#e6b450]/40 rounded-2xl w-full max-w-[1240px] max-h-[94vh] flex flex-col shadow-2xl shadow-amber-950/30 overflow-hidden text-gray-200">
+  <div class="token-modal-window">
     
     <!-- Header -->
-    <div class="px-5 py-3.5 bg-[#1a1b24] border-b border-[#2d2e3f] flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl text-[#e6b450]">🪙</span>
+    <div class="token-modal-header">
+      <div class="header-branding">
+        <span class="header-icon">🪙</span>
         <div>
-          <h2 class="text-lg font-bold text-[#e6b450] flex items-center gap-2">
+          <h2 class="header-title">
             Éditeur de Tokens Grimoire
-            <span class="text-xs px-2 py-0.5 rounded bg-[#e6b450]/15 text-[#e6b450] border border-[#e6b450]/30 font-medium">
-              VTT Studio
-            </span>
+            <span class="header-badge">VTT Studio</span>
           </h2>
-          <p class="text-xs text-gray-400">Pions haute définition, frises adaptatives et placement instantané en partie</p>
+          <p class="header-sub">Pions haute définition, frises adaptatives et placement instantané en partie</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5">
+      <div class="header-actions">
         <button 
-          class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-900/30 transition-all flex items-center gap-1.5"
+          class="btn-save-vault"
           onclick={handleSaveVault}
           disabled={isSaving}
         >
@@ -224,7 +222,7 @@
         </button>
 
         <button 
-          class="px-4 py-2 bg-gradient-to-r from-[#e6b450] to-[#b8860b] hover:from-[#fcd34d] hover:to-[#d97706] text-black font-bold text-xs rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-1.5"
+          class="btn-place-vtt"
           onclick={handlePlaceVtt}
           disabled={isSaving}
         >
@@ -232,7 +230,7 @@
         </button>
 
         <button 
-          class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl text-sm transition-all"
+          class="btn-close-modal"
           onclick={onclose}
           title="Fermer"
         >
@@ -242,83 +240,83 @@
     </div>
 
     <!-- Corps Layout 3 Colonnes -->
-    <div class="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-[250px_1fr_360px] divide-x divide-[#242533]">
+    <div class="token-body-grid">
       
       <!-- 1. Presets Gauche -->
-      <div class="p-4 overflow-y-auto bg-[#111218] flex flex-col gap-2">
-        <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1 flex justify-between">
+      <div class="presets-col">
+        <div class="presets-header">
           <span>Modèles Éditables</span>
-          <span class="text-[#e6b450]">Prêts au combat</span>
+          <span class="presets-tag">Prêts au combat</span>
         </div>
 
         <button 
-          class="p-2 rounded-xl border flex items-center gap-2.5 text-left transition-all {design.name === 'Tavernier Madtrix' ? 'bg-white/10 border-[#e6b450]' : 'border-white/5 hover:border-[#e6b450]/50 hover:bg-white/5'}"
+          class="preset-item {design.name === 'Tavernier Madtrix' ? 'active' : ''}"
           onclick={() => applyPreset('tavern')}
         >
-          <div class="w-9 h-9 rounded-full bg-[#2b2217] border border-[#e6b450] flex items-center justify-center text-lg shrink-0">🍺</div>
-          <div class="min-w-0">
-            <div class="text-xs font-semibold text-gray-200 truncate">Tavernier Madtrix</div>
-            <div class="text-[10px] text-gray-500">Hexagone orné d'or</div>
+          <div class="preset-avatar" style="background: #2b2217; border-color: #e6b450;">🍺</div>
+          <div class="preset-info">
+            <div class="preset-name">Tavernier Madtrix</div>
+            <div class="preset-desc">Hexagone orné d'or</div>
           </div>
         </button>
 
         <button 
-          class="p-2 rounded-xl border flex items-center gap-2.5 text-left transition-all {design.name === 'Capitaine du Guet' ? 'bg-white/10 border-[#e6b450]' : 'border-white/5 hover:border-[#e6b450]/50 hover:bg-white/5'}"
+          class="preset-item {design.name === 'Capitaine du Guet' ? 'active' : ''}"
           onclick={() => applyPreset('guard')}
         >
-          <div class="w-9 h-9 rounded-full bg-[#1a2a42] border border-blue-400 flex items-center justify-center text-lg shrink-0">🛡️</div>
-          <div class="min-w-0">
-            <div class="text-xs font-semibold text-gray-200 truncate">Capitaine du Guet</div>
-            <div class="text-[10px] text-gray-500">Bouclier d'acier & or</div>
+          <div class="preset-avatar" style="background: #1a2a42; border-color: #60a5fa;">🛡️</div>
+          <div class="preset-info">
+            <div class="preset-name">Capitaine du Guet</div>
+            <div class="preset-desc">Bouclier d'acier & or</div>
           </div>
         </button>
 
         <button 
-          class="p-2 rounded-xl border flex items-center gap-2.5 text-left transition-all {design.name === 'Chef Gobelin' ? 'bg-white/10 border-[#e6b450]' : 'border-white/5 hover:border-[#e6b450]/50 hover:bg-white/5'}"
+          class="preset-item {design.name === 'Chef Gobelin' ? 'active' : ''}"
           onclick={() => applyPreset('goblin')}
         >
-          <div class="w-9 h-9 rounded-full bg-[#24351a] border border-amber-600 flex items-center justify-center text-lg shrink-0">🏹</div>
-          <div class="min-w-0">
-            <div class="text-xs font-semibold text-gray-200 truncate">Chef Gobelin</div>
-            <div class="text-[10px] text-gray-500">Hexagone cuivre</div>
+          <div class="preset-avatar" style="background: #24351a; border-color: #d97706;">🏹</div>
+          <div class="preset-info">
+            <div class="preset-name">Chef Gobelin</div>
+            <div class="preset-desc">Hexagone cuivre</div>
           </div>
         </button>
 
         <button 
-          class="p-2 rounded-xl border flex items-center gap-2.5 text-left transition-all {design.name === 'Archimage Stellaire' ? 'bg-white/10 border-[#e6b450]' : 'border-white/5 hover:border-[#e6b450]/50 hover:bg-white/5'}"
+          class="preset-item {design.name === 'Archimage Stellaire' ? 'active' : ''}"
           onclick={() => applyPreset('mage')}
         >
-          <div class="w-9 h-9 rounded-full bg-[#2a1642] border border-purple-500 flex items-center justify-center text-lg shrink-0">🔮</div>
-          <div class="min-w-0">
-            <div class="text-xs font-semibold text-gray-200 truncate">Archimage Stellaire</div>
-            <div class="text-[10px] text-gray-500">Rond runique violet</div>
+          <div class="preset-avatar" style="background: #2a1642; border-color: #a855f7;">🔮</div>
+          <div class="preset-info">
+            <div class="preset-name">Archimage Stellaire</div>
+            <div class="preset-desc">Rond runique violet</div>
           </div>
         </button>
 
         <button 
-          class="p-2 rounded-xl border flex items-center gap-2.5 text-left transition-all {design.name === 'Dragon Rouge Ancien' ? 'bg-white/10 border-[#e6b450]' : 'border-white/5 hover:border-[#e6b450]/50 hover:bg-white/5'}"
+          class="preset-item {design.name === 'Dragon Rouge Ancien' ? 'active' : ''}"
           onclick={() => applyPreset('dragon')}
         >
-          <div class="w-9 h-9 rounded-full bg-[#381212] border border-red-500 flex items-center justify-center text-lg shrink-0">🐉</div>
-          <div class="min-w-0">
-            <div class="text-xs font-semibold text-gray-200 truncate">Dragon Ancien</div>
-            <div class="text-[10px] text-gray-500">Grand (2x2) • Pointes</div>
+          <div class="preset-avatar" style="background: #381212; border-color: #ef4444;">🐉</div>
+          <div class="preset-info">
+            <div class="preset-name">Dragon Ancien</div>
+            <div class="preset-desc">Grand (2x2) • Pointes</div>
           </div>
         </button>
       </div>
 
       <!-- 2. Centre: Canvas Interactif Live -->
-      <div class="p-6 bg-[#0d0e12] flex flex-col items-center justify-center relative overflow-hidden">
+      <div class="stage-col">
         
-        <div class="absolute top-3 left-4 text-xs text-gray-400 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <div class="stage-hint">
+          <span class="hint-pulse"></span>
           <span>Aperçu PixiJS • <b>Glisse l'image</b> pour cadrer • <b>Molette</b> pour zoomer</span>
         </div>
 
         <!-- Token Stage -->
         <div 
           bind:this={stageRef}
-          class="relative w-[340px] h-[350px] flex items-center justify-center transition-all duration-300"
+          class="token-stage-box"
           style:filter={
             design.aura === 'fire' ? 'drop-shadow(0 0 25px rgba(239, 68, 68, 0.8))' :
             design.aura === 'magic' ? 'drop-shadow(0 0 25px rgba(168, 85, 247, 0.8))' :
@@ -329,7 +327,7 @@
           <!-- Pastille de statut -->
           {#if design.showStatusBadge}
             <div 
-              class="absolute z-25 text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border border-white shadow-lg shadow-black/80 text-white"
+              class="token-status-badge"
               style:background-color={
                 design.status === 'neutral' ? '#f59e0b' :
                 design.status === 'hostile' ? '#ef4444' :
@@ -346,7 +344,7 @@
 
           <!-- Jauge PV en arc -->
           {#if design.showHpBar}
-            <svg class="absolute inset-0 w-full h-full pointer-events-none z-15" viewBox="0 0 340 340">
+            <svg class="hp-arc-svg" viewBox="0 0 340 340">
               <path d="M 65 65 A 150 150 0 0 1 275 65" fill="none" stroke="rgba(0,0,0,0.6)" stroke-width="10" stroke-linecap="round" />
               <path 
                 d="M 65 65 A 150 150 0 0 1 275 65" 
@@ -361,11 +359,11 @@
           {/if}
 
           <!-- Cadre du Pion -->
-          <div class="relative w-[260px] h-[260px] flex items-center justify-center">
+          <div class="token-frame-box">
             
             <!-- Frise SVG Adaptative -->
             {#if design.showBorder}
-              <svg class="absolute inset-0 w-full h-full pointer-events-none z-20" viewBox="0 0 512 512">
+              <svg class="border-svg" viewBox="0 0 512 512">
                 <defs>
                   {@html getMetalGradients(design.metal)}
                 </defs>
@@ -376,7 +374,7 @@
             <!-- Zone Intérieure Clippée (Glissable à la souris) -->
             <div 
               bind:this={clipInnerRef}
-              class="absolute inset-[24px] overflow-hidden cursor-move flex items-center justify-center"
+              class="token-art-clipper"
               style:background-color={design.backgroundColor}
               style:border-radius={design.shape === 'circle' ? '50%' : '0'}
               style:clip-path={
@@ -392,59 +390,50 @@
                 <img 
                   src={design.imageUrl} 
                   alt={design.name}
-                  class="absolute pointer-events-none max-w-none select-none transition-transform"
+                  class="token-art-img"
                   style:transform={`translate(${design.imagePan.x}px, ${design.imagePan.y}px) scale(${design.imageScale})`}
-                  style:width="100%"
-                  style:height="100%"
-                  style:object-fit="cover"
                 />
               {:else}
-                <span class="text-6xl">{design.emojiIcon || '🛡️'}</span>
+                <span class="token-art-emoji">{design.emojiIcon || '🛡️'}</span>
               {/if}
             </div>
           </div>
 
-          <!-- Cartouche de Nom Déplaçable -->
-          {#if design.showName && design.name.trim()}
+          <!-- Nom Flottant Déplaçable -->
+          {#if design.showName}
             <div 
               bind:this={namePodRef}
-              class="absolute z-30 cursor-grab active:cursor-grabbing px-4 py-1.5 rounded-full border-2 border-[#e6b450] bg-gradient-to-b from-[#221c14] to-[#100e0a] text-[#ffe699] font-extrabold uppercase tracking-wider text-xs shadow-xl shadow-black/90 flex items-center gap-1.5 whitespace-nowrap hover:border-[#ffd700] hover:scale-105 transition-transform"
-              style:left={design.namePreset === 'custom' ? `calc(50% + ${design.namePosition.x}px)` : '50%'}
-              style:top={
-                design.namePreset === 'top' ? '5px' :
-                design.namePreset === 'center' ? '155px' :
-                design.namePreset === 'inside-bottom' ? '230px' :
-                design.namePreset === 'custom' ? `calc(88% + ${design.namePosition.y}px)` : 'auto'
-              }
-              style:bottom={design.namePreset === 'bottom' ? '5px' : 'auto'}
+              class="name-banner"
+              style:left="{design.namePosition.x}px"
+              style:top="{design.namePosition.y}px"
               style:transform="translateX(-50%)"
               onmousedown={onNameMouseDown}
               role="button"
               tabindex="0"
               title="Attrape avec la souris pour déplacer où tu veux !"
             >
-              <span class="opacity-50 text-[10px]">✥</span>
+              <span class="name-move-icon">✥</span>
               <span>{design.name}</span>
             </div>
           {/if}
         </div>
 
         <!-- Contrôle de Zoom Image -->
-        <div class="mt-4 px-4 py-2 rounded-full bg-black/50 border border-white/10 flex items-center gap-3">
-          <span class="text-xs text-gray-300">🔍 Zoom :</span>
+        <div class="zoom-bar">
+          <span class="zoom-label">🔍 Zoom :</span>
           <input 
             type="range" 
             min="0.5" 
             max="2.5" 
             step="0.05"
             bind:value={design.imageScale}
-            class="w-32 accent-[#e6b450] cursor-pointer"
+            class="zoom-slider"
           />
-          <span class="text-xs font-bold text-[#e6b450] min-w-[36px]">
+          <span class="zoom-pct">
             {Math.round(design.imageScale * 100)}%
           </span>
           <button 
-            class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[11px] text-gray-300 transition-all"
+            class="btn-zoom-reset"
             onclick={() => { design.imagePan = { x: 0, y: 0 }; design.imageScale = 1.2; }}
           >
             ↺ Centrer
@@ -453,51 +442,51 @@
 
         <!-- Toast Feedback -->
         {#if toastMessage}
-          <div class="absolute bottom-3 bg-emerald-950/90 border border-emerald-500 text-emerald-200 px-4 py-2 rounded-xl text-xs font-semibold shadow-xl shadow-black/80 animate-bounce">
+          <div class="toast-feedback">
             {toastMessage}
           </div>
         {/if}
       </div>
 
       <!-- 3. Panneau Droit: Personnalisation & Toggles -->
-      <div class="p-5 overflow-y-auto bg-[#14151e] flex flex-col gap-4 text-xs">
+      <div class="controls-col">
         
         <!-- Nom -->
-        <div class="flex flex-col gap-1.5">
-          <label class="font-bold text-gray-300" for="tok-name">Nom du Pion</label>
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="tok-name">Nom du Pion</label>
           <input 
             id="tok-name"
             type="text" 
             bind:value={design.name}
-            class="w-full bg-[#1b1c26] border border-white/10 rounded-lg px-3 py-2 text-white font-semibold focus:outline-none focus:border-[#e6b450]"
+            class="ctrl-input"
             placeholder="Ex: Tavernier, Garde..."
           />
         </div>
 
         <!-- Position rapide du nom -->
-        <div class="flex flex-col gap-1.5">
-          <label class="font-bold text-gray-400">Position du Nom</label>
-          <div class="grid grid-cols-4 gap-1">
+        <div class="ctrl-group">
+          <label class="ctrl-label">Position Rapide du Nom</label>
+          <div class="grid-presets-4">
             <button 
-              class="py-1 rounded border text-[11px] font-semibold transition-all {design.namePreset === 'bottom' ? 'bg-[#e6b450] text-black border-[#e6b450]' : 'border-white/10 text-gray-300'}"
+              class="btn-sub-preset {design.namePreset === 'bottom' ? 'selected' : ''}"
               onclick={() => snapName('bottom')}
             >
               En bas
             </button>
             <button 
-              class="py-1 rounded border text-[11px] font-semibold transition-all {design.namePreset === 'top' ? 'bg-[#e6b450] text-black border-[#e6b450]' : 'border-white/10 text-gray-300'}"
+              class="btn-sub-preset {design.namePreset === 'top' ? 'selected' : ''}"
               onclick={() => snapName('top')}
             >
               En haut
             </button>
             <button 
-              class="py-1 rounded border text-[11px] font-semibold transition-all {design.namePreset === 'center' ? 'bg-[#e6b450] text-black border-[#e6b450]' : 'border-white/10 text-gray-300'}"
+              class="btn-sub-preset {design.namePreset === 'center' ? 'selected' : ''}"
               onclick={() => snapName('center')}
             >
               Au centre
             </button>
             <button 
-              class="py-1 rounded border text-[11px] font-semibold transition-all {design.namePreset === 'inside-bottom' ? 'bg-[#e6b450] text-black border-[#e6b450]' : 'border-white/10 text-gray-300'}"
+              class="btn-sub-preset {design.namePreset === 'inside-bottom' ? 'selected' : ''}"
               onclick={() => snapName('inside-bottom')}
             >
               Incrusté
@@ -506,24 +495,24 @@
         </div>
 
         <!-- Forme & Métal de la Frise -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1.5">
-            <label class="font-bold text-gray-300">Forme (Frise)</label>
-            <div class="flex gap-1">
+        <div class="ctrl-row-2">
+          <div class="ctrl-group">
+            <label class="ctrl-label">Forme (Frise)</label>
+            <div class="shape-buttons">
               <button 
-                class="flex-1 py-1.5 rounded border text-center font-bold {design.shape === 'hex' ? 'bg-[#e6b450] text-black border-[#e6b450]' : 'border-white/10 text-gray-300'}"
+                class="btn-shape {design.shape === 'hex' ? 'selected' : ''}"
                 onclick={() => design.shape = 'hex'}
               >
                 ⬡ Hex
               </button>
               <button 
-                class="flex-1 py-1.5 rounded border text-center font-bold {design.shape === 'shield' ? 'bg-[#e6b450] text-black border-[#e6b450]' : 'border-white/10 text-gray-300'}"
+                class="btn-shape {design.shape === 'shield' ? 'selected' : ''}"
                 onclick={() => design.shape = 'shield'}
               >
                 🛡️ Écu
               </button>
               <button 
-                class="flex-1 py-1.5 rounded border text-center font-bold {design.shape === 'circle' ? 'bg-[#e6b450] text-black border-[#e6b450]' : 'border-white/10 text-gray-300'}"
+                class="btn-shape {design.shape === 'circle' ? 'selected' : ''}"
                 onclick={() => design.shape = 'circle'}
               >
                 ⚪ Rond
@@ -531,11 +520,12 @@
             </div>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="font-bold text-gray-300">Métal / Frise</label>
+          <div class="ctrl-group">
+            <label class="ctrl-label" for="tok-metal">Métal / Frise</label>
             <select 
+              id="tok-metal"
               bind:value={design.metal}
-              class="w-full bg-[#1b1c26] border border-white/10 rounded-lg px-2.5 py-1.5 text-white font-semibold focus:outline-none"
+              class="ctrl-select"
             >
               <option value="gold">👑 Or Ciselé</option>
               <option value="steel">⚔️ Acier Poli</option>
@@ -547,18 +537,18 @@
         </div>
 
         <!-- Bouton Bibliothèque Céleste -->
-        <div class="p-3 bg-purple-950/20 border border-purple-500/30 rounded-xl flex flex-col gap-2">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-purple-300">Illustration / Portrait</span>
+        <div class="celestial-box">
+          <div class="celestial-row">
+            <span class="celestial-title">Illustration / Portrait</span>
             <input 
               type="color" 
               bind:value={design.backgroundColor} 
-              class="w-6 h-6 rounded border-0 cursor-pointer bg-transparent"
+              class="color-picker-input"
               title="Couleur de fond"
             />
           </div>
           <button 
-            class="w-full py-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-bold rounded-lg shadow-md transition-all flex items-center justify-center gap-2"
+            class="btn-open-celestial"
             onclick={() => showCelestialModal = true}
           >
             🌌 Choisir dans la Bibliothèque Céleste
@@ -566,66 +556,65 @@
         </div>
 
         <!-- Liste des Toggles Demandés -->
-        <div class="flex flex-col gap-2 pt-1 border-t border-white/10">
-          <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <div class="toggles-section">
+          <div class="toggles-header">
             Options & Affichages (On/Off)
           </div>
 
           <!-- Toggle Nom -->
-          <label class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10">
-            <span class="font-semibold text-gray-300">🏷️ Afficher le Nom</span>
-            <input type="checkbox" bind:checked={design.showName} class="w-4 h-4 accent-[#e6b450]" />
+          <label class="toggle-row">
+            <span class="toggle-name">🏷️ Afficher l'étiquette Nom</span>
+            <input type="checkbox" bind:checked={design.showName} class="toggle-checkbox" />
           </label>
 
           <!-- Toggle Frise -->
-          <label class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10">
-            <span class="font-semibold text-gray-300">✨ Frise Ornée</span>
-            <input type="checkbox" bind:checked={design.showBorder} class="w-4 h-4 accent-[#e6b450]" />
+          <label class="toggle-row">
+            <span class="toggle-name">👑 Afficher la Frise Ornée</span>
+            <input type="checkbox" bind:checked={design.showBorder} class="toggle-checkbox" />
           </label>
 
-          <!-- Toggle Jauge PV -->
-          <div class="flex flex-col gap-1 p-2 rounded-lg bg-white/5 border border-white/5">
-            <label class="flex items-center justify-between cursor-pointer">
-              <span class="font-semibold text-gray-300">💚 Jauge de PV ({design.hpPercent}%)</span>
-              <input type="checkbox" bind:checked={design.showHpBar} class="w-4 h-4 accent-[#e6b450]" />
+          <!-- Toggle PV -->
+          <div class="toggle-group-hp">
+            <label class="toggle-row">
+              <span class="toggle-name">❤️ Jauge PV en arc de cercle</span>
+              <input type="checkbox" bind:checked={design.showHpBar} class="toggle-checkbox" />
             </label>
             {#if design.showHpBar}
-              <input 
-                type="range" min="0" max="100" 
-                bind:value={design.hpPercent} 
-                class="w-full mt-1 accent-emerald-500 cursor-pointer"
-              />
+              <div class="hp-slider-row">
+                <input type="range" min="0" max="100" bind:value={design.hpPercent} class="hp-range-slider" />
+                <span class="hp-val-text">{design.hpPercent}%</span>
+              </div>
             {/if}
           </div>
 
-          <!-- Toggle Pastille Statut -->
-          <div class="flex flex-col gap-1.5 p-2 rounded-lg bg-white/5 border border-white/5">
-            <label class="flex items-center justify-between cursor-pointer">
-              <span class="font-semibold text-gray-300">🛡️ Pastille Alignement</span>
-              <input type="checkbox" bind:checked={design.showStatusBadge} class="w-4 h-4 accent-[#e6b450]" />
+          <!-- Toggle Statut -->
+          <div class="toggle-group-status">
+            <label class="toggle-row">
+              <span class="toggle-name">🛡️ Pastille d'Allégeance</span>
+              <input type="checkbox" bind:checked={design.showStatusBadge} class="toggle-checkbox" />
             </label>
             {#if design.showStatusBadge}
-              <div class="grid grid-cols-4 gap-1 mt-1">
+              <div class="status-buttons-row">
                 <button 
-                  class="py-1 rounded text-[10px] font-bold {design.status === 'ally' ? 'bg-emerald-600 text-white' : 'bg-white/5 text-gray-400'}"
+                  class="btn-status {design.status === 'ally' ? 'active-ally' : ''}"
                   onclick={() => design.status = 'ally'}
                 >
                   Allié
                 </button>
                 <button 
-                  class="py-1 rounded text-[10px] font-bold {design.status === 'neutral' ? 'bg-amber-600 text-white' : 'bg-white/5 text-gray-400'}"
+                  class="btn-status {design.status === 'neutral' ? 'active-neutral' : ''}"
                   onclick={() => design.status = 'neutral'}
                 >
                   Neutre
                 </button>
                 <button 
-                  class="py-1 rounded text-[10px] font-bold {design.status === 'hostile' ? 'bg-red-600 text-white' : 'bg-white/5 text-gray-400'}"
+                  class="btn-status {design.status === 'hostile' ? 'active-hostile' : ''}"
                   onclick={() => design.status = 'hostile'}
                 >
                   Ennemi
                 </button>
                 <button 
-                  class="py-1 rounded text-[10px] font-bold {design.status === 'boss' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400'}"
+                  class="btn-status {design.status === 'boss' ? 'active-boss' : ''}"
                   onclick={() => design.status = 'boss'}
                 >
                   Boss ★
@@ -635,9 +624,9 @@
           </div>
 
           <!-- Toggle Aura -->
-          <div class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
-            <span class="font-semibold text-gray-300">🔥 Aura Magique</span>
-            <select bind:value={design.aura} class="bg-[#1b1c26] text-white font-semibold rounded px-2 py-1 text-xs focus:outline-none">
+          <div class="toggle-aura-row">
+            <span class="toggle-name">🔥 Aura Magique</span>
+            <select bind:value={design.aura} class="aura-select">
               <option value="none">Aucune</option>
               <option value="holy">✨ Sacrée</option>
               <option value="fire">🔥 Flammes</option>
@@ -673,3 +662,693 @@
     onclose={() => showCelestialModal = false}
   />
 {/if}
+
+<style>
+  /* ── Overlay et Fenêtre Principale ───────────────────────────────────────── */
+  .token-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(4, 5, 8, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  .token-modal-window {
+    background: #14151c;
+    border: 1px solid rgba(230, 180, 80, 0.45);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 1240px;
+    height: 92vh;
+    max-height: 860px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(230, 180, 80, 0.15);
+    overflow: hidden;
+    color: #e2e8f0;
+    font-family: inherit;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────────── */
+  .token-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: #1a1b24;
+    border-bottom: 1px solid #2d2e3f;
+    flex-shrink: 0;
+  }
+
+  .header-branding {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-icon {
+    font-size: 26px;
+  }
+
+  .header-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #e6b450;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(230, 180, 80, 0.15);
+    color: #e6b450;
+    border: 1px solid rgba(230, 180, 80, 0.3);
+    font-weight: 600;
+  }
+
+  .header-sub {
+    margin: 2px 0 0 0;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-save-vault {
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    transition: all 0.15s ease;
+  }
+  .btn-save-vault:hover {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    transform: translateY(-1px);
+  }
+
+  .btn-place-vtt {
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #e6b450, #b8860b);
+    color: #000;
+    font-size: 11px;
+    font-weight: 800;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(230, 180, 80, 0.3);
+    transition: all 0.15s ease;
+  }
+  .btn-place-vtt:hover {
+    background: linear-gradient(135deg, #fcd34d, #d97706);
+    transform: translateY(-1px);
+  }
+
+  .btn-close-modal {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: all 0.15s;
+  }
+  .btn-close-modal:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  /* ── Grille 3 Colonnes ───────────────────────────────────────────────────── */
+  .token-body-grid {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Colonne Gauche (Presets) ────────────────────────────────────────────── */
+  .presets-col {
+    width: 240px;
+    min-width: 240px;
+    background: #111218;
+    border-right: 1px solid #242533;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .presets-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+
+  .presets-tag {
+    color: #e6b450;
+  }
+
+  .preset-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+  }
+  .preset-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(230, 180, 80, 0.4);
+  }
+  .preset-item.active {
+    background: rgba(230, 180, 80, 0.12);
+    border-color: #e6b450;
+  }
+
+  .preset-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    border: 1.5px solid #e6b450;
+    flex-shrink: 0;
+  }
+
+  .preset-info {
+    min-width: 0;
+  }
+
+  .preset-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .preset-desc {
+    font-size: 9px;
+    color: #64748b;
+  }
+
+  /* ── Colonne Centrale (Stage PixiJS) ─────────────────────────────────────── */
+  .stage-col {
+    flex: 1;
+    background: #0d0e12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .stage-hint {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 11px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .hint-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+  }
+
+  .token-stage-box {
+    position: relative;
+    width: 340px;
+    height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .token-status-badge {
+    position: absolute;
+    z-index: 25;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    border: 1px solid #fff;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.85);
+  }
+
+  .hp-arc-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 340px;
+    height: 340px;
+    pointer-events: none;
+    z-index: 15;
+  }
+
+  .token-frame-box {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .border-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 260px;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  .token-art-clipper {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    right: 24px;
+    bottom: 24px;
+    overflow: hidden;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .token-art-clipper:active {
+    cursor: grabbing;
+  }
+
+  .token-art-img {
+    position: absolute;
+    pointer-events: none;
+    max-width: none;
+    user-select: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .token-art-emoji {
+    font-size: 64px;
+  }
+
+  .name-banner {
+    position: absolute;
+    z-index: 30;
+    cursor: move;
+    user-select: none;
+    white-space: nowrap;
+    font-weight: 800;
+    font-size: 11px;
+    color: #fff;
+    background: rgba(18, 19, 26, 0.95);
+    border: 1.5px solid #e6b450;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.8), 0 0 10px rgba(230, 180, 80, 0.4);
+    border-radius: 9999px;
+    padding: 3px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .name-move-icon {
+    opacity: 0.5;
+    font-size: 9px;
+  }
+
+  .zoom-bar {
+    margin-top: 16px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 10;
+  }
+
+  .zoom-label {
+    font-size: 11px;
+    color: #94a3b8;
+  }
+
+  .zoom-slider {
+    width: 120px;
+    accent-color: #e6b450;
+    cursor: pointer;
+  }
+
+  .zoom-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e6b450;
+    min-width: 34px;
+  }
+
+  .btn-zoom-reset {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 10px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-zoom-reset:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+
+  .toast-feedback {
+    position: absolute;
+    bottom: 14px;
+    background: rgba(6, 78, 59, 0.95);
+    border: 1px solid #10b981;
+    color: #a7f3d0;
+    padding: 6px 16px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+    animation: bounce 1s infinite;
+  }
+
+  /* ── Colonne Droite (Contrôles & Toggles) ─────────────────────────────────── */
+  .controls-col {
+    width: 350px;
+    min-width: 350px;
+    background: #14151e;
+    border-left: 1px solid #242533;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-sizing: border-box;
+  }
+
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ctrl-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+  }
+
+  .ctrl-input {
+    width: 100%;
+    background: #1b1c26;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+    box-sizing: border-box;
+    outline: none;
+  }
+  .ctrl-input:focus {
+    border-color: #e6b450;
+  }
+
+  .grid-presets-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .btn-sub-preset {
+    padding: 6px 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: #cbd5e1;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-sub-preset.selected {
+    background: #e6b450;
+    color: #000;
+    border-color: #e6b450;
+  }
+
+  .ctrl-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .shape-buttons {
+    display: flex;
+    gap: 4px;
+  }
+
+  .btn-shape {
+    flex: 1;
+    padding: 6px 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-shape.selected {
+    background: #e6b450;
+    color: #000;
+    border-color: #e6b450;
+  }
+
+  .ctrl-select {
+    width: 100%;
+    background: #1b1c26;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px 8px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .celestial-box {
+    padding: 10px;
+    background: rgba(88, 28, 135, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .celestial-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .celestial-title {
+    font-weight: 700;
+    color: #c084fc;
+    font-size: 11px;
+  }
+
+  .color-picker-input {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .btn-open-celestial {
+    width: 100%;
+    padding: 8px;
+    background: linear-gradient(135deg, #7e22ce, #4338ca);
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(126, 34, 206, 0.3);
+    transition: all 0.15s;
+  }
+  .btn-open-celestial:hover {
+    background: linear-gradient(135deg, #9333ea, #4f46e5);
+  }
+
+  /* ── Toggles ─────────────────────────────────────────────────────────────── */
+  .toggles-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .toggles-header {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+  }
+
+  .toggle-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+
+  .toggle-checkbox {
+    accent-color: #e6b450;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .toggle-group-hp, .toggle-group-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hp-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+  }
+
+  .hp-range-slider {
+    flex: 1;
+    accent-color: #ef4444;
+    cursor: pointer;
+  }
+
+  .hp-val-text {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ef4444;
+    min-width: 30px;
+  }
+
+  .status-buttons-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .btn-status {
+    padding: 4px 2px;
+    border-radius: 4px;
+    border: none;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    cursor: pointer;
+  }
+  .btn-status.active-ally { background: #059669; color: #fff; }
+  .btn-status.active-neutral { background: #d97706; color: #fff; }
+  .btn-status.active-hostile { background: #dc2626; color: #fff; }
+  .btn-status.active-boss { background: #7c3aed; color: #fff; }
+
+  .toggle-aura-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .aura-select {
+    background: #1b1c26;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 4px 6px;
+    outline: none;
+  }
+</style>
