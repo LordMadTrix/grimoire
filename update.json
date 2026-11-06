@@ -1,6 +1,6 @@
 {
-  "version": "0.8.7",
-  "changelog": "Éditeur de Tokens Personnalisés & Frises VTT, corrections de mise en page CSS scoped et accès direct haute performance à la Bibliothèque Céleste dans l'Éditeur de Cartes.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/latest",
-  "release_date": "2026-10-21"
+  "version": "0.8.8",
+  "changelog": "Version 0.8.8 : Fluidité absolue du déplacement des tokens et joueurs (fix boucle 244 FPS), support Multi-Écran TV amélioré avec détection automatique, Éditeur de Tokens avec bibliothèque céleste locale et gestion de session pour quitter la démo.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.8",
+  "release_date": "2026-11-06"
 }

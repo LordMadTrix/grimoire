@@ -1288,6 +1288,7 @@
         container = new PIXI.Container();
 
         circleG = new PIXI.Graphics();
+        circleG.eventMode = 'none';
         container.addChild(circleG);
         (container as any).__circleG = circleG;
 
@@ -1295,6 +1296,7 @@
         const tokenSprite = new PIXI.Sprite();
         tokenSprite.anchor.set(0.5);
         tokenSprite.visible = false;
+        tokenSprite.eventMode = 'none';
         container.addChild(tokenSprite);
         (container as any).__tokenSprite = tokenSprite;
 
@@ -1308,10 +1310,12 @@
           },
         });
         textT.anchor.set(0.5, 1);
+        textT.eventMode = 'none';
         container.addChild(textT);
         (container as any).__textT = textT;
 
         hpBar = new PIXI.Graphics();
+        hpBar.eventMode = 'none';
         container.addChild(hpBar);
         (container as any).__hpBar = hpBar;
 
@@ -1742,7 +1746,7 @@
         if (newSel.has(id)) newSel.delete(id); else newSel.add(id);
         selectedTokenIds = newSel;
       } else {
-        if (!selectedTokenIds.has(id)) selectedTokenIds = new Set();
+        if (!selectedTokenIds.has(id)) selectedTokenIds = new Set([id]);
         draggedTokenId = id;
         if (app?.canvas) app.canvas.style.cursor = 'grabbing';
         const mainToken = tokens.find(t => t.id === id);
@@ -2064,7 +2068,7 @@
       return;
     }
 
-    if (draggedTokenId && backgroundSprite) {
+    if (draggedTokenId && worldContainer) {
       const localPos = worldContainer.toLocal(e.global);
       const sprite = tokenSprites.get(draggedTokenId);
       if (sprite) {
@@ -2358,7 +2362,7 @@
       return;
     }
 
-    if (draggedTokenId && backgroundSprite) {
+    if (draggedTokenId && worldContainer) {
       let localPos = worldContainer.toLocal(e.global);
       if (gridEnabled) {
         localPos.x = Math.floor(localPos.x / gridSize) * gridSize + gridSize / 2;
