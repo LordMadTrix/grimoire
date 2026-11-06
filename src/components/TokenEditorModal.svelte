@@ -210,6 +210,15 @@
     design.imagePan = { x: 0, y: 0 };
     design.imageScale = 1.2;
     snapName('bottom');
+
+    // Sécurisation immédiate de l'image externe en Data URL
+    if (design.imageUrl && !design.imageUrl.startsWith('data:')) {
+      imageSourceToDataUrl(design.imageUrl).then(b64 => {
+        if (b64 && b64.startsWith('data:')) {
+          design.imageUrl = b64;
+        }
+      }).catch(() => {});
+    }
   }
 </script>
 

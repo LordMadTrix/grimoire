@@ -1,6 +1,6 @@
 {
-  "version": "0.8.11",
-  "changelog": "Version 0.8.11 : Gestion complète des joueurs (Ajouter avec formulaire complet, Supprimer en 1 clic avec retrait automatique de la carte VTT et du combat, Modifier avec avatar et CA). Synchronisation instantanée des PV entre l'écran MJ et le mobile GSM des joueurs. Correction du popup de demande de jet qui restait bloqué à l'écran. Défilement complet de la liste des compétences sur mobile (GSM).",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.11",
+  "version": "0.8.12",
+  "changelog": "Version 0.8.12 : Correction définitive de l'erreur Tainted Canvas lors de l'export et du placement des pions sur la map VTT (téléchargement et conversion d'images Google Drive/Web résilients, fallback transparent). Refonte complète de la modale d'édition et de création des joueurs : fenêtre centrée et scrollable, 3 onglets (Combat & Stats, Pion & VTT, Compte & Fiche MD), intégration de la Galerie Céleste et de l'import PC, contrôle rapide de présence sur la map VTT, ouverture directe de la fiche Markdown.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.12",
   "release_date": "2026-11-06"
 }

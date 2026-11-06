@@ -454,6 +454,58 @@ pub fn save_temp_html_and_open(filename: String, html_content: String) -> Result
     Ok(path_str)
 }
 
+/// Détecte le type MIME d'une image à partir de ses premiers octets (magic bytes)
+fn detect_image_mime(bytes: &[u8]) -> &'static str {
+    if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        "image/png"
+    } else if bytes.starts_with(b"\xff\xd8\xff") {
+        "image/jpeg"
+    } else if bytes.len() > 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        "image/webp"
+    } else if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        "image/gif"
+    } else if bytes.starts_with(b"<svg") || bytes.starts_with(b"<?xml") {
+        "image/svg+xml"
+    } else {
+        "image/png"
+    }
+}
+
+/// Extrait l'ID de fichier Google Drive depuis diverses formes d'URLs
+fn extract_gdrive_id(url: &str) -> Option<String> {
+    if !url.contains("google") {
+        return None;
+    }
+    // Forme id=...
+    if let Some(pos) = url.find("id=") {
+        let after = &url[pos + 3..];
+        let end = after.find('&').unwrap_or(after.len());
+        let id = &after[..end];
+        if !id.is_empty() {
+            return Some(id.to_string());
+        }
+    }
+    // Forme /d/...
+    if let Some(pos) = url.find("/d/") {
+        let after = &url[pos + 3..];
+        let end = after.find('/').or_else(|| after.find('=')).or_else(|| after.find('?')).unwrap_or(after.len());
+        let id = &after[..end];
+        if !id.is_empty() {
+            return Some(id.to_string());
+        }
+    }
+    // Forme file/d/...
+    if let Some(pos) = url.find("file/d/") {
+        let after = &url[pos + 7..];
+        let end = after.find('/').unwrap_or(after.len());
+        let id = &after[..end];
+        if !id.is_empty() {
+            return Some(id.to_string());
+        }
+    }
+    None
+}
+
 /// Télécharge ou lit une image locale/distante et la retourne sous forme de Data URL (base64)
 /// Permet de contourner à 100% les restrictions CORS du navigateur (ex. Google Drive, Unsplash)
 /// et d'éviter l'erreur 'Tainted canvases may not be exported' lors de l'export PNG.
@@ -463,39 +515,82 @@ pub async fn download_image_base64(url: String) -> Result<String, String> {
         return Ok(url);
     }
 
-    // Cas 1 : Chemin local absolu sur le disque
+    // Cas 1 : Chemin local absolu sur le disque ou relatif à public/
     let p = Path::new(&url);
     if p.exists() && p.is_file() {
         let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
-        let ext = p.extension().and_then(|x| x.to_str()).unwrap_or("png").to_lowercase();
-        let mime = match ext.as_str() {
-            "jpg" | "jpeg" => "image/jpeg",
-            "webp" => "image/webp",
-            "gif" => "image/gif",
-            "svg" => "image/svg+xml",
-            _ => "image/png",
-        };
+        let mime = detect_image_mime(&bytes);
         return Ok(format!("data:{};base64,{}", mime, general_purpose::STANDARD.encode(bytes)));
+    }
+
+    // Chemin relatif (ex: /tokens/library/enemies/dragon.png)
+    let clean_rel = url.trim_start_matches('/').trim_start_matches('\\');
+    let candidates_local = [
+        PathBuf::from(clean_rel),
+        PathBuf::from("public").join(clean_rel),
+        PathBuf::from("../public").join(clean_rel),
+    ];
+    for lp in &candidates_local {
+        if lp.exists() && lp.is_file() {
+            if let Ok(bytes) = std::fs::read(lp) {
+                let mime = detect_image_mime(&bytes);
+                return Ok(format!("data:{};base64,{}", mime, general_purpose::STANDARD.encode(bytes)));
+            }
+        }
     }
 
     // Cas 2 : Téléchargement distant via reqwest
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Grimoire/1.0")
+        .timeout(std::time::Duration::from_secs(20))
+        .redirect(reqwest::redirect::Policy::limited(10))
         .build()
         .map_err(|e| e.to_string())?;
 
-    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
-    let content_type = res
-        .headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("image/png")
-        .to_string();
+    let mut candidate_urls = Vec::new();
 
-    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
-    let b64 = general_purpose::STANDARD.encode(&bytes);
-    Ok(format!("data:{};base64,{}", content_type, b64))
+    // Endpoints optimisés pour Google Drive
+    if let Some(file_id) = extract_gdrive_id(&url) {
+        candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}=s0"));
+        candidate_urls.push(format!("https://lh3.googleusercontent.com/d/{file_id}=w1000"));
+        candidate_urls.push(format!("https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t"));
+        candidate_urls.push(format!("https://drive.google.com/thumbnail?id={file_id}&sz=w1000"));
+        candidate_urls.push(format!("https://drive.google.com/uc?export=download&id={file_id}"));
+    }
+
+    // Toujours tester l'URL d'origine en premier ou en complément
+    candidate_urls.insert(0, url.clone());
+
+    let mut last_err = String::from("Aucune source valide trouvée");
+
+    for target_url in candidate_urls {
+        let req = client
+            .get(&target_url)
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+            .header("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+
+        match req.send().await {
+            Ok(res) if res.status().is_success() => {
+                if let Ok(bytes) = res.bytes().await {
+                    if bytes.len() > 64 {
+                        let preview = String::from_utf8_lossy(&bytes[..std::cmp::min(bytes.len(), 120)]).to_lowercase();
+                        if !preview.contains("<!doctype html") && !preview.contains("<html") {
+                            let mime = detect_image_mime(&bytes);
+                            let b64 = general_purpose::STANDARD.encode(&bytes);
+                            return Ok(format!("data:{};base64,{}", mime, b64));
+                        }
+                    }
+                }
+            }
+            Ok(res) => {
+                last_err = format!("HTTP {}", res.status());
+            }
+            Err(e) => {
+                last_err = e.to_string();
+            }
+        }
+    }
+
+    Err(format!("Impossible de convertir l'image distante ({}) : {}", url, last_err))
 }
 
 

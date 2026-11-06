@@ -8,10 +8,11 @@
     readFile, writeFile, type PlayerInfo, type VaultEntry,
     getSavedPlayerAccounts, savePlayerAccount, deletePlayerAccount, type PlayerAccountSummary
   } from '$lib/api';
-  import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
+  import { getVaultPath, getVaultTree, setActiveFile } from '$lib/stores/vault.svelte';
   import { vttStore, replaceGmToken, addGmToken, type Token } from '$lib/stores/vtt.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { parseCharacterMd, type ParsedCharacterData } from '$lib/services/characterParser';
+  import CelestialArtPickerModal from './CelestialArtPickerModal.svelte';
 
   let { visible = $bindable(true), onClose }: { visible?: boolean; onClose?: () => void } = $props();
 
@@ -44,6 +45,30 @@
     } as PlayerAccountSummary))
   );
 
+  // Avatar picker modal state
+  let showAvatarPicker = $state(false);
+  let avatarPickerTarget = $state<'quickEdit' | 'newPlayer'>('quickEdit');
+  let avatarFileInputRef = $state<HTMLInputElement | null>(null);
+
+  function handleAvatarFileUpload(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      const file = target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const b64 = event.target.result as string;
+          if (avatarPickerTarget === 'quickEdit') {
+            quickEditForm.imageUrl = b64;
+          } else {
+            newPlayerForm.imageUrl = b64;
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   // Nouveau joueur modal state
   let isCreatingPlayer = $state(false);
   let newPlayerForm = $state({
@@ -53,6 +78,8 @@
     hp: 12,
     maxhp: 12,
     ac: 10,
+    speed: 4,
+    initiative: 30,
     password: '',
     imageUrl: '',
     spawnOnMap: true
@@ -60,6 +87,7 @@
 
   // Quick edit modal state
   let quickEditAccount = $state<PlayerAccountSummary | null>(null);
+  let editModalTab = $state<'stats' | 'token' | 'account'>('stats');
   let quickEditForm = $state<{
     nom: string;
     password: string;
@@ -69,14 +97,47 @@
     race: string;
     voc: string;
     ac: number;
+    speed: number;
+    initiative: number;
+    destin: number;
+    fortune: number;
+    resilience: number;
+    resolution: number;
+    tokenSize: number;
+    visionRange: number;
+    character_path: string;
     imageUrl: string;
-  }>({ nom: '', password: '', hp: 10, maxhp: 10, xp: 0, race: '', voc: '', ac: 10, imageUrl: '' });
+  }>({
+    nom: '',
+    password: '',
+    hp: 10,
+    maxhp: 10,
+    xp: 0,
+    race: '',
+    voc: '',
+    ac: 10,
+    speed: 4,
+    initiative: 30,
+    destin: 2,
+    fortune: 2,
+    resilience: 1,
+    resolution: 1,
+    tokenSize: 1,
+    visionRange: 0,
+    character_path: '',
+    imageUrl: ''
+  });
 
   function openQuickEdit(acc: PlayerAccountSummary) {
     quickEditAccount = acc;
+    editModalTab = 'stats';
     const c = acc.character || {};
     const maxHp = c.maxhp ?? (parseInt(c.profil?.act?.b) || 10);
     const hp = c.hp ?? c.bless ?? maxHp;
+    const token = getPlayerToken(acc);
+    const tokenGridSize = vttStore.gridSize || 50;
+    const tSize = token ? Math.max(1, Math.round(token.size / tokenGridSize)) : 1;
+
     quickEditForm = {
       nom: c.nom || acc.name,
       password: acc.password || '',
@@ -86,8 +147,44 @@
       race: c.race || '',
       voc: c.voc || c.car || '',
       ac: c.ac ?? 10,
-      imageUrl: c.imageUrl || c.avatar || c.portrait || ''
+      speed: c.speed ?? (parseInt(c.profil?.act?.m) || 4),
+      initiative: c.initiative ?? (parseInt(c.profil?.init?.i) || 30),
+      destin: c.destin ?? (parseInt(c.profil?.destin) || 2),
+      fortune: c.fortune ?? (parseInt(c.profil?.fortune) || 2),
+      resilience: c.resilience ?? 1,
+      resolution: c.resolution ?? 1,
+      tokenSize: tSize,
+      visionRange: token?.visionRange ?? 0,
+      character_path: acc.character_path || '',
+      imageUrl: c.imageUrl || c.avatar || c.portrait || token?.imageUrl || ''
     };
+  }
+
+  function toggleTokenInEditModal() {
+    if (!quickEditAccount) return;
+    const token = getPlayerToken(quickEditAccount);
+    if (token) {
+      vttStore.tokens = vttStore.tokens.filter(t => t.id !== token.id);
+      notifStore.add('🗺️', quickEditAccount.name, 'Pion retiré de la carte VTT', 'info', 2000);
+    } else {
+      const tokenGridSize = vttStore.gridSize || 50;
+      addGmToken({
+        id: Math.random().toString(36).slice(2),
+        name: quickEditForm.nom || quickEditAccount.name,
+        x: 350 + (vttStore.tokens.length * 30) % 300,
+        y: 350 + (vttStore.tokens.length * 20) % 200,
+        size: tokenGridSize * (quickEditForm.tokenSize || 1),
+        color: 0x22c55e,
+        hp: quickEditForm.hp,
+        maxHp: quickEditForm.maxhp,
+        imageUrl: quickEditForm.imageUrl || undefined,
+        visionRange: quickEditForm.visionRange || 0,
+        isEnemy: false,
+        visible: true,
+        playerId: quickEditAccount.name
+      });
+      notifStore.add('🧙‍♂️', quickEditAccount.name, 'Pion posé sur la carte VTT !', 'success', 2500);
+    }
   }
 
   async function saveQuickEdit() {
@@ -106,11 +203,20 @@
       maxhp: maxHp,
       xp: quickEditForm.xp,
       ac: quickEditForm.ac,
+      speed: quickEditForm.speed,
+      initiative: quickEditForm.initiative,
+      destin: quickEditForm.destin,
+      fortune: quickEditForm.fortune,
+      resilience: quickEditForm.resilience,
+      resolution: quickEditForm.resolution,
       imageUrl: quickEditForm.imageUrl || null
     };
-    if (!updatedChar.profil) updatedChar.profil = { act: {} };
+    if (!updatedChar.profil) updatedChar.profil = { act: {}, init: {} };
     if (!updatedChar.profil.act) updatedChar.profil.act = {};
+    if (!updatedChar.profil.init) updatedChar.profil.init = {};
     updatedChar.profil.act.b = maxHp;
+    updatedChar.profil.act.m = quickEditForm.speed;
+    updatedChar.profil.init.i = quickEditForm.initiative;
 
     try {
       await savePlayerAccount(
@@ -118,15 +224,18 @@
         quickEditForm.nom || acc.name,
         quickEditForm.password || null,
         updatedChar,
-        acc.character_path || null
+        quickEditForm.character_path || null
       );
       const token = getPlayerToken(acc);
       if (token) {
+        const tokenGridSize = vttStore.gridSize || 50;
         replaceGmToken({
           ...token,
           name: quickEditForm.nom || acc.name,
           hp: hp,
           maxHp: maxHp,
+          size: tokenGridSize * (quickEditForm.tokenSize || 1),
+          visionRange: quickEditForm.visionRange || 0,
           imageUrl: quickEditForm.imageUrl || token.imageUrl
         });
       }
@@ -225,7 +334,7 @@
 
       notifStore.add('✨', nom, 'Nouveau joueur ajouté avec succès !', 'success', 3500);
       isCreatingPlayer = false;
-      newPlayerForm = { nom: '', voc: '', race: 'Humain', hp: 12, maxhp: 12, ac: 10, password: '', imageUrl: '', spawnOnMap: true };
+      newPlayerForm = { nom: '', voc: '', race: 'Humain', hp: 12, maxhp: 12, ac: 10, speed: 4, initiative: 30, password: '', imageUrl: '', spawnOnMap: true };
       await refreshData();
     } catch (err) {
       console.error('Create player error:', err);
@@ -938,51 +1047,233 @@
         <div class="dock-edit-overlay" transition:fade={{ duration: 150 }}>
           <div class="dock-edit-modal" transition:slide={{ duration: 150 }}>
             <div class="dock-edit-header">
-              <h4>✏️ Fiche & Compte ({quickEditAccount.name})</h4>
+              <div class="header-title-box">
+                <span class="header-icon">🧙‍♂️</span>
+                <div>
+                  <h4>Fiche & Options Joueur</h4>
+                  <span class="header-acc-name">{quickEditAccount.name}</span>
+                </div>
+              </div>
               <button class="dock-btn-close-sm" onclick={() => quickEditAccount = null}>✕</button>
             </div>
-            <div class="dock-edit-body">
-              <label class="dock-field-lbl">
-                <span>Nom du compte / perso</span>
-                <input type="text" bind:value={quickEditForm.nom} class="dock-inp" />
-              </label>
-              <label class="dock-field-lbl">
-                <span>Mot de passe (vide = libre)</span>
-                <input type="text" bind:value={quickEditForm.password} placeholder="Aucun mot de passe" class="dock-inp" />
-              </label>
-              <div class="dock-row-2">
-                <label class="dock-field-lbl">
-                  <span>Race</span>
-                  <input type="text" bind:value={quickEditForm.race} class="dock-inp" />
-                </label>
-                <label class="dock-field-lbl">
-                  <span>Métier / Classe</span>
-                  <input type="text" bind:value={quickEditForm.voc} class="dock-inp" />
-                </label>
-              </div>
-              <div class="dock-row-3">
-                <label class="dock-field-lbl">
-                  <span>PV Actuels</span>
-                  <input type="number" bind:value={quickEditForm.hp} class="dock-inp" />
-                </label>
-                <label class="dock-field-lbl">
-                  <span>PV Max</span>
-                  <input type="number" bind:value={quickEditForm.maxhp} class="dock-inp" />
-                </label>
-                <label class="dock-field-lbl">
-                  <span>CA / Armure</span>
-                  <input type="number" bind:value={quickEditForm.ac} class="dock-inp" />
-                </label>
-              </div>
-              <label class="dock-field-lbl">
-                <span>Image / Avatar (URL ou chemin)</span>
-                <input type="text" bind:value={quickEditForm.imageUrl} placeholder="https://... ou assets/..." class="dock-inp" />
-              </label>
+
+            <!-- Sous-Onglets d'Édition -->
+            <div class="dock-subtabs">
+              <button 
+                class="dock-subtab-btn {editModalTab === 'stats' ? 'active' : ''}"
+                onclick={() => editModalTab = 'stats'}
+              >
+                🛡️ Combat & Stats
+              </button>
+              <button 
+                class="dock-subtab-btn {editModalTab === 'token' ? 'active' : ''}"
+                onclick={() => editModalTab = 'token'}
+              >
+                🎨 Pion & VTT
+              </button>
+              <button 
+                class="dock-subtab-btn {editModalTab === 'account' ? 'active' : ''}"
+                onclick={() => editModalTab = 'account'}
+              >
+                ⚙️ Compte & Fiche MD
+              </button>
             </div>
+
+            <div class="dock-edit-body">
+              {#if editModalTab === 'stats'}
+                <!-- Onglet 1 : Stats & Combat -->
+                <div class="dock-tab-section">
+                  <label class="dock-field-lbl">
+                    <span>Nom du personnage</span>
+                    <input type="text" bind:value={quickEditForm.nom} class="dock-inp" />
+                  </label>
+
+                  <div class="dock-row-2">
+                    <label class="dock-field-lbl">
+                      <span>Race / Peuple</span>
+                      <input type="text" bind:value={quickEditForm.race} placeholder="Humain, Elfe..." class="dock-inp" />
+                    </label>
+                    <label class="dock-field-lbl">
+                      <span>Métier / Classe</span>
+                      <input type="text" bind:value={quickEditForm.voc} placeholder="Guerrier, Voleur..." class="dock-inp" />
+                    </label>
+                  </div>
+
+                  <div class="dock-row-3">
+                    <label class="dock-field-lbl">
+                      <span>PV Actuels</span>
+                      <input type="number" bind:value={quickEditForm.hp} min="0" class="dock-inp" />
+                    </label>
+                    <label class="dock-field-lbl">
+                      <span>PV Max</span>
+                      <input type="number" bind:value={quickEditForm.maxhp} min="1" class="dock-inp" />
+                    </label>
+                    <label class="dock-field-lbl">
+                      <span>CA / Armure</span>
+                      <input type="number" bind:value={quickEditForm.ac} min="0" class="dock-inp" />
+                    </label>
+                  </div>
+
+                  <div class="dock-row-2">
+                    <label class="dock-field-lbl">
+                      <span>Vitesse (M)</span>
+                      <input type="number" bind:value={quickEditForm.speed} min="1" class="dock-inp" />
+                    </label>
+                    <label class="dock-field-lbl">
+                      <span>Initiative (I)</span>
+                      <input type="number" bind:value={quickEditForm.initiative} min="0" class="dock-inp" />
+                    </label>
+                  </div>
+
+                  <div class="dock-row-4">
+                    <label class="dock-field-lbl">
+                      <span>Destin</span>
+                      <input type="number" bind:value={quickEditForm.destin} min="0" class="dock-inp" />
+                    </label>
+                    <label class="dock-field-lbl">
+                      <span>Fortune</span>
+                      <input type="number" bind:value={quickEditForm.fortune} min="0" class="dock-inp" />
+                    </label>
+                    <label class="dock-field-lbl">
+                      <span>Résilience</span>
+                      <input type="number" bind:value={quickEditForm.resilience} min="0" class="dock-inp" />
+                    </label>
+                    <label class="dock-field-lbl">
+                      <span>Résolution</span>
+                      <input type="number" bind:value={quickEditForm.resolution} min="0" class="dock-inp" />
+                    </label>
+                  </div>
+                </div>
+
+              {:else if editModalTab === 'token'}
+                <!-- Onglet 2 : Avatar & Pion VTT -->
+                <div class="dock-tab-section">
+                  <div class="avatar-custom-row">
+                    <div class="avatar-preview-box">
+                      {#if quickEditForm.imageUrl}
+                        <img src={quickEditForm.imageUrl} alt="Avatar" class="avatar-preview-img" />
+                      {:else}
+                        <span class="avatar-preview-placeholder">👤</span>
+                      {/if}
+                    </div>
+
+                    <div class="avatar-actions-col">
+                      <span class="avatar-label">Illustration / Portrait du Joueur</span>
+                      <div class="avatar-btns-grid">
+                        <button 
+                          class="dock-btn-celestial"
+                          onclick={() => {
+                            avatarPickerTarget = 'quickEdit';
+                            showAvatarPicker = true;
+                          }}
+                        >
+                          🌌 Galerie Céleste
+                        </button>
+                        <button 
+                          class="dock-btn-pc"
+                          onclick={() => {
+                            avatarPickerTarget = 'quickEdit';
+                            avatarFileInputRef?.click();
+                          }}
+                        >
+                          📁 Mon Image (PC)
+                        </button>
+                      </div>
+                      {#if quickEditForm.imageUrl}
+                        <button 
+                          class="dock-btn-clear-img"
+                          onclick={() => quickEditForm.imageUrl = ''}
+                        >
+                          Effacer le portrait
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+
+                  <div class="dock-row-2">
+                    <label class="dock-field-lbl">
+                      <span>Taille du Pion VTT</span>
+                      <select bind:value={quickEditForm.tokenSize} class="dock-inp">
+                        <option value={1}>Normal (1 case - 1x1)</option>
+                        <option value={2}>Grand (2 cases - 2x2)</option>
+                        <option value={3}>Très Grand (3 cases - 3x3)</option>
+                        <option value={4}>Gigantesque (4 cases - 4x4)</option>
+                      </select>
+                    </label>
+
+                    <label class="dock-field-lbl">
+                      <span>Vision Nocturne (mètres)</span>
+                      <input type="number" bind:value={quickEditForm.visionRange} min="0" step="5" placeholder="0 = normale" class="dock-inp" />
+                    </label>
+                  </div>
+
+                  <!-- Contrôle Rapide Carte VTT -->
+                  <div class="vtt-quick-actions">
+                    <button 
+                      class="dock-btn-vtt-action {isTokenOnMap(quickEditAccount) ? 'btn-remove-map' : 'btn-spawn-map'}"
+                      onclick={toggleTokenInEditModal}
+                    >
+                      {isTokenOnMap(quickEditAccount) ? '❌ Retirer le Pion de la Carte VTT' : '🗺️ Poser le Pion sur la Carte VTT'}
+                    </button>
+
+                    {#if isTokenOnMap(quickEditAccount)}
+                      <button 
+                        class="dock-btn-focus-cam"
+                        onclick={() => quickEditAccount && centerCameraOnPlayer(quickEditAccount)}
+                      >
+                        🎯 Centrer la Caméra (Focus)
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+
+              {:else if editModalTab === 'account'}
+                <!-- Onglet 3 : Compte Mobile & Fiche MD -->
+                <div class="dock-tab-section">
+                  <label class="dock-field-lbl">
+                    <span>Mot de passe connexion Joueur (Mobile GSM)</span>
+                    <input type="text" bind:value={quickEditForm.password} placeholder="Vide = connexion libre sans code" class="dock-inp" />
+                    <span class="field-hint">Permet au joueur de se reconnecter sur son smartphone avec ses données.</span>
+                  </label>
+
+                  <label class="dock-field-lbl">
+                    <span>Fiche Markdown liée (.md)</span>
+                    <select bind:value={quickEditForm.character_path} class="dock-inp">
+                      <option value="">-- Aucune fiche liée --</option>
+                      {#each vaultCharacters as vc}
+                        <option value={vc.path}>{vc.name} ({vc.path})</option>
+                      {/each}
+                    </select>
+                  </label>
+
+                  {#if quickEditForm.character_path}
+                    <button 
+                      class="dock-btn-open-md"
+                      onclick={() => {
+                        setActiveFile(quickEditForm.character_path);
+                        notifStore.add('📄', 'Grimoire', `Fiche ouverte : ${quickEditForm.character_path}`, 'info', 2000);
+                      }}
+                    >
+                      📄 Ouvrir cette fiche dans l'éditeur
+                    </button>
+                  {/if}
+
+                  <div class="danger-zone-box">
+                    <span class="danger-title">Zone de Danger</span>
+                    <button 
+                      class="dock-btn-del-full" 
+                      onclick={() => quickEditAccount && handleDeletePlayer(quickEditAccount.name)}
+                    >
+                      🗑️ Supprimer définitivement ce joueur et son compte
+                    </button>
+                  </div>
+                </div>
+              {/if}
+            </div>
+
             <div class="dock-edit-footer">
-              <button class="dock-btn-save" onclick={saveQuickEdit}>💾 Enregistrer</button>
-              <button class="dock-btn-del" onclick={() => quickEditAccount && handleDeletePlayer(quickEditAccount.name)} title="Supprimer ce joueur">🗑️ Supprimer</button>
-              <button class="dock-btn-cancel" onclick={() => quickEditAccount = null}>Annuler</button>
+              <button class="dock-btn-save" onclick={saveQuickEdit}>💾 Enregistrer les Modifications</button>
+              <button class="dock-btn-cancel" onclick={() => quickEditAccount = null}>Fermer</button>
             </div>
           </div>
         </div>
@@ -993,51 +1284,92 @@
         <div class="dock-edit-overlay" transition:fade={{ duration: 150 }}>
           <div class="dock-edit-modal" transition:slide={{ duration: 150 }}>
             <div class="dock-edit-header">
-              <h4>➕ Nouveau Joueur / Personnage</h4>
+              <div class="header-title-box">
+                <span class="header-icon">➕</span>
+                <h4>Nouveau Joueur / Personnage</h4>
+              </div>
               <button class="dock-btn-close-sm" onclick={() => isCreatingPlayer = false}>✕</button>
             </div>
+
             <div class="dock-edit-body">
-              <label class="dock-field-lbl">
-                <span>Nom du personnage *</span>
-                <input type="text" bind:value={newPlayerForm.nom} placeholder="ex: Valeros, Elina..." class="dock-inp" />
-              </label>
-              <div class="dock-row-2">
+              <div class="dock-tab-section">
                 <label class="dock-field-lbl">
-                  <span>Race / Peuple</span>
-                  <input type="text" bind:value={newPlayerForm.race} placeholder="Humain, Elfe..." class="dock-inp" />
+                  <span>Nom du personnage *</span>
+                  <input type="text" bind:value={newPlayerForm.nom} placeholder="ex: Valeros, Elina, Thorgar..." class="dock-inp" />
                 </label>
+
+                <!-- Avatar rapide -->
+                <div class="avatar-custom-row">
+                  <div class="avatar-preview-box">
+                    {#if newPlayerForm.imageUrl}
+                      <img src={newPlayerForm.imageUrl} alt="Avatar" class="avatar-preview-img" />
+                    {:else}
+                      <span class="avatar-preview-placeholder">👤</span>
+                    {/if}
+                  </div>
+                  <div class="avatar-actions-col">
+                    <span class="avatar-label">Illustration / Avatar</span>
+                    <div class="avatar-btns-grid">
+                      <button 
+                        class="dock-btn-celestial"
+                        onclick={() => {
+                          avatarPickerTarget = 'newPlayer';
+                          showAvatarPicker = true;
+                        }}
+                      >
+                        🌌 Galerie Céleste
+                      </button>
+                      <button 
+                        class="dock-btn-pc"
+                        onclick={() => {
+                          avatarPickerTarget = 'newPlayer';
+                          avatarFileInputRef?.click();
+                        }}
+                      >
+                        📁 Mon Image (PC)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="dock-row-2">
+                  <label class="dock-field-lbl">
+                    <span>Race / Peuple</span>
+                    <input type="text" bind:value={newPlayerForm.race} placeholder="Humain, Elfe, Nain..." class="dock-inp" />
+                  </label>
+                  <label class="dock-field-lbl">
+                    <span>Métier / Classe</span>
+                    <input type="text" bind:value={newPlayerForm.voc} placeholder="Guerrier, Mage, Roublard..." class="dock-inp" />
+                  </label>
+                </div>
+
+                <div class="dock-row-3">
+                  <label class="dock-field-lbl">
+                    <span>PV Max</span>
+                    <input type="number" bind:value={newPlayerForm.maxhp} class="dock-inp" min="1" />
+                  </label>
+                  <label class="dock-field-lbl">
+                    <span>PV Actuels</span>
+                    <input type="number" bind:value={newPlayerForm.hp} class="dock-inp" min="0" />
+                  </label>
+                  <label class="dock-field-lbl">
+                    <span>CA / Armure</span>
+                    <input type="number" bind:value={newPlayerForm.ac} class="dock-inp" min="0" />
+                  </label>
+                </div>
+
                 <label class="dock-field-lbl">
-                  <span>Métier / Classe</span>
-                  <input type="text" bind:value={newPlayerForm.voc} placeholder="Guerrier, Mage..." class="dock-inp" />
+                  <span>Mot de passe mobile (optionnel)</span>
+                  <input type="text" bind:value={newPlayerForm.password} placeholder="Vide = connexion libre sans mot de passe" class="dock-inp" />
+                </label>
+
+                <label class="dock-checkbox-lbl">
+                  <input type="checkbox" bind:checked={newPlayerForm.spawnOnMap} />
+                  <span>Poser directement le pion sur la carte VTT</span>
                 </label>
               </div>
-              <div class="dock-row-3">
-                <label class="dock-field-lbl">
-                  <span>PV Max</span>
-                  <input type="number" bind:value={newPlayerForm.maxhp} class="dock-inp" min="1" />
-                </label>
-                <label class="dock-field-lbl">
-                  <span>PV Actuels</span>
-                  <input type="number" bind:value={newPlayerForm.hp} class="dock-inp" min="0" />
-                </label>
-                <label class="dock-field-lbl">
-                  <span>CA / Armure</span>
-                  <input type="number" bind:value={newPlayerForm.ac} class="dock-inp" min="0" />
-                </label>
-              </div>
-              <label class="dock-field-lbl">
-                <span>Mot de passe (optionnel)</span>
-                <input type="text" bind:value={newPlayerForm.password} placeholder="Vide = connexion libre sur mobile" class="dock-inp" />
-              </label>
-              <label class="dock-field-lbl">
-                <span>Portrait / Avatar (URL d'image)</span>
-                <input type="text" bind:value={newPlayerForm.imageUrl} placeholder="https://... ou assets/..." class="dock-inp" />
-              </label>
-              <label class="dock-checkbox-lbl">
-                <input type="checkbox" bind:checked={newPlayerForm.spawnOnMap} />
-                <span>Poser directement le pion sur la carte VTT</span>
-              </label>
             </div>
+
             <div class="dock-edit-footer">
               <button class="dock-btn-save" onclick={createNewPlayer}>✨ Créer le Joueur</button>
               <button class="dock-btn-cancel" onclick={() => isCreatingPlayer = false}>Annuler</button>
@@ -1045,6 +1377,31 @@
           </div>
         </div>
       {/if}
+
+      <!-- Sélecteur d'Avatar Galerie Céleste -->
+      {#if showAvatarPicker}
+        <CelestialArtPickerModal
+          onselect={(url: string, name?: string, isEmoji?: boolean) => {
+            if (avatarPickerTarget === 'quickEdit') {
+              quickEditForm.imageUrl = url;
+            } else {
+              newPlayerForm.imageUrl = url;
+              if (name && !newPlayerForm.nom) newPlayerForm.nom = name;
+            }
+            showAvatarPicker = false;
+          }}
+          onclose={() => showAvatarPicker = false}
+        />
+      {/if}
+
+      <!-- Input file masqué pour l'import d'image PC -->
+      <input 
+        type="file" 
+        accept="image/*" 
+        style="display:none" 
+        bind:this={avatarFileInputRef} 
+        onchange={handleAvatarFileUpload} 
+      />
     </div>
   {/if}
 {/if}
@@ -1524,117 +1881,377 @@
 
   /* ── Quick Edit Modal ─────────────────────────────────────────── */
   .dock-edit-overlay {
-    position: absolute;
+    position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(4px);
-    z-index: 950;
+    background: rgba(4, 7, 15, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
   }
   .dock-edit-modal {
     background: #0f172a;
-    border-top: 1px solid var(--accent, #e5a853);
-    padding: 12px;
+    border: 1px solid rgba(229, 168, 83, 0.5);
+    border-radius: 14px;
+    width: 480px;
+    max-width: 95vw;
+    max-height: 88vh;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 20px rgba(229, 168, 83, 0.2);
+    overflow: hidden;
   }
   .dock-edit-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .header-title-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-icon {
+    font-size: 20px;
   }
   .dock-edit-header h4 {
     margin: 0;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--accent, #e5a853);
     font-weight: 700;
+    line-height: 1.2;
+  }
+  .header-acc-name {
+    font-size: 11px;
+    color: #94a3b8;
   }
   .dock-btn-close-sm {
     background: transparent;
     border: none;
     color: #94a3b8;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
   }
-  .dock-btn-close-sm:hover { color: #f1f5f9; }
+  .dock-btn-close-sm:hover { 
+    background: rgba(255, 255, 255, 0.1); 
+    color: #f1f5f9; 
+  }
+
+  /* ── Sous-Onglets d'Édition ────────────────────────────────────── */
+  .dock-subtabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 4px 12px 0 12px;
+    gap: 4px;
+  }
+  .dock-subtab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .dock-subtab-btn:hover {
+    color: #f1f5f9;
+  }
+  .dock-subtab-btn.active {
+    color: var(--accent, #e5a853);
+    border-bottom-color: var(--accent, #e5a853);
+    background: rgba(229, 168, 83, 0.08);
+    border-radius: 6px 6px 0 0;
+  }
+
+  /* ── Corps & Formulaire ───────────────────────────────────────── */
   .dock-edit-body {
+    padding: 14px 16px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 12px;
+    max-height: calc(88vh - 125px);
+  }
+  .dock-tab-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
   .dock-field-lbl {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    font-size: 10px;
+    gap: 3px;
+    font-size: 11px;
     color: #94a3b8;
+    font-weight: 500;
+  }
+  .field-hint {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 1px;
   }
   .dock-inp {
     background: #020617;
     border: 1px solid #334155;
-    border-radius: 4px;
-    padding: 4px 6px;
+    border-radius: 6px;
+    padding: 6px 8px;
     font-size: 11px;
     color: white;
     outline: none;
+    transition: border-color 0.15s;
   }
   .dock-inp:focus { border-color: var(--accent, #e5a853); }
   .dock-row-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: 8px;
   }
   .dock-row-3 {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .dock-row-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 6px;
   }
-  .dock-edit-footer {
+
+  /* ── Avatar & Miniature ────────────────────────────────────────── */
+  .avatar-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .avatar-preview-box {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--accent, #e5a853);
+    background: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  }
+  .avatar-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .avatar-preview-placeholder {
+    font-size: 26px;
+    color: #64748b;
+  }
+  .avatar-actions-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+  .avatar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+  .avatar-btns-grid {
     display: flex;
     gap: 6px;
-    margin-top: 4px;
   }
-  .dock-btn-save {
-    flex: 2;
-    background: #238636;
+  .dock-btn-celestial {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
     border: none;
-    color: white;
     border-radius: 6px;
-    padding: 6px;
+    color: white;
     font-size: 11px;
-    font-weight: bold;
+    font-weight: 600;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+  }
+  .dock-btn-celestial:hover {
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    transform: translateY(-1px);
+  }
+  .dock-btn-pc {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 10px;
     cursor: pointer;
     transition: background 0.15s;
   }
-  .dock-btn-save:hover { background: #2ea043; }
+  .dock-btn-pc:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .dock-btn-clear-img {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    font-size: 10px;
+    cursor: pointer;
+    align-self: flex-start;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  /* ── Actions VTT Rapides ───────────────────────────────────────── */
+  .vtt-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .dock-btn-vtt-action {
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .dock-btn-vtt-action.btn-spawn-map {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+  .dock-btn-vtt-action.btn-spawn-map:hover {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    transform: translateY(-1px);
+  }
+  .dock-btn-vtt-action.btn-remove-map {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #f87171;
+  }
+  .dock-btn-vtt-action.btn-remove-map:hover {
+    background: rgba(239, 68, 68, 0.25);
+  }
+  .dock-btn-focus-cam {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .dock-btn-focus-cam:hover {
+    background: rgba(59, 130, 246, 0.25);
+  }
+  .dock-btn-open-md {
+    background: rgba(229, 168, 83, 0.12);
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    color: var(--accent, #e5a853);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: center;
+  }
+  .dock-btn-open-md:hover {
+    background: rgba(229, 168, 83, 0.22);
+  }
+  .danger-zone-box {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px dashed rgba(239, 68, 68, 0.35);
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .danger-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .dock-btn-del-full {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: center;
+  }
+  .dock-btn-del-full:hover {
+    background: #ef4444;
+    color: white;
+  }
+
+  /* ── Footer ───────────────────────────────────────────────────── */
+  .dock-edit-footer {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .dock-btn-save {
+    flex: 2;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  }
+  .dock-btn-save:hover { 
+    background: linear-gradient(135deg, #34d399, #10b981);
+    transform: translateY(-1px);
+  }
   .dock-btn-cancel {
     flex: 1;
     background: #334155;
     border: none;
     color: #cbd5e1;
     border-radius: 6px;
-    padding: 6px;
-    font-size: 11px;
-    cursor: pointer;
-  }
-  .dock-btn-cancel:hover { background: #475569; }
-  .dock-btn-del {
-    flex: 1.4;
-    background: #b91c1c;
-    border: none;
-    color: white;
-    border-radius: 6px;
-    padding: 6px;
-    font-size: 11px;
-    font-weight: bold;
+    padding: 8px 12px;
+    font-size: 12px;
     cursor: pointer;
     transition: background 0.15s;
   }
-  .dock-btn-del:hover { background: #dc2626; }
+  .dock-btn-cancel:hover { background: #475569; color: white; }
+
   .dock-add-player-btn {
     background: linear-gradient(135deg, #d97706, #b45309);
     border: none;

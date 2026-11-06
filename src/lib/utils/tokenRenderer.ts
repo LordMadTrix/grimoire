@@ -211,7 +211,11 @@ export async function renderTokenToCanvas(
       let safeSrc = data.imageUrl;
       if (!safeSrc.startsWith('data:')) {
         try {
-          safeSrc = await imageSourceToDataUrl(data.imageUrl);
+          const converted = await imageSourceToDataUrl(data.imageUrl);
+          if (converted && converted.startsWith('data:')) {
+            safeSrc = converted;
+            data.imageUrl = converted;
+          }
         } catch {
           safeSrc = data.imageUrl;
         }
@@ -371,27 +375,40 @@ export async function renderTokenToCanvas(
  * Exporte un pion en Blob PNG
  */
 export async function exportTokenToBlob(data: TokenDesignData, size: number = 512): Promise<Blob> {
-  const canvas = await renderTokenToCanvas(data, size);
-  return new Promise((resolve, reject) => {
-    try {
+  try {
+    const canvas = await renderTokenToCanvas(data, size);
+    return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);
         else reject(new Error('Erreur lors de la génération du blob PNG'));
       }, 'image/png');
-    } catch (err: any) {
-      reject(new Error(`Impossible d'exporter l'image du pion (canvas sécurisé) : ${err?.message || err}`));
+    });
+  } catch (err: any) {
+    console.warn("Échec export canvas toBlob, utilisation fallback:", err);
+    if (data.imageUrl && data.imageUrl.startsWith('data:')) {
+      try {
+        const res = await fetch(data.imageUrl);
+        return await res.blob();
+      } catch {}
     }
-  });
+    throw new Error(`Impossible d'exporter l'image du pion (canvas sécurisé) : ${err?.message || err}`);
+  }
 }
 
 /**
  * Exporte un pion en Data URL PNG
  */
 export async function exportTokenToDataUrl(data: TokenDesignData, size: number = 512): Promise<string> {
-  const canvas = await renderTokenToCanvas(data, size);
   try {
+    const canvas = await renderTokenToCanvas(data, size);
     return canvas.toDataURL('image/png');
   } catch (err: any) {
+    console.warn("Échec export canvas toDataURL, utilisation fallback:", err);
+    // Si le canvas est tainted pour une raison réseau externe, fournir directement
+    // l'image du pion pour ne pas bloquer le placement VTT
+    if (data.imageUrl && (data.imageUrl.startsWith('data:') || data.imageUrl.startsWith('http') || data.imageUrl.startsWith('/'))) {
+      return data.imageUrl;
+    }
     throw new Error(`Impossible d'exporter l'image du pion : ${err?.message || err}`);
   }
 }
