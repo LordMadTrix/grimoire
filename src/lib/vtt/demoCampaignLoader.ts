@@ -11,6 +11,7 @@ export function loadSanctuaryDemo() {
   vttStore.currentMapRelPath = 'maps/sanctuaire.png';
   vttStore.gridSize = 70;
   vttStore.showGrid = true;
+  vttStore.mode = 'select';
 
   // 2. Ambiance & Éclairage (Donjon sombre avec torches)
   vttStore.ambientLight = 'pitch_black';

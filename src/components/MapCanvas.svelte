@@ -458,7 +458,9 @@
       }
 
       // ── Glissement fluide des pions vers leur position cible (Lerp 60 FPS) ──
-      for (const [, c] of tokenSprites) {
+      for (const [id, c] of tokenSprites) {
+        // IMPORTANT: Ne pas interpoler si le token est actuellement attrapé et déplacé par le MJ !
+        if (id === draggedTokenId || dragOffsets.has(id)) continue;
         const tx = (c as any).__targetX;
         const ty = (c as any).__targetY;
         if (tx !== undefined && ty !== undefined) {
@@ -1315,7 +1317,7 @@
 
         if (isGM) {
           container.eventMode = 'static';
-          container.cursor = 'pointer';
+          container.cursor = 'grab';
           container.on('pointerdown', (e) => onTokenPointerDown(e, token.id));
           container.on('rightclick', (e) => {
             e.stopPropagation();
@@ -1351,6 +1353,7 @@
       }
 
       const r = token.size / 2;
+      container.hitArea = new PIXI.Circle(0, 0, Math.max(r, 22));
       const tokenSprite = (container as any).__tokenSprite as PIXI.Sprite;
 
       // Cercle — API PixiJS v8
@@ -1729,7 +1732,11 @@
       }
       condWheelTokenId = id;
       condWheelX = e.global?.x ?? 400; condWheelY = e.global?.y ?? 300;
-    } else if (vttMode === 'select') {
+    } else {
+      // Clic gauche sur un token : si un autre outil était actif, on bascule en mode 'select'
+      if (vttMode !== 'select') {
+        vttStore.mode = 'select';
+      }
       if (e.shiftKey) {
         const newSel = new Set(selectedTokenIds);
         if (newSel.has(id)) newSel.delete(id); else newSel.add(id);
@@ -1737,6 +1744,7 @@
       } else {
         if (!selectedTokenIds.has(id)) selectedTokenIds = new Set();
         draggedTokenId = id;
+        if (app?.canvas) app.canvas.style.cursor = 'grabbing';
         const mainToken = tokens.find(t => t.id === id);
         if (mainToken) {
           movePathStart = { x: mainToken.x, y: mainToken.y };
@@ -2062,9 +2070,16 @@
       if (sprite) {
         sprite.x = localPos.x;
         sprite.y = localPos.y;
+        (sprite as any).__targetX = localPos.x;
+        (sprite as any).__targetY = localPos.y;
         for (const [selId, off] of dragOffsets) {
           const sel = tokenSprites.get(selId);
-          if (sel) { sel.x = localPos.x + off.dx; sel.y = localPos.y + off.dy; }
+          if (sel) {
+            sel.x = localPos.x + off.dx;
+            sel.y = localPos.y + off.dy;
+            (sel as any).__targetX = sel.x;
+            (sel as any).__targetY = sel.y;
+          }
         }
         // Chemin de déplacement
         if (movePathStart && movePathG) {
@@ -2349,6 +2364,13 @@
         localPos.x = Math.floor(localPos.x / gridSize) * gridSize + gridSize / 2;
         localPos.y = Math.floor(localPos.y / gridSize) * gridSize + gridSize / 2;
       }
+      const sprite = tokenSprites.get(draggedTokenId);
+      if (sprite) {
+        sprite.x = localPos.x;
+        sprite.y = localPos.y;
+        (sprite as any).__targetX = localPos.x;
+        (sprite as any).__targetY = localPos.y;
+      }
       onTokenMove(draggedTokenId, localPos.x, localPos.y);
       // Finaliser le déplacement groupé
       for (const [selId, off] of dragOffsets) {
@@ -2358,12 +2380,20 @@
           sx = Math.floor(sx / gridSize) * gridSize + gridSize / 2;
           sy = Math.floor(sy / gridSize) * gridSize + gridSize / 2;
         }
+        const selSprite = tokenSprites.get(selId);
+        if (selSprite) {
+          selSprite.x = sx;
+          selSprite.y = sy;
+          (selSprite as any).__targetX = sx;
+          (selSprite as any).__targetY = sy;
+        }
         onTokenMove(selId, sx, sy);
       }
       dragOffsets = new Map();
       draggedTokenId = null;
       movePathStart = null;
       if (movePathG) movePathG.clear();
+      if (app?.canvas) app.canvas.style.cursor = 'default';
     } else if (isDrawing && backgroundSprite) {
       isDrawing = false;
       const localPos = worldContainer.toLocal(e.global);
