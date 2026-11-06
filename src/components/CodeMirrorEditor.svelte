@@ -821,7 +821,7 @@
     if (linkTarget.toLowerCase().startsWith('map:')) {
       const target = linkTarget.slice(4).trim();
       const [mapName, pinTarget] = target.split('#');
-      window.dispatchEvent(new CustomEvent('open-vtt-map', { detail: { mapName, pinTarget } }));
+      window.dispatchEvent(new CustomEvent('open-vtt-map', { detail: { mapName, pinTarget, pushToPlayers: true } }));
       return;
     }
     const vaultPath = getVaultPath();

@@ -308,6 +308,13 @@
     return item ? item.value.replace(/^["']|["']$/g, '').trim() : null;
   })());
 
+  // Carte liée à la note dans le frontmatter
+  let frontmatterMap = $derived((() => {
+    if (!frontmatter) return null;
+    const item = frontmatter.find(f => ['map', 'carte', 'scene', 'vtt'].includes(f.key.toLowerCase()));
+    return item ? item.value.replace(/^["']|["']$/g, '').trim() : null;
+  })());
+
   let isAmbiancePlaying = $derived(!!ambianceTrack && vttStore.audioSrc === ambianceTrack);
 
   function toggleAmbiance() {
@@ -475,12 +482,40 @@
       if (line.startsWith('```')) {
         const lang = line.slice(3).trim();
         i++;
-        let code = '';
+        let rawCode = '';
         while (i < lines.length && !lines[i].startsWith('```')) {
-          code += esc(lines[i]) + '\n';
+          rawCode += lines[i] + '\n';
           i++;
         }
         i++;
+
+        // Commande Carte Markdown : ```map
+        if (lang.toLowerCase() === 'map') {
+          const mapTarget = rawCode.trim();
+          html += `
+            <div class="md-map-block" data-map-target="${esc(mapTarget)}">
+              <div class="md-map-card">
+                <div class="md-map-icon-box">🗺️</div>
+                <div class="md-map-details">
+                  <span class="md-map-badge">COMMANDE CARTE VTT & JOUEURS</span>
+                  <div class="md-map-name">${esc(mapTarget || 'Carte')}</div>
+                  <div class="md-map-sub">Cliquez pour afficher sur la Table Virtuelle et projeter sur l'écran Joueurs</div>
+                </div>
+                <div class="md-map-btns">
+                  <button type="button" class="md-map-btn btn-primary" data-action="load-map" data-map="${esc(mapTarget)}">
+                    🚀 Afficher sur VTT & Joueurs
+                  </button>
+                  <button type="button" class="md-map-btn btn-secondary" data-action="player-only" data-map="${esc(mapTarget)}" title="Projeter directement sur l'écran joueur">
+                    🖥️ Vue Joueurs Directe
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          continue;
+        }
+
+        const code = esc(rawCode);
         html += `<pre><code${lang ? ` class="language-${lang}"` : ''}>${code}</code></pre>`;
         continue;
       }
@@ -789,6 +824,30 @@
       return;
     }
 
+    // 2.5 Clic sur bloc de commande ```map
+    const mapActionBtn = target.closest('[data-action="load-map"], [data-action="player-only"]') as HTMLElement | null;
+    if (mapActionBtn) {
+      const mapName = mapActionBtn.dataset.map;
+      if (mapName) {
+        const isPlayerOnly = mapActionBtn.dataset.action === 'player-only';
+        window.dispatchEvent(new CustomEvent('open-vtt-map', {
+          detail: { mapName, pushToPlayers: true, playerOnly: isPlayerOnly }
+        }));
+        return;
+      }
+    }
+
+    const mapBlock = target.closest('.md-map-block') as HTMLElement | null;
+    if (mapBlock && !target.closest('button')) {
+      const mapName = mapBlock.dataset.mapTarget;
+      if (mapName) {
+        window.dispatchEvent(new CustomEvent('open-vtt-map', {
+          detail: { mapName, pushToPlayers: true }
+        }));
+        return;
+      }
+    }
+
     // 3. Lien wiki ou scène VTT
     const link = target.closest('[data-href]') as HTMLElement | null;
     if (!link) return;
@@ -797,7 +856,7 @@
     if (href.toLowerCase().startsWith('map:')) {
       const targetMap = href.slice(4).trim();
       const [mapName, pinTarget] = targetMap.split('#');
-      window.dispatchEvent(new CustomEvent('open-vtt-map', { detail: { mapName, pinTarget } }));
+      window.dispatchEvent(new CustomEvent('open-vtt-map', { detail: { mapName, pinTarget, pushToPlayers: true } }));
       return;
     }
     openWikiFromPreview(href);
@@ -997,6 +1056,18 @@
 
     {#if frontmatter}
       <div class="frontmatter-bar">
+        {#if frontmatterMap}
+          <button
+            type="button"
+            class="ambiance-pill fm-map-btn"
+            onclick={() => window.dispatchEvent(new CustomEvent('open-vtt-map', { detail: { mapName: frontmatterMap, pushToPlayers: true } }))}
+            title="Afficher cette carte sur la Table Virtuelle et l'envoyer sur l'écran des Joueurs"
+          >
+            <span class="ambiance-icon">🗺️</span>
+            <span class="ambiance-title">{frontmatterMap.split('/').pop()?.replace(/\.[^.]+$/, '')}</span>
+            <span class="ambiance-badge">🚀 Projeter VTT & Joueurs</span>
+          </button>
+        {/if}
         {#if ambianceTrack}
           <button
             type="button"
@@ -2441,6 +2512,91 @@
     font-size: 13px;
     font-weight: 700;
     margin-bottom: 6px;
+  }
+  .preview-panel :global(.md-map-block) {
+    margin: 16px 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.85));
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+  .preview-panel :global(.md-map-block:hover) {
+    border-color: #f59e0b;
+    box-shadow: 0 6px 22px rgba(245, 158, 11, 0.25);
+  }
+  .preview-panel :global(.md-map-card) {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .preview-panel :global(.md-map-icon-box) {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .preview-panel :global(.md-map-details) {
+    flex: 1;
+    min-width: 180px;
+  }
+  .preview-panel :global(.md-map-badge) {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #fbbf24;
+    letter-spacing: 0.5px;
+  }
+  .preview-panel :global(.md-map-name) {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 2px 0;
+  }
+  .preview-panel :global(.md-map-sub) {
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  .preview-panel :global(.md-map-btns) {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .preview-panel :global(.md-map-btn) {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+  }
+  .preview-panel :global(.md-map-btn.btn-primary) {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.4);
+  }
+  .preview-panel :global(.md-map-btn.btn-primary:hover) {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    transform: translateY(-1px);
+  }
+  .preview-panel :global(.md-map-btn.btn-secondary) {
+    background: rgba(51, 65, 85, 0.8);
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+  }
+  .preview-panel :global(.md-map-btn.btn-secondary:hover) {
+    background: rgba(71, 85, 105, 0.9);
+    color: #ffffff;
+  }
+  .fm-map-btn {
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    background: rgba(245, 158, 11, 0.15) !important;
+  }
+  .fm-map-btn:hover {
+    border-color: #f59e0b !important;
+    background: rgba(245, 158, 11, 0.3) !important;
   }
   .preview-panel :global(.callout-content) {
     font-size: 13.5px;

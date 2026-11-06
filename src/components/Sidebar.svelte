@@ -22,6 +22,7 @@
   } from '$lib/stores/vault.svelte';
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
   import { setGmCurrentMap } from '$lib/stores/vtt.svelte';
+  import { loadAndDisplayMap } from '$lib/services/mapResolver';
   import PdfReaderModal from './PdfReaderModal.svelte';
   import CampaignBackupModal from './CampaignBackupModal.svelte';
   let { entries = [], depth = 0 }: { entries: VaultEntry[]; depth?: number } = $props();
@@ -121,17 +122,8 @@
   }
 
   async function loadAsMap(entry: VaultEntry) {
-    const vp = getVaultPath();
-    if (!vp) return;
-    try {
-      const b64 = await readFileBase64(`${vp}/${entry.path}`);
-      const ext = entry.extension?.toLowerCase() ?? 'jpg';
-      const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-      setGmCurrentMap(`data:${mime};base64,${b64}`);
-      hoverPreview = null;
-    } catch (err) {
-      console.error('Failed to load map:', err);
-    }
+    hoverPreview = null;
+    await loadAndDisplayMap(entry.path, true);
   }
 
   async function openPathSmart(path: string) {
@@ -146,11 +138,8 @@
       return;
     }
 
-    if (path.startsWith('assets/maps/') && (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.webp') || path.endsWith('.jpeg'))) {
-      const b64 = await readFileBase64(`${vp}/${path}`);
-      const ext = path.split('.').pop()?.toLowerCase() ?? 'jpg';
-      const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-      setGmCurrentMap(`data:${mime};base64,${b64}`);
+    if ((path.startsWith('assets/maps/') || path.startsWith('maps/')) && (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.webp') || path.endsWith('.jpeg'))) {
+      await loadAndDisplayMap(path, true);
       return;
     }
 

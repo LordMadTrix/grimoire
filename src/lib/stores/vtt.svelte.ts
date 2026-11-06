@@ -1,4 +1,5 @@
 import { emitToPlayerView, writeFile, readFile, createDirectory, readFileBase64, broadcastToPlayers } from '../api';
+import { getVaultPath } from './vault.svelte';
 
 // ── Undo stack ────────────────────────────────────────────────────
 type UndoEntry =
@@ -480,7 +481,11 @@ export function revealGmPin(id: string) {
 }
 
 // ── Map / Multimap ────────────────────────────────────────────────
-export function setGmCurrentMap(map: string | null) { vttStore.currentMap = map; }
+export function setGmCurrentMap(map: string | null, relPath?: string | null) {
+  vttStore.currentMap = map;
+  if (relPath !== undefined) vttStore.currentMapRelPath = relPath;
+  emitToPlayerView('set_player_map', { url: map });
+}
 
 function snapshotActiveScene() {
   const scene = vttStore.maps.find(m => m.id === vttStore.activeMapId);
@@ -559,6 +564,22 @@ export function switchMapScene(id: string) {
   if (!scene) return;
   vttStore.activeMapId = id;
   applyScene(scene);
+  if (scene.relPath) {
+    const vp = getVaultPath();
+    if (vp) {
+      readFileBase64(`${vp}/${scene.relPath}`).then(b64 => {
+        const ext = scene.relPath!.split('.').pop()?.toLowerCase();
+        const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : (ext === 'webp' ? 'image/webp' : 'image/png');
+        const dataUrl = `data:${mime};base64,${b64}`;
+        vttStore.currentMap = dataUrl;
+        emitToPlayerView('set_player_map', { url: dataUrl });
+      }).catch(err => {
+        console.error('Erreur chargement image scène:', err);
+      });
+    }
+  } else {
+    emitToPlayerView('set_player_map', { url: vttStore.currentMap });
+  }
 }
 
 export function removeMapScene(id: string) {

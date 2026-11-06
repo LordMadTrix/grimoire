@@ -41,6 +41,7 @@
     addMapScene, switchMapScene, removeMapScene, renameMapScene,
     syncCombatantsToPlayerView, addCombatLogEntry, updatePlayerHpByName,
   } from '$lib/stores/vtt.svelte';
+  import { loadAndDisplayMap } from '$lib/services/mapResolver';
   import { listen } from '@tauri-apps/api/event';
 
   function handleSpellPlace(x: number, y: number, radius?: number, angle?: number, length?: number) {
@@ -459,17 +460,10 @@
       const onToggleZenMode = (e: any) => {
         isZenMode = !!e.detail?.isZenMode;
       };
-      const onOpenVttMap = (e: any) => {
-        const { mapName } = e.detail || {};
+      const onOpenVttMap = async (e: any) => {
+        const { mapName, pushToPlayers, playerOnly } = e.detail || {};
         if (!mapName) return;
-        const targetLower = mapName.toLowerCase();
-        const scene = vttStore.maps.find(m => m.name.toLowerCase() === targetLower || m.id === mapName);
-        if (scene) {
-          switchMapScene(scene.id);
-          notifStore.add('🗺️', 'Table Virtuelle', `Scène active : ${scene.name}`, 'info', 3000);
-        } else {
-          notifStore.add('🗺️', 'Table Virtuelle', `Carte "${mapName}" demandée. Vérifiez vos scènes VTT.`, 'warn', 4000);
-        }
+        await loadAndDisplayMap(mapName, pushToPlayers !== false, !!playerOnly);
       };
       window.addEventListener('toggle-zen-mode', onToggleZenMode);
       window.addEventListener('open-vtt-map', onOpenVttMap);
