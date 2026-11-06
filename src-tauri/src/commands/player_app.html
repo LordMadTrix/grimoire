@@ -234,11 +234,20 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <div id="join">
   <h1>⚔️ Grimoire WFRP</h1>
   <p>Warhammer Fantasy — Rejoignez la table de votre Maître du Jeu</p>
+  
+  <!-- Sélecteur rapide de personnages existants de la campagne -->
+  <div id="character-quick-picker" style="display:none;width:100%;max-width:320px;flex-direction:column;gap:6px">
+    <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Personnage enregistré :</label>
+    <select id="player-select" class="jinp" onchange="onSelectCharacter(this.value)">
+      <option value="">-- Choisir un personnage existant --</option>
+    </select>
+  </div>
+
   <input class="jinp" id="player-name" placeholder="Votre nom de personnage" maxlength="40"/>
   <input class="jinp" id="player-password" type="password" placeholder="Mot de passe (facultatif)" maxlength="64"/>
-  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:-8px">Le mot de passe protège votre profil pour le retrouver à la prochaine session.</p>
-  <div id="join-error" style="color:#ef4444;font-size:13px;text-align:center;display:none"></div>
-  <button class="jbtn" onclick="joinGame()">Rejoindre la Table</button>
+  <p id="pwd-hint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:-8px">Le mot de passe protège votre profil pour le retrouver à la prochaine session.</p>
+  <div id="join-error" style="color:#ef4444;font-size:13px;text-align:center;display:none;background:rgba(239,68,68,0.12);padding:10px;border-radius:6px;border:1px solid rgba(239,68,68,0.3);width:100%;max-width:320px"></div>
+  <button class="jbtn" id="join-btn" onclick="joinGame()">Rejoindre la Table</button>
 </div>
 
 <div id="app">
@@ -1702,8 +1711,14 @@ function connect(){
         showStatus('Connecté',true);
       }else if(env.event==='auth_error'){
         const errEl=document.getElementById('join-error');
-        if(errEl){errEl.textContent=env.data.message||'Mot de passe incorrect.';errEl.style.display='block';}
-        ws.close();ws=null;
+        if(errEl){
+          errEl.textContent=env.data.message||'Mot de passe incorrect pour ce personnage.';
+          errEl.style.display='block';
+        }
+        const btn=document.getElementById('join-btn');
+        if(btn){btn.textContent='Rejoindre la Table';btn.disabled=false;}
+        showStatus('Mot de passe incorrect',false);
+        if(ws){ws.close();ws=null;}
       }else if(env.event==='game_config'){
         gameConfig=env.data;
         populateRaceDropdown();
@@ -1838,10 +1853,29 @@ function connect(){
       }
     }catch(err){}
   };
-  ws.onerror=()=>showStatus('Erreur de connexion',false);
+  ws.onerror=()=>{
+    showStatus('Erreur de connexion',false);
+    const btn=document.getElementById('join-btn');
+    if(btn){btn.textContent='Rejoindre la Table';btn.disabled=false;}
+    const errEl=document.getElementById('join-error');
+    if(errEl && document.getElementById('join').style.display !== 'none'){
+      errEl.textContent='Impossible de contacter le serveur MJ. Vérifiez la connexion Wi-Fi.';
+      errEl.style.display='block';
+    }
+  };
   ws.onclose=()=>{
-    showStatus('Déconnecté — reconnexion…',false);
-    setTimeout(()=>{reconnDelay=Math.min(reconnDelay*2,8000);connect();},reconnDelay);
+    const btn=document.getElementById('join-btn');
+    if(btn && document.getElementById('join').style.display !== 'none'){
+      btn.textContent='Rejoindre la Table';
+      btn.disabled=false;
+    }
+    // Reconnecter automatiquement uniquement si le joueur était déjà authentifié
+    if(playerId){
+      showStatus('Déconnecté — reconnexion…',false);
+      setTimeout(()=>{reconnDelay=Math.min(reconnDelay*2,8000);connect();},reconnDelay);
+    } else {
+      showStatus('Déconnecté',false);
+    }
   };
 }
 function send(event,data){
@@ -1951,15 +1985,102 @@ function handleMobileWeather(weather) {
 
 // ── UI ─────────────────────────────────────────────────────────────────
 let playerPassword=null;
+
+async function loadAvailableCharacters(){
+  try{
+    const res=await fetch('/api/characters');
+    if(res.ok){
+      const chars=await res.json();
+      if(Array.isArray(chars)&&chars.length>0){
+        const picker=document.getElementById('character-quick-picker');
+        const sel=document.getElementById('player-select');
+        sel.innerHTML='<option value="">-- Choisir un personnage existant --</option>';
+        chars.forEach(c=>{
+          const opt=document.createElement('option');
+          opt.value=c.name;
+          opt.textContent=c.name+(c.voc?` (${c.voc})`:'')+(c.has_password?' 🔒':'');
+          opt.dataset.hasPwd=c.has_password?'1':'0';
+          sel.appendChild(opt);
+        });
+        const customOpt=document.createElement('option');
+        customOpt.value='__custom__';
+        customOpt.textContent='➕ Nouveau / Autre personnage…';
+        sel.appendChild(customOpt);
+        picker.style.display='flex';
+
+        const sn=localStorage.getItem('grimoire_player_name');
+        if(sn){
+          for(let i=0;i<sel.options.length;i++){
+            if(sel.options[i].value.toLowerCase()===sn.toLowerCase()){
+              sel.selectedIndex=i;
+              onSelectCharacter(sel.options[i].value);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }catch(e){
+    console.warn('Load characters error:', e);
+  }
+}
+
+function onSelectCharacter(val){
+  const inp=document.getElementById('player-name');
+  const pwdInput=document.getElementById('player-password');
+  const pwdHint=document.getElementById('pwd-hint');
+  const errEl=document.getElementById('join-error');
+  if(errEl)errEl.style.display='none';
+
+  if(val&&val!=='__custom__'){
+    inp.value=val;
+    const sel=document.getElementById('player-select');
+    const opt=sel.options[sel.selectedIndex];
+    const hasPwd=opt&&opt.dataset.hasPwd==='1';
+    if(hasPwd){
+      pwdInput.placeholder='Mot de passe du personnage 🔒';
+      if(pwdHint)pwdHint.textContent='Ce personnage est protégé par un mot de passe.';
+      const savedPwd=localStorage.getItem('grimoire_player_pwd');
+      if(savedPwd)pwdInput.value=savedPwd;
+    }else{
+      pwdInput.placeholder='Mot de passe (facultatif)';
+      if(pwdHint)pwdHint.textContent='Ce personnage est libre (pas de mot de passe requis).';
+      pwdInput.value='';
+    }
+  }else if(val==='__custom__'){
+    inp.value='';
+    inp.focus();
+    pwdInput.value='';
+    pwdInput.placeholder='Mot de passe (facultatif)';
+    if(pwdHint)pwdHint.textContent='Le mot de passe protège votre profil pour le retrouver à la prochaine session.';
+  }
+}
+
 function joinGame(){
+  const errEl=document.getElementById('join-error');
+  if(errEl){errEl.style.display='none';errEl.textContent='';}
+
   const n=document.getElementById('player-name').value.trim();
-  if(!n){alert('Entrez votre nom de personnage !');return;}
+  if(!n){
+    if(errEl){errEl.textContent='Entrez votre nom de personnage !';errEl.style.display='block';}
+    else alert('Entrez votre nom de personnage !');
+    return;
+  }
   playerPassword=document.getElementById('player-password').value.trim()||null;
   playerName=n;
   localStorage.setItem('grimoire_player_name',n);
-  if(playerPassword)localStorage.setItem('grimoire_player_pwd',playerPassword);
+  if(playerPassword){
+    localStorage.setItem('grimoire_player_pwd',playerPassword);
+  }else{
+    localStorage.removeItem('grimoire_player_pwd');
+  }
   if(!ch.nom)ch.nom=n;
-  // Ne pas cacher le join avant d'avoir la confirmation du serveur
+
+  const btn=document.getElementById('join-btn');
+  if(btn){
+    btn.textContent='Connexion en cours…';
+    btn.disabled=true;
+  }
   connect();
 }
 function showPollOverlay(question, options){
@@ -2726,10 +2847,7 @@ document.getElementById('player-name').addEventListener('keydown',e=>{if(e.key==
 document.getElementById('player-password').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
 document.getElementById('comp-new').addEventListener('keydown',e=>{if(e.key==='Enter')addComp();});
 renderHerboSatchel();
-
-// Update onmessage to handle AI and Map
-const oldOnMessage = ws.onmessage;
-// We override inside the connect function instead
+loadAvailableCharacters();
 </script>
 </body>
 </html>

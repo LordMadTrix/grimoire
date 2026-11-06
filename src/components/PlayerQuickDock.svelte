@@ -222,7 +222,7 @@
       await savePlayerAccount(
         acc.name,
         quickEditForm.nom || acc.name,
-        quickEditForm.password || null,
+        quickEditForm.password !== undefined ? quickEditForm.password.trim() : null,
         updatedChar,
         quickEditForm.character_path || null
       );

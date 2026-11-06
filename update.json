@@ -1,6 +1,6 @@
 {
-  "version": "0.8.12",
-  "changelog": "Version 0.8.12 : Correction définitive de l'erreur Tainted Canvas lors de l'export et du placement des pions sur la map VTT (téléchargement et conversion d'images Google Drive/Web résilients, fallback transparent). Refonte complète de la modale d'édition et de création des joueurs : fenêtre centrée et scrollable, 3 onglets (Combat & Stats, Pion & VTT, Compte & Fiche MD), intégration de la Galerie Céleste et de l'import PC, contrôle rapide de présence sur la map VTT, ouverture directe de la fiche Markdown.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.12",
+  "version": "0.8.13",
+  "changelog": "Version 0.8.13 : Correction critique de la connexion des joueurs sur mobile (GSM). Suppression du crash JS ws.onmessage au chargement, tolérance insensible à la casse sur les noms de compte, gestion propre du mot de passe vide ou réinitialisé, ajout du sélecteur rapide de personnages existants au démarrage de la PWA mobile et arrêt de la boucle de reconnexion intempestive en cas de mot de passe incorrect.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.13",
   "release_date": "2026-11-06"
 }

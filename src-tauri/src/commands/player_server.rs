@@ -182,6 +182,7 @@ pub async fn start_player_server(
         .route("/api/mj/notes", post(handle_mj_note_post))
         .route("/api/mj/vault_notes", get(handle_mj_vault_notes))
         .route("/api/mj/read_note", get(handle_mj_read_note))
+        .route("/api/characters", get(handle_public_characters))
         .route("/ws", get(ws_handler))
         .layer(hub_cors())
         .with_state(app_state);
@@ -762,6 +763,25 @@ async fn handle_status(
     }))
 }
 
+/// Liste publique des personnages disponibles pour sélection sur smartphone
+async fn handle_public_characters(
+    State(state): State<std::sync::Arc<ServerInner>>,
+) -> impl IntoResponse {
+    let chars = state.saved_characters.lock().await;
+    let list: Vec<serde_json::Value> = chars.iter().map(|(name, sc)| {
+        let race = sc.data.get("race").and_then(|v| v.as_str()).unwrap_or("");
+        let voc = sc.data.get("voc").or_else(|| sc.data.get("car")).and_then(|v| v.as_str()).unwrap_or("");
+        let has_pwd = sc.password.as_ref().map(|p| !p.trim().is_empty()).unwrap_or(false);
+        serde_json::json!({
+            "name": name,
+            "has_password": has_pwd,
+            "race": race,
+            "voc": voc,
+        })
+    }).collect();
+    axum::Json(list)
+}
+
 #[derive(Deserialize)]
 pub struct ReadNoteQuery {
     pub path: String,
@@ -1096,13 +1116,22 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
         } else { return; }
     } else { return; };
 
-    // Vérification du mot de passe si un compte existe
-    {
+    // Recherche insensible à la casse et trimée dans saved_characters
+    let matched_account = {
         let chars = state.saved_characters.lock().await;
-        if let Some(saved) = chars.get(&name) {
-            if let Some(ref saved_pwd) = saved.password {
-                let provided = password.as_deref().unwrap_or("");
-                if provided != saved_pwd {
+        let clean_name = name.trim().to_lowercase();
+        chars.iter()
+            .find(|(k, _)| k.trim().to_lowercase() == clean_name)
+            .map(|(k, v)| (k.clone(), v.clone()))
+    };
+
+    // Si un compte existe, vérifier le mot de passe s'il en a un
+    if let Some((_, ref saved)) = matched_account {
+        if let Some(ref saved_pwd) = saved.password {
+            let sp = saved_pwd.trim();
+            if !sp.is_empty() {
+                let provided = password.as_deref().unwrap_or("").trim();
+                if provided != sp {
                     let msg = serde_json::to_string(&WsEnvelope {
                         event: "auth_error".into(),
                         data: serde_json::json!({ "message": "Mot de passe incorrect pour ce personnage." }),
@@ -1114,17 +1143,16 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
         }
     }
 
+    // Nom canonique (preserve la casse du MJ si le compte existe)
+    let final_name = matched_account.as_ref().map(|(n, _)| n.clone()).unwrap_or(name);
+
     // Register player
-    // L'insertion du canal unicast doit se faire APRÈS les retours anticipés ci-dessus
-    // (join invalide, mot de passe incorrect) : sinon chaque connexion refusée laisserait
-    // un UnboundedSender orphelin dans la table, jamais nettoyé (le remove n'a lieu qu'en
-    // fin de fonction, après la boucle principale).
     state.unicast_tx.lock().await.insert(player_id.clone(), unicast_sender);
     {
         let mut players = state.players.lock().await;
         players.insert(player_id.clone(), PlayerInfo {
             id: player_id.clone(),
-            name: name.clone(),
+            name: final_name.clone(),
             character: serde_json::Value::Null,
             character_path: None,
             conditions: vec![],
@@ -1136,8 +1164,8 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     // Enregistrer le mot de passe pour les nouveaux joueurs
     {
         let mut chars = state.saved_characters.lock().await;
-        if !chars.contains_key(&name) && password.is_some() {
-            chars.insert(name.clone(), SavedCharacter {
+        if !chars.contains_key(&final_name) && password.is_some() {
+            chars.insert(final_name.clone(), SavedCharacter {
                 data: serde_json::Value::Null,
                 path: None,
                 password: password.clone(),
@@ -1148,15 +1176,15 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
 
     // Notify GM of new player
     emit_to_gm(&state, "player_joined", serde_json::json!({
-        "id": player_id, "name": name
+        "id": player_id, "name": final_name
     })).await;
-    notify_os(&state, "Joueur connecté", &name).await;
+    notify_os(&state, "Joueur connecté", &final_name).await;
     broadcast_group_state(&state).await;
 
     // Send welcome
     let welcome = serde_json::to_string(&WsEnvelope {
         event: "welcome".into(),
-        data: serde_json::json!({ "id": player_id, "name": name }),
+        data: serde_json::json!({ "id": player_id, "name": final_name }),
     }).unwrap_or_default();
     let _ = socket.send(Message::Text(welcome)).await;
 
@@ -1170,7 +1198,7 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     }
 
     // Restore saved character if player reconnects with same name
-    if let Some(saved) = state.saved_characters.lock().await.get(&name).cloned() {
+    if let Some((_, saved)) = matched_account {
         {
             let mut players = state.players.lock().await;
             if let Some(p) = players.get_mut(&player_id) {
@@ -1205,7 +1233,7 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
                 match msg {
                     Some(Ok(Message::Text(raw))) => {
                         if let Ok(env) = serde_json::from_str::<WsEnvelope>(&raw) {
-                            handle_player_message(&state, &player_id, &name, env).await;
+                            handle_player_message(&state, &player_id, &final_name, env).await;
                         }
                     }
                     Some(Ok(Message::Close(_))) | None => break,
@@ -1219,7 +1247,7 @@ async fn handle_ws(mut socket: WebSocket, state: std::sync::Arc<ServerInner>) {
     // Clean up
     state.players.lock().await.remove(&player_id);
     state.unicast_tx.lock().await.remove(&player_id);
-    emit_to_gm(&state, "player_left", serde_json::json!({ "id": player_id, "name": name })).await;
+    emit_to_gm(&state, "player_left", serde_json::json!({ "id": player_id, "name": final_name })).await;
     broadcast_group_state(&state).await;
 }
 
