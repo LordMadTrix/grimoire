@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getCelestialCatalog, ensureCelestialFolders, type DriveFile } from '$lib/stores/celestialCache';
+  import { imageSourceToDataUrl } from '$lib/services/tokenService';
 
   const { onselect, onclose } = $props<{
     onselect: (url: string, name?: string, isEmoji?: boolean) => void;
@@ -254,7 +255,10 @@
         {#each filteredList() as item}
           <button 
             class="art-card"
-            onclick={() => onselect(item.url, item.name)}
+            onclick={async () => {
+              const safeUrl = await imageSourceToDataUrl(item.url);
+              onselect(safeUrl || item.url, item.name);
+            }}
           >
             <div class="art-thumb-box">
               <img 

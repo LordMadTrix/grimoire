@@ -1,6 +1,6 @@
 import { getVaultPath } from '../stores/vault.svelte';
 import { vttStore, addGmToken, type Token } from '../stores/vtt.svelte';
-import { isTauri, writeFile, writeFileBase64, createDirectory, listDirectory } from '../api';
+import { isTauri, writeFile, writeFileBase64, createDirectory, listDirectory, downloadImageBase64 } from '../api';
 import type { TokenDesignData, SavedTokenDescriptor } from '../types/tokenEditor';
 
 /**
@@ -35,7 +35,17 @@ export async function imageSourceToDataUrl(src: string): Promise<string> {
   if (!src) return '';
   if (src.startsWith('data:')) return src;
 
-  // 1. Tenter un fetch (idéal pour les assets locaux /tokens/...)
+  // 1. Si Tauri est actif, télécharger côté Rust (100% immunisé contre le CORS)
+  if (isTauri()) {
+    try {
+      const b64 = await downloadImageBase64(src);
+      if (b64 && b64.startsWith('data:')) return b64;
+    } catch {
+      // Poursuivre
+    }
+  }
+
+  // 2. Tenter un fetch (idéal pour les assets locaux /tokens/...)
   try {
     const res = await fetch(src);
     if (res.ok) {
@@ -46,7 +56,7 @@ export async function imageSourceToDataUrl(src: string): Promise<string> {
     // Si fetch échoue, tenter via Image Canvas
   }
 
-  // 2. Charger dans une Image et convertir via un canvas temporaire
+  // 3. Charger dans une Image et convertir via un canvas temporaire
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';

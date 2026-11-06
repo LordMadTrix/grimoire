@@ -4,6 +4,7 @@
   import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef, TerrainZone, TileType } from '$lib/stores/vtt.svelte';
   import { vttStore, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone, setDungeonTile, pushDungeonUndo } from '$lib/stores/vtt.svelte';
   import ConditionWheel from './ConditionWheel.svelte';
+  import TokenContextMenu from './TokenContextMenu.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
   import { readFileBase64, fetchBinaryAssetUrl, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
@@ -234,6 +235,8 @@
   let isPanning = false;
   let lastPanX = 0;
   let lastPanY = 0;
+  let panStartX = 0;
+  let panStartY = 0;
 
   // Throttle pour emitCamera (max 1 envoi / 80ms)
   let _emitCameraTimer: ReturnType<typeof setTimeout> | null = null;
@@ -334,6 +337,9 @@
   let condWheelTokenId = $state<string | null>(null);
   let condWheelX = $state(0);
   let condWheelY = $state(0);
+  let contextMenuTokenId = $state<string | null>(null);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
   let currentFps = $state(60);
 
   onMount(async () => {
@@ -1260,7 +1266,7 @@
   }
 
   function renderTokens() {
-    if (!tokenLayer || !backgroundSprite) return;
+    if (!tokenLayer || !worldContainer) return;
 
     // Supprimer les sprites de tokens disparus
     for (const [id, sprite] of tokenSprites) {
@@ -1328,9 +1334,12 @@
             if (e.shiftKey) {
               editingTokenId = token.id;
             } else {
-              condWheelTokenId = token.id;
-              condWheelX = e.global.x;
-              condWheelY = e.global.y;
+              const canvasRect = app?.canvas?.getBoundingClientRect();
+              const nativeEv = e.originalEvent as unknown as MouseEvent | undefined;
+              contextMenuX = nativeEv?.clientX ?? (canvasRect ? canvasRect.left + e.global.x : 400);
+              contextMenuY = nativeEv?.clientY ?? (canvasRect ? canvasRect.top + e.global.y : 300);
+              contextMenuTokenId = token.id;
+              condWheelTokenId = null;
             }
           });
           container.on('pointerenter', () => {
@@ -1734,8 +1743,12 @@
         editingTokenId = id;
         return;
       }
-      condWheelTokenId = id;
-      condWheelX = e.global?.x ?? 400; condWheelY = e.global?.y ?? 300;
+      const canvasRect = app?.canvas?.getBoundingClientRect();
+      const nativeEv = e.originalEvent as unknown as MouseEvent | undefined;
+      contextMenuX = nativeEv?.clientX ?? (canvasRect ? canvasRect.left + (e.global?.x || 0) : 400);
+      contextMenuY = nativeEv?.clientY ?? (canvasRect ? canvasRect.top + (e.global?.y || 0) : 300);
+      contextMenuTokenId = id;
+      condWheelTokenId = null;
     } else {
       // Clic gauche sur un token : si un autre outil était actif, on bascule en mode 'select'
       if (vttMode !== 'select') {
@@ -1966,10 +1979,14 @@
       return;
     }
 
+    contextMenuTokenId = null;
+
     if (e.button === 1 || e.button === 2) {
       isPanning = true;
       lastPanX = e.global.x;
       lastPanY = e.global.y;
+      panStartX = e.global.x;
+      panStartY = e.global.y;
       return;
     }
 
@@ -2330,7 +2347,45 @@
 
     if (isPanning) {
       isPanning = false;
+      const panDist = Math.hypot(e.global.x - panStartX, e.global.y - panStartY);
       emitCamera();
+
+      // Simple clic droit (sans draguer la caméra, panDist < 6px) :
+      // Déplacer les tokens actuellement sélectionnés vers cette destination !
+      if (e.button === 2 && panDist < 6 && selectedTokenIds.size > 0 && worldContainer) {
+        let targetPos = worldContainer.toLocal(e.global);
+        if (gridEnabled) {
+          targetPos.x = Math.floor(targetPos.x / gridSize) * gridSize + gridSize / 2;
+          targetPos.y = Math.floor(targetPos.y / gridSize) * gridSize + gridSize / 2;
+        }
+
+        const firstId = [...selectedTokenIds][0];
+        const firstToken = tokens.find(t => t.id === firstId);
+        if (firstToken) {
+          const dx = targetPos.x - firstToken.x;
+          const dy = targetPos.y - firstToken.y;
+
+          for (const selId of selectedTokenIds) {
+            const tok = tokens.find(t => t.id === selId);
+            if (tok) {
+              let nx = tok.x + dx;
+              let ny = tok.y + dy;
+              if (gridEnabled) {
+                nx = Math.floor(nx / gridSize) * gridSize + gridSize / 2;
+                ny = Math.floor(ny / gridSize) * gridSize + gridSize / 2;
+              }
+              const sprite = tokenSprites.get(selId);
+              if (sprite) {
+                sprite.x = nx;
+                sprite.y = ny;
+                (sprite as any).__targetX = nx;
+                (sprite as any).__targetY = ny;
+              }
+              onTokenMove(selId, nx, ny);
+            }
+          }
+        }
+      }
       return;
     }
 
@@ -2623,6 +2678,12 @@
           c.eventMode = 'static';
           c.cursor = 'pointer';
           c.on('rightclick', (e) => { e.stopPropagation(); onSpellDelete(spell.id); });
+          c.on('pointerdown', (e) => {
+            if (e.button === 0 && e.shiftKey) {
+              e.stopPropagation();
+              onSpellDelete(spell.id);
+            }
+          });
         }
         if (spell.label) {
           const t = new PIXI.Text({ text: spell.label, style: { fill: 0xffffff, fontSize: 13, stroke: { color: 0x000000, width: 3 } } });
@@ -2763,7 +2824,7 @@
   }
 
   function onCanvasDragOver(e: DragEvent) {
-    if (!isGM || !backgroundSprite) return;
+    if (!isGM) return;
     if (e.dataTransfer?.types.includes('vtt/token-image') || e.dataTransfer?.types.includes('vtt/player-token')) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
@@ -2771,7 +2832,7 @@
   }
 
   function onCanvasDrop(e: DragEvent) {
-    if (!isGM || !worldContainer || !backgroundSprite) return;
+    if (!isGM || !worldContainer) return;
 
     // Déposer un token joueur depuis le panneau PlayerQuickDock
     if (e.dataTransfer?.types.includes('vtt/player-token')) {
@@ -3415,6 +3476,23 @@
     onDelete={(id) => {
       onTokenDelete(id);
       editingTokenId = null;
+    }}
+  />
+{/if}
+
+{#if contextMenuTokenId && isGM}
+  <TokenContextMenu
+    tokenId={contextMenuTokenId}
+    x={contextMenuX}
+    y={contextMenuY}
+    onclose={() => contextMenuTokenId = null}
+    onEdit={(tok) => {
+      editingTokenId = tok.id;
+      contextMenuTokenId = null;
+    }}
+    onDelete={(id) => {
+      onTokenDelete(id);
+      contextMenuTokenId = null;
     }}
   />
 {/if}

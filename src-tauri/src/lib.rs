@@ -46,6 +46,7 @@ pub fn run() {
             commands::vault::save_temp_html_and_open,
             commands::vault::get_file_history,
             commands::vault::restore_file_snapshot,
+            commands::vault::download_image_base64,
             // Game config (addon system)
             commands::config::load_game_config,
             commands::config::save_game_config,

@@ -31,14 +31,11 @@
   import { mobileServerStore } from '$lib/stores/mobileServer.svelte';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
-  import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
-  import { gameSessionDemo } from '$lib/vtt/gameSessionDemoStore.svelte';
-  import LiveSessionDemoPlayer from './components/vtt/LiveSessionDemoPlayer.svelte';
   import {
     vttStore,
     addGmFowShape, updateGmToken, replaceGmToken, removeGmToken, addGmToken,
     addGmPin, removeGmPin, revealGmPin,
-    addSpell, removeSpell,
+    addSpell, removeSpell, clearSpells,
     addDrawPath,
     saveGmSession, loadGmSession,
     addMapScene, switchMapScene, removeMapScene, renameMapScene,
@@ -583,24 +580,6 @@
     }
   }
 
-  async function handleQuickDemo() {
-    try {
-      isLoading = true;
-      statusMessage = 'Lancement de la Démo de Session Live...';
-      if (!getVaultPath()) {
-        await loadVault('Sanctuaire-Oublie');
-      }
-      gameSessionDemo.start();
-      statusMessage = 'Session Démo Live lancée !';
-      setTimeout(() => { statusMessage = ''; }, 3000);
-    } catch (err) {
-      console.error('Failed to load demo:', err);
-      statusMessage = `Erreur: ${err}`;
-    } finally {
-      isLoading = false;
-    }
-  }
-
   async function handleOpenMapEditor() {
     try {
       await openMapEditor();
@@ -835,14 +814,6 @@
         </div>
 
         <div class="welcome-cards">
-          <button class="welcome-card welcome-card-demo" onclick={handleQuickDemo} disabled={isLoading}>
-            <span class="card-icon">🎭</span>
-            <div class="card-text">
-              <strong>Démo Live : Session de Jeu</strong>
-              <small>Session animée interactive : infiltration, combat d20, boule de feu & trésor !</small>
-            </div>
-          </button>
-
           <button class="welcome-card" onclick={handleCreateNewVault} disabled={isLoading}>
             <span class="card-icon">✨</span>
             <div class="card-text">
@@ -907,7 +878,6 @@
         {/if}
         <div class="vtt-viewport">
           <SessionDashboard />
-          <LiveSessionDemoPlayer />
           <PlayerQuickDock bind:visible={showPlayerQuickDock} />
           <MapCanvas
             mapUrl={vttStore.currentMap}
@@ -1204,16 +1174,6 @@
     border-color: var(--accent);
     transform: translateY(-2px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  }
-
-  .welcome-card-demo {
-    border-color: rgba(245, 158, 11, 0.4);
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, var(--bg-tertiary) 100%);
-  }
-
-  .welcome-card-demo:hover:not(:disabled) {
-    border-color: #f59e0b;
-    box-shadow: 0 4px 24px rgba(245, 158, 11, 0.25);
   }
 
   .card-icon {

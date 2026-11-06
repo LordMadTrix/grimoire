@@ -1,6 +1,6 @@
 {
-  "version": "0.8.8",
-  "changelog": "Version 0.8.8 : Fluidité absolue du déplacement des tokens et joueurs (fix boucle 244 FPS), support Multi-Écran TV amélioré avec détection automatique, Éditeur de Tokens avec bibliothèque céleste locale et gestion de session pour quitter la démo.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.8",
+  "version": "0.8.9",
+  "changelog": "Version 0.8.9 : Démo Live complètement supprimée et nettoyage immédiat des sorts résiduels sur la carte. Déplacement des pions et joueurs réactif (clic droit de destination + drag & drop sans restriction de fond de carte). Nouveau menu contextuel complet au Clic Droit sur les tokens (PV, Spotlight, Conditions, Suppression). Correction définitive du bug Tainted Canvas dans l'Éditeur de Tokens via proxy de téléchargement sécurisé Rust. Vérification instantanée des mises à jour avec retour visuel.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.9",
   "release_date": "2026-11-06"
 }

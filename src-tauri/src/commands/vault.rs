@@ -454,3 +454,48 @@ pub fn save_temp_html_and_open(filename: String, html_content: String) -> Result
     Ok(path_str)
 }
 
+/// Télécharge ou lit une image locale/distante et la retourne sous forme de Data URL (base64)
+/// Permet de contourner à 100% les restrictions CORS du navigateur (ex. Google Drive, Unsplash)
+/// et d'éviter l'erreur 'Tainted canvases may not be exported' lors de l'export PNG.
+#[tauri::command]
+pub async fn download_image_base64(url: String) -> Result<String, String> {
+    if url.starts_with("data:") {
+        return Ok(url);
+    }
+
+    // Cas 1 : Chemin local absolu sur le disque
+    let p = Path::new(&url);
+    if p.exists() && p.is_file() {
+        let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
+        let ext = p.extension().and_then(|x| x.to_str()).unwrap_or("png").to_lowercase();
+        let mime = match ext.as_str() {
+            "jpg" | "jpeg" => "image/jpeg",
+            "webp" => "image/webp",
+            "gif" => "image/gif",
+            "svg" => "image/svg+xml",
+            _ => "image/png",
+        };
+        return Ok(format!("data:{};base64,{}", mime, general_purpose::STANDARD.encode(bytes)));
+    }
+
+    // Cas 2 : Téléchargement distant via reqwest
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Grimoire/1.0")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let content_type = res
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("image/png")
+        .to_string();
+
+    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    let b64 = general_purpose::STANDARD.encode(&bytes);
+    Ok(format!("data:{};base64,{}", content_type, b64))
+}
+
+

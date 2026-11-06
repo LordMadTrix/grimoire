@@ -1,10 +1,10 @@
 {
-  "version": "0.8.8",
-  "notes": "Version 0.8.8 : Fluidité absolue du déplacement des tokens et joueurs, support Multi-Écran TV amélioré, Éditeur de Tokens avec bibliothèque céleste et gestion de session.",
-  "pub_date": "2026-11-06T19:20:00Z",
+  "version": "0.8.9",
+  "notes": "Version 0.8.9 : Démo Live complètement supprimée, nettoyage des sorts, déplacement fluide des tokens et menu contextuel clic droit, correction du Tainted Canvas dans l'Éditeur de Tokens.",
+  "pub_date": "2026-11-06T20:20:00Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/LordMadTrix/grimoire/releases/download/v0.8.8/Grimoire_0.8.8_x64-setup.exe"
+      "url": "https://github.com/LordMadTrix/grimoire/releases/download/v0.8.9/Grimoire_0.8.9_x64-setup.exe"
     }
   }
 }

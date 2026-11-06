@@ -11,16 +11,23 @@
   let checking = $state(false);
   let error = $state('');
   let dismissed = $state(false);
+  let upToDate = $state(false);
 
-  export async function runCheck() {
+  export async function runCheck(isManual: boolean = true) {
     checking = true;
     error = '';
+    upToDate = false;
     dismissed = false; // sinon une bannière ignorée une fois ne réapparaît plus jamais
     try {
       currentVersion = await getCurrentVersion();
       update = await checkForUpdates();
+      if (!update && isManual) {
+        upToDate = true;
+        setTimeout(() => { upToDate = false; }, 4000);
+      }
     } catch (e: any) {
       error = String(e);
+      setTimeout(() => { error = ''; }, 6000);
     } finally {
       checking = false;
     }
@@ -59,6 +66,28 @@
   </div>
 {/if}
 
+{#if upToDate && !checking}
+  <div class="update-banner up-to-date" role="status">
+    <div class="update-icon">✅</div>
+    <div class="update-body">
+      <div class="update-title">Grimoire est à jour !</div>
+      <div class="update-changelog">Vous utilisez la dernière version (v{currentVersion}).</div>
+    </div>
+    <button class="update-btn-dismiss" onclick={() => upToDate = false} title="Fermer">✕</button>
+  </div>
+{/if}
+
+{#if error && !checking}
+  <div class="update-banner update-error" role="alert">
+    <div class="update-icon">⚠️</div>
+    <div class="update-body">
+      <div class="update-title">Vérification impossible</div>
+      <div class="update-changelog">{error}</div>
+    </div>
+    <button class="update-btn-dismiss" onclick={() => error = ''} title="Fermer">✕</button>
+  </div>
+{/if}
+
 {#if checking}
   <div class="update-checking">
     <span class="update-spinner"></span> Vérification des mises à jour…
@@ -82,6 +111,16 @@
     box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.2);
     max-width: 520px;
     animation: slideDown 0.3s ease;
+  }
+
+  .update-banner.up-to-date {
+    background: linear-gradient(135deg, #064e3b, #022c22);
+    border-color: #10b981;
+  }
+
+  .update-banner.update-error {
+    background: linear-gradient(135deg, #450a0a, #2b0606);
+    border-color: #ef4444;
   }
 
   @keyframes slideDown {

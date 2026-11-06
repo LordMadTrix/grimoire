@@ -1,4 +1,5 @@
 import type { TokenDesignData, TokenShape, TokenMetal } from '../types/tokenEditor';
+import { imageSourceToDataUrl } from '../services/tokenService';
 
 /**
  * Retourne la définition SVG des dégradés selon le métal sélectionné
@@ -207,7 +208,15 @@ export async function renderTokenToCanvas(
   // 3. Image ou Émoji avec Pan & Scale
   if (data.imageUrl) {
     try {
-      const img = await loadImage(data.imageUrl);
+      let safeSrc = data.imageUrl;
+      if (!safeSrc.startsWith('data:')) {
+        try {
+          safeSrc = await imageSourceToDataUrl(data.imageUrl);
+        } catch {
+          safeSrc = data.imageUrl;
+        }
+      }
+      const img = await loadImage(safeSrc);
       const panX = data.imagePan.x * 2; // mise à l'échelle 512
       const panY = data.imagePan.y * 2;
       const imgScale = data.imageScale || 1.0;
@@ -364,10 +373,14 @@ export async function renderTokenToCanvas(
 export async function exportTokenToBlob(data: TokenDesignData, size: number = 512): Promise<Blob> {
   const canvas = await renderTokenToCanvas(data, size);
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error('Erreur lors de la génération du blob PNG'));
-    }, 'image/png');
+    try {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Erreur lors de la génération du blob PNG'));
+      }, 'image/png');
+    } catch (err: any) {
+      reject(new Error(`Impossible d'exporter l'image du pion (canvas sécurisé) : ${err?.message || err}`));
+    }
   });
 }
 
@@ -376,5 +389,9 @@ export async function exportTokenToBlob(data: TokenDesignData, size: number = 51
  */
 export async function exportTokenToDataUrl(data: TokenDesignData, size: number = 512): Promise<string> {
   const canvas = await renderTokenToCanvas(data, size);
-  return canvas.toDataURL('image/png');
+  try {
+    return canvas.toDataURL('image/png');
+  } catch (err: any) {
+    throw new Error(`Impossible d'exporter l'image du pion : ${err?.message || err}`);
+  }
 }

@@ -61,6 +61,15 @@ export async function readFileBase64(path: string): Promise<string> {
   return invoke('read_file_base64', { path });
 }
 
+export async function downloadImageBase64(url: string): Promise<string> {
+  if (!isTauri() || !url) return url;
+  try {
+    return await invoke('download_image_base64', { url });
+  } catch {
+    return url;
+  }
+}
+
 export async function writeFile(vaultPath: string, relativePath: string, content: string): Promise<void> {
   if (!isTauri()) {
     const key = `vf:${vaultPath}/${relativePath}`;

@@ -33,9 +33,16 @@ pub async fn check_for_updates() -> Result<Option<UpdateManifest>, String> {
         .build()
         .map_err(|e| e.to_string())?;
 
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let cache_busting_url = format!("{}?t={}", UPDATE_URL, timestamp);
+
     let manifest: UpdateManifest = client
-        .get(UPDATE_URL)
-        .header("Cache-Control", "no-cache")
+        .get(&cache_busting_url)
+        .header("Cache-Control", "no-cache, no-store, must-revalidate")
+        .header("Pragma", "no-cache")
         .send()
         .await
         .map_err(|e| format!("Réseau: {}", e))?

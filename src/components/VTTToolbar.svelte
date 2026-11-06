@@ -59,8 +59,6 @@
   import { soundscape } from '$lib/stores/soundscape.svelte';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import AddonStore from './AddonStore.svelte';
-  import { gameSessionDemo } from '$lib/vtt/gameSessionDemoStore.svelte';
-  import { loadSanctuaryDemo } from '$lib/vtt/demoCampaignLoader';
   import TokenEditorModal from './TokenEditorModal.svelte';
 
   let { 
@@ -407,24 +405,12 @@
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'map' ? null : 'map'; }}>🗺️ Carte & Vue</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'map'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
-        {#if gameSessionDemo.isActive}
-          <button class="dropdown-item" style="color: #ef4444; font-weight: bold;" onclick={() => { gameSessionDemo.showExitModal = true; activeMenu = null; }}>🛑 Quitter la Démo Live…</button>
-          <div class="dropdown-divider"></div>
-        {/if}
         {#if !vttStore.currentMap}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Charger une carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditor(); activeMenu = null; }}>🎨 Créer dans Fantasy Map Editor</button>
-          {#if !gameSessionDemo.isActive}
-            <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
-          {/if}
-          <button class="dropdown-item" style="color: #f59e0b;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Charger Démo Clé en Main (Sanctuaire)</button>
         {:else}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Changer de carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditorWithMap(vttStore.currentMap!, vttStore.currentMapRelPath?.split('/').pop()?.replace(/\.[^.]+$/, '') || 'Carte Active'); activeMenu = null; }}>✏️ Modifier dans le Map Editor</button>
-          {#if !gameSessionDemo.isActive}
-            <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
-          {/if}
-          <button class="dropdown-item" style="color: #f59e0b;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Recharger Carte Sanctuaire</button>
           <button class="dropdown-item" onclick={() => { closeMap(); activeMenu = null; }}>✖️ Fermer la carte</button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" class:active={vttStore.mode === 'zoom-rect'} onclick={() => { vttStore.mode = 'zoom-rect'; activeMenu = null; }}>🔍 Zoomer sur une zone</button>
@@ -441,9 +427,9 @@
             🧹 Retirer tous les tokens ({vttStore.tokens.length})
           </button>
         {/if}
-        {#if gameSessionDemo.hasDemoTokens}
-          <button class="dropdown-item" style="color: #f87171;" onclick={() => { removeGmDemoTokens(); activeMenu = null; }}>
-            🎭 Retirer les pions de la démo
+        {#if vttStore.spells.length > 0}
+          <button class="dropdown-item text-danger" onclick={() => { clearSpells(); activeMenu = null; }}>
+            🧹 Retirer tous les sorts ({vttStore.spells.length})
           </button>
         {/if}
         <button class="dropdown-item text-danger" onclick={() => { if (window.confirm('Réinitialiser la table (vider tous les tokens, le brouillard, les sorts et les dessins) ?')) { resetVttScene(false); activeMenu = null; } }}>
@@ -465,26 +451,6 @@
         </button>
       </div>
     </div>
-
-    <!-- Bouton Accès Rapide Démo Live -->
-    {#if gameSessionDemo.isActive}
-      <button
-        class="menu-btn demo-live-nav-btn is-running-demo"
-        onclick={() => { gameSessionDemo.showExitModal = true; }}
-        title="Session Démo en cours. Cliquez pour quitter la démo et gérer vos tokens"
-      >
-        <span class="demo-live-dot"></span>
-        🛑 Quitter Démo
-      </button>
-    {:else}
-      <button
-        class="menu-btn demo-live-nav-btn"
-        onclick={() => gameSessionDemo.start()}
-        title="Lancer une démonstration interactive animée d'une vraie session de jeu rôliste"
-      >
-        🎭 Démo Live
-      </button>
-    {/if}
 
     <!-- 2. Outils interactifs -->
     {#if vttStore.currentMap}
@@ -1559,44 +1525,6 @@
   .highlight-item:hover {
     background: rgba(251, 191, 36, 0.15) !important;
     color: #fef08a !important;
-  }
-  .demo-live-nav-btn {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.35) 100%) !important;
-    border: 1px solid #f59e0b !important;
-    color: #fef3c7 !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.3px;
-  }
-  .demo-live-nav-btn:hover {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.45) 0%, rgba(217, 119, 6, 0.55) 100%) !important;
-    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
-    color: #ffffff !important;
-    transform: translateY(-1px);
-  }
-  .demo-live-nav-btn.is-running-demo {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(185, 28, 28, 0.45) 100%) !important;
-    border: 1px solid #ef4444 !important;
-    color: #fee2e2 !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    animation: demoBtnPulse 2s infinite ease-in-out;
-  }
-  .demo-live-nav-btn.is-running-demo:hover {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.5) 0%, rgba(185, 28, 28, 0.65) 100%) !important;
-    box-shadow: 0 0 18px rgba(239, 68, 68, 0.5);
-    color: #ffffff !important;
-  }
-  .demo-live-dot {
-    width: 7px;
-    height: 7px;
-    background: #ef4444;
-    border-radius: 50%;
-    box-shadow: 0 0 8px #ef4444;
-  }
-  @keyframes demoBtnPulse {
-    0%, 100% { border-color: rgba(239, 68, 68, 0.6); }
-    50% { border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
   }
   .token-quick-btn {
     background: linear-gradient(135deg, rgba(230, 180, 80, 0.2) 0%, rgba(184, 134, 11, 0.25) 100%);
