@@ -12,7 +12,7 @@
     type PlayerAccountSummary
   } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
-  import { vttStore } from '$lib/stores/vtt.svelte';
+  import { vttStore, replaceGmToken, addGmToken } from '$lib/stores/vtt.svelte';
   import { parseCharacterMd } from '$lib/services/characterParser';
 
   let visible = $state(false);
@@ -23,6 +23,20 @@
   let selectedChar = $state<{ path: string; name: string; data: any } | null>(null);
   let searchQuery = $state('');
   let isLoading = $state(false);
+
+  // New Player state
+  let isAddingPlayer = $state(false);
+  let newPlayerForm = $state({
+    nom: '',
+    voc: '',
+    race: 'Humain',
+    hp: 12,
+    maxhp: 12,
+    ac: 10,
+    password: '',
+    imageUrl: '',
+    spawnOnMap: true
+  });
 
   // Group Inventory
   let inventory = $state<{ name: string; qty: number; notes: string }[]>([]);
@@ -291,6 +305,30 @@
       if (p.character_path) {
         await autoSaveCharacter(p.character_path, updatedChar);
       }
+
+      // Synchroniser le pion VTT s'il existe
+      const token = vttStore.tokens.find(t => 
+        t.name.toLowerCase().trim() === p.name.toLowerCase().trim() || 
+        t.playerId === (p as any).id || 
+        t.playerId === (p as any).player_id
+      );
+      if (token) {
+        replaceGmToken({
+          ...token,
+          name: editForm.nom || p.name,
+          hp: editForm.hp,
+          maxHp: editForm.maxhp
+        });
+      }
+
+      // Synchroniser dans la liste de combat
+      const combatant = vttStore.combatants.find(c => c.name.toLowerCase().trim() === p.name.toLowerCase().trim());
+      if (combatant) {
+        combatant.name = editForm.nom || p.name;
+        combatant.hp = editForm.hp;
+        combatant.maxHp = editForm.maxhp;
+      }
+
       statusMessage = `Compte ${editForm.nom || p.name} enregistré et synchronisé !`;
       setTimeout(() => statusMessage = '', 3000);
     } catch (err) {
@@ -305,13 +343,81 @@
     if (!confirm(`Supprimer définitivement le compte de « ${accountName} » ?`)) return;
     try {
       await deletePlayerAccount(accountName);
-      statusMessage = `Compte ${accountName} supprimé.`;
+      // Supprimer le token sur la carte VTT
+      vttStore.tokens = vttStore.tokens.filter(t => 
+        t.name.toLowerCase().trim() !== accountName.toLowerCase().trim() && 
+        t.playerId !== accountName
+      );
+      // Supprimer du tracker de combat
+      vttStore.combatants = vttStore.combatants.filter(c => 
+        c.name.toLowerCase().trim() !== accountName.toLowerCase().trim()
+      );
+      statusMessage = `Compte ${accountName} et pion supprimés.`;
       setTimeout(() => statusMessage = '', 3000);
     } catch (err) {
       console.error('Delete account error:', err);
     }
     editingPlayerId = null;
     refreshData();
+  }
+
+  async function handleCreatePlayer() {
+    const nom = newPlayerForm.nom.trim();
+    if (!nom) return;
+    const maxHp = Math.max(1, Number(newPlayerForm.maxhp) || 12);
+    const curHp = Math.max(0, Number(newPlayerForm.hp) || maxHp);
+    const charData: any = {
+      nom,
+      race: newPlayerForm.race.trim() || 'Humain',
+      voc: newPlayerForm.voc.trim() || 'Aventurier',
+      hp: curHp,
+      bless: curHp,
+      maxhp: maxHp,
+      ac: Number(newPlayerForm.ac) || 10,
+      xp: 0,
+      imageUrl: newPlayerForm.imageUrl.trim() || null,
+      profil: {
+        init: {},
+        plan: {},
+        act: { b: maxHp }
+      }
+    };
+
+    try {
+      await savePlayerAccount(
+        nom,
+        nom,
+        newPlayerForm.password.trim() || null,
+        charData,
+        null
+      );
+
+      if (newPlayerForm.spawnOnMap) {
+        addGmToken({
+          id: Math.random().toString(36).slice(2),
+          name: nom,
+          x: 300 + (vttStore.tokens.length * 35) % 300,
+          y: 300 + (vttStore.tokens.length * 25) % 200,
+          size: vttStore.gridSize,
+          color: 0x22c55e,
+          hp: curHp,
+          maxHp: maxHp,
+          imageUrl: newPlayerForm.imageUrl.trim() || undefined,
+          visionRange: 0,
+          isEnemy: false,
+          visible: true,
+          playerId: nom
+        });
+      }
+
+      statusMessage = `Joueur « ${nom} » créé avec succès !`;
+      setTimeout(() => statusMessage = '', 3000);
+      isAddingPlayer = false;
+      newPlayerForm = { nom: '', voc: '', race: 'Humain', hp: 12, maxhp: 12, ac: 10, password: '', imageUrl: '', spawnOnMap: true };
+      refreshData();
+    } catch (err) {
+      console.error('Create player error:', err);
+    }
   }
 
   /** Retire le mot de passe d'un compte (le backend traite une chaîne vide comme une suppression). */
@@ -522,11 +628,64 @@
       <main class="pm-content">
         {#if activeTab === 'party'}
           <section class="party-view" in:fade>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px">
+              <span style="font-size:12px;color:var(--text-muted);font-weight:700">👥 {displayAccounts.length} Joueur{displayAccounts.length > 1 ? 's' : ''}</span>
+              <button
+                type="button"
+                style="background:linear-gradient(135deg, #d97706, #b45309);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;box-shadow:0 2px 8px rgba(217,119,6,0.3)"
+                onclick={() => isAddingPlayer = true}
+              >
+                ➕ Nouveau Joueur
+              </button>
+            </div>
+
+            {#if isAddingPlayer}
+              <div class="edit-form" style="margin-bottom:16px;background:rgba(20,25,36,0.95);border:1px solid #d97706;padding:14px;border-radius:8px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <h4 style="margin:0;color:#fbbf24;font-size:14px">➕ Créer un Nouveau Joueur</h4>
+                  <button type="button" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px" onclick={() => isAddingPlayer = false}>✕</button>
+                </div>
+                <div class="edit-account-header">
+                  <div class="edit-field-group">
+                    <span class="edit-label">Nom du joueur / personnage * :</span>
+                    <input type="text" bind:value={newPlayerForm.nom} placeholder="ex: Valeros" class="edit-input" />
+                  </div>
+                  <div class="edit-field-group">
+                    <span class="edit-label">Mot de passe (optionnel) :</span>
+                    <input type="text" bind:value={newPlayerForm.password} placeholder="Vide = connexion libre" class="edit-input" />
+                  </div>
+                </div>
+                <div class="edit-row">
+                  <input type="text" bind:value={newPlayerForm.race} placeholder="Race (ex: Humain)" class="edit-input" style="flex:1" />
+                  <input type="text" bind:value={newPlayerForm.voc} placeholder="Métier / Classe" class="edit-input" style="flex:1" />
+                </div>
+                <div class="edit-row">
+                  <span class="edit-label">PV Max:</span>
+                  <input type="number" bind:value={newPlayerForm.maxhp} class="edit-num" min="1" />
+                  <span class="edit-label" style="margin-left:8px">PV Actuels:</span>
+                  <input type="number" bind:value={newPlayerForm.hp} class="edit-num" min="0" />
+                  <span class="edit-label" style="margin-left:8px">CA:</span>
+                  <input type="number" bind:value={newPlayerForm.ac} class="edit-num" min="0" />
+                </div>
+                <div class="edit-row">
+                  <input type="text" bind:value={newPlayerForm.imageUrl} placeholder="URL ou chemin du portrait/avatar" class="edit-input" style="flex:1" />
+                </div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#cbd5e1;cursor:pointer;margin:6px 0">
+                  <input type="checkbox" bind:checked={newPlayerForm.spawnOnMap} />
+                  <span>Placer directement le pion sur la carte VTT</span>
+                </label>
+                <div class="edit-actions" style="margin-top:10px">
+                  <button class="btn-save" onclick={handleCreatePlayer}>✨ Créer le Joueur</button>
+                  <button class="btn-cancel" onclick={() => isAddingPlayer = false}>Annuler</button>
+                </div>
+              </div>
+            {/if}
+
             <div class="party-grid">
-              {#if displayAccounts.length === 0}
+              {#if displayAccounts.length === 0 && !isAddingPlayer}
                 <div class="empty-party">
                   <p>Aucun compte joueur enregistré ni connecté.</p>
-                  <p class="empty-hint">Les joueurs peuvent créer leur compte sur mobile ou navigateur via l'adresse du serveur local.</p>
+                  <p class="empty-hint">Cliquez sur « ➕ Nouveau Joueur » ci-dessus pour ajouter votre premier joueur.</p>
                 </div>
               {/if}
               {#each displayAccounts as p (p.name)}

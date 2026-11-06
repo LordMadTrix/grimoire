@@ -6,7 +6,7 @@
     getPlayerConnections, applyDamageToPlayer, applyConditionToPlayer,
     removeConditionFromPlayer, requestRoll, pushMapSnapshot,
     readFile, writeFile, type PlayerInfo, type VaultEntry,
-    getSavedPlayerAccounts, savePlayerAccount, type PlayerAccountSummary
+    getSavedPlayerAccounts, savePlayerAccount, deletePlayerAccount, type PlayerAccountSummary
   } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import { vttStore, replaceGmToken, addGmToken, type Token } from '$lib/stores/vtt.svelte';
@@ -44,6 +44,20 @@
     } as PlayerAccountSummary))
   );
 
+  // Nouveau joueur modal state
+  let isCreatingPlayer = $state(false);
+  let newPlayerForm = $state({
+    nom: '',
+    voc: '',
+    race: 'Humain',
+    hp: 12,
+    maxhp: 12,
+    ac: 10,
+    password: '',
+    imageUrl: '',
+    spawnOnMap: true
+  });
+
   // Quick edit modal state
   let quickEditAccount = $state<PlayerAccountSummary | null>(null);
   let quickEditForm = $state<{
@@ -54,19 +68,25 @@
     xp: number;
     race: string;
     voc: string;
-  }>({ nom: '', password: '', hp: 10, maxhp: 10, xp: 0, race: '', voc: '' });
+    ac: number;
+    imageUrl: string;
+  }>({ nom: '', password: '', hp: 10, maxhp: 10, xp: 0, race: '', voc: '', ac: 10, imageUrl: '' });
 
   function openQuickEdit(acc: PlayerAccountSummary) {
     quickEditAccount = acc;
     const c = acc.character || {};
+    const maxHp = c.maxhp ?? (parseInt(c.profil?.act?.b) || 10);
+    const hp = c.hp ?? c.bless ?? maxHp;
     quickEditForm = {
       nom: c.nom || acc.name,
       password: acc.password || '',
-      hp: c.hp ?? c.bless ?? 10,
-      maxhp: c.maxhp ?? (parseInt(c.profil?.act?.b) || 10),
+      hp: hp,
+      maxhp: maxHp > 0 ? maxHp : 10,
       xp: c.xp ?? 0,
       race: c.race || '',
-      voc: c.voc || c.car || ''
+      voc: c.voc || c.car || '',
+      ac: c.ac ?? 10,
+      imageUrl: c.imageUrl || c.avatar || c.portrait || ''
     };
   }
 
@@ -74,19 +94,23 @@
     if (!quickEditAccount) return;
     const acc = quickEditAccount;
     const baseChar = acc.character && typeof acc.character === 'object' ? { ...acc.character } : {};
+    const maxHp = Math.max(1, quickEditForm.maxhp || 10);
+    const hp = Math.max(0, quickEditForm.hp ?? maxHp);
     const updatedChar = {
       ...baseChar,
       nom: quickEditForm.nom || acc.name,
       race: quickEditForm.race,
       voc: quickEditForm.voc,
-      hp: quickEditForm.hp,
-      bless: quickEditForm.hp,
-      maxhp: quickEditForm.maxhp,
+      hp: hp,
+      bless: hp,
+      maxhp: maxHp,
       xp: quickEditForm.xp,
+      ac: quickEditForm.ac,
+      imageUrl: quickEditForm.imageUrl || null
     };
     if (!updatedChar.profil) updatedChar.profil = { act: {} };
     if (!updatedChar.profil.act) updatedChar.profil.act = {};
-    updatedChar.profil.act.b = quickEditForm.maxhp;
+    updatedChar.profil.act.b = maxHp;
 
     try {
       await savePlayerAccount(
@@ -101,17 +125,112 @@
         replaceGmToken({
           ...token,
           name: quickEditForm.nom || acc.name,
-          hp: quickEditForm.hp,
-          maxHp: quickEditForm.maxhp
+          hp: hp,
+          maxHp: maxHp,
+          imageUrl: quickEditForm.imageUrl || token.imageUrl
         });
       }
-      notifStore.add('✏️', quickEditForm.nom || acc.name, 'Fiche et compte mis à jour !', 'success', 2500);
+      // Mettre à jour dans le combat si présent
+      const combatant = vttStore.combatants.find(c => c.name.toLowerCase().trim() === acc.name.toLowerCase().trim());
+      if (combatant) {
+        combatant.name = quickEditForm.nom || acc.name;
+        combatant.hp = hp;
+        combatant.maxHp = maxHp;
+      }
+
+      notifStore.add('✏️', quickEditForm.nom || acc.name, 'Fiche et pion mis à jour !', 'success', 2500);
     } catch (err) {
       console.error('Save quick edit error:', err);
       notifStore.add('⚠️', 'Erreur', 'Impossible de sauvegarder la fiche', 'danger', 3000);
     }
     quickEditAccount = null;
-    refreshData();
+    await refreshData();
+  }
+
+  async function handleDeletePlayer(name: string) {
+    if (!name) return;
+    if (!confirm(`Supprimer définitivement le joueur « ${name} » et son compte ?`)) return;
+    try {
+      await deletePlayerAccount(name);
+      // Supprimer le token sur la carte VTT s'il existe
+      vttStore.tokens = vttStore.tokens.filter(t => 
+        t.name.toLowerCase().trim() !== name.toLowerCase().trim() && 
+        t.playerId !== name
+      );
+      // Supprimer du gestionnaire de combat
+      vttStore.combatants = vttStore.combatants.filter(c => 
+        c.name.toLowerCase().trim() !== name.toLowerCase().trim()
+      );
+      notifStore.add('🗑️', name, 'Compte et pion joueur supprimés.', 'info', 3000);
+    } catch (err) {
+      console.error('Delete player error:', err);
+      notifStore.add('⚠️', 'Erreur', `Impossible de supprimer le joueur : ${err}`, 'danger', 3500);
+    }
+    quickEditAccount = null;
+    await refreshData();
+  }
+
+  async function createNewPlayer() {
+    const nom = newPlayerForm.nom.trim();
+    if (!nom) {
+      notifStore.add('⚠️', 'Nom requis', 'Veuillez saisir un nom pour le joueur.', 'warn', 3000);
+      return;
+    }
+    const maxHp = Math.max(1, Number(newPlayerForm.maxhp) || 12);
+    const curHp = Math.max(0, Number(newPlayerForm.hp) || maxHp);
+    const charData: any = {
+      nom,
+      race: newPlayerForm.race.trim() || 'Humain',
+      voc: newPlayerForm.voc.trim() || 'Aventurier',
+      hp: curHp,
+      bless: curHp,
+      maxhp: maxHp,
+      ac: Number(newPlayerForm.ac) || 10,
+      xp: 0,
+      imageUrl: newPlayerForm.imageUrl.trim() || null,
+      profil: {
+        init: {},
+        plan: {},
+        act: { b: maxHp }
+      }
+    };
+
+    try {
+      await savePlayerAccount(
+        nom,
+        nom,
+        newPlayerForm.password.trim() || null,
+        charData,
+        null
+      );
+
+      // Si demandé, poser directement le token sur la table VTT
+      if (newPlayerForm.spawnOnMap) {
+        addGmToken({
+          id: Math.random().toString(36).slice(2),
+          name: nom,
+          x: 300 + (vttStore.tokens.length * 35) % 300,
+          y: 300 + (vttStore.tokens.length * 25) % 200,
+          size: vttStore.gridSize,
+          color: 0x22c55e,
+          hp: curHp,
+          maxHp: maxHp,
+          imageUrl: newPlayerForm.imageUrl.trim() || undefined,
+          visionRange: 0,
+          isEnemy: false,
+          visible: true,
+          playerId: nom
+        });
+      }
+
+      notifStore.add('✨', nom, 'Nouveau joueur ajouté avec succès !', 'success', 3500);
+      isCreatingPlayer = false;
+      newPlayerForm = { nom: '', voc: '', race: 'Humain', hp: 12, maxhp: 12, ac: 10, password: '', imageUrl: '', spawnOnMap: true };
+      await refreshData();
+    } catch (err) {
+      console.error('Create player error:', err);
+      notifStore.add('⚠️', 'Erreur', `Échec de création du joueur : ${err}`, 'danger', 4000);
+    }
   }
 
   // Menu déroulant pour jet rapide
@@ -294,61 +413,65 @@
 
   function getPlayerHp(p: PlayerInfo | PlayerAccountSummary): { hp: number; maxHp: number; pct: number } {
     const token = getPlayerToken(p);
-    if (token && token.hp !== undefined && token.maxHp !== undefined) {
-      const pct = token.maxHp > 0 ? (token.hp / token.maxHp) * 100 : 100;
+    if (token && token.hp !== undefined && token.maxHp !== undefined && token.maxHp > 0) {
+      const pct = (token.hp / token.maxHp) * 100;
       return { hp: token.hp, maxHp: token.maxHp, pct: Math.min(100, Math.max(0, pct)) };
     }
     if (p.character) {
-      const hp = p.character.hp ?? p.character.bless ?? 10;
       const maxHp = p.character.maxhp ?? (parseInt(p.character.profil?.act?.b) || 10);
-      const pct = maxHp > 0 ? (hp / maxHp) * 100 : 100;
-      return { hp, maxHp, pct: Math.min(100, Math.max(0, pct)) };
+      const safeMax = maxHp > 0 ? maxHp : 10;
+      const hp = p.character.hp ?? p.character.bless ?? safeMax;
+      const pct = (hp / safeMax) * 100;
+      return { hp, maxHp: safeMax, pct: Math.min(100, Math.max(0, pct)) };
     }
     return { hp: 10, maxHp: 10, pct: 100 };
   }
 
   function getVaultCharHp(vc: { path: string; name: string; data: ParsedCharacterData }) {
     const token = getPlayerToken(vc);
-    if (token && token.hp !== undefined && token.maxHp !== undefined) {
-      const pct = token.maxHp > 0 ? (token.hp / token.maxHp) * 100 : 100;
+    if (token && token.hp !== undefined && token.maxHp !== undefined && token.maxHp > 0) {
+      const pct = (token.hp / token.maxHp) * 100;
       return { hp: token.hp, maxHp: token.maxHp, pct: Math.min(100, Math.max(0, pct)) };
     }
-    const hp = vc.data.hp || 10;
     const maxHp = vc.data.maxhp || 10;
+    const hp = vc.data.hp !== undefined ? vc.data.hp : maxHp;
     const pct = maxHp > 0 ? (hp / maxHp) * 100 : 100;
     return { hp, maxHp, pct: Math.min(100, Math.max(0, pct)) };
   }
 
   // ── Actions Rapides ────────────────────────────────────────────
   async function adjustHp(p: PlayerInfo | PlayerAccountSummary, delta: number) {
+    const hpData = getPlayerHp(p);
+    const maxHp = hpData.maxHp;
+    const newHp = Math.max(0, hpData.hp + delta);
     const damageAmount = -delta;
     const pid = (p as any).id || (p as any).player_id;
-    if (pid) {
-      try {
-        await applyDamageToPlayer(pid, damageAmount);
-      } catch (e) {
-        console.warn('applyDamageToPlayer failed (offline?):', e);
-      }
-    } else {
-      const curHp = p.character?.hp ?? p.character?.bless ?? 10;
-      const newHp = Math.max(0, curHp + delta);
-      const updatedChar = { ...(p.character || {}), hp: newHp, bless: newHp };
-      try {
-        await savePlayerAccount(p.name, null, null, updatedChar, p.character_path || null);
-      } catch (e) {
-        console.warn('savePlayerAccount error in adjustHp:', e);
-      }
+
+    // 1. Sauvegarder dans le compte joueur (bless, hp, maxhp)
+    const updatedChar = { ...(p.character || {}), hp: newHp, bless: newHp, maxhp: maxHp };
+    if (!updatedChar.profil) updatedChar.profil = { act: {} };
+    if (!updatedChar.profil.act) updatedChar.profil.act = {};
+    updatedChar.profil.act.b = maxHp;
+    try {
+      await savePlayerAccount(p.name, null, null, updatedChar, p.character_path || null);
+    } catch (e) {
+      console.warn('savePlayerAccount error in adjustHp:', e);
     }
 
-    // Mise à jour synchrone du token sur la carte
+    // 2. Si le joueur est en ligne (ou par nom), envoyer l'événement WebSocket au mobile
+    try {
+      await applyDamageToPlayer(pid || p.name, damageAmount);
+    } catch (e) {
+      console.warn('applyDamageToPlayer notice:', e);
+    }
+
+    // 3. Mise à jour synchrone du token sur la carte
     const token = getPlayerToken(p);
     if (token) {
-      const cur = token.hp ?? 10;
-      const newHp = Math.max(0, cur + delta);
-      replaceGmToken({ ...token, hp: newHp });
+      replaceGmToken({ ...token, hp: newHp, maxHp });
     }
 
-    refreshData();
+    await refreshData();
   }
 
   async function adjustVaultCharHp(vc: { path: string; name: string; data: ParsedCharacterData }, delta: number) {
@@ -425,6 +548,7 @@
     } : { hp: 10, maxHp: 10 };
 
     const pid = p.id || p.player_id || p.name;
+    const img = p.character?.imageUrl || p.character?.avatar || p.character?.portrait;
 
     addGmToken({
       id: Math.random().toString(36).slice(2),
@@ -435,6 +559,7 @@
       color: 0x22c55e,
       hp: hpData.hp,
       maxHp: hpData.maxHp,
+      imageUrl: img || undefined,
       visionRange: 0,
       isEnemy: false,
       visible: true,
@@ -531,6 +656,14 @@
         >
           📚 Fiches ({vaultCharacters.length})
         </button>
+        <button
+          type="button"
+          class="dock-add-player-btn"
+          onclick={() => isCreatingPlayer = true}
+          title="Créer un nouveau joueur"
+        >
+          ➕ Nouveau
+        </button>
       </div>
 
       <!-- Corps du panneau -->
@@ -540,7 +673,14 @@
             <div class="dock-empty">
               <span class="empty-icon">📲</span>
               <p>Aucun compte joueur créé ou connecté.</p>
-              <span class="empty-hint">Utilisez le menu <strong>👥 Joueurs ➔ Serveur Mobile (QR)</strong> pour inviter vos joueurs, ou l'onglet <strong>📚 Fiches</strong>.</span>
+              <button
+                type="button"
+                class="dock-add-player-btn"
+                style="margin: 8px auto 0; font-size: 12px; padding: 6px 14px;"
+                onclick={() => isCreatingPlayer = true}
+              >
+                ➕ Créer votre premier joueur
+              </button>
             </div>
           {:else}
             <div class="player-list">
@@ -562,14 +702,18 @@
                             name: p.name,
                             hp: hpData.hp,
                             maxHp: hpData.maxHp,
-                            imageUrl: p.character?.imageUrl || p.character?.avatar
+                            imageUrl: p.character?.imageUrl || p.character?.avatar || p.character?.portrait
                           }));
                           e.dataTransfer.effectAllowed = 'copy';
                         }
                       }}
                     >
                       <div class="avatar-circle" style="background-color: hsl({(p.name.length * 75) % 360}, 65%, 40%)">
-                        {p.name.charAt(0).toUpperCase()}
+                        {#if p.character?.imageUrl || p.character?.avatar || p.character?.portrait}
+                          <img src={p.character.imageUrl || p.character.avatar || p.character.portrait} alt={p.name} class="avatar-img-fit" />
+                        {:else}
+                          {p.name.charAt(0).toUpperCase()}
+                        {/if}
                       </div>
                       <span class="drag-hint-badge">✋</span>
                     </div>
@@ -585,11 +729,20 @@
                           <span class="char-sync-tag" title="Fiche synchronisée">📄</span>
                         {/if}
                         <button
+                          type="button"
                           class="quick-edit-btn"
                           onclick={() => openQuickEdit(p)}
                           title="Modifier la fiche et le compte de {p.name}"
                         >
                           ✏️
+                        </button>
+                        <button
+                          type="button"
+                          class="quick-del-btn"
+                          onclick={() => handleDeletePlayer(p.name)}
+                          title="Supprimer définitivement {p.name}"
+                        >
+                          🗑️
                         </button>
                       </div>
                       <div class="sub-status">
@@ -817,14 +970,77 @@
                   <input type="number" bind:value={quickEditForm.maxhp} class="dock-inp" />
                 </label>
                 <label class="dock-field-lbl">
-                  <span>XP</span>
-                  <input type="number" bind:value={quickEditForm.xp} class="dock-inp" />
+                  <span>CA / Armure</span>
+                  <input type="number" bind:value={quickEditForm.ac} class="dock-inp" />
                 </label>
               </div>
+              <label class="dock-field-lbl">
+                <span>Image / Avatar (URL ou chemin)</span>
+                <input type="text" bind:value={quickEditForm.imageUrl} placeholder="https://... ou assets/..." class="dock-inp" />
+              </label>
             </div>
             <div class="dock-edit-footer">
               <button class="dock-btn-save" onclick={saveQuickEdit}>💾 Enregistrer</button>
+              <button class="dock-btn-del" onclick={() => quickEditAccount && handleDeletePlayer(quickEditAccount.name)} title="Supprimer ce joueur">🗑️ Supprimer</button>
               <button class="dock-btn-cancel" onclick={() => quickEditAccount = null}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      {/if}
+
+      <!-- Modal Créer un Nouveau Joueur -->
+      {#if isCreatingPlayer}
+        <div class="dock-edit-overlay" transition:fade={{ duration: 150 }}>
+          <div class="dock-edit-modal" transition:slide={{ duration: 150 }}>
+            <div class="dock-edit-header">
+              <h4>➕ Nouveau Joueur / Personnage</h4>
+              <button class="dock-btn-close-sm" onclick={() => isCreatingPlayer = false}>✕</button>
+            </div>
+            <div class="dock-edit-body">
+              <label class="dock-field-lbl">
+                <span>Nom du personnage *</span>
+                <input type="text" bind:value={newPlayerForm.nom} placeholder="ex: Valeros, Elina..." class="dock-inp" />
+              </label>
+              <div class="dock-row-2">
+                <label class="dock-field-lbl">
+                  <span>Race / Peuple</span>
+                  <input type="text" bind:value={newPlayerForm.race} placeholder="Humain, Elfe..." class="dock-inp" />
+                </label>
+                <label class="dock-field-lbl">
+                  <span>Métier / Classe</span>
+                  <input type="text" bind:value={newPlayerForm.voc} placeholder="Guerrier, Mage..." class="dock-inp" />
+                </label>
+              </div>
+              <div class="dock-row-3">
+                <label class="dock-field-lbl">
+                  <span>PV Max</span>
+                  <input type="number" bind:value={newPlayerForm.maxhp} class="dock-inp" min="1" />
+                </label>
+                <label class="dock-field-lbl">
+                  <span>PV Actuels</span>
+                  <input type="number" bind:value={newPlayerForm.hp} class="dock-inp" min="0" />
+                </label>
+                <label class="dock-field-lbl">
+                  <span>CA / Armure</span>
+                  <input type="number" bind:value={newPlayerForm.ac} class="dock-inp" min="0" />
+                </label>
+              </div>
+              <label class="dock-field-lbl">
+                <span>Mot de passe (optionnel)</span>
+                <input type="text" bind:value={newPlayerForm.password} placeholder="Vide = connexion libre sur mobile" class="dock-inp" />
+              </label>
+              <label class="dock-field-lbl">
+                <span>Portrait / Avatar (URL d'image)</span>
+                <input type="text" bind:value={newPlayerForm.imageUrl} placeholder="https://... ou assets/..." class="dock-inp" />
+              </label>
+              <label class="dock-checkbox-lbl">
+                <input type="checkbox" bind:checked={newPlayerForm.spawnOnMap} />
+                <span>Poser directement le pion sur la carte VTT</span>
+              </label>
+            </div>
+            <div class="dock-edit-footer">
+              <button class="dock-btn-save" onclick={createNewPlayer}>✨ Créer le Joueur</button>
+              <button class="dock-btn-cancel" onclick={() => isCreatingPlayer = false}>Annuler</button>
             </div>
           </div>
         </div>
@@ -1406,4 +1622,62 @@
     cursor: pointer;
   }
   .dock-btn-cancel:hover { background: #475569; }
+  .dock-btn-del {
+    flex: 1.4;
+    background: #b91c1c;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .dock-btn-del:hover { background: #dc2626; }
+  .dock-add-player-btn {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    cursor: pointer;
+    margin-left: auto;
+    transition: all 0.15s;
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);
+  }
+  .dock-add-player-btn:hover {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    transform: translateY(-1px);
+  }
+  .quick-del-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 2px;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  .quick-del-btn:hover {
+    opacity: 1;
+    filter: drop-shadow(0 0 3px #ef4444);
+  }
+  .avatar-img-fit {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  .dock-checkbox-lbl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #cbd5e1;
+    cursor: pointer;
+    margin-top: 4px;
+  }
 </style>

@@ -260,31 +260,64 @@ pub async fn set_server_vault_path(vault_path: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn apply_damage_to_player(player_id: String, damage: i32) -> Result<(), String> {
     let srv = get_server();
-    let (msg, p_name, char_data) = {
+    let (msg, p_name, char_data, actual_pid) = {
         let mut players = srv.players.lock().await;
-        let p = players.get_mut(&player_id).ok_or("Joueur introuvable")?;
-        // Saturating + bornes : un message WS corrompu ou malveillant ne doit
-        // jamais faire déborder l'arithmétique ni faire exploser les PV/blessures.
-        let cur = p.character.get("bless").and_then(|v| v.as_i64()).unwrap_or(0);
-        let new_val = (cur - i64::from(damage)).clamp(-10, 9999);
+        // Recherche par ID socket direct OU par nom de joueur (insensible à la casse)
+        let p = if players.contains_key(&player_id) {
+            players.get_mut(&player_id).unwrap()
+        } else if let Some((_, found)) = players.iter_mut().find(|(_, pl)| pl.name.eq_ignore_ascii_case(&player_id)) {
+            found
+        } else {
+            return Err("Joueur introuvable".to_string());
+        };
+
+        let target_sock_id = p.id.clone();
+        let cur = p.character.get("bless")
+            .or_else(|| p.character.get("hp"))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(10);
+        let max_val = p.character.get("maxhp")
+            .or_else(|| p.character.get("profil").and_then(|pr| pr.get("act")).and_then(|a| a.get("b")))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(20);
+        let new_val = (cur - i64::from(damage)).clamp(0, max_val.max(9999));
         if let Some(obj) = p.character.as_object_mut() {
             obj.insert("bless".into(), serde_json::json!(new_val));
+            obj.insert("hp".into(), serde_json::json!(new_val));
+            if !obj.contains_key("maxhp") {
+                obj.insert("maxhp".into(), serde_json::json!(max_val));
+            }
         }
         let m = serde_json::to_string(&WsEnvelope {
             event: "damage_applied".into(),
-            data: serde_json::json!({ "target_id": player_id, "damage": damage, "bless": new_val }),
+            data: serde_json::json!({
+                "target_id": target_sock_id,
+                "damage": damage,
+                "bless": new_val,
+                "hp": new_val,
+                "maxhp": max_val
+            }),
         }).unwrap_or_default();
-        (m, p.name.clone(), p.character.clone())
+        (m, p.name.clone(), p.character.clone(), target_sock_id)
     };
     {
         let mut chars = srv.saved_characters.lock().await;
         if let Some(sc) = chars.get_mut(&p_name) {
-            sc.data = char_data;
+            sc.data = char_data.clone();
         }
     }
     save_characters_to_disk(srv).await;
-    send_to_player(srv, &player_id, msg).await;
+    send_to_player(srv, &actual_pid, msg).await;
     broadcast_group_state(srv).await;
+
+    // Notifier immédiatement le GM pour synchroniser le dock et la table VTT
+    emit_to_gm(srv, "player_character_update", serde_json::json!({
+        "id": actual_pid,
+        "name": p_name,
+        "character": char_data,
+        "path": serde_json::Value::Null
+    })).await;
+
     Ok(())
 }
 
@@ -439,17 +472,30 @@ pub async fn push_map_snapshot(img_data: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn request_roll(player_id: Option<String>, stat: String, modifier: i32) -> Result<(), String> {
     let srv = get_server();
+    let target_sock_id = if let Some(ref pid) = player_id {
+        let players = srv.players.lock().await;
+        if players.contains_key(pid) {
+            Some(pid.clone())
+        } else if let Some(p) = players.values().find(|p| p.name.eq_ignore_ascii_case(pid)) {
+            Some(p.id.clone())
+        } else {
+            Some(pid.clone())
+        }
+    } else {
+        None
+    };
+
     let msg = serde_json::to_string(&WsEnvelope {
         event: "request_roll".into(),
         data: serde_json::json!({
-            "target_id": player_id,
+            "target_id": target_sock_id.as_deref().or(player_id.as_deref()),
             "stat": stat,
             "modifier": modifier,
         }),
     }).unwrap_or_default();
 
-    if let Some(ref pid) = player_id {
-        send_to_player(srv, pid, msg).await;
+    if let Some(ref sock_id) = target_sock_id {
+        send_to_player(srv, sock_id, msg).await;
     } else {
         let _ = srv.broadcast_tx.send(msg);
     }

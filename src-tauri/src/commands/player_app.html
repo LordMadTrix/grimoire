@@ -19,7 +19,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .jinp:focus{border-color:var(--accent)}
 .jbtn{padding:12px 28px;background:var(--accent);border:none;border-radius:var(--rad);color:#000;font-size:15px;font-weight:700;cursor:pointer;width:100%;max-width:320px}
 .jbtn:active{opacity:.85}
-#app{display:none;flex-direction:column;height:100vh}
+#app{display:none;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;position:relative}
 .status-bar-wrap{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
 .status{font-size:11px;color:var(--muted)}
 .status.ok{color:var(--green)}.status.err{color:var(--red)}
@@ -35,7 +35,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
 .tab{flex:1;min-width:0;padding:10px 2px;background:transparent;border:none;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.panel{display:none;flex:1;overflow-y:auto;padding:12px;flex-direction:column;gap:10px}
+.panel{display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;padding-bottom:140px;flex-direction:column;gap:12px;overscroll-behavior-y:contain}
 .panel.active{display:flex}
 .inp{padding:7px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:13px;outline:none;width:100%}
 .inp:focus{border-color:var(--accent)}
@@ -175,6 +175,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .poll-options{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px}
 .poll-opt-btn{padding:14px;background:var(--bg3);border:2px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;cursor:pointer;transition:all .15s;text-align:center}
 .poll-opt-btn.voted{border-color:var(--accent);background:rgba(229,168,83,.18);color:var(--accent);font-weight:700}
+/* ── Demande de Jet MJ Overlay ── */
+#roll-request-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(4px);z-index:10000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+#roll-request-overlay.active{display:flex}
+.rr-box{background:var(--bg2);border:2px solid var(--accent);border-radius:14px;padding:22px;width:100%;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.85);display:flex;flex-direction:column;gap:12px}
+.rr-title{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.rr-stat{color:var(--accent);font-size:26px;font-weight:900;letter-spacing:.05em}
+.rr-mod{color:#22c55e;font-size:18px;font-weight:700}
+.rr-btn{padding:14px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.05em;transition:transform .1s}
+.rr-btn:active{transform:scale(.97)}
 /* ── Toast Stack ── */
 #toast-stack{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:8px;z-index:9997;width:calc(100% - 24px);max-width:360px;pointer-events:none}
 .toast{display:flex;align-items:flex-start;gap:10px;background:rgba(10,12,18,.96);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-size:13px;pointer-events:all;box-shadow:0 6px 24px rgba(0,0,0,.75);animation:toastIn .25s ease}
@@ -269,13 +278,16 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <!-- Toast stack -->
   <div id="toast-stack"></div>
 
-  <div id="roll-request-overlay">
+  <div id="roll-request-overlay" onclick="if(event.target===this)closeRollRequest()">
     <div class="rr-box">
-      <div class="rr-title">Jet demandé par le MJ</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="rr-title">🎲 Jet demandé par le MJ</div>
+        <button type="button" onclick="closeRollRequest()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+      </div>
       <div id="rr-stat-name" class="rr-stat">AGILITÉ</div>
       <div id="rr-stat-mod" class="rr-mod">+10</div>
       <button id="rr-roll-btn" class="rr-btn">LANCER LE DÉ</button>
-      <button class="sbtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);margin-top:12px" onclick="closeRollRequest()">Ignorer</button>
+      <button type="button" class="sbtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);margin-top:4px" onclick="closeRollRequest()">Ignorer</button>
     </div>
   </div>
 
@@ -399,6 +411,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     </div>
 
     <button class="sbtn" onclick="sendCharacter()">📤 Envoyer au MJ</button>
+    <div style="height:60px;flex-shrink:0"></div>
   </div>
 
   <!-- ══ COMBAT ══ -->
@@ -1028,10 +1041,23 @@ function showCareerInfo(name){
 }
 
 function loadCharFromData(data){
+  if(!data)return;
   Object.assign(ch,data);
-  if(data.portrait){
-    ch.portrait=data.portrait;
-    showAvatarPreview(data.portrait);
+  const resolvedMaxHp=parseInt(data.maxhp)||parseInt(data.profil?.act?.b)||parseInt(ch.profil?.act?.b)||parseInt(ch.maxhp)||10;
+  const resolvedHp=data.hp!==undefined?parseInt(data.hp):(data.bless!==undefined?parseInt(data.bless):(ch.hp!==undefined?parseInt(ch.hp):(parseInt(ch.bless)||resolvedMaxHp)));
+  ch.hp=resolvedHp;
+  ch.bless=resolvedHp;
+  ch.maxhp=resolvedMaxHp;
+  if(!ch.profil)ch.profil={init:{},plan:{},act:{}};
+  if(!ch.profil.init)ch.profil.init={};
+  if(!ch.profil.plan)ch.profil.plan={};
+  if(!ch.profil.act)ch.profil.act={};
+  ch.profil.act.b=resolvedMaxHp;
+
+  const pic=data.portrait||data.imageUrl||data.avatar||'';
+  if(pic){
+    ch.portrait=pic;
+    showAvatarPreview(pic);
   }else{
     ch.portrait='';
     showAvatarPreview('');
@@ -1041,18 +1067,19 @@ function loadCharFromData(data){
     if(data.profil.plan)Object.assign(ch.profil.plan,data.profil.plan);
     if(data.profil.act) Object.assign(ch.profil.act, data.profil.act);
   }
+  ch.profil.act.b=resolvedMaxHp;
   sv('f-nom',ch.nom);sv('f-sexe',ch.sexe);sv('f-align',ch.align);
-  sv('f-voc',ch.voc);sv('f-age',ch.age);sv('f-taille',ch.taille);sv('f-poids',ch.poids);
+  sv('f-voc',ch.voc||ch.car);sv('f-age',ch.age);sv('f-taille',ch.taille);sv('f-poids',ch.poids);
   sv('f-chev',ch.chev);sv('f-yeux',ch.yeux);sv('f-desc',ch.desc);
   sv('f-chem',ch.chem);sv('f-deb',ch.deb);
   sv('f-bless',ch.bless);
-  sv('pa-tete',ch.pa.tete);sv('pa-bd',ch.pa.bd);sv('pa-bg',ch.pa.bg);
-  sv('pa-tronc',ch.pa.tronc);sv('pa-jd',ch.pa.jd);sv('pa-jg',ch.pa.jg);
-  sv('p-destin',ch.destin);sv('p-magie',ch.magie);sv('p-pouvoir',ch.pouvoir);
-  sv('p-xp',ch.xp);sv('p-folie',ch.folie);
-  sv('f-lang',ch.lang);sv('f-psycho',ch.psycho);
-  sv('f-lieu',ch.lieu);sv('f-parents',ch.parents);sv('f-famille',ch.famille);
-  sv('f-rang',ch.rang);sv('f-relig',ch.relig);
+  sv('pa-tete',ch.pa?.tete||0);sv('pa-bd',ch.pa?.bd||0);sv('pa-bg',ch.pa?.bg||0);
+  sv('pa-tronc',ch.pa?.tronc||0);sv('pa-jd',ch.pa?.jd||0);sv('pa-jg',ch.pa?.jg||0);
+  sv('p-destin',ch.destin||0);sv('p-magie',ch.magie||0);sv('p-pouvoir',ch.pouvoir||0);
+  sv('p-xp',ch.xp||0);sv('p-folie',ch.folie||0);
+  sv('f-lang',ch.lang||'');sv('f-psycho',ch.psycho||'');
+  sv('f-lieu',ch.lieu||'');sv('f-parents',ch.parents||'');sv('f-famille',ch.famille||'');
+  sv('f-rang',ch.rang||'');sv('f-relig',ch.relig||'');
   if(ch.dep){
     sv('dp-pr',ch.dep.pr?.r);sv('dp-pt',ch.dep.pr?.t);sv('dp-pk',ch.dep.pr?.k);
     sv('dp-nr',ch.dep.nr?.r);sv('dp-nt',ch.dep.nr?.t);sv('dp-nk',ch.dep.nr?.k);
@@ -1064,7 +1091,8 @@ function loadCharFromData(data){
       if(el)el.value=ch.profil[key][s]||'';
     });
   });
-  document.getElementById('bless-max').textContent=ch.profil.act.b||'—';
+  const blessMaxEl=document.getElementById('bless-max');
+  if(blessMaxEl)blessMaxEl.textContent=resolvedMaxHp;
   populateRaceDropdown();populateCareerDropdown();
   rAC();rAD();rArm();rSort();rEq();rRich();rComps();rSpellSlots();
   updateHealthState();
@@ -1221,7 +1249,10 @@ function collect(){
   ch.voc=gv('f-voc');ch.age=gv('f-age');ch.taille=gv('f-taille');ch.poids=gv('f-poids');
   ch.chev=gv('f-chev');ch.yeux=gv('f-yeux');ch.desc=gv('f-desc');
   ch.car=gv('f-car');ch.chem=gv('f-chem');ch.deb=gv('f-deb');
-  ch.bless=parseInt(gv('f-bless'))||0;
+  const b=parseInt(gv('f-bless'))||0;
+  ch.bless=b;
+  ch.hp=b;
+  ch.maxhp=parseInt(ch.profil?.act?.b)||parseInt(ch.maxhp)||10;
   ch.pa={tete:parseInt(gv('pa-tete'))||0,bd:parseInt(gv('pa-bd'))||0,bg:parseInt(gv('pa-bg'))||0,
          tronc:parseInt(gv('pa-tronc'))||0,jd:parseInt(gv('pa-jd'))||0,jg:parseInt(gv('pa-jg'))||0};
   ch.dep={pr:{r:gv('dp-pr'),t:gv('dp-pt'),k:gv('dp-pk')},
@@ -1234,15 +1265,22 @@ function collect(){
   ch.rang=gv('f-rang');ch.relig=gv('f-relig');
 }
 
+let _scTimeout = null;
 function sc(){
   collect();
   localStorage.setItem('grimoire_wfrp2',JSON.stringify(ch));
   updateHealthState();
+  if(_scTimeout) clearTimeout(_scTimeout);
+  _scTimeout = setTimeout(() => {
+    sendCharacter(true);
+  }, 1000);
 }
 
 function updateHealthState(){
   const cur=parseInt(document.getElementById('f-bless')?.value)||0;
-  const maxB=parseInt(ch.profil?.act?.b)||0; const blessRow = document.querySelector('.bless-row'); if(blessRow && maxB > 0) blessRow.style.setProperty('--hp-pct', Math.max(0, Math.min(100, (cur/maxB)*100)) + '%');
+  const maxB=parseInt(ch.profil?.act?.b)||parseInt(ch.maxhp)||10;
+  const blessRow = document.querySelector('.bless-row');
+  if(blessRow && maxB > 0) blessRow.style.setProperty('--hp-pct', Math.max(0, Math.min(100, (cur/maxB)*100)) + '%');
   const el=document.getElementById('health-state');
   const combatHp=document.getElementById('combat-my-hp');
   
@@ -1277,25 +1315,34 @@ function loadChar(){
   try{ loadCharFromData(JSON.parse(s)); }catch(e){}
 }
 
-function sendCharacter(){
+function sendCharacter(silent=false){
   collect();
+  const maxB=parseInt(ch.profil?.act?.b)||parseInt(ch.maxhp)||10;
   send('character_update',{
     ...ch,
-    name:ch.nom, class:ch.voc||ch.car,
-    hp:ch.bless, maxhp:parseInt(ch.profil?.act?.b)||0,
+    name:ch.nom,
+    class:ch.voc||ch.car,
+    hp:ch.bless,
+    bless:ch.bless,
+    maxhp:maxB
   });
-  showStatus('Fiche envoyée au MJ !',true);
+  if(!silent) showStatus('Fiche synchronisée avec le MJ !',true);
 }
 
 function adjustPlayerHp(delta) {
   const inp = document.getElementById('f-bless');
   if (!inp) return;
   let cur = parseInt(inp.value) || 0;
-  const maxB = parseInt(ch.profil?.act?.b) || 20;
+  const maxB = parseInt(ch.profil?.act?.b) || parseInt(ch.maxhp) || 10;
   cur = Math.max(0, Math.min(maxB, cur + delta));
   inp.value = cur;
   ch.bless = cur;
+  ch.hp = cur;
   sc();
+  sendCharacter(true);
+  if (navigator.vibrate) navigator.vibrate(delta < 0 ? [80, 40, 80] : 30);
+  showToast(delta < 0 ? '🩸' : '💚', 'Points de Vie', `${cur} / ${maxB} PV`, delta < 0 ? 'danger' : 'success', 2500);
+}
   sendCharacter();
   if (navigator.vibrate) navigator.vibrate(delta < 0 ? [80, 40, 80] : 30);
   showToast(delta < 0 ? '🩸' : '💚', 'Blessures', `${cur} / ${maxB}`, delta < 0 ? 'danger' : 'success', 2500);
@@ -1687,12 +1734,28 @@ function connect(){
       }else if(env.event==='group_state'){
         renderGroupState(env.data);
       }else if(env.event==='damage_applied'){
-        if(env.data.target_id!==playerId)return;
-        ch.bless=env.data.bless;
-        sv('f-bless',ch.bless);updateHealthState();
-        const delta=env.data.damage;
-        if(delta>0){showToast('💥','Dégâts','-'+delta+' blessures','danger',4000);if(navigator.vibrate)navigator.vibrate([150,80,150]);}
-        else{showToast('💚','Soins','+'+Math.abs(delta)+' soins','success',4000);}
+        if(env.data.target_id && env.data.target_id !== playerId) return;
+        const newHp = env.data.bless !== undefined ? env.data.bless : (env.data.hp !== undefined ? env.data.hp : ch.bless);
+        ch.bless = newHp;
+        ch.hp = newHp;
+        if(env.data.maxhp) {
+          ch.maxhp = env.data.maxhp;
+          if(!ch.profil) ch.profil = { act: {} };
+          if(!ch.profil.act) ch.profil.act = {};
+          ch.profil.act.b = env.data.maxhp;
+          const blessMaxEl = document.getElementById('bless-max');
+          if(blessMaxEl) blessMaxEl.textContent = env.data.maxhp;
+        }
+        sv('f-bless', newHp);
+        updateHealthState();
+        localStorage.setItem('grimoire_wfrp2', JSON.stringify(ch));
+        const delta = env.data.damage;
+        if(delta > 0){
+          showToast('💥', 'Dégâts reçus', `-${delta} PV (${newHp} restants)`, 'danger', 4500);
+          if(navigator.vibrate) navigator.vibrate([150, 80, 150]);
+        } else {
+          showToast('💚', 'Soins reçus', `+${Math.abs(delta)} PV (${newHp} actuels)`, 'success', 4500);
+        }
       }else if(env.event==='condition_added'){
         if(env.data.target_id!==playerId)return;
         myConditions=env.data.conditions||[];
@@ -1746,7 +1809,7 @@ function connect(){
       }else if(env.event==='request_roll'){
         if(!env.data.target_id || env.data.target_id === playerId) {
           showRollRequest(env.data);
-          showToast('🎲','Jet demandé',env.data.stat||'','warn',0);
+          showToast('🎲','Jet demandé',env.data.stat||'','warn',5000);
         }
       }else if(env.event==='ai_response'){
         addAiMsg(env.data.response || env.data.error, false);
@@ -2093,21 +2156,28 @@ function closeHandout(){
 function showRollRequest(data){
   const overlay=document.getElementById('roll-request-overlay');
   if(!overlay)return;
-  document.getElementById('rr-stat-name').textContent=data.stat.toUpperCase();
-  const m=data.modifier;
+  document.getElementById('rr-stat-name').textContent=(data.stat||'').toUpperCase();
+  const m=data.modifier||0;
   document.getElementById('rr-stat-mod').textContent=m==0?'':'('+(m>0?'+':'')+m+')';
   document.getElementById('rr-roll-btn').onclick=()=>{
-    const statKey=data.stat.toLowerCase();
-    const val=parseInt(ch.profil?.act?.[statKey])||0;
+    const statKey=(data.stat||'').toLowerCase();
+    const val=parseInt(ch.profil?.act?.[statKey])||parseInt(ch[statKey])||0;
     rollSkillTest(statKey,val);
     closeRollRequest();
   };
+  overlay.style.display='flex';
   overlay.classList.add('active');
   if(navigator.vibrate)navigator.vibrate([100,50,100]);
 }
 function closeRollRequest(){
   const overlay=document.getElementById('roll-request-overlay');
-  if(overlay)overlay.classList.remove('active');
+  if(overlay){
+    overlay.classList.remove('active');
+    overlay.style.display='none';
+  }
+  document.querySelectorAll('.toast').forEach(t=>{
+    if(t.textContent.includes('Jet demandé')) t.remove();
+  });
 }
 
 function addToRecus(data){

@@ -1,6 +1,6 @@
 {
-  "version": "0.8.10",
-  "changelog": "Version 0.8.10 : Support complet des commandes cartes dans le Markdown (bloc ```map, [[map:...]], et frontmatter map: ...). Projection instantanée sur la Table Virtuelle et synchronisation automatique vers la Vue Joueurs (2ème écran / TV) en un clic. Démo Live supprimée, déplacement des tokens fluide avec menu contextuel clic droit.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.10",
+  "version": "0.8.11",
+  "changelog": "Version 0.8.11 : Gestion complète des joueurs (Ajouter avec formulaire complet, Supprimer en 1 clic avec retrait automatique de la carte VTT et du combat, Modifier avec avatar et CA). Synchronisation instantanée des PV entre l'écran MJ et le mobile GSM des joueurs. Correction du popup de demande de jet qui restait bloqué à l'écran. Défilement complet de la liste des compétences sur mobile (GSM).",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.11",
   "release_date": "2026-11-06"
 }
