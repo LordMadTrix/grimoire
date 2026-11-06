@@ -4,6 +4,7 @@
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
   import { vttStore, type FowShape, type Token, type MapPin, type SpellMarker, type DrawPath, type WallDef, type AudioZoneDef } from '$lib/stores/vtt.svelte';
+  import { isTauri, closePlayerView, togglePlayerViewFullscreen, movePlayerViewToMonitor, listMonitors, getPlayerViewStatus } from '$lib/api';
   import PlayerEffects from './components/PlayerEffects.svelte';
   import Dice3DOverlay from './components/Dice3DOverlay.svelte';
   import PlayerCombatHUD from './components/PlayerCombatHUD.svelte';
@@ -37,6 +38,68 @@
   let partyState     = $state<any[]>([]);
   let walls          = $state<WallDef[]>([]);
   let audioZones     = $state<AudioZoneDef[]>([]);
+
+  // ── Contrôles multi-écrans & fenêtre ───────────────────────────────
+  let showControlOverlay = $state(false);
+  let isFullscreen       = $state(true);
+  let currentMonitorIdx  = $state<number | null>(null);
+  let monitorCount       = $state(1);
+
+  async function checkMonitorStatus() {
+    if (!isTauri()) return;
+    try {
+      const [status, mons] = await Promise.all([
+        getPlayerViewStatus(),
+        listMonitors()
+      ]);
+      isFullscreen = status.is_fullscreen;
+      currentMonitorIdx = status.current_monitor_index;
+      monitorCount = mons.length;
+    } catch {}
+  }
+
+  async function handleSwitchScreen() {
+    if (!isTauri()) return;
+    try {
+      const mons = await listMonitors();
+      if (mons.length <= 1) return;
+      const cur = currentMonitorIdx ?? 0;
+      const next = (cur + 1) % mons.length;
+      await movePlayerViewToMonitor(next);
+      currentMonitorIdx = next;
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleToggleFullscreen() {
+    if (!isTauri()) return;
+    try {
+      const fs = await togglePlayerViewFullscreen();
+      isFullscreen = fs;
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleClose() {
+    if (!isTauri()) {
+      window.close();
+      return;
+    }
+    await closePlayerView();
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'F11') {
+      e.preventDefault();
+      handleToggleFullscreen();
+    } else if (e.key === 'Escape') {
+      if (isFullscreen) {
+        handleToggleFullscreen();
+      }
+    }
+  }
 
   // ── Nouvelles fonctionnalités vague 10 ───────────────────────────
   let combatants     = $state<any[]>([]);
@@ -199,8 +262,16 @@
     }
     raf = requestAnimationFrame(measureLoop);
 
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyDown);
+      checkMonitorStatus();
+    }
+
     return () => {
       cancelAnimationFrame(raf);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', handleKeyDown);
+      }
       unlistens.forEach(fn => fn());
     };
   });
@@ -249,6 +320,53 @@
 
 
 <main class="player-view">
+
+  <!-- ── Mini panneau de contrôle multi-écran discret en haut à droite ── -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div 
+    class="player-screen-control-wrapper" 
+    onmouseenter={() => showControlOverlay = true} 
+    onmouseleave={() => showControlOverlay = false}
+  >
+    <button 
+      class="control-trigger" 
+      class:active={showControlOverlay}
+      onclick={() => showControlOverlay = !showControlOverlay}
+      title="Options de l'écran Joueurs (Survoler pour ouvrir)"
+    >
+      🖥️
+    </button>
+    {#if showControlOverlay}
+      <div class="screen-control-panel">
+        <div class="panel-header">
+          <span class="panel-title">🖥️ Vue Joueurs</span>
+          <span class="panel-screen-tag">
+            {#if currentMonitorIdx !== null}
+              Écran {currentMonitorIdx + 1}
+            {:else}
+              Écran actif
+            {/if}
+          </span>
+        </div>
+        <div class="panel-buttons">
+          {#if monitorCount > 1}
+            <button class="ctrl-btn highlight" onclick={handleSwitchScreen} title="Déplacer vers l'autre écran">
+              🔄 Passer à l'autre écran
+            </button>
+          {/if}
+          <button class="ctrl-btn" onclick={handleToggleFullscreen} title="Basculer Plein écran / Fenêtré (F11)">
+            {isFullscreen ? '🗗 Fenêtré' : '🔲 Plein écran'}
+          </button>
+          <button class="ctrl-btn danger" onclick={handleClose} title="Fermer la vue joueurs">
+            ✕ Fermer
+          </button>
+        </div>
+        <div class="panel-tip">
+          Raccourcis : <kbd>F11</kbd> Plein écran · <kbd>Échap</kbd> Réduire
+        </div>
+      </div>
+    {/if}
+  </div>
 
   <!-- ── Fond étoilé GPU pur (0% CPU, couches de textures composites GPU) ── -->
   <div class="starfield" class:hidden={!!currentMap && !isBlackout}>
@@ -998,5 +1116,151 @@
   .remote-cond {
     font-size: 14px;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+
+  /* ── Widget Multi-Écran Joueur ─────────────────────────────────── */
+  .player-screen-control-wrapper {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .control-trigger {
+    background: rgba(18, 19, 24, 0.45);
+    border: 1px solid rgba(229, 168, 83, 0.25);
+    color: #e5a853;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.25;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  .control-trigger:hover,
+  .control-trigger.active {
+    opacity: 1;
+    background: rgba(18, 19, 24, 0.9);
+    border-color: rgba(229, 168, 83, 0.6);
+    transform: scale(1.08);
+    box-shadow: 0 4px 14px rgba(229, 168, 83, 0.3);
+  }
+
+  .screen-control-panel {
+    margin-top: 8px;
+    background: #18191e;
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    border-radius: 10px;
+    padding: 12px;
+    width: 230px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 16px rgba(229, 168, 83, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: fadeInDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f3f4f6;
+  }
+
+  .panel-screen-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(229, 168, 83, 0.2);
+    color: #e5a853;
+    border: 1px solid rgba(229, 168, 83, 0.35);
+  }
+
+  .panel-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ctrl-btn {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e5e7eb;
+    text-align: left;
+    transition: all 0.15s;
+  }
+
+  .ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+  }
+
+  .ctrl-btn.highlight {
+    background: rgba(229, 168, 83, 0.2);
+    border-color: rgba(229, 168, 83, 0.4);
+    color: #f6d289;
+  }
+
+  .ctrl-btn.highlight:hover {
+    background: #e5a853;
+    color: #121318;
+  }
+
+  .ctrl-btn.danger {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+
+  .ctrl-btn.danger:hover {
+    background: #ef4444;
+    color: white;
+  }
+
+  .panel-tip {
+    font-size: 10px;
+    color: #9ca3af;
+    line-height: 1.3;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 6px;
+  }
+
+  .panel-tip kbd {
+    background: #2a2d37;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 9px;
+    font-family: monospace;
+    color: #f3f4f6;
   }
 </style>

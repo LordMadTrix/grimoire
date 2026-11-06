@@ -1,11 +1,15 @@
 <script lang="ts">
   import { gameSessionDemo } from '$lib/vtt/gameSessionDemoStore.svelte';
-  import { fade, slide } from 'svelte/transition';
+  import { fade, slide, scale } from 'svelte/transition';
 
   let isCollapsed = $state(false);
 
-  function handleClose() {
-    gameSessionDemo.stop();
+  function handleOpenExit() {
+    gameSessionDemo.showExitModal = true;
+  }
+
+  function handleExit(mode: 'restore' | 'clean' | 'keep') {
+    gameSessionDemo.exitDemo(mode);
   }
 </script>
 
@@ -75,10 +79,19 @@
           {isCollapsed ? '🔽' : '🔼'}
         </button>
 
+        <!-- Bouton Quitter bien visible -->
+        <button
+          class="ctrl-btn exit-pill-btn"
+          onclick={handleOpenExit}
+          title="Quitter la Démo et choisir comment gérer les tokens"
+        >
+          🚪 Quitter Démo
+        </button>
+
         <button
           class="ctrl-btn close-btn icon-only"
-          onclick={handleClose}
-          title="Quitter la Démo (Passer en mode MJ libre)"
+          onclick={handleOpenExit}
+          title="Fermer la démo"
         >
           ✕
         </button>
@@ -139,6 +152,56 @@
             <p class="action-detail">
               {gameSessionDemo.currentStep.actionDetail}
             </p>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Modal de Sortie de Démo & Gestion de Session -->
+    {#if gameSessionDemo.showExitModal}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="demo-exit-backdrop" transition:fade={{ duration: 180 }} onclick={() => gameSessionDemo.showExitModal = false}>
+        <div class="demo-exit-modal" transition:scale={{ start: 0.95, duration: 200 }} onclick={(e) => e.stopPropagation()}>
+          <div class="modal-top">
+            <div class="modal-icon">🎭</div>
+            <div class="modal-titles">
+              <h4>Quitter la Démo Live</h4>
+              <p>Que souhaitez-vous faire des tokens et de la scène du Sanctuaire ?</p>
+            </div>
+            <button class="close-x-btn" onclick={() => gameSessionDemo.showExitModal = false} title="Annuler">✕</button>
+          </div>
+
+          <div class="exit-options">
+            <button class="exit-opt-btn restore-opt" onclick={() => handleExit('restore')}>
+              <div class="opt-icon">🔄</div>
+              <div class="opt-text">
+                <span class="opt-title">Restaurer ma session précédente <span class="badge-rec">Recommandé</span></span>
+                <span class="opt-desc">Restaure fidèlement votre carte, vos tokens et vos réglages d'avant la démo.</span>
+              </div>
+            </button>
+
+            <button class="exit-opt-btn clean-opt" onclick={() => handleExit('clean')}>
+              <div class="opt-icon">🧹</div>
+              <div class="opt-text">
+                <span class="opt-title">Retirer tous les tokens factices de la démo</span>
+                <span class="opt-desc">Supprime Sir Gareth, Elanor, Varis, squelettes et le boss de la table.</span>
+              </div>
+            </button>
+
+            <button class="exit-opt-btn keep-opt" onclick={() => handleExit('keep')}>
+              <div class="opt-icon">🎮</div>
+              <div class="opt-text">
+                <span class="opt-title">Conserver la scène en mode MJ libre</span>
+                <span class="opt-desc">Garde le Sanctuaire et tous les pions pour continuer à jouer dessus librement.</span>
+              </div>
+            </button>
+          </div>
+
+          <div class="modal-actions">
+            <button class="cancel-btn" onclick={() => gameSessionDemo.showExitModal = false}>
+              Annuler et continuer la démo
+            </button>
           </div>
         </div>
       </div>
@@ -464,5 +527,212 @@
     font-size: 12px;
     color: #e2e8f0;
     line-height: 1.4;
+  }
+
+  .exit-pill-btn {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+    font-weight: 700;
+  }
+
+  .exit-pill-btn:hover {
+    background: rgba(239, 68, 68, 0.4) !important;
+    border-color: #ef4444 !important;
+    color: #fff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  }
+
+  /* Modal de Sortie */
+  .demo-exit-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .demo-exit-modal {
+    background: #0f172a;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.2);
+    max-width: 540px;
+    width: 100%;
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    color: #f8fafc;
+  }
+
+  .modal-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .modal-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .modal-titles {
+    flex: 1;
+  }
+
+  .modal-titles h4 {
+    margin: 0 0 4px 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #fbbf24;
+  }
+
+  .modal-titles p {
+    margin: 0;
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.4;
+  }
+
+  .close-x-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 6px;
+    transition: color 0.15s;
+  }
+
+  .close-x-btn:hover {
+    color: #f1f5f9;
+  }
+
+  .exit-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .exit-opt-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(30, 41, 59, 0.6);
+    color: #f8fafc;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+  }
+
+  .exit-opt-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .opt-icon {
+    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .opt-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .opt-title {
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge-rec {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: rgba(59, 130, 246, 0.25);
+    border: 1px solid rgba(59, 130, 246, 0.6);
+    color: #93c5fd;
+    padding: 1px 6px;
+    border-radius: 12px;
+  }
+
+  .opt-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.35;
+  }
+
+  .restore-opt:hover {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: #3b82f6;
+  }
+
+  .restore-opt:hover .opt-title {
+    color: #60a5fa;
+  }
+
+  .clean-opt:hover {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: #ef4444;
+  }
+
+  .clean-opt:hover .opt-title {
+    color: #f87171;
+  }
+
+  .keep-opt:hover {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: #10b981;
+  }
+
+  .keep-opt:hover .opt-title {
+    color: #34d399;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  .cancel-btn {
+    background: transparent;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #94a3b8;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .cancel-btn:hover {
+    color: #f1f5f9;
+    border-color: #64748b;
   }
 </style>

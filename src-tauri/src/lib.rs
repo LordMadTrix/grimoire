@@ -57,6 +57,10 @@ pub fn run() {
             // Player View
             commands::player_view::list_monitors,
             commands::player_view::open_player_view,
+            commands::player_view::close_player_view,
+            commands::player_view::toggle_player_view_fullscreen,
+            commands::player_view::move_player_view_to_monitor,
+            commands::player_view::get_player_view_status,
             commands::player_view::emit_to_player_view,
             commands::player_view::open_map_editor,
             // AI

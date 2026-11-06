@@ -22,6 +22,7 @@
   import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
   import AddonStore from './components/AddonStore.svelte';
   import TokenEditorModal from './components/TokenEditorModal.svelte';
+  import MonitorPickerModal from './components/MonitorPickerModal.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
@@ -610,18 +611,8 @@
     }
   }
 
-  async function launchPlayerView() {
-    try {
-      monitors = await listMonitors();
-      if (monitors.length > 1) {
-        showMonitorPicker = true;
-      } else {
-        await openOnMonitor(0);
-      }
-    } catch(err) {
-      console.error('Failed to list monitors:', err);
-      statusMessage = `Erreur VTT: ${err}`;
-    }
+  function launchPlayerView() {
+    showMonitorPicker = true;
   }
 
   function syncStateToPlayerView() {
@@ -649,10 +640,9 @@
   async function openOnMonitor(index: number) {
     showMonitorPicker = false;
     try {
-      await openPlayerView(index);
+      await openPlayerView(index, true);
       statusMessage = `Vue joueur lancée sur l'écran ${index + 1}`;
-      // On attend que la fenêtre soit prête avant de synchroniser
-      setTimeout(() => syncStateToPlayerView(), 1500);
+      setTimeout(() => syncStateToPlayerView(), 1200);
       setTimeout(() => { statusMessage = ''; }, 3000);
     } catch (err) {
       console.error('Failed to open player view:', err);
@@ -731,26 +721,14 @@
 <PlayerMobileManager bind:this={playerMobileManagerRef} />
 
 {#if showMonitorPicker}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="monitor-backdrop" onclick={() => showMonitorPicker = false}>
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="monitor-modal" onclick={e => e.stopPropagation()}>
-      <h3>🖥️ Choisir un écran</h3>
-      <div class="monitor-list">
-        {#each monitors as monitor, i}
-          <button class="monitor-item" onclick={() => openOnMonitor(i)}>
-            <span class="monitor-icon">{monitor.is_primary ? '🖥️' : '📺'}</span>
-            <span class="monitor-info">
-              <strong>{monitor.name || `Écran ${i + 1}`}</strong>
-              <small>{monitor.size[0]}×{monitor.size[1]}{monitor.is_primary ? ' · Principal' : ''}</small>
-            </span>
-          </button>
-        {/each}
-      </div>
-    </div>
-  </div>
+  <MonitorPickerModal 
+    onclose={() => showMonitorPicker = false}
+    onLaunched={(msg) => {
+      statusMessage = msg;
+      setTimeout(() => syncStateToPlayerView(), 1200);
+      setTimeout(() => { statusMessage = ''; }, 3500);
+    }}
+  />
 {/if}
 
 {#if showSettings}
@@ -806,8 +784,8 @@
         <button onclick={() => showTokenEditor = true} class="footer-btn vtt-btn" style="color: #e6b450; font-weight: 700; border-color: rgba(230, 180, 80, 0.4);" title="Ouvrir l'éditeur de tokens personnalisé">
           🪙 Éditeur de Tokens
         </button>
-        <button onclick={launchPlayerView} class="footer-btn vtt-btn" title="Ouvrir la vue Joueurs sur un autre écran">
-          🖥️ Lancer Vue Joueurs
+        <button onclick={launchPlayerView} class="footer-btn vtt-btn" title="Ouvrir la vue Joueurs sur un 2ème écran (TV, vidéoprojecteur...)">
+          🖥️ Multi-Écran (Vue Joueurs)
         </button>
         <div class="footer-row">
           <button onclick={handleNewFile} class="footer-btn half" title="Nouveau fichier (Ctrl+N)">
@@ -902,6 +880,7 @@
         onTogglePlayerManager={() => playerManagerRef?.toggle()}
         onTogglePlayerMobileManager={() => playerMobileManagerRef?.toggle()}
         onTogglePlayerQuickDock={() => showPlayerQuickDock = !showPlayerQuickDock}
+        onOpenMonitorPicker={() => showMonitorPicker = true}
       />
     {/if}
     
@@ -1385,65 +1364,6 @@
     to { opacity: 1; }
   }
 
-  /* ── Monitor picker ───────────────────────────────────────── */
-
-  .monitor-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  }
-
-  .monitor-modal {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 24px;
-    min-width: 320px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-    animation: fadeIn 0.15s ease;
-  }
-
-  .monitor-modal h3 {
-    margin: 0 0 16px 0;
-    font-size: 16px;
-    color: var(--text-primary);
-  }
-
-  .monitor-list { display: flex; flex-direction: column; gap: 8px; }
-
-  .monitor-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.15s;
-    color: var(--text-primary);
-  }
-  .monitor-item:hover {
-    background: var(--bg-hover);
-    border-color: var(--accent);
-  }
-
-  .monitor-icon { font-size: 28px; }
-
-  .monitor-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .monitor-info strong { font-size: 14px; }
-  .monitor-info small { font-size: 11px; color: var(--text-muted); }
 
   /* ── Mode Zen App-level ────────────────────────────────────── */
   :global(.app-layout.zen-mode) .sidebar {

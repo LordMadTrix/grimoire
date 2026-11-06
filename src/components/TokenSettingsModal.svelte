@@ -134,6 +134,9 @@
         <label for="t-image">Image (optionnel)</label>
         <select id="t-image" bind:value={editToken.imageUrl}>
           <option value="">— Aucune image (cercle de couleur) —</option>
+          {#if editToken.imageUrl && editToken.imageUrl.startsWith('data:')}
+            <option value={editToken.imageUrl}>✨ Pion personnalisé (Éditeur de Tokens)</option>
+          {/if}
           {#each groupedImages as [folder, imgs]}
             <optgroup label={folder || '/'}>
               {#each imgs as img}

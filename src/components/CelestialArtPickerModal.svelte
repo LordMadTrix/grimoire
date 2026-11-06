@@ -19,14 +19,56 @@
     '🧝', '🧛', '🧟', '🦁', '🦅', '🐴', '🗡️', '🪵', '🔥', '💧'
   ];
 
-  // Exemples d'illustrations fantasy locales / haute résolution
-  const sampleArts = [
-    { name: 'Tavernier Barbu', url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&auto=format&fit=crop&q=80', cat: 'pnj' },
-    { name: 'Aubergiste du Relais', url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400&auto=format&fit=crop&q=80', cat: 'pnj' },
-    { name: 'Capitaine en Armure', url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&auto=format&fit=crop&q=80', cat: 'warrior' },
-    { name: 'Rôdeuse Elfe', url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&auto=format&fit=crop&q=80', cat: 'warrior' },
-    { name: 'Sorcier Arcaniste', url: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&auto=format&fit=crop&q=80', cat: 'mage' },
-    { name: 'Dragon Éveillé', url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&auto=format&fit=crop&q=80', cat: 'monster' },
+  // Catalogue complet des tokens et portraits officiels de Grimoire
+  const builtinTokens = [
+    // Héros
+    { name: 'Guerrier', url: '/tokens/library/heroes/guerrier.png', cat: 'warrior' },
+    { name: 'Magicien', url: '/tokens/library/heroes/magicien.png', cat: 'mage' },
+    { name: 'Rôdeur', url: '/tokens/library/heroes/rodeur.png', cat: 'warrior' },
+    { name: 'Clerc', url: '/tokens/library/heroes/clerc.png', cat: 'mage' },
+    { name: 'Voleur', url: '/tokens/library/heroes/voleur.png', cat: 'warrior' },
+    { name: 'Paladin', url: '/tokens/online/heroes/paladin.png', cat: 'warrior' },
+    { name: 'Barbare', url: '/tokens/online/heroes/barbare.png', cat: 'warrior' },
+    { name: 'Chevalier', url: '/tokens/online/heroes/chevalier.png', cat: 'warrior' },
+    { name: 'Druide', url: '/tokens/online/heroes/druide.png', cat: 'mage' },
+    { name: 'Sorcière', url: '/tokens/online/heroes/sorciere.png', cat: 'mage' },
+    { name: 'Prêtresse', url: '/tokens/online/heroes/pretresse.png', cat: 'mage' },
+    { name: 'Archer', url: '/tokens/online/heroes/archer.png', cat: 'warrior' },
+    { name: 'Nain', url: '/tokens/online/heroes/nain.png', cat: 'warrior' },
+    { name: 'Viking', url: '/tokens/online/heroes/viking.png', cat: 'warrior' },
+    { name: 'Épéiste', url: '/tokens/online/heroes/epeeiste.png', cat: 'warrior' },
+
+    // PNJ & Taverne
+    { name: 'Tavernier', url: '/tokens/library/npcs/tavernier.png', cat: 'pnj' },
+    { name: 'Garde de la Ville', url: '/tokens/library/npcs/garde.png', cat: 'pnj' },
+    { name: 'Marchand', url: '/tokens/library/npcs/marchand.png', cat: 'pnj' },
+    { name: 'Noble', url: '/tokens/library/npcs/noble.png', cat: 'pnj' },
+    { name: 'Alchimiste', url: '/tokens/online/npcs/alchimiste.png', cat: 'pnj' },
+    { name: 'Forgeron', url: '/tokens/online/npcs/forgeron.png', cat: 'pnj' },
+    { name: 'Espion', url: '/tokens/online/npcs/espion.png', cat: 'pnj' },
+    { name: 'Prêtre', url: '/tokens/online/npcs/pretre.png', cat: 'pnj' },
+
+    // Monstres
+    { name: 'Dragon Rouge', url: '/tokens/library/enemies/dragon.png', cat: 'monster' },
+    { name: 'Gobelin', url: '/tokens/library/enemies/gobelin.png', cat: 'monster' },
+    { name: 'Orque', url: '/tokens/library/enemies/orque.png', cat: 'monster' },
+    { name: 'Squelette', url: '/tokens/library/enemies/squelette.png', cat: 'monster' },
+    { name: 'Loup Sauvage', url: '/tokens/library/enemies/loup.png', cat: 'monster' },
+    { name: 'Zombie', url: '/tokens/library/enemies/zombie.png', cat: 'monster' },
+    { name: 'Sorcier Sombre', url: '/tokens/library/enemies/sorcier.png', cat: 'monster' },
+    { name: 'Minotaure', url: '/tokens/online/enemies/minotaure.png', cat: 'monster' },
+    { name: 'Démon', url: '/tokens/online/enemies/demon.png', cat: 'monster' },
+    { name: 'Vampire', url: '/tokens/online/enemies/vampire.png', cat: 'monster' },
+    { name: 'Troll', url: '/tokens/online/enemies/troll.png', cat: 'monster' },
+    { name: 'Golem', url: '/tokens/online/enemies/golem.png', cat: 'monster' },
+    { name: 'Fantôme', url: '/tokens/online/enemies/fantome.png', cat: 'monster' },
+    { name: 'Spectre', url: '/tokens/online/enemies/spectre.png', cat: 'monster' },
+    { name: 'Araignée Géante', url: '/tokens/online/enemies/araignee.png', cat: 'monster' },
+    { name: 'Chauve-souris', url: '/tokens/online/enemies/chauvesouris.png', cat: 'monster' },
+    { name: 'Mimic Coffre', url: '/tokens/mimics/chest.png', cat: 'monster' },
+    { name: 'Mimic Porte', url: '/tokens/mimics/door.png', cat: 'monster' },
+    { name: 'Mimic Tonneau', url: '/tokens/mimics/barrel.png', cat: 'monster' },
+    { name: 'Mimic Table', url: '/tokens/mimics/table.png', cat: 'monster' },
   ];
 
   onMount(async () => {
@@ -52,22 +94,25 @@
   const filteredList = $derived(() => {
     const q = searchQuery.trim().toLowerCase();
     
-    // Si on a des fichiers du cache Céleste
-    let result = files.map(f => ({
-      name: f.name.replace(/\.[^/.]+$/, ''),
-      url: f.thumbUrl || f.url,
-      cat: f.path.toLowerCase().includes('monster') ? 'monster' : 'pnj',
-    }));
+    // 1. D'abord les tokens officiels intégrés (ultra rapides et 100% fiables)
+    let result = [...builtinTokens];
 
-    // Fusion avec les exemples
-    result = [...sampleArts, ...result];
+    // 2. Ensuite les fichiers du cache Céleste / Drive
+    if (files.length > 0) {
+      const driveList = files.map(f => ({
+        name: f.name.replace(/\.[^/.]+$/, ''),
+        url: f.thumbUrl || f.url,
+        cat: f.path.toLowerCase().includes('monster') ? 'monster' : f.path.toLowerCase().includes('warrior') ? 'warrior' : 'pnj',
+      }));
+      result = [...result, ...driveList];
+    }
 
     if (selectedCategory !== 'all') {
       result = result.filter(item => {
         if (selectedCategory === 'pnj') return item.cat === 'pnj' || item.name.toLowerCase().includes('tavern') || item.name.toLowerCase().includes('marchand');
-        if (selectedCategory === 'warrior') return item.cat === 'warrior' || item.name.toLowerCase().includes('garde') || item.name.toLowerCase().includes('soldat');
-        if (selectedCategory === 'mage') return item.cat === 'mage' || item.name.toLowerCase().includes('mage') || item.name.toLowerCase().includes('sorcier');
-        if (selectedCategory === 'monster') return item.cat === 'monster' || item.name.toLowerCase().includes('gobelin') || item.name.toLowerCase().includes('dragon');
+        if (selectedCategory === 'warrior') return item.cat === 'warrior' || item.name.toLowerCase().includes('garde') || item.name.toLowerCase().includes('soldat') || item.name.toLowerCase().includes('guerrier');
+        if (selectedCategory === 'mage') return item.cat === 'mage' || item.name.toLowerCase().includes('mage') || item.name.toLowerCase().includes('sorcier') || item.name.toLowerCase().includes('clerc');
+        if (selectedCategory === 'monster') return item.cat === 'monster' || item.name.toLowerCase().includes('gobelin') || item.name.toLowerCase().includes('dragon') || item.name.toLowerCase().includes('mimic');
         return true;
       });
     }

@@ -1373,11 +1373,15 @@
       }
 
       if (token.imageUrl && tokenSprite) {
+        const isDataUrl = token.imageUrl.startsWith('data:');
         const isBuiltin = token.imageUrl.startsWith('/');
+        const isHttp = token.imageUrl.startsWith('http://') || token.imageUrl.startsWith('https://');
         const vPath = vaultPath || getVaultPath();
-        if (!vPath && !isBuiltin) { tokenSprite.visible = false; return; }
-
-        const cacheKey = isBuiltin ? token.imageUrl : (vPath + '/' + token.imageUrl);
+        
+        // Clé de cache pour PixiJS
+        const cacheKey = isDataUrl 
+          ? (token.id + '_custom_dataurl') 
+          : (isBuiltin || isHttp ? token.imageUrl : (vPath ? vPath + '/' + token.imageUrl : token.imageUrl));
 
         if (tokenSprite.texture?.label === cacheKey && tokenSprite.texture.width > 0) {
           // Texture déjà en cache — appliquer taille et rendre visible
@@ -1388,10 +1392,12 @@
           tokenSprite.visible = false;
           loadingTextures.add(cacheKey);
 
-          if (isBuiltin) {
-            // Chargement direct pour les assets built-in
-            PIXI.Assets.load(token.imageUrl).then(tex => {
+          if (isDataUrl) {
+            // Data URL directe (pions personnalisés créés dans l'Éditeur de Tokens)
+            const img = new Image();
+            img.onload = () => {
               if (container && tokenSprite) {
+                const tex = PIXI.Texture.from(img);
                 tex.label = cacheKey;
                 tokenSprite.texture = tex;
                 tokenSprite.width = token.size;
@@ -1399,12 +1405,35 @@
                 tokenSprite.visible = true;
               }
               loadingTextures.delete(cacheKey);
-            }).catch(() => {
+            };
+            img.onerror = (e) => {
+              console.error('Token dataURL load error:', e);
               loadingTextures.delete(cacheKey);
               tokenSprite.visible = false;
-            });
-          } else {
-            // Même stratégie que la carte : readFileBase64 → data URL → Image → Texture
+            };
+            img.src = token.imageUrl;
+          } else if (isBuiltin || isHttp) {
+            // Chargement direct pour les assets built-in (/tokens/...) ou HTTP
+            const img = new Image();
+            if (isHttp) img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              if (container && tokenSprite) {
+                const tex = PIXI.Texture.from(img);
+                tex.label = cacheKey;
+                tokenSprite.texture = tex;
+                tokenSprite.width = token.size;
+                tokenSprite.height = token.size;
+                tokenSprite.visible = true;
+              }
+              loadingTextures.delete(cacheKey);
+            };
+            img.onerror = () => {
+              loadingTextures.delete(cacheKey);
+              tokenSprite.visible = false;
+            };
+            img.src = token.imageUrl;
+          } else if (vPath) {
+            // Fichier local dans le coffre de campagne
             const ext = token.imageUrl.split('.').pop()?.toLowerCase() ?? 'png';
             const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
 
@@ -1431,27 +1460,51 @@
               loadingTextures.delete(cacheKey);
               tokenSprite.visible = false;
             });
+          } else {
+            loadingTextures.delete(cacheKey);
+            tokenSprite.visible = false;
           }
         }
-        // Si chargement en cours : on ne touche pas à visible
         
-        // Masque circulaire
-        let maskG = (container as any).__maskG as PIXI.Graphics | undefined;
-        if (!maskG) {
-          maskG = new PIXI.Graphics();
-          container.addChild(maskG);
-          tokenSprite.mask = maskG;
-          (container as any).__maskG = maskG;
-        }
-        maskG.clear().circle(0, 0, r).fill(0xffffff);
-        maskG.position.set(0, 0);
+        // Pions personnalisés issus de l'Éditeur de Tokens (Data URL ou flag isShaped)
+        const isCustomToken = isDataUrl || (token as any).isShaped || (token as any).customShape;
 
-        // Fond de secours (si l'image est transparente ou en cours de chargement)
-        circleG.circle(0, 0, r).fill({ color: 0x222222, alpha: 0.8 });
-        
-        // Bordure
-        circleG.setStrokeStyle({ width: 4, color: color, alpha: 1 });
-        circleG.circle(0, 0, r).stroke();
+        if (isCustomToken) {
+          // La forme (hexagone, bouclier, cercle avec frise métallique) est DÉJÀ dans le PNG !
+          if (tokenSprite.mask) {
+            tokenSprite.mask = null;
+          }
+          const maskG = (container as any).__maskG as PIXI.Graphics | undefined;
+          if (maskG) {
+            maskG.clear();
+          }
+          // On ne dessine pas de cercle noir de masquage
+          circleG.clear();
+          if (token.auraRadius && token.auraRadius > 0) {
+            const ac = token.auraColor ?? 0x3b82f6;
+            circleG.circle(0, 0, r + token.auraRadius).fill({ color: ac, alpha: 0.14 });
+            circleG.setStrokeStyle({ width: 2, color: ac, alpha: 0.45 });
+            circleG.circle(0, 0, r + token.auraRadius).stroke();
+          }
+        } else {
+          // Masque circulaire standard pour portraits bruts non découpés
+          let maskG = (container as any).__maskG as PIXI.Graphics | undefined;
+          if (!maskG) {
+            maskG = new PIXI.Graphics();
+            container.addChild(maskG);
+            tokenSprite.mask = maskG;
+            (container as any).__maskG = maskG;
+          }
+          maskG.clear().circle(0, 0, r).fill(0xffffff);
+          maskG.position.set(0, 0);
+
+          // Fond de secours (si l'image est transparente ou en cours de chargement)
+          circleG.circle(0, 0, r).fill({ color: 0x222222, alpha: 0.8 });
+          
+          // Bordure
+          circleG.setStrokeStyle({ width: 4, color: color, alpha: 1 });
+          circleG.circle(0, 0, r).stroke();
+        }
       } else {
         // Mode Couleur unie
         tokenSprite.visible = false;

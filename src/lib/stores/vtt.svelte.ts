@@ -660,6 +660,60 @@ export function removeGmToken(id: string) {
   emitToPlayerView('update_tokens', vttStore.tokens);
 }
 
+export function clearGmTokens() {
+  if (vttStore.tokens.length === 0) return;
+  pushUndo({ type: 'tokens', tokens: [...vttStore.tokens] });
+  vttStore.tokens = [];
+  emitToPlayerView('update_tokens', []);
+}
+
+export const DEMO_TOKEN_IDS = new Set([
+  'token_paladin',
+  'token_mage',
+  'token_ranger',
+  'token_skeleton_1',
+  'token_skeleton_2',
+  'token_boss'
+]);
+
+export function removeGmDemoTokens() {
+  pushUndo({ type: 'tokens', tokens: [...vttStore.tokens] });
+  vttStore.tokens = vttStore.tokens.filter(t => !DEMO_TOKEN_IDS.has(t.id));
+  emitToPlayerView('update_tokens', vttStore.tokens);
+}
+
+export function removeGmTokensByFilter(predicate: (t: Token) => boolean) {
+  pushUndo({ type: 'tokens', tokens: [...vttStore.tokens] });
+  vttStore.tokens = vttStore.tokens.filter(t => !predicate(t));
+  emitToPlayerView('update_tokens', vttStore.tokens);
+}
+
+export function resetVttScene(clearMap = false) {
+  pushUndo({ type: 'tokens', tokens: [...vttStore.tokens] });
+  vttStore.tokens = [];
+  vttStore.combatants = [];
+  vttStore.combatActive = false;
+  vttStore.fowShapes = [];
+  vttStore.spells = [];
+  vttStore.drawPaths = [];
+  vttStore.pins = [];
+  vttStore.terrainZones = [];
+  vttStore.weather = 'none';
+  if (clearMap) {
+    vttStore.currentMap = null;
+    vttStore.currentMapRelPath = null;
+    vttStore.walls = [];
+    vttStore.lights = [];
+    emitToPlayerView('set_player_map', { url: null });
+  }
+  emitToPlayerView('update_tokens', []);
+  emitToPlayerView('update_fow', []);
+  emitToPlayerView('update_spells', []);
+  emitToPlayerView('update_pins', []);
+  emitToPlayerView('update_draw_paths', []);
+  emitToPlayerView('set_weather', { weather: 'none' });
+}
+
 export function triggerTokenAnimation(id: string, animation: Token['animation']) {
   vttStore.tokens = vttStore.tokens.map(t => t.id === id ? { ...t, animation } : t);
   emitToPlayerView('update_tokens', vttStore.tokens);
@@ -916,14 +970,20 @@ export function syncStateToPlayerView() {
   }
   emitToPlayerView('update_fow', vttStore.fowShapes);
   emitToPlayerView('update_tokens', vttStore.tokens);
-  emitToPlayerView('update_pins', vttStore.pins);
+  emitToPlayerView('update_pins', vttStore.pins.filter((p: any) => !p.secret || p.revealed));
   emitToPlayerView('toggle_player_grid', { show: vttStore.showGrid });
+  emitToPlayerView('toggle_player_blackout', { active: vttStore.isBlackout });
   emitToPlayerView('update_player_audio', { src: vttStore.audioSrc, volume: vttStore.audioVolume, src2: vttStore.audio2Src, volume2: vttStore.audio2Volume });
   emitToPlayerView('set_weather', { weather: vttStore.weather });
   emitToPlayerView('update_spells', vttStore.spells);
   emitToPlayerView('update_draw_paths', vttStore.drawPaths);
   emitToPlayerView('update_walls', vttStore.walls);
   emitToPlayerView('update_audio_zones', vttStore.audioZones);
+  emitToPlayerView('toggle_fow', { enabled: vttStore.fowEnabled });
+  emitToPlayerView('update_ambient_light', vttStore.ambientLight);
+  emitToPlayerView('update_lights', vttStore.lights);
+  if (vttStore.campaignTitle) emitToPlayerView('set_campaign_title', { title: vttStore.campaignTitle });
+  emitToPlayerView('fit_camera', {});
 }
 
 // ── Persistence session ───────────────────────────────────────────

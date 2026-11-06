@@ -29,6 +29,51 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 /**
+ * Convertit n'importe quelle source d'image (URL relative, URL web, etc.) en Data URL (base64)
+ */
+export async function imageSourceToDataUrl(src: string): Promise<string> {
+  if (!src) return '';
+  if (src.startsWith('data:')) return src;
+
+  // 1. Tenter un fetch (idéal pour les assets locaux /tokens/...)
+  try {
+    const res = await fetch(src);
+    if (res.ok) {
+      const blob = await res.blob();
+      return await blobToDataUrl(blob);
+    }
+  } catch {
+    // Si fetch échoue, tenter via Image Canvas
+  }
+
+  // 2. Charger dans une Image et convertir via un canvas temporaire
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth || 512;
+        c.height = img.naturalHeight || 512;
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(c.toDataURL('image/png'));
+          return;
+        }
+      } catch {
+        // Canvas tainted
+      }
+      resolve(src);
+    };
+    img.onerror = () => {
+      resolve(src);
+    };
+    img.src = src;
+  });
+}
+
+/**
  * Enregistre le token dans le coffre de campagne du MJ (dossier tokens/)
  */
 export async function saveTokenToVault(
@@ -104,7 +149,7 @@ export function placeTokenOnActiveMap(
   const targetX = preferredCoords?.x ?? Math.max(gridSize, Math.round(500 / gridSize) * gridSize);
   const targetY = preferredCoords?.y ?? Math.max(gridSize, Math.round(400 / gridSize) * gridSize);
 
-  const token: Token = {
+  const token: Token & { isShaped?: boolean } = {
     id: 'tok_' + Math.random().toString(36).slice(2, 10),
     name: design.name || 'Pion',
     x: targetX,
@@ -115,6 +160,7 @@ export function placeTokenOnActiveMap(
     maxHp: design.showHpBar ? 100 : undefined,
     isEnemy: design.status === 'hostile' || design.status === 'boss',
     visible: true,
+    isShaped: true,
     notes: `Pion créé via l'Éditeur de Tokens (${design.shape}, ${design.metal})`,
   };
 

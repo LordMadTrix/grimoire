@@ -124,14 +124,27 @@ export function getClipPathD(shape: TokenShape): { type: 'path' | 'polygon' | 'c
 }
 
 /**
- * Charge une image et la transforme en HTMLImageElement
+ * Charge une image et la transforme en HTMLImageElement de façon robuste
  */
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Ne pas appliquer crossOrigin sur data: et blob: car cela peut échouer dans certains environnements
+    if (!src.startsWith('data:') && !src.startsWith('blob:') && (src.startsWith('http://') || src.startsWith('https://'))) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => resolve(img);
-    img.onerror = (e) => reject(e);
+    img.onerror = (e) => {
+      // Si échec avec crossOrigin, tenter un chargement direct sans crossOrigin
+      if (img.crossOrigin) {
+        const retry = new Image();
+        retry.onload = () => resolve(retry);
+        retry.onerror = (err) => reject(err);
+        retry.src = src;
+      } else {
+        reject(e);
+      }
+    };
     img.src = src;
   });
 }

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import type { TokenDesignData, TokenShape, TokenMetal, TokenStatus, TokenAura, NamePositionPreset, StatusPosition } from '$lib/types/tokenEditor';
   import { getMetalGradients, getBorderSvgPath, getClipPathD, exportTokenToBlob, exportTokenToDataUrl } from '$lib/utils/tokenRenderer';
-  import { saveTokenToVault, placeTokenOnActiveMap } from '$lib/services/tokenService';
+  import { saveTokenToVault, placeTokenOnActiveMap, imageSourceToDataUrl } from '$lib/services/tokenService';
   import CelestialArtPickerModal from './CelestialArtPickerModal.svelte';
 
   const { isOpen = false, onclose } = $props<{
@@ -37,6 +37,25 @@
   let showCelestialModal = $state(false);
   let isSaving = $state(false);
   let toastMessage = $state<string | null>(null);
+
+  let directFileInputRef = $state<HTMLInputElement | null>(null);
+
+  function handleDirectFileUpload(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      const file = target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          design.imageUrl = event.target.result as string;
+          design.name = file.name.replace(/\.[^/.]+$/, '');
+          design.imagePan = { x: 0, y: 0 };
+          design.imageScale = 1.0;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  }
 
   // References DOM pour le drag & drop
   let stageRef = $state<HTMLDivElement | null>(null);
@@ -379,7 +398,7 @@
               style:border-radius={design.shape === 'circle' ? '50%' : '0'}
               style:clip-path={
                 design.shape === 'hex' ? 'polygon(50% 3%, 97% 26%, 97% 74%, 50% 97%, 3% 74%, 3% 26%)' :
-                design.shape === 'shield' ? 'path("M 10 10 Q 107 0 204 10 Q 204 135 107 204 Q 10 135 10 10 Z")' : 'none'
+                design.shape === 'shield' ? 'polygon(6% 4%, 50% 1%, 94% 4%, 94% 65%, 50% 98%, 6% 65%)' : 'none'
               }
               onmousedown={onArtMouseDown}
               onwheel={onArtWheel}
@@ -391,7 +410,6 @@
                   src={design.imageUrl} 
                   alt={design.name}
                   referrerpolicy="no-referrer"
-                  crossorigin="anonymous"
                   class="token-art-img"
                   style:transform={`translate(${design.imagePan.x}px, ${design.imagePan.y}px) scale(${design.imageScale})`}
                 />
@@ -538,7 +556,7 @@
           </div>
         </div>
 
-        <!-- Bouton Bibliothèque Céleste -->
+        <!-- Bouton Bibliothèque Céleste & Import -->
         <div class="celestial-box">
           <div class="celestial-row">
             <span class="celestial-title">Illustration / Portrait</span>
@@ -549,12 +567,28 @@
               title="Couleur de fond"
             />
           </div>
-          <button 
-            class="btn-open-celestial"
-            onclick={() => showCelestialModal = true}
-          >
-            🌌 Choisir dans la Bibliothèque Céleste
-          </button>
+          <div class="celestial-btns-row">
+            <button 
+              class="btn-open-celestial"
+              onclick={() => showCelestialModal = true}
+            >
+              🌌 Choisir dans la Galerie & Bibliothèque
+            </button>
+            <input 
+              type="file" 
+              accept="image/*" 
+              style="display:none" 
+              bind:this={directFileInputRef} 
+              onchange={handleDirectFileUpload} 
+            />
+            <button 
+              class="btn-upload-direct"
+              onclick={() => directFileInputRef?.click()}
+              title="Importer un fichier image (PNG, JPG, WebP) depuis votre ordinateur"
+            >
+              📂 Mon Image (PC)
+            </button>
+          </div>
         </div>
 
         <!-- Liste des Toggles Demandés -->
@@ -649,13 +683,18 @@
 <!-- Modal Sélecteur Bibliothèque Céleste -->
 {#if showCelestialModal}
   <CelestialArtPickerModal 
-    onselect={(url, name, isEmoji) => {
+    onselect={async (url: string, name?: string, isEmoji?: boolean) => {
       if (isEmoji) {
         design.emojiIcon = name;
         design.imageUrl = '';
       } else {
-        design.imageUrl = url;
-        if (name && (!design.name || design.name === 'Nouveau Pion')) {
+        try {
+          const dataUrl = await imageSourceToDataUrl(url);
+          design.imageUrl = dataUrl || url;
+        } catch {
+          design.imageUrl = url;
+        }
+        if (name && (!design.name || design.name === 'Nouveau Pion' || design.name === 'Tavernier Madtrix')) {
           design.name = name;
         }
       }
@@ -1227,6 +1266,12 @@
     background: transparent;
   }
 
+  .celestial-btns-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
   .btn-open-celestial {
     width: 100%;
     padding: 8px;
@@ -1239,9 +1284,30 @@
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(126, 34, 206, 0.3);
     transition: all 0.15s;
+    text-align: center;
   }
   .btn-open-celestial:hover {
     background: linear-gradient(135deg, #9333ea, #4f46e5);
+    transform: translateY(-1px);
+  }
+
+  .btn-upload-direct {
+    width: 100%;
+    padding: 7px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px dashed rgba(229, 168, 83, 0.4);
+    color: #f6d289;
+    font-weight: 700;
+    font-size: 11px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-upload-direct:hover {
+    background: rgba(229, 168, 83, 0.15);
+    border-color: #e5a853;
+    color: white;
   }
 
   /* ── Toggles ─────────────────────────────────────────────────────────────── */

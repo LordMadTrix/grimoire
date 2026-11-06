@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import SharedLibrary from './SharedLibrary.svelte';
-  import { emitToPlayerView, readFileBase64, readFile, openMapEditor, openMapEditorWithMap } from '$lib/api';
+  import { emitToPlayerView, readFileBase64, readFile, openMapEditor, openMapEditorWithMap, getPlayerViewStatus } from '$lib/api';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import {
     vttStore,
@@ -20,6 +21,7 @@
     revealAllGmFow, toggleFow,
     clearTerrainZones,
     setAmbientLight, triggerLightningFlash,
+    clearGmTokens, removeGmDemoTokens, removeGmTokensByFilter, resetVttScene, DEMO_TOKEN_IDS,
   } from '$lib/stores/vtt.svelte';
   import type { VaultEntry } from '$lib/api';
   import SoundBoard from './SoundBoard.svelte';
@@ -66,14 +68,33 @@
     onTogglePlayerHub,
     onTogglePlayerManager,
     onTogglePlayerMobileManager,
-    onTogglePlayerQuickDock
+    onTogglePlayerQuickDock,
+    onOpenMonitorPicker
   }: { 
     onRoll?: ((result: number, label: string) => void) | null,
     onTogglePlayerHub?: (() => void) | null,
     onTogglePlayerManager?: (() => void) | null,
     onTogglePlayerMobileManager?: (() => void) | null,
-    onTogglePlayerQuickDock?: (() => void) | null
+    onTogglePlayerQuickDock?: (() => void) | null,
+    onOpenMonitorPicker?: (() => void) | null
   } = $props();
+
+  let playerViewOpen = $state(false);
+  let playerViewMonitor = $state<number | null>(null);
+
+  async function updatePlayerViewStatus() {
+    try {
+      const status = await getPlayerViewStatus();
+      playerViewOpen = status.is_open;
+      playerViewMonitor = status.current_monitor_index;
+    } catch {}
+  }
+
+  onMount(() => {
+    updatePlayerViewStatus();
+    const interval = setInterval(updatePlayerViewStatus, 2500);
+    return () => clearInterval(interval);
+  });
 
   function handleDiceRoll(result: number, label: string) {
     const text = `🎲 ${label} = ${result}`;
@@ -386,15 +407,23 @@
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'map' ? null : 'map'; }}>🗺️ Carte & Vue</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'map'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+        {#if gameSessionDemo.isActive}
+          <button class="dropdown-item" style="color: #ef4444; font-weight: bold;" onclick={() => { gameSessionDemo.showExitModal = true; activeMenu = null; }}>🛑 Quitter la Démo Live…</button>
+          <div class="dropdown-divider"></div>
+        {/if}
         {#if !vttStore.currentMap}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Charger une carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditor(); activeMenu = null; }}>🎨 Créer dans Fantasy Map Editor</button>
-          <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
+          {#if !gameSessionDemo.isActive}
+            <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
+          {/if}
           <button class="dropdown-item" style="color: #f59e0b;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Charger Démo Clé en Main (Sanctuaire)</button>
         {:else}
           <button class="dropdown-item" onclick={() => { showMapPicker = true; activeMenu = null; }}>🗺️ Changer de carte</button>
           <button class="dropdown-item highlight-item" onclick={() => { openMapEditorWithMap(vttStore.currentMap!, vttStore.currentMapRelPath?.split('/').pop()?.replace(/\.[^.]+$/, '') || 'Carte Active'); activeMenu = null; }}>✏️ Modifier dans le Map Editor</button>
-          <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
+          {#if !gameSessionDemo.isActive}
+            <button class="dropdown-item" style="color: #fbbf24; font-weight: bold;" onclick={() => { gameSessionDemo.start(); activeMenu = null; }}>🎭 Lancer Démo de Session Live (Animée)</button>
+          {/if}
           <button class="dropdown-item" style="color: #f59e0b;" onclick={() => { loadSanctuaryDemo(); activeMenu = null; }}>🏰 Recharger Carte Sanctuaire</button>
           <button class="dropdown-item" onclick={() => { closeMap(); activeMenu = null; }}>✖️ Fermer la carte</button>
           <div class="dropdown-divider"></div>
@@ -406,6 +435,21 @@
           <button class="dropdown-item" onclick={() => { openMapEditor(); activeMenu = null; }}>🎨 Nouveau projet Map Editor</button>
         {/if}
         <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Gestion de Scène & Tokens</div>
+        {#if vttStore.tokens.length > 0}
+          <button class="dropdown-item text-danger" onclick={() => { if (window.confirm(`Retirer l'intégralité des ${vttStore.tokens.length} token(s) de la table ?`)) { clearGmTokens(); activeMenu = null; } }}>
+            🧹 Retirer tous les tokens ({vttStore.tokens.length})
+          </button>
+        {/if}
+        {#if gameSessionDemo.hasDemoTokens}
+          <button class="dropdown-item" style="color: #f87171;" onclick={() => { removeGmDemoTokens(); activeMenu = null; }}>
+            🎭 Retirer les pions de la démo
+          </button>
+        {/if}
+        <button class="dropdown-item text-danger" onclick={() => { if (window.confirm('Réinitialiser la table (vider tous les tokens, le brouillard, les sorts et les dessins) ?')) { resetVttScene(false); activeMenu = null; } }}>
+          🔄 Réinitialiser la scène
+        </button>
+        <div class="dropdown-divider"></div>
         <button class="dropdown-item" class:active={vttStore.showGrid} onclick={toggleGrid}>#️⃣ Afficher/masquer grille</button>
         <button class="dropdown-item" class:active={vttStore.mode === 'calibrate-grid'} onclick={() => { vttStore.mode = 'calibrate-grid'; activeMenu = null; }}>📐 Calibrer la grille (tracer 3x3 cases)</button>
         <div class="dropdown-submenu-item">
@@ -415,18 +459,32 @@
         <button class="dropdown-item blackout-item" class:active={vttStore.isBlackout} onclick={toggleBlackout}>
           {vttStore.isBlackout ? '👁️ Désactiver Écran Noir' : '🕶️ Activer Écran Noir'}
         </button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" onclick={() => { onOpenMonitorPicker?.(); activeMenu = null; }}>
+          🖥️ Multi-Écran (Vue Joueurs / TV)…
+        </button>
       </div>
     </div>
 
     <!-- Bouton Accès Rapide Démo Live -->
-    <button
-      class="menu-btn demo-live-nav-btn"
-      class:active={gameSessionDemo.isActive}
-      onclick={() => gameSessionDemo.start()}
-      title="Lancer une démonstration interactive animée d'une vraie session de jeu rôliste"
-    >
-      🎭 Démo Live
-    </button>
+    {#if gameSessionDemo.isActive}
+      <button
+        class="menu-btn demo-live-nav-btn is-running-demo"
+        onclick={() => { gameSessionDemo.showExitModal = true; }}
+        title="Session Démo en cours. Cliquez pour quitter la démo et gérer vos tokens"
+      >
+        <span class="demo-live-dot"></span>
+        🛑 Quitter Démo
+      </button>
+    {:else}
+      <button
+        class="menu-btn demo-live-nav-btn"
+        onclick={() => gameSessionDemo.start()}
+        title="Lancer une démonstration interactive animée d'une vraie session de jeu rôliste"
+      >
+        🎭 Démo Live
+      </button>
+    {/if}
 
     <!-- 2. Outils interactifs -->
     {#if vttStore.currentMap}
@@ -686,6 +744,19 @@
             <button class="mini-btn text-only" onclick={() => { startCountdown(countdownSecs); activeMenu = null; }}>▶️</button>
           </div>
         {/if}
+
+        {#if vttStore.tokens.length > 0}
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-title">Nettoyage rapide tokens</div>
+          {#if vttStore.tokens.some(t => t.isEnemy)}
+            <button class="dropdown-item" style="color: #f87171;" onclick={() => { removeGmTokensByFilter(t => !!t.isEnemy); activeMenu = null; }}>
+              💀 Retirer tous les ennemis ({vttStore.tokens.filter(t => t.isEnemy).length})
+            </button>
+          {/if}
+          <button class="dropdown-item text-danger" onclick={() => { if (window.confirm(`Retirer tous les tokens (${vttStore.tokens.length}) de la table ?`)) { clearGmTokens(); activeMenu = null; } }}>
+            🧹 Retirer tous les tokens de la table
+          </button>
+        {/if}
       </div>
     </div>
 
@@ -775,6 +846,19 @@
         {mobileServerStore.starting ? '⏳' : mobileServerStore.isRunning ? 'ON' : 'OFF'}
       </button>
     </div>
+    <!-- Bouton Multi-Écran / Vue Joueurs -->
+    <button 
+      class="player-screen-quick-btn" 
+      class:active-screen={playerViewOpen}
+      onclick={() => onOpenMonitorPicker?.()}
+      title="Gérer le multi-écran : projeter la vue joueurs sur votre 2ème écran (TV, vidéo-projecteur)"
+    >
+      <span class="screen-status-dot" class:online={playerViewOpen}></span>
+      🖥️ Vue Joueurs
+      {#if playerViewOpen && playerViewMonitor !== null}
+        <span class="screen-badge">Écran {playerViewMonitor + 1}</span>
+      {/if}
+    </button>
     <div class="separator"></div>
     <div class="time-widget" style="display:flex; align-items:center; gap:4px; font-size:11px; background:var(--bg-secondary); padding:2px 8px; border-radius:4px; border:1px solid var(--border);">
       <span style="color:var(--text-secondary)">🕒 {$timeStore ? formatImperialDate($timeStore) : ''}</span>
@@ -1349,6 +1433,50 @@
     padding: 0 4px;
     border-radius: 8px;
   }
+  .player-screen-quick-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e5e7eb;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .player-screen-quick-btn:hover {
+    background: rgba(229, 168, 83, 0.15);
+    border-color: rgba(229, 168, 83, 0.4);
+    color: #e5a853;
+  }
+  .player-screen-quick-btn.active-screen {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #86efac;
+  }
+  .screen-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #64748b;
+    display: inline-block;
+    transition: all 0.3s;
+  }
+  .screen-status-dot.online {
+    background: #22c55e;
+    box-shadow: 0 0 7px #22c55e;
+  }
+  .screen-badge {
+    background: #22c55e;
+    color: #022c22;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+  }
   .mobile-menu-control-row {
     display: flex;
     align-items: center;
@@ -1445,11 +1573,30 @@
     color: #ffffff !important;
     transform: translateY(-1px);
   }
-  .demo-live-nav-btn.active {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(5, 150, 105, 0.45) 100%) !important;
-    border-color: #10b981 !important;
-    color: #a7f3d0 !important;
-    box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+  .demo-live-nav-btn.is-running-demo {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(185, 28, 28, 0.45) 100%) !important;
+    border: 1px solid #ef4444 !important;
+    color: #fee2e2 !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    animation: demoBtnPulse 2s infinite ease-in-out;
+  }
+  .demo-live-nav-btn.is-running-demo:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.5) 0%, rgba(185, 28, 28, 0.65) 100%) !important;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.5);
+    color: #ffffff !important;
+  }
+  .demo-live-dot {
+    width: 7px;
+    height: 7px;
+    background: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ef4444;
+  }
+  @keyframes demoBtnPulse {
+    0%, 100% { border-color: rgba(239, 68, 68, 0.6); }
+    50% { border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
   }
   .token-quick-btn {
     background: linear-gradient(135deg, rgba(230, 180, 80, 0.2) 0%, rgba(184, 134, 11, 0.25) 100%);

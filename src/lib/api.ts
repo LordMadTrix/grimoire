@@ -151,30 +151,62 @@ export async function reindex(vaultPath: string): Promise<number> {
 // ── Multi-Window API ─────────────────────────────────────────────
 
 export interface MonitorInfo {
+  index?: number;
   name: string;
   size: [number, number];
   position: [number, number];
   is_primary: boolean;
+  scale_factor?: number;
+}
+
+export interface PlayerViewStatus {
+  is_open: boolean;
+  is_fullscreen: boolean;
+  current_monitor_index: number | null;
 }
 
 export async function listMonitors(): Promise<MonitorInfo[]> {
   if (!isTauri()) {
     return [{
+      index: 0,
       name: 'Navigateur Web',
       size: [typeof window !== 'undefined' ? window.innerWidth : 1920, typeof window !== 'undefined' ? window.innerHeight : 1080],
       position: [0, 0],
-      is_primary: true
+      is_primary: true,
+      scale_factor: 1.0,
     }];
   }
   return invoke('list_monitors');
 }
 
-export async function openPlayerView(monitorIndex: number): Promise<void> {
+export async function openPlayerView(monitorIndex: number, fullscreen: boolean = true): Promise<void> {
   if (!isTauri()) {
     window.open('/player.html', '_blank');
     return;
   }
-  return invoke('open_player_view', { monitorIndex });
+  return invoke('open_player_view', { monitorIndex, fullscreen });
+}
+
+export async function closePlayerView(): Promise<void> {
+  if (!isTauri()) return;
+  return invoke('close_player_view');
+}
+
+export async function togglePlayerViewFullscreen(): Promise<boolean> {
+  if (!isTauri()) return false;
+  return invoke('toggle_player_view_fullscreen');
+}
+
+export async function movePlayerViewToMonitor(monitorIndex: number): Promise<void> {
+  if (!isTauri()) return;
+  return invoke('move_player_view_to_monitor', { monitorIndex });
+}
+
+export async function getPlayerViewStatus(): Promise<PlayerViewStatus> {
+  if (!isTauri()) {
+    return { is_open: false, is_fullscreen: false, current_monitor_index: null };
+  }
+  return invoke('get_player_view_status');
 }
 
 export async function emitToPlayerView(eventName: string, payload: any): Promise<void> {

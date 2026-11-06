@@ -20,7 +20,9 @@ import {
   setWeather,
   addGmPin,
   revealGmPin,
+  DEMO_TOKEN_IDS,
 } from '$lib/stores/vtt.svelte';
+import { emitToPlayerView } from '$lib/api';
 import { notifStore } from '$lib/stores/notifications.svelte';
 import { loadSanctuaryDemo } from './demoCampaignLoader';
 
@@ -36,14 +38,34 @@ export interface DemoStep {
   diceRollText?: string;
 }
 
+export interface PreviousSessionSnapshot {
+  currentMap: string | null;
+  currentMapRelPath: string | null;
+  gridSize: number;
+  showGrid: boolean;
+  ambientLight: string;
+  weather: string;
+  fowEnabled: boolean;
+  fowShapes: any[];
+  tokens: any[];
+  lights: any[];
+  walls: any[];
+  pins: any[];
+  spells: any[];
+  combatActive: boolean;
+  combatants: any[];
+}
+
 class GameSessionDemoStore {
   isActive = $state(false);
+  showExitModal = $state(false);
   currentStepIndex = $state(0);
   isPlaying = $state(false);
   autoPlayTimer: any = null;
   autoPlaySeconds = $state(6);
   countdown = $state(6);
   countdownTimer: any = null;
+  previousSessionSnapshot: PreviousSessionSnapshot | null = null;
 
   readonly steps: DemoStep[] = [
     {
@@ -111,8 +133,34 @@ class GameSessionDemoStore {
     return this.steps.length;
   }
 
+  get hasDemoTokens(): boolean {
+    return vttStore.tokens.some(t => DEMO_TOKEN_IDS.has(t.id));
+  }
+
   start() {
+    // 0. Sauvegarde snapshot de l'état actuel de la session s'il n'était pas déjà capturé
+    if (!this.isActive) {
+      this.previousSessionSnapshot = {
+        currentMap: vttStore.currentMap,
+        currentMapRelPath: vttStore.currentMapRelPath,
+        gridSize: vttStore.gridSize,
+        showGrid: vttStore.showGrid,
+        ambientLight: vttStore.ambientLight,
+        weather: vttStore.weather,
+        fowEnabled: vttStore.fowEnabled,
+        fowShapes: JSON.parse(JSON.stringify(vttStore.fowShapes)),
+        tokens: JSON.parse(JSON.stringify(vttStore.tokens)),
+        lights: JSON.parse(JSON.stringify(vttStore.lights)),
+        walls: JSON.parse(JSON.stringify(vttStore.walls)),
+        pins: JSON.parse(JSON.stringify(vttStore.pins)),
+        spells: JSON.parse(JSON.stringify(vttStore.spells)),
+        combatActive: vttStore.combatActive,
+        combatants: JSON.parse(JSON.stringify(vttStore.combatants)),
+      };
+    }
+
     this.isActive = true;
+    this.showExitModal = false;
     this.currentStepIndex = 0;
     this.isPlaying = false;
     this.clearTimers();
@@ -126,7 +174,7 @@ class GameSessionDemoStore {
     notifStore.add(
       '🎭',
       'Démo Live : Session de Jeu',
-      'Bienvenue dans la session scénarisée ! Utilisez les boutons du lecteur pour vivre chaque action du groupe.',
+      'Bienvenue dans la session scénarisée ! Cliquez sur « 🚪 Quitter Démo » à tout moment pour restaurer votre table.',
       'info',
       6000
     );
@@ -134,10 +182,75 @@ class GameSessionDemoStore {
 
   stop() {
     this.isActive = false;
+    this.showExitModal = false;
     this.isPlaying = false;
     this.clearTimers();
     clearSpells();
     stopCombat();
+  }
+
+  /**
+   * Sortie propre de la démo avec gestion de session
+   * @param mode 'restore' (restaure la session précédente) | 'clean' (vide les tokens factices) | 'keep' (conserve la scène)
+   */
+  exitDemo(mode: 'restore' | 'clean' | 'keep' = 'restore') {
+    this.stop();
+
+    if (mode === 'restore' && this.previousSessionSnapshot) {
+      const snap = this.previousSessionSnapshot;
+      vttStore.currentMap = snap.currentMap;
+      vttStore.currentMapRelPath = snap.currentMapRelPath;
+      vttStore.gridSize = snap.gridSize;
+      vttStore.showGrid = snap.showGrid;
+      vttStore.ambientLight = snap.ambientLight as any;
+      vttStore.weather = snap.weather as any;
+      vttStore.fowEnabled = snap.fowEnabled;
+      vttStore.fowShapes = snap.fowShapes;
+      vttStore.tokens = snap.tokens;
+      vttStore.lights = snap.lights;
+      vttStore.walls = snap.walls;
+      vttStore.pins = snap.pins;
+      vttStore.spells = snap.spells;
+      vttStore.combatActive = snap.combatActive;
+      vttStore.combatants = snap.combatants;
+
+      emitToPlayerView('set_player_map', { url: vttStore.currentMap });
+      emitToPlayerView('update_tokens', vttStore.tokens);
+      emitToPlayerView('update_fow', vttStore.fowShapes);
+      emitToPlayerView('update_spells', vttStore.spells);
+      emitToPlayerView('update_pins', vttStore.pins);
+      emitToPlayerView('set_weather', { weather: vttStore.weather });
+
+      this.previousSessionSnapshot = null;
+      notifStore.add('↩️', 'Démo Quittée', 'Votre scène et vos tokens précédents ont été restaurés fidèlement !', 'success', 5000);
+    } else if (mode === 'clean') {
+      // Retirer les tokens factices
+      vttStore.tokens = vttStore.tokens.filter(t => !DEMO_TOKEN_IDS.has(t.id));
+      emitToPlayerView('update_tokens', vttStore.tokens);
+
+      // Retirer les pins de démo
+      vttStore.pins = vttStore.pins.filter(p => p.id !== 'pin_ancient_chest');
+      emitToPlayerView('update_pins', vttStore.pins);
+
+      // Si la carte est encore le sanctuaire et que la session précédente était vide
+      if (vttStore.currentMap === '/maps/sanctuaire.png' && (!this.previousSessionSnapshot || !this.previousSessionSnapshot.currentMap)) {
+        vttStore.currentMap = null;
+        vttStore.currentMapRelPath = null;
+        vttStore.walls = [];
+        vttStore.lights = [];
+        emitToPlayerView('set_player_map', { url: null });
+      }
+
+      vttStore.weather = 'none';
+      emitToPlayerView('set_weather', { weather: 'none' });
+
+      this.previousSessionSnapshot = null;
+      notifStore.add('🧹', 'Démo Quittée', 'Les faux tokens et éléments de la démo ont été retirés de la table.', 'info', 5000);
+    } else {
+      // Mode keep : on conserve la scène telle quelle
+      this.previousSessionSnapshot = null;
+      notifStore.add('🎮', 'Mode MJ Libre', 'Démo arrêtée : Vous gardez le contrôle total sur la scène actuelle.', 'info', 5000);
+    }
   }
 
   next() {
