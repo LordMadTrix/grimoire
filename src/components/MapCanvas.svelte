@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import * as PIXI from 'pixi.js';
   import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef, TerrainZone, TileType } from '$lib/stores/vtt.svelte';
-  import { vttStore, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone, setDungeonTile, pushDungeonUndo } from '$lib/stores/vtt.svelte';
+  import { vttStore, setWeather, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone, setDungeonTile, pushDungeonUndo } from '$lib/stores/vtt.svelte';
   import ConditionWheel from './ConditionWheel.svelte';
   import TokenContextMenu from './TokenContextMenu.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
@@ -2198,6 +2198,12 @@
           previewShape.closePath();
           previewShape.fill({ color: col, alpha: 0.25 });
           previewShape.stroke();
+        } else if (shape === 'cube') {
+          const r = Math.max(gridSize / 2, dist);
+          previewShape.setStrokeStyle({ width: 2, color: col, alpha: 0.9 });
+          previewShape.rect(drawStartX - r, drawStartY - r, r * 2, r * 2);
+          previewShape.fill({ color: col, alpha: 0.25 });
+          previewShape.stroke();
         } else {
           const r = Math.max(gridSize / 2, dist);
           previewShape.setStrokeStyle({ width: 2, color: col, alpha: 0.9 });
@@ -2733,6 +2739,10 @@
         g.lineTo(-perpX, -perpY);
         g.closePath();
         g.stroke();
+      } else if (shape === 'cube') {
+        g.rect(-spell.radius, -spell.radius, spell.radius * 2, spell.radius * 2).fill({ color: col, alpha: 0.25 });
+        g.setStrokeStyle({ width: 2, color: col, alpha: 0.8 });
+        g.rect(-spell.radius, -spell.radius, spell.radius * 2, spell.radius * 2).stroke();
       } else {
         // Cercle par défaut
         g.circle(0, 0, spell.radius).fill({ color: col, alpha: 0.25 });
@@ -3463,7 +3473,29 @@
     }
     requestAnimationFrame(step);
   }
+
+  function handleVttKeydown(e: KeyboardEvent) {
+    if (!isGM) return;
+    const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    if (e.key === 'm' || e.key === 'M') {
+      vttStore.mode = vttStore.mode === 'measure' ? 'select' : 'measure';
+    } else if (e.key === 'f' || e.key === 'F') {
+      vttStore.mode = vttStore.mode === 'fog-reveal' ? 'select' : 'fog-reveal';
+    } else if (e.key === 's' || e.key === 'S' || e.key === 'Escape') {
+      vttStore.mode = 'select';
+    } else if (e.key === 'w' || e.key === 'W') {
+      const weathers: ('none' | 'rain' | 'snow' | 'fog' | 'embers' | 'storm')[] = ['none', 'rain', 'snow', 'fog', 'embers', 'storm'];
+      const curIdx = weathers.indexOf(vttStore.weather as any);
+      const nextW = weathers[(curIdx + 1) % weathers.length];
+      setWeather(nextW);
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleVttKeydown} />
 
 {#if editingTokenId}
   <TokenSettingsModal

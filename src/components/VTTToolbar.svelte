@@ -60,6 +60,7 @@
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import AddonStore from './AddonStore.svelte';
   import TokenEditorModal from './TokenEditorModal.svelte';
+  import CampaignBackupModal from './CampaignBackupModal.svelte';
 
   let { 
     onRoll,
@@ -179,6 +180,7 @@
   let showDurationTracker = $state(false);
   let showSharedNotes = $state(false);
   let showSfxSoundboard = $state(false);
+  let showBackupModal = $state(false);
   let showToolsOverflow = $state(false);
   let toolbarEl: HTMLElement | undefined;
   let toolbarH = $state(56);
@@ -521,10 +523,11 @@
               <button class="mini-btn text-only" class:active={vttStore.spellShape === 'circle'} onclick={() => vttStore.spellShape = 'circle'}>⭕ Cercle</button>
               <button class="mini-btn text-only" class:active={vttStore.spellShape === 'cone'} onclick={() => vttStore.spellShape = 'cone'}>🔺 Cône</button>
               <button class="mini-btn text-only" class:active={vttStore.spellShape === 'line'} onclick={() => vttStore.spellShape = 'line'}>➡️ Ligne</button>
+              <button class="mini-btn text-only" class:active={vttStore.spellShape === 'cube'} onclick={() => vttStore.spellShape = 'cube'}>🟦 Cube</button>
             </div>
             <div class="dropdown-submenu-item tools-row">
-              {#if vttStore.spellShape === 'circle'}
-                <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Rayon (px)" onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
+              {#if vttStore.spellShape === 'circle' || vttStore.spellShape === 'cube'}
+                <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Rayon / Côté (px)" onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
               {:else if vttStore.spellShape === 'cone'}
                 <input type="number" class="spell-radius-input" value={vttStore.spellRadius} min="20" max="400" step="10" title="Portée (px)" onchange={(e) => vttStore.spellRadius = Number((e.target as HTMLInputElement).value)} />
                 <input type="range" class="draw-width-input" min="0" max="360" step="5" value={Math.round((vttStore.spellConeAngle ?? Math.PI/3) * 180 / Math.PI)} oninput={(e) => vttStore.spellConeAngle = Number((e.target as HTMLInputElement).value) * Math.PI / 180} title="Ouverture du cône (°)" />
@@ -776,6 +779,21 @@
   <!-- Élément permanent à droite -->
   <div class="toolbar-permanent">
     <DiceRoller onRoll={handleDiceRoll} />
+    <button class="btn icon-btn" class:active={vttStore.mode === 'measure'}
+      onclick={() => vttStore.mode = vttStore.mode === 'measure' ? 'select' : 'measure'}
+      title="Règle de mesure (Raccourci: M)">
+      📏
+    </button>
+    <button class="btn icon-btn" 
+      onclick={() => {
+        const weathers: ('none' | 'rain' | 'snow' | 'fog' | 'embers' | 'storm')[] = ['none', 'rain', 'snow', 'fog', 'embers', 'storm'];
+        const curIdx = weathers.indexOf(vttStore.weather as any);
+        const nextW = weathers[(curIdx + 1) % weathers.length];
+        setWeather(nextW);
+      }}
+      title={`Météo : ${vttStore.weather} (Raccourci: W - cliquer pour changer)`}>
+      {vttStore.weather === 'none' ? '☀️' : vttStore.weather === 'rain' ? '🌧️' : vttStore.weather === 'snow' ? '❄️' : vttStore.weather === 'fog' ? '🌫️' : vttStore.weather === 'embers' ? '🔥' : '🌩️'}
+    </button>
     <button class="token-quick-btn" onclick={() => showTokenEditor = true} title="Éditeur de Tokens Grimoire">
       🪙 Tokens
     </button>
@@ -793,6 +811,9 @@
       onclick={() => showSfxSoundboard = !showSfxSoundboard}
       title="Soundboard SFX instantané (Raccourcis: Pavé 1-8)">
       🔊 SFX
+    </button>
+    <button class="backup-quick-btn" onclick={() => showBackupModal = true} title="Sauvegarder et exporter la campagne (.grimoire)">
+      💾 Campagne
     </button>
     <div class="mobile-quick-group">
       <button class="mobile-quick-btn" class:active-server={mobileServerStore.isRunning}
@@ -880,6 +901,7 @@
 {#if showNarrativeAssistant}<NarrativeAssistant onclose={() => showNarrativeAssistant = false} />{/if}
 {#if showDungeonGenerator}<DungeonGenerator onclose={() => showDungeonGenerator = false} />{/if}
 {#if showQuestJournal}<QuestJournal onclose={() => showQuestJournal = false} />{/if}
+{#if showBackupModal}<CampaignBackupModal onclose={() => showBackupModal = false} />{/if}
 
 <!-- Panneau Relations PNJ -->
 {#if showRelationMap}
@@ -1327,6 +1349,26 @@
     color: #e5a853;
     border-color: #e5a853;
     box-shadow: 0 0 8px rgba(229, 168, 83, 0.4);
+  }
+  .backup-quick-btn {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #6ee7b7;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .backup-quick-btn:hover {
+    background: rgba(16, 185, 129, 0.25);
+    color: #a7f3d0;
+    border-color: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);
   }
   .sfx-floating-wrap {
     position: fixed;

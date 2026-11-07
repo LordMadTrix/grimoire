@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grimoire v0.8.6 — Guide Encyclopédique Interactif de A à Z</title>
+<title>Grimoire v0.8.14 — Guide Encyclopédique Interactif de A à Z</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono&display=swap" rel="stylesheet">
@@ -55,7 +55,7 @@
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.386.524c-4.764 0-8.64 3.876-8.64 8.64 0 4.75 3.876 8.613 8.64 8.613 4.75 0 8.614-3.864 8.614-8.613C24 4.4 20.136.524 15.386.524M.001 23.476h4.86V.524H.001v22.952z"/></svg>
         Patreon
       </a>
-      <span class="px-3 py-1 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent rounded-full font-semibold">Version 0.6.7</span>
+      <span class="px-3 py-1 bg-grimoire-accent/10 border border-grimoire-accent/30 text-grimoire-accent rounded-full font-semibold">Version 0.8.14</span>
       <a href="index.html" class="text-gray-400 hover:text-white transition-colors">← Retour au site</a>
     </div>
   </header>
@@ -103,7 +103,7 @@
 
       <!-- Hero Header -->
       <div class="glass p-8 md:p-12 rounded-3xl border border-grimoire-accent/20 bg-gradient-to-b from-grimoire-card to-transparent">
-        <h1 class="text-4xl md:text-5xl font-black text-white mb-4">Manuel Complet de Grimoire (v0.8.6)</h1>
+        <h1 class="text-4xl md:text-5xl font-black text-white mb-4">Manuel Complet de Grimoire (v0.8.14)</h1>
         <p class="text-gray-400 text-lg leading-relaxed mb-6">
           Ce tutoriel exhaustif vous explique de A à Z comment exploiter toute la puissance de Grimoire : Wiki de Lore, Éditeur Rôliste Ultime, Table Virtuelle (VTT) avec éclairage dynamique et météo IA, Liseuse PDF 2.0 vivante, Studio Audio Céleste et Fantasy Map Editor.
         </p>
@@ -301,14 +301,18 @@
         <p class="text-gray-300 leading-relaxed">
           Grimoire intègre une immense collection de pistes audio et bruitages professionnels classés par thèmes (⚔️ Combat, 🏰 Donjons & Horreur, 🍺 Villes & Tavernes, 🌲 Nature, 🚀 Sci-Fi, 🔊 SFX) :
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
           <div class="glass p-5 rounded-2xl space-y-2">
             <h4 class="font-bold text-grimoire-accent">🎧 Mini-Lecteur Streaming</h4>
             <p class="text-gray-400 text-xs leading-relaxed">Pré-écoutez n'importe quelle piste du catalogue instantanément avec Seekbar temporelle, réglage de volume et mode boucle.</p>
           </div>
           <div class="glass p-5 rounded-2xl space-y-2">
-            <h4 class="font-bold text-grimoire-accent">🎵 Diffuser vers VTT (1 Clic)</h4>
+            <h4 class="font-bold text-grimoire-accent">🎵 Diffuser vers VTT</h4>
             <p class="text-gray-400 text-xs leading-relaxed">Envoyez directement la musique sur le canal d'ambiance du VTT pour immerger vos joueurs en direct.</p>
+          </div>
+          <div class="glass p-5 rounded-2xl space-y-2">
+            <h4 class="font-bold text-grimoire-accent">🔊 SFX Multi-Écrans</h4>
+            <p class="text-gray-400 text-xs leading-relaxed">Tous les bruitages du MJ sont diffusés en direct sur la Vue Joueurs (2e écran / TV) en Web Audio synchronisé.</p>
           </div>
           <div class="glass p-5 rounded-2xl space-y-2">
             <h4 class="font-bold text-grimoire-accent">🌐 Zones Audio 2.5D</h4>
@@ -353,18 +357,22 @@
 
       <!-- Chapitre 9 : Tokens, Éditeur Personnalisé & ConditionWheel -->
       <section id="tokens" class="scroll-mt-24 space-y-4">
-        <h2 class="text-2xl font-bold text-grimoire-accent border-b border-gray-800 pb-2">9. Gestion des Tokens & Éditeur Créatif (v0.8.6)</h2>
+        <h2 class="text-2xl font-bold text-grimoire-accent border-b border-gray-800 pb-2">9. Gestion des Tokens, Atelier Créatif & PNJ Express (v0.8.14)</h2>
         <p class="text-gray-300 leading-relaxed">
-          Les pions sur la table virtuelle de Grimoire ne sont pas de simples images statiques : ils bénéficient d'un <strong>Atelier de Création complet</strong> et d'interactions réactives en combat.
+          Les pions sur la table virtuelle de Grimoire bénéficient d'un <strong>Atelier de Création complet 100% sécurisé (Anti-Taint)</strong>, d'un <strong>Générateur PNJ Express enrichi par IA Locale Ollama</strong> et d'interactions réactives en combat.
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
           <div class="glass p-5 rounded-2xl border border-yellow-500/20">
-            <h4 class="font-bold text-yellow-300 mb-1">🪙 Éditeur de Tokens Dédié</h4>
-            <p class="text-gray-400 text-xs">Atelier intégré dans la barre VTT (menu PNJ ou <code>🪙 Créer un Token</code>) avec presets éditables, frises polygonales (Hexagone, Bouclier, Rond) et 5 métaux de prestige.</p>
+            <h4 class="font-bold text-yellow-300 mb-1">🪙 Éditeur de Tokens Résilient</h4>
+            <p class="text-gray-400 text-xs">Frises polygonales (Hexagone, Bouclier, Rond) et 5 métaux de prestige. Exportation hybride Base64 & SVG inline éliminant tout crash Canvas Tainted.</p>
           </div>
           <div class="glass p-5 rounded-2xl border border-yellow-500/20">
-            <h4 class="font-bold text-yellow-300 mb-1">🖐️ Repositionnement Libre</h4>
-            <p class="text-gray-400 text-xs">L'étiquette du nom se déplace librement à la souris et reste toujours 100% visible sans rognage. Pan et zoom de l'image à la molette.</p>
+            <h4 class="font-bold text-yellow-300 mb-1">🧙‍♂️ PNJ Express & IA Locale</h4>
+            <p class="text-gray-400 text-xs">Création de PNJ en 3 secondes avec traits et attitudes, complétés en 1 clic par l'IA locale (🪄 Ollama) pour injecter secrets et dialogues dans le pion.</p>
+          </div>
+          <div class="glass p-5 rounded-2xl border border-white/5">
+            <h4 class="font-bold text-grimoire-accent mb-1">📜 Tiroir Notes MJ (<kbd>N</kbd>)</h4>
+            <p class="text-gray-400 text-xs">Consultez vos notes en cours de session et cliquez sur <em>🪙 Poser en Pion VTT</em> pour déposer immédiatement un monstre ou PNJ sur la carte.</p>
           </div>
           <div class="glass p-5 rounded-2xl border border-white/5">
             <h4 class="font-bold text-grimoire-accent mb-1">🎡 ConditionWheel (Roue Radiale)</h4>
@@ -372,7 +380,11 @@
           </div>
           <div class="glass p-5 rounded-2xl border border-white/5">
             <h4 class="font-bold text-grimoire-accent mb-1">🎯 Placement VTT Instantané</h4>
-            <p class="text-gray-400 text-xs">Sauvegarde automatique dans votre coffre MJ (<code>tokens/</code> en PNG HD) et instanciation immédiate sur la carte active.</p>
+            <p class="text-gray-400 text-xs">Sauvegarde automatique dans votre coffre MJ (<code>tokens/</code> en PNG/SVG) et instanciation immédiate sur la carte active.</p>
+          </div>
+          <div class="glass p-5 rounded-2xl border border-white/5">
+            <h4 class="font-bold text-grimoire-accent mb-1">🖐️ Repositionnement Libre</h4>
+            <p class="text-gray-400 text-xs">L'étiquette du nom se déplace librement à la souris et reste toujours 100% visible sans rognage. Pan et zoom de l'image à la molette.</p>
           </div>
         </div>
       </section>
@@ -554,6 +566,11 @@
               <tr><td class="p-3 font-mono text-grimoire-accent">Ctrl + J</td><td class="p-3">Éditeur</td><td class="p-3">Génère du texte IA sur la sélection</td></tr>
               <tr><td class="p-3 font-mono text-grimoire-accent">Alt + Molette</td><td class="p-3">Token survolé</td><td class="p-3">Redimensionne le token</td></tr>
               <tr><td class="p-3 font-mono text-grimoire-accent">Clic Droit Token</td><td class="p-3">VTT</td><td class="p-3">Ouvre la ConditionWheel radiale</td></tr>
+              <tr><td class="p-3 font-mono text-grimoire-accent">N</td><td class="p-3">VTT</td><td class="p-3">Ouvre le tiroir flottant des Notes MJ (avec pose de pion 1-clic)</td></tr>
+              <tr><td class="p-3 font-mono text-grimoire-accent">W</td><td class="p-3">VTT</td><td class="p-3">Fait défiler les météos (Soleil, Pluie, Neige, Brume, Feu, Orage)</td></tr>
+              <tr><td class="p-3 font-mono text-grimoire-accent">M</td><td class="p-3">VTT</td><td class="p-3">Active l'outil Règle / Mesure de distance</td></tr>
+              <tr><td class="p-3 font-mono text-grimoire-accent">F</td><td class="p-3">VTT</td><td class="p-3">Active le Brouillard de guerre (Fog of War)</td></tr>
+              <tr><td class="p-3 font-mono text-grimoire-accent">S / Échap</td><td class="p-3">VTT</td><td class="p-3">Retourne au mode Sélection de pion</td></tr>
               <tr><td class="p-3 font-mono text-grimoire-accent">Clic Droit Glisser</td><td class="p-3">VTT / Map Editor</td><td class="p-3">Déplacement panoramique de la carte</td></tr>
               <tr><td class="p-3 font-mono text-grimoire-accent">Espace</td><td class="p-3">VTT</td><td class="p-3">Recentre la caméra sur le groupe</td></tr>
               <tr><td class="p-3 font-mono text-grimoire-accent">Ctrl + Z / Ctrl + Y</td><td class="p-3">Partout</td><td class="p-3">Annuler / Rétablir</td></tr>

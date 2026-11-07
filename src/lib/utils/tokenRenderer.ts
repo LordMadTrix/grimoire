@@ -125,18 +125,18 @@ export function getClipPathD(shape: TokenShape): { type: 'path' | 'polygon' | 'c
 }
 
 /**
- * Charge une image et la transforme en HTMLImageElement de façon robuste
+ * Charge une image et la transforme en HTMLImageElement de façon robuste et origin-clean
  */
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    // Ne pas appliquer crossOrigin sur data: et blob: car cela peut échouer dans certains environnements
+    // Les data: et blob: sont gérés sans crossOrigin
     if (!src.startsWith('data:') && !src.startsWith('blob:') && (src.startsWith('http://') || src.startsWith('https://'))) {
       img.crossOrigin = 'anonymous';
     }
     img.onload = () => resolve(img);
     img.onerror = (e) => {
-      // Si échec avec crossOrigin, tenter un chargement direct sans crossOrigin
+      // Si échec avec crossOrigin, tenter un chargement direct
       if (img.crossOrigin) {
         const retry = new Image();
         retry.onload = () => resolve(retry);
@@ -258,13 +258,14 @@ export async function renderTokenToCanvas(
         ${getBorderSvgPath(data.shape)}
       </svg>
     `;
-    const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-    const svgUrl = URL.createObjectURL(svgBlob);
+    // Utiliser un Data URL direct au lieu de URL.createObjectURL(blob)
+    // car les Blobs SVG marquent le canvas comme 'tainted' dans WebView2 / Chromium !
+    const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
     try {
-      const borderImg = await loadImage(svgUrl);
+      const borderImg = await loadImage(svgDataUrl);
       ctx.drawImage(borderImg, 0, 0, 512, 512);
-    } finally {
-      URL.revokeObjectURL(svgUrl);
+    } catch (err) {
+      console.warn("Erreur dessin frise SVG sur canvas:", err);
     }
   }
 
@@ -372,43 +373,91 @@ export async function renderTokenToCanvas(
 }
 
 /**
- * Exporte un pion en Blob PNG
+ * Exporte un pion en Blob PNG de manière sécurisée et tolérante aux pannes
  */
 export async function exportTokenToBlob(data: TokenDesignData, size: number = 512): Promise<Blob> {
   try {
     const canvas = await renderTokenToCanvas(data, size);
     return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error('Erreur lors de la génération du blob PNG'));
-      }, 'image/png');
+      try {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Erreur lors de la génération du blob PNG'));
+        }, 'image/png');
+      } catch (e) {
+        reject(e);
+      }
     });
   } catch (err: any) {
-    console.warn("Échec export canvas toBlob, utilisation fallback:", err);
-    if (data.imageUrl && data.imageUrl.startsWith('data:')) {
+    console.warn("Échec export canvas toBlob, utilisation du fallback sécurisé:", err);
+    // 1. Tenter d'obtenir le Blob directement depuis l'illustration source
+    if (data.imageUrl) {
       try {
-        const res = await fetch(data.imageUrl);
-        return await res.blob();
-      } catch {}
+        let safeUrl = data.imageUrl;
+        if (!safeUrl.startsWith('data:')) {
+          safeUrl = await imageSourceToDataUrl(data.imageUrl);
+        }
+        if (safeUrl && (safeUrl.startsWith('data:') || safeUrl.startsWith('blob:'))) {
+          const res = await fetch(safeUrl);
+          if (res.ok) {
+            return await res.blob();
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn("Échec fallback fetch image:", fallbackErr);
+      }
     }
-    throw new Error(`Impossible d'exporter l'image du pion (canvas sécurisé) : ${err?.message || err}`);
+
+    // 2. Dernier recours : générer un canvas minimal garanti clean (sans image externe non-CORS)
+    try {
+      const cleanDesign: TokenDesignData = { ...data, imageUrl: '' };
+      const cleanCanvas = await renderTokenToCanvas(cleanDesign, size);
+      return await new Promise<Blob>((resolve, reject) => {
+        cleanCanvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Blob minimal impossible'));
+        }, 'image/png');
+      });
+    } catch {}
+
+    throw new Error(`Impossible d'exporter l'image du pion : ${err?.message || err}`);
   }
 }
 
 /**
- * Exporte un pion en Data URL PNG
+ * Exporte un pion en Data URL PNG de manière sécurisée et tolérante aux pannes
  */
 export async function exportTokenToDataUrl(data: TokenDesignData, size: number = 512): Promise<string> {
   try {
     const canvas = await renderTokenToCanvas(data, size);
     return canvas.toDataURL('image/png');
   } catch (err: any) {
-    console.warn("Échec export canvas toDataURL, utilisation fallback:", err);
-    // Si le canvas est tainted pour une raison réseau externe, fournir directement
-    // l'image du pion pour ne pas bloquer le placement VTT
-    if (data.imageUrl && (data.imageUrl.startsWith('data:') || data.imageUrl.startsWith('http') || data.imageUrl.startsWith('/'))) {
-      return data.imageUrl;
+    console.warn("Échec export canvas toDataURL, utilisation du fallback sécurisé:", err);
+    // 1. Si on a l'image source, tenter de la convertir en base64
+    if (data.imageUrl) {
+      try {
+        if (data.imageUrl.startsWith('data:')) {
+          return data.imageUrl;
+        }
+        const b64 = await imageSourceToDataUrl(data.imageUrl);
+        if (b64 && b64.startsWith('data:')) {
+          return b64;
+        }
+      } catch (convErr) {
+        console.warn("Échec conversion base64 fallback:", convErr);
+      }
+      if (data.imageUrl.startsWith('http') || data.imageUrl.startsWith('/')) {
+        return data.imageUrl;
+      }
     }
+
+    // 2. Secours : canvas sans image externe pour ne pas bloquer le placement VTT
+    try {
+      const cleanDesign: TokenDesignData = { ...data, imageUrl: '' };
+      const cleanCanvas = await renderTokenToCanvas(cleanDesign, size);
+      return cleanCanvas.toDataURL('image/png');
+    } catch {}
+
     throw new Error(`Impossible d'exporter l'image du pion : ${err?.message || err}`);
   }
 }

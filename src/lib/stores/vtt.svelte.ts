@@ -123,8 +123,8 @@ export type SpellMarker = {
   type: 'fire' | 'ice' | 'lightning' | 'poison' | 'silence' | 'divine' | 'darkness';
   radius: number;
   label?: string;
-  // Gabarits cône et ligne
-  shape?: 'circle' | 'cone' | 'line';
+  // Gabarits cône, ligne et cube
+  shape?: 'circle' | 'cone' | 'line' | 'cube';
   angle?: number;   // direction en radians (pour cône et ligne)
   length?: number;  // longueur de la ligne (px)
   coneAngle?: number; // ouverture du cône en radians (défaut: π/3 = 60°)
@@ -238,7 +238,7 @@ export const vttStore = $state({
   spells: [] as SpellMarker[],
   spellType: 'fire' as SpellMarker['type'],
   spellRadius: 80,
-  spellShape: 'circle' as 'circle' | 'cone' | 'line',
+  spellShape: 'circle' as 'circle' | 'cone' | 'line' | 'cube',
   spellLength: 200,
   spellConeAngle: Math.PI / 3,
   spellAngle: 0,

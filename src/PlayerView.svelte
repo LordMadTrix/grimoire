@@ -10,6 +10,7 @@
   import PlayerCombatHUD from './components/PlayerCombatHUD.svelte';
   import CinematicReveal from './components/CinematicReveal.svelte';
   import HerboPlayerRevealOverlay from './components/herboriste/HerboPlayerRevealOverlay.svelte';
+  import { soundscape } from '$lib/stores/soundscape.svelte';
 
   let currentMap     = $state<string | null>(null);
   let herboReveal    = $state<any>(null);
@@ -168,6 +169,9 @@
           else if (event === 'update_draw_paths') drawPaths = payload ?? [];
           else if (event === 'set_campaign_title') campaignTitle = payload.title ?? '';
           else if (event === 'toggle_fow') fowEnabled = payload.enabled ?? true;
+          else if (event === 'sfx_play') {
+            if (payload?.sfx) soundscape.playSfx(payload.sfx, false);
+          }
           else if (event === 'update_combatants') {
             combatants = payload.combatants ?? [];
             combatActive = payload.active ?? false;
@@ -208,6 +212,9 @@
     listen('trigger_lightning_flash',() => {
       vttStore.lightningFlash = true;
       setTimeout(() => { vttStore.lightningFlash = false; }, 180);
+    }).then(fn => unlistens.push(fn));
+    listen('sfx_play', (e: any) => {
+      if (e.payload?.sfx) soundscape.playSfx(e.payload.sfx, false);
     }).then(fn => unlistens.push(fn));
     listen('update_combatants',      (e: any) => { combatants = e.payload.combatants ?? []; combatActive = e.payload.active ?? false; currentTurn = e.payload.currentTurn ?? 0; combatRound = e.payload.combatRound ?? 1; }).then(fn => unlistens.push(fn));
     listen('spotlight_token',        (e: any) => { spotlightTokenId = e.payload.tokenId ?? null;               }).then(fn => unlistens.push(fn));

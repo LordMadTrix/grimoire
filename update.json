@@ -1,6 +1,6 @@
 {
-  "version": "0.8.13",
-  "changelog": "Version 0.8.13 : Correction critique de la connexion des joueurs sur mobile (GSM). Suppression du crash JS ws.onmessage au chargement, tolérance insensible à la casse sur les noms de compte, gestion propre du mot de passe vide ou réinitialisé, ajout du sélecteur rapide de personnages existants au démarrage de la PWA mobile et arrêt de la boucle de reconnexion intempestive en cas de mot de passe incorrect.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.13",
-  "release_date": "2026-11-06"
+  "version": "0.8.14",
+  "changelog": "Version 0.8.14 : Tiroir flottant de notes MJ en jeu (raccourci N) avec glisser/déposer sur la carte, synchronisation SFX audio multi-écrans sur la vue joueur, gabarit de sort 'Cube' PixiJS, raccourcis météo et mesure instantanés, générateur de PNJ rapide enrichi avec traits et IA locale Ollama, et blindage complet de l'export de pion contre les erreurs Canvas Tainted.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.14",
+  "release_date": "2026-11-07"
 }

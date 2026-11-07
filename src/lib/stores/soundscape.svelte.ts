@@ -2,7 +2,7 @@
 // Permet de générer des ambiances réalistes infinies sans fichiers lourds,
 // et de mixer plusieurs pistes simultanément.
 
-import { broadcastToPlayers } from '$lib/api';
+import { broadcastToPlayers, emitToPlayerView } from '$lib/api';
 
 export interface SoundTrack {
   id: string;
@@ -788,6 +788,7 @@ class SoundscapeStore {
     }
 
     if (broadcast) {
+      emitToPlayerView('sfx_play', { sfx: sfxId });
       broadcastToPlayers('sfx_play', { sfx: sfxId }).catch(() => {});
     }
   }

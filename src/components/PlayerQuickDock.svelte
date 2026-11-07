@@ -32,18 +32,42 @@
   let pollInterval: ReturnType<typeof setInterval> | null = null;
   let unlistenFns: (() => void)[] = [];
 
-  const displayAccounts = $derived(
-    savedAccounts.length > 0 ? savedAccounts : players.map(p => ({
-      name: p.name,
-      has_password: false,
-      password: null,
-      character: p.character,
-      character_path: p.character_path,
-      is_online: true,
-      player_id: p.id,
-      conditions: p.conditions || []
-    } as PlayerAccountSummary))
-  );
+  const displayAccounts = $derived.by(() => {
+    const list: PlayerAccountSummary[] = savedAccounts.map(a => ({ ...a }));
+    const accountNames = new Set(list.map(a => a.name.toLowerCase().trim()));
+
+    // Ajouter tous les joueurs en ligne qui ne sont pas encore dans savedAccounts
+    for (const p of players) {
+      const pName = p.name.toLowerCase().trim();
+      if (!accountNames.has(pName)) {
+        list.push({
+          name: p.name,
+          has_password: false,
+          password: null,
+          character: p.character,
+          character_path: p.character_path,
+          is_online: true,
+          player_id: p.id,
+          conditions: p.conditions || []
+        } as PlayerAccountSummary);
+        accountNames.add(pName);
+      } else {
+        // Mettre à jour le statut en ligne et le player_id du compte existant
+        const acc = list.find(a => a.name.toLowerCase().trim() === pName);
+        if (acc) {
+          acc.is_online = true;
+          acc.player_id = p.id;
+          if (p.character && (!acc.character || Object.keys(acc.character).length === 0)) {
+            acc.character = p.character;
+          }
+          if (p.conditions && p.conditions.length > 0) {
+            acc.conditions = p.conditions;
+          }
+        }
+      }
+    }
+    return list;
+  });
 
   // Avatar picker modal state
   let showAvatarPicker = $state(false);

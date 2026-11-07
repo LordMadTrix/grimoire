@@ -40,6 +40,17 @@
 
   let directFileInputRef = $state<HTMLInputElement | null>(null);
 
+  onMount(() => {
+    // Convertir l'image par défaut en Base64 pour garantir que le canvas soit origin-clean
+    if (design.imageUrl && !design.imageUrl.startsWith('data:')) {
+      imageSourceToDataUrl(design.imageUrl).then(b64 => {
+        if (b64 && b64.startsWith('data:')) {
+          design.imageUrl = b64;
+        }
+      }).catch(() => {});
+    }
+  });
+
   function handleDirectFileUpload(e: Event) {
     const target = e.target as HTMLInputElement;
     if (target.files && target.files[0]) {
@@ -471,7 +482,7 @@
 
         <!-- Toast Feedback -->
         {#if toastMessage}
-          <div class="toast-feedback">
+          <div class="toast-feedback {toastMessage.startsWith('❌') ? 'error' : ''}">
             {toastMessage}
           </div>
         {/if}
@@ -1136,6 +1147,11 @@
     font-weight: 700;
     box-shadow: 0 10px 25px rgba(0,0,0,0.8);
     animation: bounce 1s infinite;
+  }
+  .toast-feedback.error {
+    background: rgba(127, 29, 29, 0.95);
+    border-color: #ef4444;
+    color: #fecaca;
   }
 
   /* ── Colonne Droite (Contrôles & Toggles) ─────────────────────────────────── */

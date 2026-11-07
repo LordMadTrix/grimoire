@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.7)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.14)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Table Virtuelle PixiJS v8 · Éditeur de Tokens Personnalisés & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile PWA & Bouclier Anti-Perte · IA Locale Ollama*
+> *Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile GSM & PWA Sécurisé · IA Locale Ollama*
 
 ---
 
@@ -281,6 +281,30 @@ Dans la barre d'outils VTT :
 - Cliquez sur l'icône de météo dans la barre d'outils pour ouvrir le panneau météo.
 - Cliquez sur **🗣️ Voix Météo IA** : Grimoire génère une description poétique et viscérale des conditions climatiques et la lit à voix haute avec synthèse vocale neuronale réaliste et auto-ducking musical.
 
+### 📜 Tiroir Flottant de Notes MJ en Jeu (<kbd>N</kbd>) & Pose de Pion en 1 Clic :
+Plutôt que d'abandonner la vue tactique pour aller fouiller dans l'arborescence des notes Markdown :
+- Pressez la touche <kbd>N</kbd> (ou cliquez sur le bouton Notes de la barre VTT).
+- Un tiroir sombre translucide surgit élégamment sur le flanc droit de votre carte sans masquer vos pions ni couper la partie.
+- **Recherche Instantanée** : Filtrez à la volée vos scénarios, secrets de donjons, PNJ ou fiches de monstres.
+- **Lecture Confortable** : Prévisualisez la note sélectionnée avec mise en page complète et secrets MJ.
+- **🪙 Poser en Pion VTT** : Dès qu'une fiche de monstre ou PNJ contient un bloc de caractéristiques ou un nom, cliquez sur **« 🪙 Poser en Pion VTT »** pour l'invoquer instantanément au centre de votre plan de bataille avec son nom, ses PV, sa CA et ses notes intégrées !
+
+### 🧊 Gabarits de Sorts & Zones d'Effet (Cercle, Cône, Ligne & Pavé/Cube) :
+Dans le menu **Outils > Gabarits de sorts** de la Table Virtuelle :
+- **Cercle** : Boules de feu, explosions, auras de paladin.
+- **Cône orientable** : Souffle de dragon, mains brûlantes, cône de froid.
+- **Ligne** : Éclairs foudroyants, rayons laser, charges.
+- **Cube / Pavé 3D** : Idéal pour les sorts volumétriques à angles droits (*Silence*, *Zone de vérité*, *Nuage puant*, *Cage de force*, *Cube de gélatine*).
+- Chaque gabarit bénéficie d'une coloration élémentaire PixiJS v8 animée (Feu 🔥, Glace ❄️, Foudre ⚡, Poison 🧪, Obscurité 🌑, Radiance ✨) avec poignées de rotation et redimensionnement intuitives.
+
+### ☀️ Raccourcis Météo & Tactiques Réflexes :
+Pour réagir instantanément aux actions des joueurs sans chercher dans les sous-menus :
+- <kbd>W</kbd> : Fait défiler d'un coup de touche les ambiances météo (☀️ Dégagé ➔ 🌧️ Pluie ➔ ❄️ Neige ➔ 🌫️ Brouillard ➔ 🔥 Braises ➔ 🌩️ Orage).
+- <kbd>M</kbd> : Active immédiatement l'outil **Règle / Mesure** pour calculer les distances en cases ou pieds.
+- <kbd>F</kbd> : Bascule directement sur l'outil **Brouillard de guerre** (Fog of War).
+- <kbd>S</kbd> ou <kbd>Échap</kbd> : Revient au mode **Sélection de pions**.
+- **💾 Campagne** : Bouton permanent dans la barre d'outils pour exporter et sécuriser l'archive complète de votre campagne `.grimoire` en 1 clic.
+
 ### Torches et Lanternes Scintillantes :
 - Faites un clic droit sur un token → ouvrez ses paramètres ⚙️.
 - Activez **Source de Lumière**, choisissez le rayon (ex: 150px), la couleur (ex: `#e5a853`) et cochez **Scintillement de torche**.
@@ -311,8 +335,9 @@ Dans la barre d'outils VTT :
 - Double lecteur musical (Piste 1 & Piste 2) avec contrôles de volume indépendants et fondus sonores enchaînés.
 - **Auto-Ducking Musical** : Baisse automatique et douce du volume musical pendant les prises de parole de la synthèse vocale IA.
 
-### SoundBoard d'Effets Spéciaux (SFX)
+### SoundBoard d'Effets Spéciaux (SFX) & Synchronisation Multi-Écrans
 - Déclenchez instantanément des effets sonores physiques (Cris, Épées, Magie, Monstres, Tonnerre, Portes, Pièges).
+- **🔊 Diffusion Instantanée sur la Vue Joueurs (2e Écran / TV)** : Tous les bruitages (SFX) déclenchés par le MJ via le Soundboard ou via les lancers de dés physiques de l'éditeur Markdown sont instantanément diffusés et joués sur la fenêtre **Vue Joueurs** (via Web Audio API). Vos joueurs profitent ainsi du son directement sur la TV du salon ou le système audio de la pièce de jeu sans aucun décalage !
 
 ### Zones Audio Spatiales (2.5D)
 1. Activez le mode **Zone Sonore (Audio Zone)**.
@@ -434,9 +459,17 @@ Chaque couche visuelle possède son commutateur On/Off individuel :
 - **Pastille d'allégeance** (*Allié* vert, *Neutre* ambre, *Ennemi* rouge, *Boss ★* violet).
 - **Aura Magique** (halo rayonnant *Feu*, *Arcane* ou *Sacré*).
 
-#### 5. Sauvegarde Coffre & Placement Direct sur Carte
-- **💾 Enregistrer dans le Coffre** : Exporte un fichier PNG haute résolution (512×512) et son schéma JSON dans le dossier `tokens/` de votre coffre MJ.
+#### 5. Sauvegarde Coffre & Placement Direct sur Carte (Blindage Résilient Anti-Taint v0.8.14)
+- **🛡️ Export 100% Sécurisé (Zero Taint Crash)** : L'export des pions gère désormais un pipeline hybride SVG vectoriel inline et conversion Base64 sécurisée. Même avec des images provenant de disques externes, du réseau ou de la Bibliothèque Céleste, l'erreur de sécurité canvas souillé (`Tainted canvases may not be exported`) est définitivement éliminée.
+- **💾 Enregistrer dans le Coffre** : Exporte un fichier PNG / SVG haute résolution (512×512) et son schéma JSON dans le dossier `tokens/` de votre coffre MJ.
 - **🎯 Placer sur la Carte active** : Insère instantanément le nouveau token sur votre scène VTT active en un clic pour jouer sans attendre.
+
+### 🧙‍♂️ Générateur PNJ Express & Enrichissement par IA Locale (v0.8.14)
+Besoin d'un aubergiste suspect, d'un garde corrompu ou d'un mercenaire en 3 secondes ?
+- Dans la barre VTT, cliquez sur **PNJ Rapide**.
+- Définissez son nom, son rôle, son attitude (*Méfiant, Jovial, Menacé, Agressif...*) et son secret.
+- **🪄 Bouton « Détails IA (Ollama) »** : En un clic, l'IA locale (sans connexion internet requise) étoffe le PNJ avec des détails vestimentaires saisissants, une tournure de phrase typique et un secret croustillant.
+- Toutes ces informations sont automatiquement injectées dans le token créé, lisibles au clic par le MJ en cours de partie !
 
 ---
 
@@ -478,10 +511,12 @@ Accessible via **🧙‍♂️ Outils MJ → 📜 Journal de Quêtes & Campagne*
 
 Vos joueurs n'ont rien à installer : ils jouent depuis Safari, Chrome ou Firefox sur leur smartphone.
 
-### Connexion des Joueurs
-1. Cliquez sur le bouton **📱 Mobile** de la barre d'outils pour ouvrir le QR Code.
-2. Chaque joueur scanne le QR Code avec son appareil photo pour ouvrir la web app.
-3. Ils renseignent leur nom et mot de passe de session.
+### Connexion des Joueurs (Fiabilisée & Sans Friction v0.8.14)
+1. Cliquez sur le bouton **📱 Mobile** de la barre d'outils pour afficher le QR Code et l'adresse IP locale (`http://[IP]:7438`).
+2. Chaque joueur scanne le QR Code avec son smartphone pour ouvrir la web app.
+3. **Sélecteur de Héros Intuitif** : Dès la page de connexion, un menu déroulant liste les personnages déjà créés sur la campagne. Le joueur clique simplement sur son nom, évitant ainsi toute faute de frappe !
+4. **Tolérance & Sécurité** : La saisie du pseudo est insensible à la casse (`Grimli` ou `grimli`). Si le joueur a oublié son mot de passe, le MJ peut le réinitialiser ou le supprimer en 1 clic depuis le panneau joueur de son écran.
+5. **Synchronisation Permanente des PV & Stats** : Toute modification apportée par le MJ sur son écran ou dans le tiroir joueur met immédiatement à jour la fiole de vie et les points de vie sur le smartphone du joueur, sans aucun rechargement de page.
 
 ### Fonctionnalités Mobiles Exclusives :
 - **👁️ Screen Wake Lock (Anti-Veille)** : Bouton dédié en haut de l'écran pour empêcher le smartphone de s'éteindre tout au long de la partie.
@@ -625,6 +660,11 @@ Voici la check-list idéale pour préparer et mener votre première partie sur G
 | `Alt + Molette` | VTT (Token survolé) | Redimensionnement rapide du token |
 | `Poignée ⬤` | VTT (Token survolé) | Redimensionner manuellement le token |
 | `Clic Droit Token` | VTT | Ouvre la ConditionWheel (8 statuts) |
+| `N` | VTT | Ouvrir / fermer le tiroir flottant des Notes MJ |
+| `W` | VTT | Faire défiler les ambiances météo (Soleil, Pluie, Neige, Brume, Feu, Orage) |
+| `M` | VTT | Activer l'outil Règle / Mesure |
+| `F` | VTT | Activer l'outil Brouillard de guerre (Fog of War) |
+| `S` ou `Échap` | VTT | Revenir au mode Sélection de pion |
 | `Clic Droit Glisser` | VTT / Map Editor | Déplacement panoramique de la carte (Pan) |
 | `Molette` | VTT / Map Editor | Zoom avant / arrière |
 | `Espace` | VTT | Recentrer la caméra sur le groupe de tokens |

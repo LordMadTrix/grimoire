@@ -237,6 +237,17 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.14 — Immersion VTT, Tiroir Notes & Mobile Fiabilisé
+
+- **📜 Tiroir Flottant de Notes MJ en Jeu (<kbd>N</kbd>)** : Consultez vos fiches de lore, bestiaires et secrets de donjon directement par-dessus la Table Virtuelle sans quitter votre scène. Recherche instantanée et bouton **« 🪙 Poser en Pion VTT »** pour placer instantanément un monstre ou PNJ sur la carte avec ses caractéristiques.
+- **🔊 Diffusion SFX Multi-Écrans en Direct** : Les bruitages joués par le MJ (Soundboard, Inline Dice Roller, sorts) retentissent maintenant en temps réel sur la **Vue Joueurs** (2e écran, TV de salon ou vidéoprojecteur) via Web Audio synchronisé.
+- **🧊 Gabarit de Sort « Cube » & Raccourcis VTT** : Rendu dynamique PixiJS v8 des sorts en zone cubique/rectangulaire. Nouveaux raccourcis réflexes en session : <kbd>W</kbd> (Météo instantanée), <kbd>M</kbd> (Mesure / Règle), <kbd>F</kbd> (Brouillard de guerre), <kbd>N</kbd> (Notes MJ).
+- **🧙‍♂️ PNJ Express Enrichi par IA Locale** : Générateur de PNJ ultra-rapide avec attitudes, secrets inavouables et bouton **« 🪄 Détails IA (Ollama) »** pour générer des répliques et détails uniques injectés dans le token.
+- **🛡️ Éditeur de Tokens 100% Résilient (Anti Canvas Tainted)** : Fin définitive des erreurs de canvas souillé lors de l'exportation ou de la sauvegarde de tokens avec frises dorées et bordures personnalisées.
+- **📱 Hub Mobile GSM Fiabilisé & Sécurisé** : Sélecteur de héros au démarrage de la PWA mobile, connexion insensible à la casse, réinitialisation de mot de passe en 1 clic par le MJ et synchronisation instantanée des PV et statuts.
+
+---
+
 ## ⚡ Nouveautés v0.8.4 — Vue Joueurs ultra-fluide (60 FPS)
 
 - **🎮 De ~1 FPS à 60 FPS** : la fenêtre *Vue Joueurs* était plafonnée à 1–7 FPS sur les machines NVIDIA sous Wayland (copie inter-GPU imposée par le forcage PRIME à chaque image). Ce forcage n'est désormais activé qu'en session X11 native : **56–71 FPS mesurés en pleine synchronisation MJ**, 62 FPS au repos.
@@ -300,6 +311,11 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 | `Alt` + Molette | VTT | Redimensionner le pion survolé |
 | `Poignée ⬤` | VTT | Redimensionner un pion ou une zone de sélection |
 | `Clic droit sur Token` | VTT | Ouvrir la roue des conditions (ConditionWheel) |
+| `N` | VTT | Ouvrir / fermer le tiroir flottant des Notes MJ |
+| `W` | VTT | Changer rapidement l'ambiance météo (Pluie, Neige, Brume, Feu, Orage) |
+| `M` | VTT | Activer l'outil Règle / Mesure |
+| `F` | VTT | Activer l'outil Brouillard de guerre (Fog of War) |
+| `S` ou `Échap` | VTT | Revenir au mode Sélection de pion |
 | `Espace` + Glisser | VTT & Map Editor | Déplacer la vue (Pan) |
 
 ---

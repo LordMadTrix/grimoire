@@ -322,9 +322,18 @@
         <!-- Workflow 3: Spells & AOE -->
         <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
           <div class="text-2xl">🔮</div>
-          <h3 class="font-bold text-lg text-white">3. Mesures & Gabarits Tactiques</h3>
+          <h3 class="font-bold text-lg text-white">3. Mesures & Gabarits Tactiques (Cube, Cône, Cercle)</h3>
           <p class="text-sm text-gray-400 leading-relaxed">
-            Fini les débats de distance à la table : activez l'outil gabarit et tracez un cône de 15 mètres ou un cercle de 6 mètres. La grille calcule automatiquement le nombre de cases touchées et met en surbrillance les pions pris dans l'explosion.
+            Fini les débats de distance à la table : activez l'outil gabarit et tracez un cône de 15 mètres, un cercle de 6 mètres ou un <strong>pavé / cube volumétrique 3D</strong> (v0.8.14) avec rotation libre et coloration élémentaire PixiJS v8. Raccourcis rapides : <kbd class="px-1.5 py-0.5 rounded bg-gray-800 text-amber-300 font-mono text-xs">M</kbd> règle de mesure, <kbd class="px-1.5 py-0.5 rounded bg-gray-800 text-amber-300 font-mono text-xs">W</kbd> météo instantanée, <kbd class="px-1.5 py-0.5 rounded bg-gray-800 text-amber-300 font-mono text-xs">F</kbd> brouillard de guerre.
+          </p>
+        </div>
+
+        <!-- Workflow 3bis: Tiroir Notes MJ -->
+        <div class="glass p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-950/20 to-transparent space-y-3">
+          <div class="text-2xl">📜</div>
+          <h3 class="font-bold text-lg text-white">Tiroir Notes MJ (<kbd class="px-1.5 py-0.5 rounded bg-black/60 text-amber-300 font-mono text-xs">N</kbd>) & Pose 1-Clic</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">
+            Inutile de quitter votre carte en plein affrontement : appuyez sur <kbd class="px-1.5 py-0.5 rounded bg-gray-800 text-amber-300 font-mono text-xs">N</kbd> pour faire surgir un tiroir latéral affichant toutes vos notes Markdown. Cliquez sur <strong>🪙 Poser en Pion VTT</strong> pour invoquer directement le monstre ou PNJ ciblé sur la battlemap avec ses statistiques !
           </p>
         </div>
 
@@ -416,16 +425,16 @@
         <div>
           <span class="text-xs uppercase tracking-wider font-bold text-yellow-400">Atelier Créatif VTT</span>
           <h2 class="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
-            <span>🪙</span> Éditeur de Tokens Personnalisés & Frises Ciselées (v0.8.6)
+            <span>🪙</span> Éditeur de Tokens & PNJ Express IA (v0.8.14)
           </h2>
         </div>
-        <span class="px-3 py-1 rounded-full text-xs font-bold bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">
-          NOUVEAUTÉ v0.8.6
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40">
+          MIS À JOUR v0.8.14
         </span>
       </div>
 
       <p class="text-gray-300 text-sm md:text-base leading-relaxed">
-        Besoin d'ajouter à la volée un aubergiste, un capitaine de la garde ou un chef gobelin pendant la partie ? Grimoire intègre un <strong>Éditeur de Tokens complet</strong> accessible depuis la barre d'outils VTT (menu PNJ ou raccourci <code>🪙 Créer un Token</code>). Créez des pions de qualité professionnelle aux bordures polygonales sculptées en quelques secondes.
+        Besoin d'ajouter à la volée un aubergiste, un capitaine de la garde ou un chef gobelin pendant la partie ? Grimoire intègre un <strong>Générateur PNJ Express enrichi par IA Locale Ollama</strong> et un <strong>Éditeur de Tokens 100% résilient (Anti-Taint)</strong>. Créez des pions de qualité professionnelle aux bordures polygonales sculptées en quelques secondes, sans aucun risque d'erreur d'export de canvas.
       </p>
 
       <!-- 4 Piliers Clés de l'Éditeur -->
@@ -460,9 +469,9 @@
         <!-- Pilier 4: Placement VTT Direct -->
         <div class="glass p-6 rounded-2xl border border-white/10 space-y-3">
           <div class="w-10 h-10 rounded-xl bg-white/10 text-emerald-400 font-black flex items-center justify-center text-lg">⚡</div>
-          <h3 class="font-bold text-white text-base">Coffre MJ & VTT Instantané</h3>
+          <h3 class="font-bold text-white text-base">Coffre MJ & Anti-Taint (v0.8.14)</h3>
           <p class="text-xs text-gray-400 leading-relaxed">
-            En un clic sur <code>🎯 Placer sur la Carte</code>, le token apparaît immédiatement sur votre plan de bataille à l'échelle choisie (1x1 ou 2x2 grand format) et s'enregistre en PNG HD dans votre dossier <code>tokens/</code>.
+            Pipeline hybride SVG inline et Base64 résilient éliminant toute erreur de canvas souillé. En un clic sur <code>🎯 Placer sur la Carte</code>, le token apparaît immédiatement sur votre plan de bataille et s'enregistre proprement dans <code>tokens/</code>.
           </p>
         </div>
       </div>

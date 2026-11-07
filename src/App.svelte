@@ -17,6 +17,7 @@
   import PlayerManager from './components/PlayerManager.svelte';
   import PlayerMobileManager from './components/PlayerMobileManager.svelte';
   import PlayerQuickDock from './components/PlayerQuickDock.svelte';
+  import GmNotesDrawer from './components/vtt/GmNotesDrawer.svelte';
   import MacroBar from './components/MacroBar.svelte';
   import UpdateModal from './components/UpdateModal.svelte';
   import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
@@ -873,6 +874,7 @@
         <div class="vtt-viewport">
           <SessionDashboard />
           <PlayerQuickDock bind:visible={showPlayerQuickDock} />
+          <GmNotesDrawer />
           <MapCanvas
             mapUrl={vttStore.currentMap}
             gridEnabled={vttStore.showGrid}
