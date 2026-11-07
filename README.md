@@ -222,7 +222,7 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
    - Ouvrez `⚙️ Réglages` dans Grimoire et descendez à **Tracking Optique**.
    - Cliquez sur `⬇️ STL` (ou `⬇️ Télécharger tout le pack STL`) pour obtenir vos fichiers `.stl` (25 mm, 28.5 mm, 32.5 mm, 50.8 mm).
    - Tranchez en PLA avec 20% de remplissage et 0.20 mm de couche (aucun support requis).
-   - Cl測psez vos figurines dans les bagues : elles restent 100% amovibles et intactes !
+   - Clipsez vos figurines dans les bagues : elles restent 100% amovibles et intactes !
 2. **Étape 2 : Imprimer et coller les étiquettes ArUco** :
    - Cliquez sur `🖨️ Imprimer la planche (A4)` puis sur `🌐 Ouvrir dans le navigateur`.
    - Imprimez la planche à l'échelle **100% (taille réelle)** sur papier standard ou vinyle autocollant.
