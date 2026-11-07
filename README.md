@@ -29,10 +29,11 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 ## ✨ En bref
 
 - 📝 **Éditeur Markdown** pour campagnes, PNJ, lieux, avec liens `[[Note]]` et dés cliquables
-- 🗺️ **Table virtuelle** (brouillard de guerre, lumière dynamique, météo)
+- 🗺️ **Table virtuelle** (brouillard de guerre, lumière dynamique, visibilité des tokens MJ, météo)
+- 🎬 **Studio Cinéma d'Introduction** (défilement 3D Star Wars, météo cinématique, voix-off IA avec ducking, casting des héros, playlists)
 - 🤖 **IA locale (Ollama)** : 100 % privée, hors-ligne
 - 📱 **Joueurs sur smartphone** : un simple QR code, rien à installer
-- 🎵 **Mixeur sonore** et +800 pistes d'ambiance
+- 🎵 **Mixeur sonore & Playlists** : gestion de musiques perso, compresseur de normalisation et +800 pistes d'ambiance
 - 🎥 **Tracking de figurines par webcam** (ArUco + bagues 3D)
 
 👇 La liste complète des fonctionnalités est juste en dessous.
@@ -85,7 +86,7 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 - **Narration Vocale IA Météorologique** : Narration automatique de la météo et de l'environnement par voix neuronales IA (Edge TTS / Web Speech) avec profils d'ambiance (Sombre, Épique, Mystérieux).
 - **Dynamic LOS (Line of Sight)** : Les murs et obstacles projettent des ombres portées en temps réel, bloquant physiquement la vision des tokens.
 - **Brouillard de Guerre Intelligent (Fog of War)** : Révélation et masquage au pinceau circulaire ou rectangle de sélection, ou vision dynamique individuelle des pions.
-- **Gestionnaire de Pions (Tokens)** : Import d'images, dimensionnement automatique sur la grille, PV/CA/Stats, conditions (roue radiale ConditionWheel), vision paramétrable, rotation et halos colorés.
+- **Gestionnaire de Pions (Tokens) & Visibilité Intelligente** : Import d'images, dimensionnement automatique sur la grille, PV/CA/Stats, conditions (roue radiale ConditionWheel), vision paramétrable, rotation, halos colorés, et contrôle strict de visibilité MJ (masquage par défaut ou révélation automatique selon la ligne de vue / LoS du joueur).
 - **Mode Blueprint & Portes Interactives** : Tracez vos murs et configurez des portes interactives que vous pouvez ouvrir/fermer d'un clic pour laisser passer la lumière.
 - **Modèles de Sorts & Zones d'Effet (Spell Templates)** : Cercles, cônes orientables et lignes d'effet (Feu 🔥, Glace ❄️, Éclair ⚡, Poison 🧪, Silence 🔇, Divin ✨, Ténèbres 🌑).
 - **Zones de Terrain Spéciales** : Délimitation de zones de terrain difficile 🏔️, eau 🌊, feu 🔥, poison 🧪 ou zone sûre ✅.
@@ -141,7 +142,17 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 - **Journal de Quêtes & Arbre de Campagne** : Suivi des quêtes (Principales, Secondaires, Secrets) avec diffusion du compte-rendu aux joueurs.
 - **Export & Sauvegarde de Campagne (`.grimoire`)**.
 
-### 6. 🎵 Mixeur Sonore & Studio Soundscape
+### 6. 🎵 Mixeur Sonore, Playlists & Studio Cinéma d'Introduction
+- **🎬 Studio Cinéma d'Introduction de Session (Écran Joueur & 2e Écran)** : Projetez une ouverture de soirée digne d'une superproduction cinématographique :
+  - **Défilement spatial 3D (Crawl)** : Texte d'ambiance en perspective montante avec estompage doux à la manière des prologues spatiaux légendaires.
+  - **Voix-Off IA & Auto-Ducking** : Narration vocale expressive du prologue avec baisse automatique instantanée du volume musical à 25% et remontée fluide en fin de réplique.
+  - **Générique des Héros (« Casting de la table »)** : Défilé des PJ avec avatars ronds dorés, noms et classes projetés en bas de l'écran.
+  - **Accroche Théâtrale par IA Locale (Ollama)** : Génération instantanée d'un résumé dramatique en 2-3 phrases immersives selon le titre de votre séance.
+  - **Compte à Rebours Synchrone** : Minuteur d'attente stylisé (1, 2, 3 ou 5 min) pour faire monter la tension pendant l'installation des joueurs.
+  - **5 Effets Météo Cinématiques en Surimpression** : Pluie ruisselante, chute de neige ralentie, braises rougeoyantes et tempête violente zébrée d'éclairs lumineux réalistes.
+  - **Bibliothèque de 5 Thèmes Audio Intégrés** : Épopée & Gloire, Mystère & Crypte, Auberge Chaleureuse, Nuit de Tempête, Rivages & Traversée prêts à jouer sans fichier externe.
+  - **Chaîne de Normalisation Studio (DynamicsCompressor)** : Traitement Web Audio de studio (compresseur de dynamique + gain automatique) pour éliminer les disparités de niveau sonore des fichiers MP3.
+- **🎵 Lecteur de Playlists Personnalisées** : Importez vos propres MP3/OGG/WAV, organisez vos morceaux en listes de lecture thématiques (Combat, Exploration, Taverne), gérez les transitions et profitez d'une commande de coupure sonore absolue (Stop Global) éteignant instantanément musiques et synthétiseurs procéduraux (vent, tempête) sans résidu sonore.
 - **Mixeur d'Ambiances Multi-Pistes** : Superposition continue d'environnements sonores (Pluie, Forêt, Taverne, Donjon, Tempête, Feu).
 - **Double Lecteur Musical (Piste 1 & Piste 2)** : Avec contrôles de volume indépendants et fondus sonores enchaînés.
 - **SoundBoard d'Effets Spéciaux (SFX)** : Déclenchement instantané d'effets (Cris, Épées, Magie, Monstres, Tonnerre, Portes).

@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.14)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.15)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile GSM & PWA Sécurisé · IA Locale Ollama*
+> *Studio Cinéma d'Introduction (Défilement 3D, Voix-Off Ducking, Météo Affiche, Casting Héros & Normalisation Audio) · Lecteur de Playlists Locales · Visibilité Avancée des Tokens MJ · Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile GSM & PWA Sécurisé · IA Locale Ollama*
 
 ---
 
@@ -14,10 +14,10 @@
 5. [Cartographie : Import, Fantasy Map Editor & Donjons Procéduraux](#5-cartographie--import-fantasy-map-editor--donjons-procéduraux)
 6. [La Table Virtuelle (VTT), Éclairage Dynamique & Atmosphères Météo](#6-la-table-virtuelle-vtt-éclairage-dynamique--atmosphères-météo)
 7. [Murs Line of Sight (LOS), Portes Interactives & Brouillard de Guerre](#7-murs-line-of-sight-los-portes-interactives--brouillard-de-guerre)
-8. [Ambiance Sonore, Studio Soundscape & Audio Spatialisé 2.5D](#8-ambiance-sonore-studio-soundscape--audio-spatialisé-25d)
+8. [Ambiance Sonore, Studio Cinéma d'Introduction & Playlists Audio](#8-ambiance-sonore-studio-cinéma-dintroduction--playlists-audio)
 9. [Bibliothèque Céleste & Audio Grimoire (Streaming, Diffusion VTT & Packs)](#9-bibliothèque-céleste--audio-grimoire-streaming-diffusion-vtt--packs)
 10. [Liseuse de Campagne PDF 2.0 & Voix Neuronales IA (Le Grimoire Vivant)](#10-liseuse-de-campagne-pdf-20--voix-neuronales-ia-le-grimoire-vivant)
-11. [Gestion des Tokens & ConditionWheel](#11-gestion-des-tokens--conditionwheel)
+11. [Gestion des Tokens, Visibilité MJ & ConditionWheel](#11-gestion-des-tokens-visibilité-mj--conditionwheel)
 12. [Moteur de Combat & Résolution des Tests Opposés (SL Net WFRP)](#12-moteur-de-combat--résolution-des-tests-opposés-sl-net-wfrp)
 13. [Journal de Campagne, Quêtes & Résumés de Session](#13-journal-de-campagne-quêtes--résumés-de-session)
 14. [Compagnon Mobile PWA & Contrôle Tactile](#14-compagnon-mobile-pwa--contrôle-tactile)
@@ -327,7 +327,47 @@ Pour réagir instantanément aux actions des joueurs sans chercher dans les sous
 
 ---
 
-## 8. Ambiance Sonore, Studio Soundscape & Audio Spatialisé 2.5D
+## 8. Ambiance Sonore, Studio Cinéma d'Introduction & Playlists Audio
+
+### 🎬 Studio Cinéma d'Introduction de Session (Les 7 Options Révolutionnaires)
+
+Accessible d'un simple clic sur l'icône de clap **🎬** dans la barre de contrôle audio supérieure, le **Studio Cinéma d'Introduction** transforme chaque début de séance en véritable prologue de film hollywoodien projeté en direct sur le 2e écran / TV des joueurs :
+
+1. **📜 Défilement spatial 3D (« Star Wars / Prologue »)** :
+   - Basculez le sélecteur *Style de texte* sur **Défilement Spatial 3D**.
+   - Le texte d'introduction s'incline en perspective (`rotateX(25deg)`) et défile doucement vers les étoiles avec un fondu estompé en haut d'écran, pour poser le décor et l'ambiance avec panache.
+2. **🗣️ Voix-Off IA avec Auto-Ducking Dynamique** :
+   - Cliquez sur **🎙️ Voix-Off IA (Ducking)** pour faire lire le prologue à voix haute par la synthèse vocale.
+   - **Auto-Ducking automatique** : Pendant la narration vocale, le volume de la musique d'ambiance s'abaisse immédiatement à **25 %** pour que la voix reste parfaitement intelligible, puis remonte tout en douceur au volume de croisière dès la fin de la lecture.
+3. **🎭 Casting des Héros (« Starring »)** :
+   - Cochez **Afficher le casting des Héros (PJ)**.
+   - Grimoire extrait automatiquement les noms, avatars et classes de vos joueurs (tokens PJ et combattants de la carte) et les projette au bas de l'écran dans de superbes médaillons dorés avec badges lumineux.
+4. **✨ Accroche Théâtrale par IA Locale (Ollama)** :
+   - Cliquez sur le bouton **✨ Accroche IA**.
+   - L'IA locale connectée rédige instantanément 2 à 3 phrases percutantes et dramatiques adaptées au titre de la session, directement insérées dans la zone de texte du prologue.
+5. **⏳ Compte à Rebours d'Attente Synchronisé** :
+   - Choisissez un délai : *Immédiat*, *1 min*, *2 min*, *3 min* ou *5 min*.
+   - Une horloge lumineuse dégressive s'affiche en haut de l'écran des joueurs (`⏳ Lancement dans : 02:45`) pour créer la tension et faire monter l'impatience pendant que tout le monde s'installe.
+6. **🌧️ 5 Effets Météo Cinématiques en Surimpression** :
+   - Habillez l'affiche de la session avec des particules météo animées en temps réel :
+     - **🌧️ Pluie battante** : Gouttes ruisselantes et diagonales de pluie.
+     - **❄️ Chute de neige** : Flocons légers oscillant avec inertie.
+     - **🔥 Braises et flammèches** : Particules de feu s'élevant vers le ciel.
+     - **⚡ Tempête & Éclairs** : Pluie orageuse combinée à des flashs de foudre intermittents et réalistes.
+     - **Aucun** : Rendu pur de l'illustration originale.
+7. **🎼 Bibliothèque de 5 Thèmes Audio & Normalisation Dynamique Studio** :
+   - 5 thèmes audio préréglés inclus et jouables sans aucun fichier MP3 externe : *Épopée & Gloire*, *Mystère & Crypte*, *Auberge Chaleureuse*, *Nuit de Tempête*, *Rivages & Traversée*.
+   - **Compresseur de Dynamique Web Audio (`DynamicsCompressorNode`)** : Harmonisation automatique des gains et crêtes sonores pour éviter les sursauts de volume ou distorsions entre les morceaux MP3.
+
+---
+
+### 🎵 Lecteur de Playlists Personnalisées & Coupure Audio Absolue
+
+- **Gestion de Playlists Thématiques** : Créez et organisez vos listes de lecture (*Combat Intense*, *Exploration Souterraine*, *Repos à l'Auberge*) à partir de vos fichiers locaux (MP3, WAV, OGG, FLAC).
+- **Enchaînement et Fondu** : Lecture automatique continue des pistes avec contrôle des fondus d'entrée et de sortie.
+- **Bouton Stop Global (Coupure Absolue)** : Coupe instantanément toutes les musiques et éteint les synthétiseurs procéduraux (vent des plaines, tempête, forêt) au niveau Web Audio, garantissant un silence parfait sans aucun son parasite résiduel.
+
+---
 
 ### Mixeur Multi-Pistes & Soundscape
 - Ouvrez le panneau audio dans la barre supérieure.
@@ -405,12 +445,17 @@ La Liseuse de PDF de Grimoire transforme vos modules et livres de règles en une
 
 ---
 
-## 11. Gestion des Tokens & ConditionWheel
+## 11. Gestion des Tokens, Visibilité MJ & ConditionWheel
 
 ### Déposer et Déplacer des Tokens
 - Ouvrez la bibliothèque de tokens (panneau latéral ou raccourci).
 - Glissez un token sur la grille. Il s'aligne automatiquement sur la case.
 - Cliquez et glissez pour déplacer. Une ligne pointillée jaune indique la trajectoire et le nombre de cases parcourues.
+
+### 👁️ Visibilité Intelligente des Tokens MJ (Brouillard de Guerre & Ligne de Vue)
+- **Masquage Automatique par Défaut** : Tous les tokens ajoutés sur la carte par le Maître du Jeu (monstres, PNJ secrets, sbires, pièges) apparaissent masqués par défaut aux yeux des joueurs. Vous pouvez ainsi placer vos créatures en avance sans gâcher la surprise de vos aventuriers.
+- **Révélation Manuelle par le MJ** : Faites un clic droit sur le token > basculez son état via l'icône de vision (👁️ Visible / 🚫 Masqué).
+- **Révélation Dynamique (Ligne de Vue / LoS)** : Si le brouillard de guerre dynamique est actif, le pion ne devient visible pour les joueurs que lorsque le cône de vision d'un pion PJ l'englobe directement, sans être arrêté par un mur ou une porte close.
 
 ### Redimensionnement Express
 - Survolez un token : une poignée circulaire ⬤ apparaît dans le coin inférieur droit.
