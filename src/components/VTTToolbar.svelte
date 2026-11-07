@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import SharedLibrary from './SharedLibrary.svelte';
-  import { emitToPlayerView, readFileBase64, readFile, openMapEditor, openMapEditorWithMap, getPlayerViewStatus } from '$lib/api';
+  import { emitToPlayerView, readFileBase64, writeFileBase64, createDirectory, reindex, isTauri, readFile, openMapEditor, openMapEditorWithMap, getPlayerViewStatus } from '$lib/api';
+  import { notifStore } from '$lib/stores/notifications.svelte';
   import { getVaultPath, getVaultTree } from '$lib/stores/vault.svelte';
   import {
     vttStore,
@@ -58,9 +59,12 @@
   import SfxSoundboard from './SfxSoundboard.svelte';
   import { soundscape } from '$lib/stores/soundscape.svelte';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
+  import { playlistStore, stopAllAudiosGlobally } from '$lib/stores/playlist.svelte';
+  import { sessionIntroStore } from '$lib/stores/sessionIntro.svelte';
   import AddonStore from './AddonStore.svelte';
   import TokenEditorModal from './TokenEditorModal.svelte';
   import CampaignBackupModal from './CampaignBackupModal.svelte';
+  import PlaylistModal from './PlaylistModal.svelte';
 
   let { 
     onRoll,
@@ -68,18 +72,64 @@
     onTogglePlayerManager,
     onTogglePlayerMobileManager,
     onTogglePlayerQuickDock,
-    onOpenMonitorPicker
+    onOpenMonitorPicker,
+    activeView = 'vtt',
+    onToggleView
   }: { 
     onRoll?: ((result: number, label: string) => void) | null,
     onTogglePlayerHub?: (() => void) | null,
     onTogglePlayerManager?: (() => void) | null,
     onTogglePlayerMobileManager?: (() => void) | null,
     onTogglePlayerQuickDock?: (() => void) | null,
-    onOpenMonitorPicker?: (() => void) | null
+    onOpenMonitorPicker?: (() => void) | null,
+    activeView?: string,
+    onToggleView?: (() => void) | null
   } = $props();
 
   let playerViewOpen = $state(false);
   let playerViewMonitor = $state<number | null>(null);
+  let showPlaylistModal = $state(false);
+  let audioSearch = $state('');
+  let targetAudioChannel = $state<1 | 2>(1);
+  let audioFileInputRef = $state<HTMLInputElement>();
+
+  async function handleAudioImport(e: Event, channel: 1 | 2 = 1) {
+    const target = e.target as HTMLInputElement;
+    if (!target.files || !target.files[0]) return;
+    const file = target.files[0];
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (!dataUrl) return;
+
+      const vaultPath = getVaultPath();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const relPath = `assets/audio/${safeName}`;
+
+      if (vaultPath && isTauri()) {
+        try {
+          await createDirectory(vaultPath, 'assets');
+          await createDirectory(vaultPath, 'assets/audio');
+          const base64Data = dataUrl.split(',')[1] || '';
+          await writeFileBase64(vaultPath, relPath, base64Data);
+          await reindex(vaultPath);
+          if (channel === 1) selectAudio(relPath);
+          else { updateGmAudio2(relPath); showAudio2Picker = false; }
+          notifStore.add('🎵', 'Musique importée', `« ${file.name} » enregistrée dans assets/audio et lancée !`, 'success', 3500);
+          return;
+        } catch (err) {
+          console.warn("Échec d'enregistrement direct dans assets/audio, lecture en flux direct :", err);
+        }
+      }
+
+      // Fallback : jouer directement via le DataURL
+      if (channel === 1) selectAudio(dataUrl);
+      else { updateGmAudio2(dataUrl); showAudio2Picker = false; }
+      notifStore.add('🎵', 'Musique lancée', `« ${file.name} » en cours de lecture !`, 'success', 3000);
+    };
+    reader.readAsDataURL(file);
+    target.value = '';
+  }
 
   async function updatePlayerViewStatus() {
     try {
@@ -283,7 +333,7 @@
         audios = [...audios, ...getAllAudio(e.children, parent + e.name + '/')];
       } else {
         const ext = e.extension?.toLowerCase();
-        if (ext === 'mp3' || ext === 'wav' || ext === 'ogg' || ext === 'm4a') {
+        if (ext === 'mp3' || ext === 'wav' || ext === 'ogg' || ext === 'm4a' || ext === 'flac' || ext === 'aac' || ext === 'opus' || ext === 'webm') {
           audios.push({ path: parent + e.name, name: e.name });
         }
       }
@@ -569,6 +619,38 @@
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'audio' ? null : 'audio'; }}>🎭 Ambiance</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'audio'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+        <!-- Interrupteur Général Musique & Playlist -->
+        <button 
+          class="dropdown-item" 
+          style="font-weight: 700; color: #f87171; background: rgba(239, 68, 68, 0.15);" 
+          onclick={() => { stopAllAudiosGlobally(); activeMenu = null; }}
+          title="Arrêt d'urgence : coupe net toutes les musiques, synthétiseurs de vent, pluie et sons d'ambiance"
+        >
+          🔇 Silence Total (Couper Tous les Sons)
+        </button>
+        <button 
+          class="dropdown-item" 
+          style="font-weight: 600; color: {playlistStore.isMusicEnabled ? '#34d399' : '#9ca3af'};" 
+          onclick={() => { playlistStore.toggleMusic(); activeMenu = null; }}
+        >
+          {playlistStore.isMusicEnabled ? '🔊 Musique VTT : ACTIVE' : '🔈 Musique VTT : COUPÉE'}
+        </button>
+        <button 
+          class="dropdown-item" 
+          style="color: #a5b4fc; font-weight: 700;" 
+          onclick={() => { showPlaylistModal = true; activeMenu = null; }}
+        >
+          📋 Gestionnaire de Playlists ({playlistStore.tracks.length} pistes)
+        </button>
+        <button 
+          class="dropdown-item" 
+          style="color: #fbbf24; font-weight: 700;" 
+          onclick={() => { sessionIntroStore.open(); activeMenu = null; }}
+        >
+          🎬 Lecteur d'Intro de Soirée (MP3)
+        </button>
+        <div class="dropdown-divider"></div>
+
         <button class="dropdown-item soundscape-menu-highlight" onclick={() => { showSoundscapeMixer = true; activeMenu = null; }}>
           🌧️ Mixeur d'Ambiance Sonore {#if soundscape.activeTracksCount > 0}⚡ ({soundscape.activeTracksCount} actives){/if}
         </button>
@@ -812,9 +894,70 @@
       title="Soundboard SFX instantané (Raccourcis: Pavé 1-8)">
       🔊 SFX
     </button>
+    <button class="intro-quick-btn" class:active-intro={sessionIntroStore.isOpen || sessionIntroStore.isPlaying}
+      onclick={() => sessionIntroStore.toggle()}
+      title="Lecteur d'Intro de Soirée (MP3 cinématique)">
+      🎬 Intro {#if sessionIntroStore.isPlaying}▶️{/if}
+    </button>
+    <!-- Widget Musique & Playlist -->
+    <div class="music-quick-cluster">
+      <button 
+        class="music-quick-btn" 
+        class:is-playing={playlistStore.isPlaying && playlistStore.isMusicEnabled}
+        class:is-disabled={!playlistStore.isMusicEnabled}
+        onclick={() => showPlaylistModal = true}
+        title={!playlistStore.isMusicEnabled ? "Musique désactivée (cliquer pour ouvrir la Playlist)" : playlistStore.currentTrack ? `En cours : ${playlistStore.currentTrack.name}` : "Ouvrir la Playlist VTT"}
+      >
+        <span class="music-icon">{!playlistStore.isMusicEnabled ? '🔇' : playlistStore.isPlaying ? '▶️' : '🎵'}</span>
+        <span class="music-title-truncated">
+          {#if !playlistStore.isMusicEnabled}
+            Musique OFF
+          {:else if playlistStore.currentTrack}
+            {playlistStore.currentTrack.name}
+          {:else}
+            Playlist
+          {/if}
+        </span>
+      </button>
+
+      {#if playlistStore.isMusicEnabled && (playlistStore.isPlaying || playlistStore.currentTrack)}
+        <button 
+          class="music-sub-btn stop" 
+          onclick={(e) => { e.stopPropagation(); playlistStore.disableMusic(); }}
+          title="Désactiver / Couper la musique immédiatement (⏹️)"
+        >
+          ⏹️
+        </button>
+        <button 
+          class="music-sub-btn next" 
+          onclick={(e) => { e.stopPropagation(); playlistStore.nextTrack(); }}
+          title="Morceau suivant de la playlist (⏭️)"
+        >
+          ⏭️
+        </button>
+      {:else}
+        <button 
+          class="music-sub-btn play" 
+          onclick={(e) => { e.stopPropagation(); playlistStore.enableMusic(); }}
+          title="Activer et lancer la musique (▶️)"
+        >
+          ▶️
+        </button>
+      {/if}
+    </div>
     <button class="backup-quick-btn" onclick={() => showBackupModal = true} title="Sauvegarder et exporter la campagne (.grimoire)">
       💾 Campagne
     </button>
+    {#if onToggleView}
+      <button 
+        class="view-toggle-btn" 
+        class:is-editor={activeView === 'editor'}
+        onclick={() => onToggleView?.()}
+        title={activeView === 'vtt' ? "Basculer vers l'Éditeur Markdown (Raccourci: F2)" : "Revenir sur la Table Virtuelle VTT (Raccourci: F2)"}
+      >
+        {activeView === 'vtt' ? '📄 Notes MD' : '🗺️ Carte VTT'}
+      </button>
+    {/if}
     <div class="mobile-quick-group">
       <button class="mobile-quick-btn" class:active-server={mobileServerStore.isRunning}
         onclick={() => onTogglePlayerMobileManager?.()}
@@ -1030,25 +1173,64 @@
   </div>
 {/if}
 
-<!-- Sélecteur d'audio -->
+<!-- Input file masqué pour l'import de musique depuis le PC -->
+<input 
+  type="file" 
+  accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus,.webm" 
+  bind:this={audioFileInputRef} 
+  onchange={(e) => handleAudioImport(e, targetAudioChannel)} 
+  style="display:none" 
+/>
+
+<!-- Sélecteur d'audio (Piste 1) -->
 {#if showAudioPicker}
-  {@const audios = getAllAudio(getVaultTree())}
+  {@const allAudios = getAllAudio(getVaultTree())}
+  {@const filteredAudios = audioSearch.trim() ? allAudios.filter(a => a.name.toLowerCase().includes(audioSearch.toLowerCase()) || a.path.toLowerCase().includes(audioSearch.toLowerCase())) : allAudios}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="picker-backdrop" onclick={() => showAudioPicker = false} role="presentation">
+  <div class="picker-backdrop" onclick={() => { showAudioPicker = false; audioSearch = ''; }} role="presentation">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="picker-modal" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
       <div class="picker-header">
-        <span>🎵 Ambiance Sonore</span>
-        <button class="picker-close" onclick={() => showAudioPicker = false}>✕</button>
+        <span>🎵 Ambiance Sonore (Piste 1)</span>
+        <button class="picker-close" onclick={() => { showAudioPicker = false; audioSearch = ''; }}>✕</button>
       </div>
+
+      <div class="audio-picker-actions">
+        <button 
+          class="audio-import-btn" 
+          onclick={() => { targetAudioChannel = 1; audioFileInputRef?.click(); }}
+        >
+          ➕ Importer un fichier Audio (depuis votre PC)
+        </button>
+        {#if vttStore.audioSrc}
+          <button class="audio-stop-btn" onclick={() => { stopAudio(); showAudioPicker = false; }}>
+            ⏹️ Arrêter la Piste 1
+          </button>
+        {/if}
+      </div>
+
+      <div class="audio-search-box">
+        <input 
+          type="text" 
+          class="audio-search-input" 
+          placeholder="Rechercher une musique..." 
+          bind:value={audioSearch} 
+        />
+        <button class="audio-celestial-link" onclick={() => { showAddonStore = true; showAudioPicker = false; }}>
+          🌌 Bibliothèque Céleste (+800)
+        </button>
+      </div>
+
       <div class="picker-list">
-        {#if audios.length === 0}
-          <div class="picker-empty">Aucun fichier audio (MP3, WAV, OGG) dans le vault.</div>
+        {#if filteredAudios.length === 0}
+          <div class="picker-empty">
+            {allAudios.length === 0 ? "Aucun fichier audio dans le vault. Cliquez sur 'Importer' ci-dessus pour en ajouter !" : "Aucune musique trouvée pour cette recherche."}
+          </div>
         {:else}
-          {#each audios as aud}
-            <button class="picker-item" onclick={() => selectAudio(aud.path)}>
-              <span class="picker-icon">🎶</span>
+          {#each filteredAudios as aud}
+            <button class="picker-item" class:active-item={vttStore.audioSrc === aud.path} onclick={() => { selectAudio(aud.path); audioSearch = ''; }}>
+              <span class="picker-icon">{vttStore.audioSrc === aud.path ? '▶️' : '🎶'}</span>
               <span class="picker-name">{aud.name}</span>
               <span class="picker-path">{aud.path}</span>
             </button>
@@ -1059,23 +1241,54 @@
   </div>
 {/if}
 
+<!-- Sélecteur d'audio (Piste 2) -->
 {#if showAudio2Picker}
-  {@const audios = getAllAudio(getVaultTree())}
+  {@const allAudios = getAllAudio(getVaultTree())}
+  {@const filteredAudios = audioSearch.trim() ? allAudios.filter(a => a.name.toLowerCase().includes(audioSearch.toLowerCase()) || a.path.toLowerCase().includes(audioSearch.toLowerCase())) : allAudios}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="picker-backdrop" onclick={() => showAudio2Picker = false}>
+  <div class="picker-backdrop" onclick={() => { showAudio2Picker = false; audioSearch = ''; }}>
     <div class="picker-modal" onclick={e => e.stopPropagation()}>
       <div class="picker-header">
         <span>🎶 Ambiance Sonore — Piste 2</span>
-        <button class="picker-close" onclick={() => showAudio2Picker = false}>✕</button>
+        <button class="picker-close" onclick={() => { showAudio2Picker = false; audioSearch = ''; }}>✕</button>
       </div>
+
+      <div class="audio-picker-actions">
+        <button 
+          class="audio-import-btn" 
+          onclick={() => { targetAudioChannel = 2; audioFileInputRef?.click(); }}
+        >
+          ➕ Importer un fichier Audio (depuis votre PC)
+        </button>
+        {#if vttStore.audio2Src}
+          <button class="audio-stop-btn" onclick={() => { stopAudio2(); showAudio2Picker = false; }}>
+            ⏹️ Arrêter la Piste 2
+          </button>
+        {/if}
+      </div>
+
+      <div class="audio-search-box">
+        <input 
+          type="text" 
+          class="audio-search-input" 
+          placeholder="Rechercher une musique..." 
+          bind:value={audioSearch} 
+        />
+        <button class="audio-celestial-link" onclick={() => { showAddonStore = true; showAudio2Picker = false; }}>
+          🌌 Bibliothèque Céleste (+800)
+        </button>
+      </div>
+
       <div class="picker-list">
-        {#if audios.length === 0}
-          <div class="picker-empty">Aucun fichier audio (MP3, WAV, OGG) dans le vault.</div>
+        {#if filteredAudios.length === 0}
+          <div class="picker-empty">
+            {allAudios.length === 0 ? "Aucun fichier audio dans le vault. Cliquez sur 'Importer' ci-dessus pour en ajouter !" : "Aucune musique trouvée pour cette recherche."}
+          </div>
         {:else}
-          {#each audios as aud}
-            <button class="picker-item" onclick={() => { updateGmAudio2(aud.path); showAudio2Picker = false; }}>
-              <span class="picker-icon">🎶</span>
+          {#each filteredAudios as aud}
+            <button class="picker-item" class:active-item={vttStore.audio2Src === aud.path} onclick={() => { updateGmAudio2(aud.path); showAudio2Picker = false; audioSearch = ''; }}>
+              <span class="picker-icon">{vttStore.audio2Src === aud.path ? '▶️' : '🎶'}</span>
               <span class="picker-name">{aud.name}</span>
               <span class="picker-path">{aud.path}</span>
             </button>
@@ -1139,6 +1352,7 @@
   <AddonStore onclose={() => showAddonStore = false} />
 {/if}
 <TokenEditorModal isOpen={showTokenEditor} onclose={() => showTokenEditor = false} />
+<PlaylistModal isOpen={showPlaylistModal} onclose={() => showPlaylistModal = false} onOpenCelestial={() => showAddonStore = true} />
 
 <style>
   
@@ -1591,4 +1805,222 @@
     box-shadow: 0 0 10px rgba(230, 180, 80, 0.3);
   }
 
-  </style>
+  /* ── Bouton Bascule Vue VTT / Éditeur MD ── */
+  .view-toggle-btn {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(14, 165, 233, 0.3) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    color: #38bdf8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+    margin-left: 2px;
+  }
+  .view-toggle-btn:hover {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.35) 0%, rgba(14, 165, 233, 0.45) 100%);
+    color: #fff;
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+  }
+  .view-toggle-btn.is-editor {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.35) 100%);
+    border-color: #f59e0b;
+    color: #fde68a;
+  }
+
+  /* ── Actions & Recherche Modal Audio ── */
+  .audio-picker-actions {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .audio-import-btn {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.35) 100%);
+    border: 1px solid #10b981;
+    color: #a7f3d0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .audio-import-btn:hover {
+    background: #10b981;
+    color: #000;
+  }
+  .audio-stop-btn {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .audio-stop-btn:hover {
+    background: #ef4444;
+    color: #fff;
+  }
+  .audio-search-box {
+    display: flex;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .audio-search-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .audio-celestial-link {
+    background: rgba(147, 51, 234, 0.2);
+    border: 1px solid #a855f7;
+    color: #d8b4fe;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.12s;
+  }
+  .audio-celestial-link:hover {
+    background: #a855f7;
+    color: #fff;
+  }
+  .picker-item.active-item {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+  }
+  .picker-item.active-item .picker-name {
+    color: #34d399;
+    font-weight: 700;
+  }
+
+  /* Bouton Intro de Soirée */
+  .intro-quick-btn {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid #d97706;
+    color: #fde68a;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .intro-quick-btn:hover {
+    background: rgba(245, 158, 11, 0.3);
+    border-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+  }
+
+  .intro-quick-btn.active-intro {
+    background: #d97706;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+  }
+
+  /* Widget Musique & Playlist rapide */
+  .music-quick-cluster {
+    display: flex;
+    align-items: center;
+    background: rgba(20, 24, 38, 0.95);
+    border: 1px solid #2e344a;
+    border-radius: 6px;
+    padding: 1px 3px;
+    gap: 3px;
+  }
+
+  .music-quick-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.15s;
+  }
+
+  .music-quick-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
+  .music-quick-btn.is-playing {
+    color: #a5b4fc;
+    font-weight: 700;
+  }
+
+  .music-quick-btn.is-disabled {
+    color: #f87171;
+    opacity: 0.85;
+  }
+
+  .music-title-truncated {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .music-sub-btn {
+    background: #252b3d;
+    border: 1px solid #3b4259;
+    color: #cbd5e1;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .music-sub-btn:hover {
+    background: #333a52;
+    color: #ffffff;
+  }
+
+  .music-sub-btn.stop:hover {
+    background: #ef4444;
+    border-color: #f87171;
+  }
+
+  .music-sub-btn.play {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    color: #34d399;
+  }
+
+  .music-sub-btn.play:hover {
+    background: #10b981;
+    color: #ffffff;
+  }
+</style>

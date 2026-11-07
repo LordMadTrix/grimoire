@@ -8,10 +8,11 @@
   import TokenSettingsModal from './TokenSettingsModal.svelte';
   import { readFileBase64, fetchBinaryAssetUrl, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
-  import { updateDynamicLighting } from '$lib/vtt/lighting';
+  import { updateDynamicLighting, hasLineOfSight, isPointInFieldOfView } from '$lib/vtt/lighting';
   import { TextureCacheManager } from '$lib/vtt/TextureCacheManager';
   import { opticalEngine } from '$lib/vtt/OpticalTrackingEngine';
   import { getOpticalTrackingConfig } from '$lib/vtt/opticalTrackingStore.svelte';
+  import { notifStore } from '$lib/stores/notifications.svelte';
   import { emit } from '@tauri-apps/api/event';
 
   // Svelte 5 — $props() obligatoire (pas export let)
@@ -505,19 +506,66 @@
         } else {
           container.pivot.x = 0;
           container.pivot.y = 0;
-          if (isGM) container.alpha = token.visible === false ? 0.45 : 1;
-          else container.alpha = 1;
+          if (isGM) {
+            container.alpha = token.visible === false ? 0.45 : 1;
+            // Badge discret '👁️‍🗨️' pour le MJ indiquant que le token est dissimulé aux joueurs
+            let stealthBadge = (container as any).__stealthBadge as PIXI.Text | undefined;
+            if (token.visible === false) {
+              if (!stealthBadge) {
+                stealthBadge = new PIXI.Text({
+                  text: '👁️‍🗨️',
+                  style: { fontSize: 13, stroke: { color: 0x000000, width: 2 } }
+                });
+                stealthBadge.anchor.set(0.5);
+                stealthBadge.y = -token.size / 2 - 13;
+                stealthBadge.alpha = 0.8;
+                container.addChild(stealthBadge);
+                (container as any).__stealthBadge = stealthBadge;
+              }
+              stealthBadge.visible = true;
+            } else if (stealthBadge) {
+              stealthBadge.visible = false;
+            }
+          } else {
+            container.alpha = 1;
+          }
         }
 
-        // ── Visibilité brouillard de guerre (joueur uniquement - throttlé à 150ms) ──
-        if (shouldCheckVisibility) {
-          const gmHidden = token.visible === false;
+        // ── Visibilité côté joueur (vue joueur ou vue mobile - throttlé à 150ms) ──
+        if (!isGM && shouldCheckVisibility) {
+          const isCondInvisible = token.conditions?.includes('invisible');
+          const gmForcedVisible = token.visible === true;
           const inFow = isTokenRevealed(token.x, token.y);
-          const inVision = tokens.some(t =>
-            !t.isEnemy && t.visionRange && t.visionRange > 0 &&
-            Math.sqrt((token.x - t.x) ** 2 + (token.y - t.y) ** 2) <= t.visionRange * gridSize
-          );
-          container.visible = !gmHidden && (inFow || inVision);
+          const inVision = tokens.some(t => {
+            // Seuls les tokens alliés / PJ qui ont une vision révèlent les tokens aux joueurs
+            if (t.isEnemy || !t.visionRange || t.visionRange <= 0) return false;
+            const dist = Math.sqrt((token.x - t.x) ** 2 + (token.y - t.y) ** 2);
+            if (dist > t.visionRange * gridSize) return false;
+
+            // Champ de vision conique (FOV) si le token PJ a un angle défini (< 360°)
+            const fov = t.visionAngle ?? 360;
+            const rot = t.rotation ?? t.physicalRotation ?? 0;
+            if (dist > gridSize * 0.8 && !isPointInFieldOfView(t.x, t.y, rot, fov, token.x, token.y)) {
+              return false;
+            }
+
+            // Ligne de vue directe bloquée par les murs (Line of Sight)
+            if (!hasLineOfSight(t.x, t.y, token.x, token.y, walls)) {
+              return false;
+            }
+
+            return true;
+          });
+
+          if (isCondInvisible) {
+            container.visible = false;
+          } else if (gmForcedVisible) {
+            // Révélé explicitement par le MJ : visible si découvert dans le brouillard ou sans FOW
+            container.visible = fowEnabled ? (inFow || inVision) : true;
+          } else {
+            // Dissimulé par défaut (ajouté par le MJ) : apparaît UNIQUEMENT en portée visuelle directe d'un PJ !
+            container.visible = inVision;
+          }
         }
       }
 
@@ -727,7 +775,21 @@
 
     appReady = true;
     if (mapUrl) await loadMap(mapUrl);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('vtt-kill-all-audio', handleKillAllAudio);
+    }
   });
+
+  function handleKillAllAudio() {
+    for (const audio of zoneAudioObjects.values()) {
+      try {
+        audio.pause();
+        audio.src = '';
+      } catch {}
+    }
+    zoneAudioObjects.clear();
+  }
 
   // Cycle de vie du tracking optique physique (Webcam + ArUco)
   $effect(() => {
@@ -740,6 +802,9 @@
   });
 
   onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('vtt-kill-all-audio', handleKillAllAudio);
+    }
     opticalEngine.stop();
     window.removeEventListener('resize', handleResize);
     if (_emitCameraTimer) clearTimeout(_emitCameraTimer);
@@ -789,7 +854,7 @@
     if (!appReady) return;
     const visionSig = tokens
       .filter(t => !t.isEnemy && t.visionRange)
-      .map(t => `${t.x},${t.y},${t.visionRange}`)
+      .map(t => `${t.x},${t.y},${t.visionRange},${t.visionAngle ?? 360},${t.rotation ?? t.physicalRotation ?? 0}`)
       .join('|');
     renderIfChanged('fow', `${gridSize}|${layerSignature(fowShapes)}|${visionSig}`, renderFow);
   });
@@ -1123,7 +1188,26 @@
     tokens.forEach(token => {
       if (!token.isEnemy && token.visible !== false && token.visionRange && token.visionRange > 0) {
         const radius = token.visionRange * gridSize;
-        const g = new PIXI.Graphics().circle(token.x, token.y, radius).fill(0xffffff);
+        const fov = token.visionAngle ?? 360;
+        const g = new PIXI.Graphics();
+        
+        if (fov >= 360) {
+          g.circle(token.x, token.y, radius).fill(0xffffff);
+        } else {
+          const rot = token.rotation ?? token.physicalRotation ?? 0;
+          const dirRad = ((rot - 90) * Math.PI) / 180;
+          const halfAngle = (fov * Math.PI) / 360;
+          const startAngle = dirRad - halfAngle;
+          const endAngle = dirRad + halfAngle;
+          // Rayon immédiat pour ne pas être aveugle sur son propre corps
+          g.circle(token.x, token.y, Math.min(radius, gridSize * 0.8)).fill(0xffffff);
+          // Cône de vision orienté
+          g.moveTo(token.x, token.y);
+          g.arc(token.x, token.y, radius, startAngle, endAngle);
+          g.lineTo(token.x, token.y);
+          g.fill(0xffffff);
+        }
+
         g.blendMode = 'erase';
         container.addChild(g);
       }
@@ -1278,13 +1362,6 @@
     }
 
     tokens.forEach(token => {
-      // Côté joueur : masquer les tokens avec visible === false
-      if (!isGM && token.visible === false) {
-        const existing = tokenSprites.get(token.id);
-        if (existing) existing.visible = false;
-        return;
-      }
-
       let container = tokenSprites.get(token.id);
       let circleG: PIXI.Graphics;
       let textT: PIXI.Text;
@@ -1677,6 +1754,66 @@
         container.removeChild(physRing); physRing.destroy(); delete (container as any).__physRing;
       }
 
+      // Indicateur Visuel de Vision & Regard (orientation et cône de vue au survol/sélection)
+      const tokenRot = token.rotation ?? token.physicalRotation;
+      const isSelected = selectedTokenIds.has(token.id);
+      const isHovered = hoveredTokenId === token.id;
+      const hasVision = token.visionRange && token.visionRange > 0;
+
+      let visionIndicator = (container as any).__visionIndicator as PIXI.Graphics | undefined;
+      if (tokenRot !== undefined || (hasVision && (isSelected || isHovered))) {
+        if (!visionIndicator) {
+          visionIndicator = new PIXI.Graphics();
+          container.addChildAt(visionIndicator, 0); // sous le socle
+          (container as any).__visionIndicator = visionIndicator;
+        }
+        visionIndicator.clear();
+
+        const rotDeg = tokenRot ?? 0;
+        const rotRad = ((rotDeg - 90) * Math.PI) / 180;
+        const fov = token.visionAngle ?? 360;
+        const visCol = token.isEnemy ? 0xef4444 : 0x38bdf8;
+
+        // 1. Pointe directionnelle d'orientation du regard
+        if (tokenRot !== undefined || isSelected || isHovered) {
+          const arrowDist = r + 4;
+          const arrowLen = 12;
+          const tipX = Math.cos(rotRad) * (arrowDist + arrowLen);
+          const tipY = Math.sin(rotRad) * (arrowDist + arrowLen);
+          const leftX = Math.cos(rotRad + 0.35) * arrowDist;
+          const leftY = Math.sin(rotRad + 0.35) * arrowDist;
+          const rightX = Math.cos(rotRad - 0.35) * arrowDist;
+          const rightY = Math.sin(rotRad - 0.35) * arrowDist;
+
+          visionIndicator.poly([tipX, tipY, leftX, leftY, rightX, rightY]).fill({ color: visCol, alpha: 0.95 });
+        }
+
+        // 2. Halo / Cône de portée de vue projeté au sol quand sélectionné ou survolé
+        if (hasVision && (isSelected || isHovered)) {
+          const visPixelRadius = token.visionRange! * gridSize;
+          visionIndicator.setStrokeStyle({ width: 1.5, color: visCol, alpha: 0.5 });
+
+          if (fov >= 360) {
+            visionIndicator.circle(0, 0, visPixelRadius).stroke();
+            visionIndicator.circle(0, 0, visPixelRadius).fill({ color: visCol, alpha: 0.04 });
+          } else {
+            const halfAngle = (fov * Math.PI) / 360;
+            const startAngle = rotRad - halfAngle;
+            const endAngle = rotRad + halfAngle;
+
+            visionIndicator.moveTo(0, 0);
+            visionIndicator.arc(0, 0, visPixelRadius, startAngle, endAngle);
+            visionIndicator.lineTo(0, 0);
+            visionIndicator.stroke();
+            visionIndicator.fill({ color: visCol, alpha: 0.06 });
+          }
+        }
+      } else if (visionIndicator) {
+        container.removeChild(visionIndicator);
+        visionIndicator.destroy();
+        delete (container as any).__visionIndicator;
+      }
+
       // Conditions
       const condStr = (token.conditions ?? []).map(c => CONDITION_EMOJIS[c] ?? '').join('');
       let condText = (container as any).__condText as PIXI.Text | undefined;
@@ -1717,6 +1854,21 @@
         const newSize = Math.max(10, Math.min(400, tok.size + (e.deltaY > 0 ? -step : step)));
         if (newSize !== tok.size) onTokenUpdate({ ...tok, size: newSize });
         return;
+      }
+    }
+
+    // Shift + molette sur token (survolé ou sélectionné) → pivoter l'orientation du regard (cône FOV) de 15°
+    if (e.shiftKey && isGM && vttMode === 'select') {
+      const targetId = hoveredTokenId || (selectedTokenIds.size === 1 ? Array.from(selectedTokenIds)[0] : null);
+      if (targetId) {
+        const tok = tokens.find(t => t.id === targetId);
+        if (tok) {
+          const curRot = tok.rotation ?? tok.physicalRotation ?? 0;
+          const deltaDeg = e.deltaY > 0 ? 15 : -15;
+          const newRot = (curRot + deltaDeg + 360) % 360;
+          onTokenUpdate({ ...tok, rotation: newRot });
+          return;
+        }
       }
     }
 
@@ -3486,6 +3638,28 @@
       vttStore.mode = vttStore.mode === 'fog-reveal' ? 'select' : 'fog-reveal';
     } else if (e.key === 's' || e.key === 'S' || e.key === 'Escape') {
       vttStore.mode = 'select';
+    } else if (e.key === 'r' || e.key === 'R') {
+      const targetId = hoveredTokenId || (selectedTokenIds.size === 1 ? Array.from(selectedTokenIds)[0] : null);
+      if (targetId) {
+        const tok = tokens.find(t => t.id === targetId);
+        if (tok) {
+          const curRot = tok.rotation ?? tok.physicalRotation ?? 0;
+          const delta = e.shiftKey ? -45 : 45;
+          const newRot = (curRot + delta + 360) % 360;
+          onTokenUpdate({ ...tok, rotation: newRot });
+          notifStore.add('🧭', tok.name, `Orientation : ${newRot}°`, 'info', 1000);
+        }
+      }
+    } else if (e.key === 'h' || e.key === 'H') {
+      const targetId = hoveredTokenId || (selectedTokenIds.size === 1 ? Array.from(selectedTokenIds)[0] : null);
+      if (targetId) {
+        const tok = tokens.find(t => t.id === targetId);
+        if (tok) {
+          const nextVis = tok.visible === false ? true : false;
+          onTokenUpdate({ ...tok, visible: nextVis });
+          notifStore.add('👁️', tok.name, nextVis ? 'Révélé aux joueurs' : 'Caché aux joueurs (apparaît en vision PJ)', 'info', 1800);
+        }
+      }
     } else if (e.key === 'w' || e.key === 'W') {
       const weathers: ('none' | 'rain' | 'snow' | 'fog' | 'embers' | 'storm')[] = ['none', 'rain', 'snow', 'fog', 'embers', 'storm'];
       const curIdx = weathers.indexOf(vttStore.weather as any);

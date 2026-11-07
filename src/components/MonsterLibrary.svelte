@@ -114,7 +114,7 @@
       hp: m.hp,
       maxHp: m.hp,
       isEnemy: m.isEnemy,
-      visible: true,
+      visible: false, // Caché par défaut : révélé par le MJ ou par portée visuelle des PJ
       imageUrl: m.imageUrl,
     });
   }

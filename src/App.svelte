@@ -8,6 +8,8 @@
   import MapCanvas from './components/MapCanvas.svelte';
   import InitiativeTracker from './components/InitiativeTracker.svelte';
   import AudioPlayer from './components/AudioPlayer.svelte';
+  import SessionIntroPlayer from './components/SessionIntroPlayer.svelte';
+  import { sessionIntroStore } from '$lib/stores/sessionIntro.svelte';
   import GraphView from './components/GraphView.svelte';
   import RollTables from './components/RollTables.svelte';
   import Timeline from './components/Timeline.svelte';
@@ -146,7 +148,7 @@
   let showPlayerQuickDock = $state(true);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
-  let viewMode = $state<'editor' | 'graph' | 'timeline' | 'calendar'>('editor');
+  let viewMode = $state<'vtt' | 'editor' | 'graph' | 'timeline' | 'calendar'>('vtt');
   let isZenMode = $state(false);
   let rollTablesRef = $state<any>(null);
   let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -331,7 +333,7 @@
             if (curScene) curScene.lights = [...payload.lights];
             emitToPlayerView('update_lights', vttStore.lights);
           }
-          viewMode = 'editor';
+          viewMode = 'vtt';
           const wallCount = payload.walls?.length || 0;
           const lightCount = payload.lights?.length || 0;
           const detailMsg = (wallCount > 0 || lightCount > 0)
@@ -609,6 +611,7 @@
     emitToPlayerView('update_walls', vttStore.walls);
     emitToPlayerView('update_audio_zones', vttStore.audioZones);
     syncCombatantsToPlayerView();
+    sessionIntroStore.syncPlayerIntroScreen();
   }
 
   async function openOnMonitor(index: number) {
@@ -671,7 +674,13 @@
 
   // Raccourci clavier global
   function handleGlobalKeydown(e: KeyboardEvent) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+    if (e.key === 'F2' || (e.altKey && (e.key === 'm' || e.key === 'M' || e.key === 'e' || e.key === 'E'))) {
+      if (vttStore.currentMap) {
+        e.preventDefault();
+        viewMode = viewMode === 'vtt' ? 'editor' : 'vtt';
+        notifStore.add('🔄', 'Bascule de vue', viewMode === 'vtt' ? 'Table Virtuelle (VTT)' : 'Éditeur de Notes Markdown', 'info', 1500);
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
       e.preventDefault();
       setSearchOpen(!getSearchOpen());
     } else if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
@@ -687,6 +696,7 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <SearchPalette />
+<SessionIntroPlayer />
 <AudioPlayer src={vttStore.audioSrc} volume={vttStore.audioVolume} />
 <AudioPlayer src={vttStore.audio2Src} volume={vttStore.audio2Volume} />
 <RollTables bind:this={rollTablesRef} />
@@ -847,11 +857,42 @@
         onTogglePlayerMobileManager={() => playerMobileManagerRef?.toggle()}
         onTogglePlayerQuickDock={() => showPlayerQuickDock = !showPlayerQuickDock}
         onOpenMonitorPicker={() => showMonitorPicker = true}
+        activeView={viewMode}
+        onToggleView={() => { viewMode = viewMode === 'vtt' ? 'editor' : 'vtt'; }}
       />
     {/if}
+
+    <!-- Barre d'Onglets Globale : Navigation fluide entre Carte VTT, Éditeur Notes, Graphe, etc. -->
+    <div class="view-header">
+      <div class="view-toggle">
+        {#if vttStore.currentMap}
+          <button 
+            class:active={viewMode === 'vtt'} 
+            onclick={() => viewMode = 'vtt'}
+            title="Afficher la Table Virtuelle (Raccourci: F2 ou Alt+M)"
+          >
+            🗺️ Carte VTT {#if vttStore.tokens.length > 0}<span class="view-token-count">{vttStore.tokens.length}</span>{/if}
+          </button>
+        {/if}
+        <button 
+          class:active={viewMode === 'editor'} 
+          onclick={() => viewMode = 'editor'}
+          title="Afficher l'Éditeur de Notes Markdown (Raccourci: F2 ou Alt+E)"
+        >
+          📄 Éditeur Notes
+        </button>
+        <button class:active={viewMode === 'graph'} onclick={() => viewMode = 'graph'}>🕸️ Graphe</button>
+        <button class:active={viewMode === 'timeline'} onclick={() => viewMode = 'timeline'}>📜 Timeline</button>
+        <button class:active={viewMode === 'calendar'} onclick={() => viewMode = 'calendar'}>📅 Calendrier</button>
+      </div>
+    </div>
     
+    <!-- Table Virtuelle VTT (préservée en mémoire avec 0 latence) -->
     {#if vttStore.currentMap}
-      <div style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+      <div 
+        class="vtt-main-container"
+        style="flex: 1; min-height: 0; display: {viewMode === 'vtt' ? 'flex' : 'none'}; flex-direction: column;"
+      >
         {#if vttStore.maps.length > 1}
           <div class="scene-tabs">
             {#each vttStore.maps as scene}
@@ -920,24 +961,17 @@
           <InitiativeTracker />
         {/if}
       </div>
-    {:else}
-      <div class="view-header">
-        <div class="view-toggle">
-          <button class:active={viewMode === 'editor'} onclick={() => viewMode = 'editor'}>📄 Éditeur</button>
-          <button class:active={viewMode === 'graph'} onclick={() => viewMode = 'graph'}>🕸️ Graphe</button>
-          <button class:active={viewMode === 'timeline'} onclick={() => viewMode = 'timeline'}>📜 Timeline</button>
-          <button class:active={viewMode === 'calendar'} onclick={() => viewMode = 'calendar'}>📅 Calendrier</button>
-        </div>
-      </div>
-      {#if viewMode === 'editor'}
-        <Editor />
-      {:else if viewMode === 'graph'}
-        <GraphView />
-      {:else if viewMode === 'timeline'}
-        <Timeline />
-      {:else}
-        <Calendar />
-      {/if}
+    {/if}
+
+    <!-- Autres vues Markdown / Graphe / Timeline / Calendrier -->
+    {#if viewMode === 'editor'}
+      <Editor />
+    {:else if viewMode === 'graph'}
+      <GraphView />
+    {:else if viewMode === 'timeline'}
+      <Timeline />
+    {:else if viewMode === 'calendar'}
+      <Calendar />
     {/if}
   </main>
 </div>
@@ -1240,6 +1274,16 @@
   .view-toggle button.active {
     background: var(--accent);
     color: var(--bg-primary);
+  }
+
+  .view-token-count {
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 9999px;
+    margin-left: 4px;
   }
 
   /* ── Scene Tabs (multimap) ────────────────────────────────── */

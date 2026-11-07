@@ -60,6 +60,8 @@ export type Token = {
   maxHp?: number;
   ac?: number;
   visionRange?: number;
+  visionAngle?: number; // Champ de vision en degrés (défaut: 360 = omnidirectionnel)
+  rotation?: number;    // Orientation du regard en degrés (0 = Nord, 90 = Est, 180 = Sud, 270 = Ouest)
   lightRadius?: number;
   lightColor?: string;
   lightFlicker?: boolean;
@@ -670,7 +672,14 @@ export function replaceGmToken(token: Token) {
 
 export function addGmToken(token: Token) {
   pushUndo({ type: 'tokens', tokens: [...vttStore.tokens] });
-  const sized: Token = { ...token, size: token.size > 0 ? token.size : vttStore.gridSize };
+  // Tout token ajouté par le MJ est caché par défaut aux joueurs (visible: false),
+  // sauf si explicitement marqué visible ou s'il s'agit d'un token joueur (playerId)
+  const isDefaultVisible = token.visible !== undefined ? token.visible : (token.playerId ? true : false);
+  const sized: Token = { 
+    ...token, 
+    size: token.size > 0 ? token.size : vttStore.gridSize,
+    visible: isDefaultVisible,
+  };
   vttStore.tokens = [...vttStore.tokens, sized];
   emitToPlayerView('update_tokens', vttStore.tokens);
 }

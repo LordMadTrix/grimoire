@@ -3,7 +3,7 @@
 // avec scintillement dynamique (flicker) et rendu Sprite GPU zéro-allocation CPU.
 
 import * as PIXI from 'pixi.js';
-import type { Token, LightSource } from '$lib/stores/vtt.svelte';
+import type { Token, LightSource, WallDef } from '$lib/stores/vtt.svelte';
 
 export interface LightHaloConfig {
   x: number;
@@ -142,4 +142,67 @@ export function updateDynamicLighting(
     sprite.alpha = actualAlpha;
     sprite.visible = true;
   }
+}
+
+// ── Géométrie Vision, Line of Sight & Champ de Vue (FOV) ─────────────────────
+
+/**
+ * Détermine si deux segments [p1, p2] et [p3, p4] s'intersectent strictement
+ */
+export function segmentsIntersect(
+  p1x: number, p1y: number, p2x: number, p2y: number,
+  p3x: number, p3y: number, p4x: number, p4y: number
+): boolean {
+  const d = (p2x - p1x) * (p4y - p3y) - (p2y - p1y) * (p4x - p3x);
+  if (Math.abs(d) < 1e-9) return false;
+  const t = ((p3x - p1x) * (p4y - p3y) - (p3y - p1y) * (p4x - p3x)) / d;
+  const u = ((p3x - p1x) * (p2y - p1y) - (p3y - p1y) * (p2x - p1x)) / d;
+  return t > 0.002 && t < 0.998 && u > 0.002 && u < 0.998;
+}
+
+/**
+ * Vérifie si la ligne de vue directe entre deux points (ex: observateur et cible)
+ * est dégagée ou bloquée par un mur opaque (Line of Sight). Les portes ouvertes laissent passer la vue.
+ */
+export function hasLineOfSight(
+  x1: number, y1: number,
+  x2: number, y2: number,
+  walls: WallDef[]
+): boolean {
+  if (!walls || walls.length === 0) return true;
+  for (const wall of walls) {
+    if (wall.type === 'door' && wall.isOpen) continue;
+    if (!wall.points || wall.points.length < 2) continue;
+    for (let i = 0; i < wall.points.length - 1; i++) {
+      const a = wall.points[i];
+      const b = wall.points[i + 1];
+      if (segmentsIntersect(x1, y1, x2, y2, a.x, a.y, b.x, b.y)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Vérifie si un point cible (tx, ty) se situe à l'intérieur du champ de vision
+ * orienté de l'observateur (ox, oy).
+ * @param rotDeg Orientation du regard en degrés (0 = Nord, 90 = Est, 180 = Sud, 270 = Ouest)
+ * @param fovAngle Angle d'ouverture en degrés (360 = cercle omnidirectionnel)
+ */
+export function isPointInFieldOfView(
+  ox: number, oy: number, rotDeg: number, fovAngle: number,
+  tx: number, ty: number
+): boolean {
+  if (!fovAngle || fovAngle >= 360) return true;
+  // Angle du vecteur (ox, oy) -> (tx, ty) en radians
+  const angleRad = Math.atan2(ty - oy, tx - ox);
+  // Direction de visée du token (0° = Nord = -PI/2)
+  const dirRad = ((rotDeg - 90) * Math.PI) / 180;
+  // Différence d'angle normalisée dans [-PI, PI]
+  let diff = angleRad - dirRad;
+  while (diff > Math.PI) diff -= 2 * Math.PI;
+  while (diff < -Math.PI) diff += 2 * Math.PI;
+  const halfFovRad = (fovAngle * Math.PI) / 360;
+  return Math.abs(diff) <= halfFovRad;
 }

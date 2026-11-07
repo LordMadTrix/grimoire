@@ -59,6 +59,9 @@ class SoundscapeEngine {
       this.intervalId = null;
     }
     this.currentType = 'none';
+    if (this.ctx && this.ctx.state === 'running') {
+      try { this.ctx.suspend(); } catch {}
+    }
   }
 
   public play(type: SoundscapeType) {

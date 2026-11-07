@@ -1,6 +1,6 @@
 {
-  "version": "0.8.14",
-  "changelog": "Version 0.8.14 : Tiroir flottant de notes MJ en jeu (raccourci N) avec glisser/déposer sur la carte, synchronisation SFX audio multi-écrans sur la vue joueur, gabarit de sort 'Cube' PixiJS, raccourcis météo et mesure instantanés, générateur de PNJ rapide enrichi avec traits et IA locale Ollama, et blindage complet de l'export de pion contre les erreurs Canvas Tainted.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.14",
+  "version": "0.8.15",
+  "changelog": "Version 0.8.15 : Studio Cinéma d'introduction de session (défilement spatial 3D Star Wars / Prologue, météo cinématique pluie/neige/braises/tempête sur l'affiche, voix-off IA avec auto-ducking audio, casting des héros, accroche théâtrale IA, thèmes audio préréglés et normalisation dynamique studio), lecteur de playlists audio et contrôle précis de la visibilité des tokens MJ.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.15",
   "release_date": "2026-11-07"
 }

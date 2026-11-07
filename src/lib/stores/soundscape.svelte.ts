@@ -156,10 +156,28 @@ class SoundscapeStore {
   }
 
   stopAll() {
+    this.killAll();
+  }
+
+  /**
+   * Coupe immédiatement et radicalement tous les synthétiseurs procéduraux (vent, pluie, etc.)
+   * et suspend l'AudioContext pour garantir un silence absolu.
+   */
+  killAll() {
+    for (const [id, node] of this.activeNodes.entries()) {
+      try {
+        node.stop();
+        node.gain.disconnect();
+      } catch {}
+    }
+    this.activeNodes.clear();
     for (const t of this.tracks) {
-      if (t.active) {
-        this.stopTrack(t.id);
-      }
+      t.active = false;
+    }
+    if (this.audioCtx && this.audioCtx.state === 'running') {
+      try {
+        this.audioCtx.suspend();
+      } catch {}
     }
   }
 

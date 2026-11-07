@@ -15,8 +15,8 @@
   const token = $derived(vttStore.tokens.find(t => t.id === tokenId));
 
   // Ajustement position écran
-  const menuX = $derived(Math.min(Math.max(x, 10), (typeof window !== 'undefined' ? window.innerWidth : 1200) - 230));
-  const menuY = $derived(Math.min(Math.max(y, 10), (typeof window !== 'undefined' ? window.innerHeight : 800) - 340));
+  const menuX = $derived(Math.min(Math.max(x, 10), (typeof window !== 'undefined' ? window.innerWidth : 1200) - 280));
+  const menuY = $derived(Math.min(Math.max(y, 10), (typeof window !== 'undefined' ? window.innerHeight : 800) - 480));
 
   function changeHp(delta: number) {
     if (!token) return;
@@ -27,11 +27,61 @@
     notifStore.add('❤️', token.name, `PV : ${nextHp}/${max}`, delta > 0 ? 'success' : 'warn', 1500);
   }
 
+  // ── Vision & Portée ──
+  function setVisionRange(val: number) {
+    if (!token) return;
+    replaceGmToken({ ...token, visionRange: val });
+    notifStore.add('👁️', token.name, val === 0 ? 'Vision désactivée (Aveugle)' : `Portée de vue : ${val} cases (${val * 5} ft)`, 'info', 1500);
+  }
+
+  function setVisionAngle(angle: number) {
+    if (!token) return;
+    replaceGmToken({ ...token, visionAngle: angle });
+    const lbl = angle >= 360 ? '360° (Omni)' : `${angle}° (Cône)`;
+    notifStore.add('📐', token.name, `Champ de vision : ${lbl}`, 'info', 1500);
+  }
+
+  function setRotation(rot: number) {
+    if (!token) return;
+    const normalized = (rot % 360 + 360) % 360;
+    replaceGmToken({ ...token, rotation: normalized, physicalRotation: normalized });
+  }
+
+  function rotateBy(delta: number) {
+    if (!token) return;
+    const cur = token.rotation ?? token.physicalRotation ?? 0;
+    setRotation(cur + delta);
+  }
+
+  function toggleDarkvision() {
+    if (!token) return;
+    const nextVal = !token.darkvision;
+    replaceGmToken({ ...token, darkvision: nextVal });
+    notifStore.add('🌙', token.name, nextVal ? 'Vision nocturne activée' : 'Vision nocturne désactivée', 'info', 1500);
+  }
+
+  function toggleTorch() {
+    if (!token) return;
+    const isTorchOn = (token.lightRadius ?? 0) > 0;
+    if (isTorchOn) {
+      replaceGmToken({ ...token, lightRadius: 0, lightFlicker: false });
+      notifStore.add('💨', token.name, 'Torche éteinte', 'info', 1500);
+    } else {
+      replaceGmToken({
+        ...token,
+        lightRadius: 6,
+        lightColor: '#ffaa44',
+        lightFlicker: true
+      });
+      notifStore.add('🔥', token.name, 'Torche allumée (6 cases / 30 ft)', 'success', 1500);
+    }
+  }
+
   function toggleVisibility() {
     if (!token) return;
     const nextVis = token.visible === false ? true : false;
     replaceGmToken({ ...token, visible: nextVis });
-    notifStore.add('👁️', token.name, nextVis ? 'Révélé aux joueurs' : 'Masqué aux joueurs', 'info', 2000);
+    notifStore.add('👁️', token.name, nextVis ? 'Révélé aux joueurs (forcé)' : 'Masqué aux joueurs (apparaît en vision PJ)', 'info', 2000);
     onclose();
   }
 
@@ -115,6 +165,84 @@
         </div>
       </div>
 
+      <!-- SECTION : Vision & Champ de Vue -->
+      <div class="ctx-section vision-box">
+        <div class="ctx-section-header">
+          <span class="ctx-section-label">👁️ Portée & Champ de Vue</span>
+          <span class="vision-current-badge">
+            {token.visionRange ?? 0}c · {token.visionAngle ?? 360}°
+          </span>
+        </div>
+
+        <!-- 1. Portée de vue -->
+        <div class="vision-sub-row">
+          <span class="vision-sub-label">Portée : <strong>{(token.visionRange ?? 0) * 5} ft</strong></span>
+          <div class="preset-pill-group">
+            <button class="pill-btn" class:active={(token.visionRange ?? 0) === 0} onclick={() => setVisionRange(0)} title="Aveugle (0)">0</button>
+            <button class="pill-btn" class:active={token.visionRange === 6} onclick={() => setVisionRange(6)} title="Courte (30 ft / 6 cases)">30ft</button>
+            <button class="pill-btn" class:active={token.visionRange === 12} onclick={() => setVisionRange(12)} title="Standard (60 ft / 12 cases)">60ft</button>
+            <button class="pill-btn" class:active={token.visionRange === 24} onclick={() => setVisionRange(24)} title="Longue (120 ft / 24 cases)">120ft</button>
+            <button class="pill-btn" class:active={token.visionRange === 99} onclick={() => setVisionRange(99)} title="Illimité">∞</button>
+          </div>
+        </div>
+        <input 
+          type="range" 
+          class="vision-range-slider" 
+          min="0" 
+          max="30" 
+          step="1" 
+          value={Math.min(30, token.visionRange ?? 0)} 
+          oninput={(e) => setVisionRange(Number((e.target as HTMLInputElement).value))} 
+        />
+
+        <!-- 2. Angle du Champ de Vue (FOV) -->
+        <div class="vision-sub-row">
+          <span class="vision-sub-label">Angle cône :</span>
+          <div class="preset-pill-group">
+            <button class="pill-btn" class:active={(token.visionAngle ?? 360) >= 360} onclick={() => setVisionAngle(360)} title="360° Omnidirectionnel">360°</button>
+            <button class="pill-btn" class:active={token.visionAngle === 180} onclick={() => setVisionAngle(180)} title="180° Demi-cercle">180°</button>
+            <button class="pill-btn" class:active={token.visionAngle === 120} onclick={() => setVisionAngle(120)} title="120° Humain large">120°</button>
+            <button class="pill-btn" class:active={token.visionAngle === 90} onclick={() => setVisionAngle(90)} title="90° Cône tactique">90°</button>
+            <button class="pill-btn" class:active={token.visionAngle === 60} onclick={() => setVisionAngle(60)} title="60° Focalisé">60°</button>
+          </div>
+        </div>
+
+        <!-- 3. Orientation du Regard (Direction) -->
+        <div class="vision-sub-row">
+          <span class="vision-sub-label">Regard : <strong>{(token.rotation ?? token.physicalRotation ?? 0)}°</strong></span>
+          <div class="orient-btn-group">
+            <button class="pill-btn dir" onclick={() => rotateBy(-45)} title="Pivoter 45° gauche (↶)">↶</button>
+            <button class="pill-btn dir" class:active={(token.rotation ?? 0) === 0} onclick={() => setRotation(0)} title="Nord (Haut)">▲ N</button>
+            <button class="pill-btn dir" class:active={(token.rotation ?? 0) === 90} onclick={() => setRotation(90)} title="Est (Droite)">▶ E</button>
+            <button class="pill-btn dir" class:active={(token.rotation ?? 0) === 180} onclick={() => setRotation(180)} title="Sud (Bas)">▼ S</button>
+            <button class="pill-btn dir" class:active={(token.rotation ?? 0) === 270} onclick={() => setRotation(270)} title="Ouest (Gauche)">◀ O</button>
+            <button class="pill-btn dir" onclick={() => rotateBy(45)} title="Pivoter 45° droite (↷)">↷</button>
+          </div>
+        </div>
+
+        <!-- 4. Toggles Rapides Lumière & Pénombre -->
+        <div class="vision-toggles-row">
+          <button 
+            class="vision-toggle-chip" 
+            class:active={token.darkvision}
+            onclick={toggleDarkvision}
+            title="Vision dans le noir (halo bleuté nocturne)"
+          >
+            <span>🌙</span>
+            <span>Vision Noire</span>
+          </button>
+          <button 
+            class="vision-toggle-chip" 
+            class:active={(token.lightRadius ?? 0) > 0}
+            onclick={toggleTorch}
+            title="Porter une torche allumée (30 ft / 6 cases)"
+          >
+            <span>🔥</span>
+            <span>{(token.lightRadius ?? 0) > 0 ? 'Torche ON' : 'Torche'}</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Actions Principales -->
       <div class="ctx-list">
         <button class="ctx-item primary" onclick={() => { onEdit?.(token); onclose(); }}>
@@ -122,9 +250,9 @@
           <span>Modifier le Token (Fiche)</span>
         </button>
 
-        <button class="ctx-item" onclick={toggleVisibility}>
-          <span class="item-icon">{token.visible === false ? '👁️' : '🕶️'}</span>
-          <span>{token.visible === false ? 'Révéler aux joueurs' : 'Masquer aux joueurs'}</span>
+        <button class="ctx-item" onclick={toggleVisibility} title={token.visible === false ? 'Rendre visible aux joueurs' : 'Masquer aux joueurs (le pion apparaîtra automatiquement dès qu\'un PJ le verra)'}>
+          <span class="item-icon">{token.visible === false ? '👁️' : '🙈'}</span>
+          <span>{token.visible === false ? 'Révéler aux joueurs' : 'Masquer (vision PJ auto)'}</span>
         </button>
 
         <button class="ctx-item" class:active-item={vttStore.spotlightTokenId === token.id} onclick={toggleSpotlight}>
@@ -177,7 +305,9 @@
 
   .ctx-menu {
     position: fixed;
-    width: 230px;
+    width: 275px;
+    max-height: 88vh;
+    overflow-y: auto;
     background: #0f172a;
     border: 1px solid rgba(245, 158, 11, 0.45);
     border-radius: 12px;
@@ -190,6 +320,8 @@
     gap: 8px;
     user-select: none;
     animation: popIn 0.12s ease-out;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245, 158, 11, 0.3) transparent;
   }
 
   @keyframes popIn {
@@ -417,6 +549,132 @@
     height: 1px;
     background: rgba(255, 255, 255, 0.08);
     margin: 2px 0;
+  }
+
+  /* ── Styles Vision & Champ de Vue ── */
+  .vision-box {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 8px;
+    padding: 7px;
+    gap: 6px;
+  }
+
+  .ctx-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .vision-current-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    padding: 1px 6px;
+    border-radius: 9999px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+
+  .vision-sub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #94a3b8;
+  }
+
+  .vision-sub-label strong {
+    color: #f1f5f9;
+  }
+
+  .preset-pill-group {
+    display: flex;
+    gap: 2px;
+  }
+
+  .pill-btn {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.1s;
+    line-height: 1.2;
+  }
+
+  .pill-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    color: #fff;
+    border-color: rgba(56, 189, 248, 0.4);
+  }
+
+  .pill-btn.active {
+    background: #0284c7;
+    color: #fff;
+    border-color: #38bdf8;
+    font-weight: 700;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+  }
+
+  .vision-range-slider {
+    width: 100%;
+    height: 4px;
+    accent-color: #38bdf8;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    cursor: pointer;
+    margin: 1px 0;
+  }
+
+  .orient-btn-group {
+    display: flex;
+    gap: 2px;
+  }
+
+  .pill-btn.dir {
+    font-size: 9px;
+    padding: 2px 4px;
+  }
+
+  .vision-toggles-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .vision-toggle-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(30, 41, 59, 0.7);
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .vision-toggle-chip:hover {
+    background: rgba(51, 65, 85, 0.9);
+    color: #fff;
+  }
+
+  .vision-toggle-chip.active {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: #f59e0b;
+    color: #fde68a;
+    font-weight: 700;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
   }
 </style>
 

@@ -10,10 +10,13 @@
   import PlayerCombatHUD from './components/PlayerCombatHUD.svelte';
   import CinematicReveal from './components/CinematicReveal.svelte';
   import HerboPlayerRevealOverlay from './components/herboriste/HerboPlayerRevealOverlay.svelte';
+  import SessionIntroScreen from './components/SessionIntroScreen.svelte';
+  import type { PlayerIntroPayload } from '$lib/stores/sessionIntro.svelte';
   import { soundscape } from '$lib/stores/soundscape.svelte';
 
   let currentMap     = $state<string | null>(null);
   let herboReveal    = $state<any>(null);
+  let playerIntroData = $state<PlayerIntroPayload | null>(null);
   let showGrid       = $state(true);
   let isBlackout     = $state(false);
   let fowShapes      = $state<FowShape[]>([]);
@@ -159,6 +162,7 @@
           else if (event === 'sync_vault_path') vaultPath = payload.path;
           else if (event === 'toggle_player_grid') showGrid = payload.show;
           else if (event === 'toggle_player_blackout') isBlackout = payload.active;
+          else if (event === 'set_player_intro') playerIntroData = payload;
           else if (event === 'update_fow') fowShapes = payload;
           else if (event === 'update_tokens') tokens = payload;
           else if (event === 'update_pins') pins = payload;
@@ -187,6 +191,7 @@
     listen('sync_vault_path',        (e: any) => { vaultPath     = e.payload.path;           }).then(fn => unlistens.push(fn));
     listen('toggle_player_grid',     (e: any) => { showGrid      = e.payload.show;           }).then(fn => unlistens.push(fn));
     listen('toggle_player_blackout', (e: any) => { isBlackout    = e.payload.active;         }).then(fn => unlistens.push(fn));
+    listen('set_player_intro',       (e: any) => { playerIntroData = e.payload;                }).then(fn => unlistens.push(fn));
     listen('update_fow',             (e: any) => { fowShapes     = e.payload;                }).then(fn => unlistens.push(fn));
     listen('update_tokens',          (e: any) => { tokens        = e.payload;                }).then(fn => unlistens.push(fn));
     listen('update_pins',            (e: any) => { pins          = e.payload;                }).then(fn => unlistens.push(fn));
@@ -381,7 +386,10 @@
     <div class="star-layer star-layer-2"></div>
   </div>
 
-  {#if isBlackout}
+  {#if playerIntroData && playerIntroData.active}
+    <SessionIntroScreen data={playerIntroData} {vaultPath} />
+
+  {:else if isBlackout}
     <div class="blackout">
       <div class="blackout-logo">
         {#if campaignTitle}<span class="blackout-title">{campaignTitle}</span>{:else}Grimoire{/if}

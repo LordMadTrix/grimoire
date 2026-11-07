@@ -96,7 +96,7 @@
       x: 350 + Math.floor(Math.random() * 100),
       y: 300 + Math.floor(Math.random() * 100),
       size: gridSize,
-      visible: true,
+      visible: false, // Caché par défaut : révélé par le MJ ou par portée visuelle des PJ
       isEnemy,
       hp,
       maxHp,

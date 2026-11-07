@@ -153,8 +153,22 @@
           <input type="number" id="t-size" bind:value={editToken.size} min="10" max="200" step="5" />
         </div>
         <div class="form-group">
-          <label for="t-vision">Vision (cases)</label>
-          <input type="number" id="t-vision" bind:value={editToken.visionRange} min="0" step="1" />
+          <label for="t-vision">Portée Vision (cases)</label>
+          <input type="number" id="t-vision" bind:value={editToken.visionRange} min="0" step="1" placeholder="ex: 12 cases (60 ft)" />
+        </div>
+        <div class="form-group">
+          <label for="t-fov">Angle Champ de Vue (°)</label>
+          <select id="t-fov" bind:value={editToken.visionAngle} class="select-input">
+            <option value={360}>360° (Omnidirectionnel)</option>
+            <option value={180}>180° (Demi-cercle)</option>
+            <option value={120}>120° (Vision large)</option>
+            <option value={90}>90° (Cône standard)</option>
+            <option value={60}>60° (Cône étroit / Torche)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="t-rot">Regard (0-360°)</label>
+          <input type="number" id="t-rot" bind:value={editToken.rotation} min="0" max="359" step="15" placeholder="0°=Nord" />
         </div>
       </div>
 
@@ -179,10 +193,10 @@
             <input type="checkbox" bind:checked={editToken.isEnemy} />
             Ennemi (rouge)
           </label>
-          <label class="checkbox-label">
+          <label class="checkbox-label" title="Si décoché, le pion est caché aux joueurs et n'apparaît que s'il entre dans le champ visuel d'un PJ">
             <input type="checkbox" checked={editToken.visible !== false}
               onchange={(e) => { if (editToken) editToken.visible = (e.target as HTMLInputElement).checked; }} />
-            Visible joueurs
+            👁️ Visible Joueurs (forcé)
           </label>
         </div>
       </div>

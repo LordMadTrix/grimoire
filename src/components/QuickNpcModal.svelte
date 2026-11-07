@@ -78,7 +78,7 @@
         x: 400 + rnd(-80, 80),
         y: 400 + rnd(-80, 80),
         size: 50,
-        visible: true,
+        visible: false, // Caché par défaut : révélé par le MJ ou par portée visuelle des PJ
         isEnemy: npc.hostile,
         hp: npc.bless,
         maxHp: npc.bless,

@@ -164,8 +164,13 @@
   async function handlePlaceVtt() {
     isSaving = true;
     try {
-      const dataUrl = await exportTokenToDataUrl(design);
-      placeTokenOnActiveMap(design, dataUrl);
+      let dataUrl = '';
+      try {
+        dataUrl = await exportTokenToDataUrl(design);
+      } catch {
+        dataUrl = design.imageUrl || '';
+      }
+      placeTokenOnActiveMap(design, dataUrl || design.imageUrl || '');
       onclose();
     } catch (err: any) {
       showToast('❌ Erreur placement VTT : ' + (err?.message || err));

@@ -515,22 +515,47 @@ pub async fn download_image_base64(url: String) -> Result<String, String> {
         return Ok(url);
     }
 
-    // Cas 1 : Chemin local absolu sur le disque ou relatif à public/
-    let p = Path::new(&url);
-    if p.exists() && p.is_file() {
-        let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
-        let mime = detect_image_mime(&bytes);
-        return Ok(format!("data:{};base64,{}", mime, general_purpose::STANDARD.encode(bytes)));
+    // Cas 1 : Chemin local absolu sur le disque ou protocoles locaux (asset://, file://)
+    let mut local_candidates: Vec<PathBuf> = Vec::new();
+
+    // Traitement protocoles locaux et décodage simple d'URL
+    let unescaped = url.replace("%20", " ");
+    if unescaped.starts_with("file:///") {
+        local_candidates.push(PathBuf::from(unescaped.trim_start_matches("file:///")));
+    } else if unescaped.starts_with("file://") {
+        local_candidates.push(PathBuf::from(unescaped.trim_start_matches("file://")));
+    } else if unescaped.starts_with("asset://localhost/") {
+        local_candidates.push(PathBuf::from(unescaped.trim_start_matches("asset://localhost/")));
+    } else if unescaped.starts_with("asset://") {
+        local_candidates.push(PathBuf::from(unescaped.trim_start_matches("asset://")));
+    } else if unescaped.starts_with("http://asset.localhost/") {
+        local_candidates.push(PathBuf::from(unescaped.trim_start_matches("http://asset.localhost/")));
+    }
+
+    local_candidates.push(PathBuf::from(&url));
+    local_candidates.push(PathBuf::from(&unescaped));
+
+    for lp in &local_candidates {
+        if lp.exists() && lp.is_file() {
+            if let Ok(bytes) = std::fs::read(lp) {
+                let mime = detect_image_mime(&bytes);
+                return Ok(format!("data:{};base64,{}", mime, general_purpose::STANDARD.encode(bytes)));
+            }
+        }
     }
 
     // Chemin relatif (ex: /tokens/library/enemies/dragon.png)
     let clean_rel = url.trim_start_matches('/').trim_start_matches('\\');
-    let candidates_local = [
+    let clean_rel_unescaped = unescaped.trim_start_matches('/').trim_start_matches('\\');
+    let candidates_relative = [
         PathBuf::from(clean_rel),
+        PathBuf::from(clean_rel_unescaped),
         PathBuf::from("public").join(clean_rel),
+        PathBuf::from("public").join(clean_rel_unescaped),
         PathBuf::from("../public").join(clean_rel),
+        PathBuf::from("../public").join(clean_rel_unescaped),
     ];
-    for lp in &candidates_local {
+    for lp in &candidates_relative {
         if lp.exists() && lp.is_file() {
             if let Ok(bytes) = std::fs::read(lp) {
                 let mime = detect_image_mime(&bytes);

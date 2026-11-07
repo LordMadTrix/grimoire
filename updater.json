@@ -1,10 +1,10 @@
 {
-  "version": "0.8.14",
-  "notes": "Version 0.8.14 : Tiroir notes MJ (N), SFX multi-écran en direct, sort Cube PixiJS, PNJ express IA, météo rapide et fix export tokens tainted canvas.",
-  "pub_date": "2026-11-07T00:35:00Z",
+  "version": "0.8.15",
+  "notes": "Version 0.8.15 : Studio Cinéma d'introduction de session (défilement 3D, météo sur l'affiche, voix-off IA avec ducking audio, casting des héros, accroche IA, presets et normalisation studio), lecteur de playlists audio et visibilité avancée des tokens MJ.",
+  "pub_date": "2026-11-07T22:36:00Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/LordMadTrix/grimoire/releases/download/v0.8.14/Grimoire_0.8.14_x64-setup.exe"
+      "url": "https://github.com/LordMadTrix/grimoire/releases/download/v0.8.15/Grimoire_0.8.15_x64-setup.exe"
     }
   }
 }

@@ -1,6 +1,6 @@
 import { getVaultPath } from '../stores/vault.svelte';
 import { vttStore, addGmToken, type Token } from '../stores/vtt.svelte';
-import { isTauri, writeFile, writeFileBase64, createDirectory, listDirectory, downloadImageBase64 } from '../api';
+import { isTauri, writeFile, writeFileBase64, createDirectory, listDirectory, downloadImageBase64, readFileBinary } from '../api';
 import type { TokenDesignData, SavedTokenDescriptor } from '../types/tokenEditor';
 
 /**
@@ -35,7 +35,32 @@ export async function imageSourceToDataUrl(src: string): Promise<string> {
   if (!src) return '';
   if (src.startsWith('data:')) return src;
 
-  // 1. Si Tauri est actif, télécharger côté Rust (100% immunisé contre le CORS)
+  // 1. Les blob: locaux sont 100% same-origin et convertibles directement via FileReader
+  if (src.startsWith('blob:')) {
+    try {
+      const res = await fetch(src);
+      if (res.ok) {
+        const blob = await res.blob();
+        return await blobToDataUrl(blob);
+      }
+    } catch {}
+  }
+
+  // 2. Fichiers locaux / asset:// sous Tauri : lecture directe en binaire pour éviter le tainted canvas
+  if (isTauri() && !src.startsWith('http://') && !src.startsWith('https://')) {
+    try {
+      const cleanPath = src.replace(/^asset:\/\/localhost\//, '').replace(/^asset:\/\//, '');
+      const bytes = await readFileBinary(decodeURIComponent(cleanPath));
+      if (bytes && bytes.byteLength > 0) {
+        const ext = cleanPath.toLowerCase();
+        const mime = ext.endsWith('.webp') ? 'image/webp' : ext.endsWith('.jpg') || ext.endsWith('.jpeg') ? 'image/jpeg' : ext.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+        const blob = new Blob([bytes], { type: mime });
+        return await blobToDataUrl(blob);
+      }
+    } catch {}
+  }
+
+  // 3. Téléchargement distant sécurisé via Tauri Rust (contournement total CORS)
   if (isTauri()) {
     try {
       const b64 = await downloadImageBase64(src);
@@ -45,18 +70,16 @@ export async function imageSourceToDataUrl(src: string): Promise<string> {
     }
   }
 
-  // 2. Tenter un fetch (idéal pour les assets locaux /tokens/...)
+  // 4. Tenter un fetch standard
   try {
     const res = await fetch(src);
     if (res.ok) {
       const blob = await res.blob();
       return await blobToDataUrl(blob);
     }
-  } catch {
-    // Si fetch échoue, tenter via Image Canvas
-  }
+  } catch {}
 
-  // 3. Charger dans une Image et convertir via un canvas temporaire
+  // 5. Tentative canvas temporaire avec gestion d'erreur stricte
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -72,7 +95,7 @@ export async function imageSourceToDataUrl(src: string): Promise<string> {
           return;
         }
       } catch {
-        // Canvas tainted
+        // Canvas tainted — renvoyer l'URL source
       }
       resolve(src);
     };
@@ -169,7 +192,7 @@ export function placeTokenOnActiveMap(
     hp: design.showHpBar ? design.hpPercent : undefined,
     maxHp: design.showHpBar ? 100 : undefined,
     isEnemy: design.status === 'hostile' || design.status === 'boss',
-    visible: true,
+    visible: false, // Caché par défaut aux joueurs : le MJ décide de le révéler ou selon la portée visuelle des PJ
     isShaped: true,
     notes: `Pion créé via l'Éditeur de Tokens (${design.shape}, ${design.metal})`,
   };

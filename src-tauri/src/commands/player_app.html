@@ -1848,6 +1848,13 @@ function connect(){
         }
       }else if(env.event==='herbo_item_shared'){
         handleHerboItemShared(env.data);
+      }else if(env.event==='set_player_intro'){
+        if(env.data && env.data.active){
+          const title = env.data.title || 'Nouvelle Session';
+          const sub = env.data.subtitle ? ' — ' + env.data.subtitle : '';
+          showToast('🎬', 'Générique de Session', title + sub, 'accent', 12000);
+          if(navigator.vibrate) navigator.vibrate([100, 50, 150]);
+        }
       }else if(env.event==='herbo_give_item'){
         handleHerboGiveItem(env.data);
       }
