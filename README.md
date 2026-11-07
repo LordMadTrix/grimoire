@@ -1,32 +1,43 @@
 <div align="center">
-  <img src="public/favicon.svg" alt="Grimoire Logo" width="120" />
-  <h1>Grimoire TTRPG</h1>
-  <p><strong>L'outil ultime pour les Maîtres du Jeu : Éditeur Markdown + VTT + IA Locale + HUB Mobile</strong></p>
 
-  <img src="public/grimoire_hero.png" alt="Grimoire Immersive Suite" width="100%" style="border-radius: 12px; margin: 20px 0;" />
+<img src="public/favicon.svg" width="96" alt="Logo Grimoire">
 
-  <p>
-    <a href="https://www.patreon.com/cw/LordMad"><img src="https://img.shields.io/badge/Patreon-Soutenir_le_projet-FF424D?style=for-the-badge&logo=patreon&logoColor=white" alt="Soutenir sur Patreon" /></a>
-  </p>
+# Grimoire TTRPG
 
-  <p>
-    <a href="#features">Fonctionnalités</a> •
-    <a href="#tracking-optique">Tracking 3D / Webcam</a> •
-    <a href="#installation">Installation</a> •
-    <a href="#mobile">Mobile HUB</a> •
-    <a href="#soutenir">Soutenir</a> •
-    <a href="#architecture">Architecture</a>
-  </p>
+**L'outil tout-en-un pour les Maîtres du Jeu**
+Notes Markdown · Table virtuelle (VTT) · IA locale · HUB mobile pour les joueurs
+
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-green?style=for-the-badge)](#)
+[![Soutenir sur Patreon](https://img.shields.io/badge/Patreon-Soutenir_le_projet-FF424D?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/cw/LordMad)
+
 </div>
 
+![Grimoire Immersive Suite](public/grimoire_hero.png)
+
+## 🐉 C'est quoi ?
+
+Grimoire rassemble en **une seule application** tout ce qu'il faut pour préparer et mener une partie de jeu de rôle : vos notes (style Obsidian), une table virtuelle rapide, une IA qui tourne **sur votre PC** (aucun cloud), et une appli mobile pour vos joueurs.
+
+Gratuit, open source, sans compte, pour Windows, Linux et macOS.
+
+## ⬇️ Installation
+
+**Ou téléchargement direct** : rendez-vous sur la page des [Releases](https://github.com/LordMadTrix/grimoire/releases/latest) et choisissez votre version (Windows, Linux ou macOS).
+
+> 💡 Sous Windows, si *SmartScreen* s'affiche : cliquez sur **« Informations complémentaires »** puis **« Exécuter quand même »**.
+
+## ✨ En bref
+
+- 📝 **Éditeur Markdown** pour campagnes, PNJ, lieux, avec liens `[[Note]]` et dés cliquables
+- 🗺️ **Table virtuelle** (brouillard de guerre, lumière dynamique, météo)
+- 🤖 **IA locale (Ollama)** : 100 % privée, hors-ligne
+- 📱 **Joueurs sur smartphone** : un simple QR code, rien à installer
+- 🎵 **Mixeur sonore** et +800 pistes d'ambiance
+- 🎥 **Tracking de figurines par webcam** (ArUco + bagues 3D)
+
+👇 La liste complète des fonctionnalités est juste en dessous.
+
 ---
-
-## 🐉 Qu'est-ce que Grimoire ?
-
-**Grimoire** est une application Desktop conçue par et pour les Maîtres du Jeu (TTRPG). Elle rassemble en une seule interface tout ce dont vous avez besoin pour gérer vos campagnes, de la préparation jusqu'au déroulement de la partie.
-
-Oubliez la multiplication des onglets et des applications : Grimoire combine un gestionnaire de notes Obsidian-like, une table virtuelle (VTT) hautement performante, et l'intelligence artificielle locale pour booster votre créativité.
-
 ## ✨ Fonctionnalités Exhaustives du Grimoire
 
 ### 1. 📝 Éditeur Markdown Rôliste Ultime (Style Obsidian & Outils MJ)
