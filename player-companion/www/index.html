@@ -1220,7 +1220,206 @@ let ch = {
   portrait:'',
 };
 
-let ws=null, playerId=null, playerName=null, reconnDelay=1000, gameConfig=null;
+const DEFAULT_WFRP1_CONFIG = {
+  system: "wfrp1",
+  version: "1.0",
+  races: [
+    {
+      name: "Humain",
+      emoji: "👤",
+      description: "Polyvalents, ambitieux et présents sur l'ensemble du Vieux Monde.",
+      fate: 3,
+      stats: { m:4, cc:31, ct:31, f:3, e:3, b:8, i:31, a:1, dex:31, cd:31, int:31, cl:31, fm:31, soc:31 },
+      special: ["Polyvalence impériale"]
+    },
+    {
+      name: "Nain",
+      emoji: "⚒️",
+      description: "Robustes et tenaces, maîtres de la pierre et du travail des métaux.",
+      fate: 1,
+      stats: { m:3, cc:41, ct:21, f:4, e:4, b:9, i:21, a:1, dex:21, cd:51, int:31, cl:51, fm:51, soc:21 },
+      special: ["Vision dans le noir", "Haine des Gobelinoïdes", "Résistance à la magie (+10)"]
+    },
+    {
+      name: "Elfe",
+      emoji: "🌿",
+      description: "Agiles et perceptifs, maîtres de la précision à l'arc et de la magie.",
+      fate: 1,
+      stats: { m:5, cc:31, ct:41, f:3, e:3, b:7, i:51, a:1, dex:41, cd:31, int:41, cl:31, fm:31, soc:31 },
+      special: ["Vision nocturne", "Sens aiguisés (+10 I)", "Tir d'élite"]
+    },
+    {
+      name: "Halfling",
+      emoji: "🍃",
+      description: "Petits, sociables et chanceux, tireurs remarquables et discrets.",
+      fate: 2,
+      stats: { m:4, cc:21, ct:41, f:2, e:2, b:6, i:31, a:1, dex:41, cd:31, int:31, cl:31, fm:31, soc:41 },
+      special: ["Résistance au Chaos", "Discrétion naturelle", "Tir à la fronde"]
+    },
+    {
+      name: "Gnome",
+      emoji: "🔮",
+      description: "Petits illusionnistes nés, vifs d'esprit, rusés et discrets.",
+      fate: 2,
+      stats: { m:4, cc:26, ct:26, f:2, e:2, b:5, i:41, a:1, dex:41, cd:31, int:41, cl:41, fm:41, soc:26 },
+      special: ["Magie mineure & Illusions", "Vision nocturne", "Esprit aiguisé"]
+    }
+  ],
+  careers: [
+    // ⚔️ Guerriers & Combat
+    { name: "Soldat", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","ct","f","e","b"],
+      skills: ["Port d'armure","Armes lourdes","Combat rapproché","Coup puissant"],
+      exits: ["Sergent","Mercenaire","Garde du Corps","Champion"] },
+    { name: "Mercenaire", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","ct","e","i","b"],
+      skills: ["Combat rapproché","Pilier d'auberge","Équitation","Intimidation"],
+      exits: ["Soldat","Capitaine mercenaire","Garde du Corps","Champion"] },
+    { name: "Garde du Corps", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","f","e","i","b"],
+      skills: ["Désarmement","Esquive","Intimidation","Combat à mains nues"],
+      exits: ["Tueur à Gages","Mercenaire","Régisseur","Bourreau"] },
+    { name: "Garde de la Cité", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","cd","e","int","b"],
+      skills: ["Droit local","Intimidation","Armes d'hast","Recherche"],
+      exits: ["Sergent de Ville","Enquêteur","Soldat"] },
+    { name: "Franc-Archer", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["ct","i","dex","m","b"],
+      skills: ["Tir de précision","Fabrication de flèches","Pistage","Discrétion"],
+      exits: ["Pisteur","Garde Forestier","Mercenaire"] },
+    { name: "Patrouilleur Routier", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","ct","i","dex","m"],
+      skills: ["Équitation","Tir monté","Orientation","Pistage"],
+      exits: ["Pisteur","Cocher","Sergent","Mercenaire"] },
+    { name: "Milicien", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","ct","f","b"],
+      skills: ["Armes simples","Port d'armure légère","Sang-froid"],
+      exits: ["Soldat","Garde de la Cité","Mercenaire"] },
+    { name: "Gladiateur / Bateleur de Foire", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","f","e","i","a"],
+      skills: ["Coups précis","Armes exotiques","Esquive","Provocation"],
+      exits: ["Champion","Tueur à Gages","Mercenaire"] },
+    { name: "Tueur de Trolls (Nain)", category: "⚔️ Guerriers & Combat",
+      stat_plan: ["cc","f","e","i","a","cl"],
+      skills: ["Coup puissant","Frénésie","Armes à deux mains","Immunité à la peur"],
+      exits: ["Tueur de Géants","Tueur de Dragons"] },
+
+    // 🌲 Voyage, Forêt & Terres Sauvages
+    { name: "Cocher", category: "🌲 Voyage & Terres Sauvages",
+      stat_plan: ["m","dex","i","soc"],
+      skills: ["Conduite d'attelage","Navigation","Soins animaux","Connaissance de la route"],
+      exits: ["Messager","Patrouilleur Routier","Péager","Contrebandier"] },
+    { name: "Chasseur", category: "🌲 Voyage & Terres Sauvages",
+      stat_plan: ["ct","i","dex","m","e"],
+      skills: ["Pistage","Pose de pièges","Peau de bête","Tir précis"],
+      exits: ["Trappeur","Guide","Garde Forestier"] },
+    { name: "Trappeur", category: "🌲 Voyage & Terres Sauvages",
+      stat_plan: ["i","dex","e","f"],
+      skills: ["Pose de pièges","Survie en forêt","Commerce des fourrures","Discrétion"],
+      exits: ["Chasseur","Bûcheron","Contrebandier"] },
+    { name: "Bûcheron", category: "🌲 Voyage & Terres Sauvages",
+      stat_plan: ["f","e","b","cc"],
+      skills: ["Abattage","Armes d'hast & Haches","Survie","Force herculéenne"],
+      exits: ["Milicien","Chasseur","Artisan"] },
+    { name: "Marin", category: "🌲 Voyage & Terres Sauvages",
+      stat_plan: ["m","dex","ct","e","cc"],
+      skills: ["Navigation","Nœuds marins","Escalade","Natation"],
+      exits: ["Second","Contrebandier","Passeur","Pilote"] },
+    { name: "Batelier / Passeur fluvial", category: "🌲 Voyage & Terres Sauvages",
+      stat_plan: ["f","e","dex","i"],
+      skills: ["Canotage","Navigation fluviale","Natation","Commerce"],
+      exits: ["Marin","Péager","Contrebandier","Aubergiste"] },
+    { name: "Guide des Terres Sauvages", category: "🌲 Voyage & Terres Sauvages",
+      stat_plan: ["m","i","dex","int"],
+      skills: ["Orientation","Survie","Langue secrète rôliste","Pistage"],
+      exits: ["Éclaireur","Chasseur","Patrouilleur"] },
+
+    // 🗡️ Rôdeurs, Pègre & Milieu Urbain
+    { name: "Voleur", category: "🗡️ Rôdeurs & Pègre",
+      stat_plan: ["dex","i","m","soc"],
+      skills: ["Crochetage","Discrétion","Vol à la tire","Escalade"],
+      exits: ["Cambrioleur","Receleur","Charlatan","Éclaireur"] },
+    { name: "Coupe-Bourse", category: "🗡️ Rôdeurs & Pègre",
+      stat_plan: ["dex","i","m","cl"],
+      skills: ["Vol à la tire","Fuite rapide","Évasion","Discrétion"],
+      exits: ["Voleur","Pilleur de tombes","Mendiant"] },
+    { name: "Brigand / Hors-la-Loi", category: "🗡️ Rôdeurs & Pègre",
+      stat_plan: ["cc","ct","f","e","i"],
+      skills: ["Embuscade","Intimidation","Tir d'armes","Survie"],
+      exits: ["Chef de bande","Contrebandier","Tueur à Gages"] },
+    { name: "Contrebandier", category: "🗡️ Rôdeurs & Pègre",
+      stat_plan: ["dex","i","soc","int"],
+      skills: ["Marchandage","Navigation secrète","Dissimulation","Corruption"],
+      exits: ["Receleur","Marchand","Marin","Batelier"] },
+    { name: "Pilleur de Tombes", category: "🗡️ Rôdeurs & Pègre",
+      stat_plan: ["f","dex","i","cl"],
+      skills: ["Crochetage","Péril des cryptes","Vision dans le noir","Sang-froid"],
+      exits: ["Voleur","Receleur","Chasseur de trésors"] },
+    { name: "Ratier", category: "🗡️ Rôdeurs & Pègre",
+      stat_plan: ["i","dex","e","b"],
+      skills: ["Pose de pièges","Chasse aux vermines","Dressage (Chien)","Résistance aux poisons"],
+      exits: ["Pilleur de tombes","Chasseur","Égoutier"] },
+    { name: "Charlatan", category: "🗡️ Rôdeurs & Pègre",
+      stat_plan: ["soc","int","cl","dex"],
+      skills: ["Baratin","Déguisement","Comédie","Jeux de hasard"],
+      exits: ["Escroc","Démagogue","Comédien"] },
+
+    // 📜 Savoir, Foi & Mystère
+    { name: "Apprenti Sorcier", category: "📜 Savoir, Foi & Mystère",
+      stat_plan: ["int","cl","fm","mag"],
+      skills: ["Magie mineure","Langue mystique","Connaissance des parchemins","Sens de la magie"],
+      exits: ["Compagnon Sorcier","Alchimiste","Érudit"] },
+    { name: "Initié (Temple)", category: "📜 Savoir, Foi & Mystère",
+      stat_plan: ["int","fm","cl","soc"],
+      skills: ["Théologie","Langue classique","Lecture & Écriture","Premiers soins"],
+      exits: ["Prêtre","Moine","Érudit","Chirurgien"] },
+    { name: "Érudit / Étudiant", category: "📜 Savoir, Foi & Mystère",
+      stat_plan: ["int","cl","soc"],
+      skills: ["Histoire","Philosophie","Lecture & Écriture","Recherche documentaire"],
+      exits: ["Médecin","Homme de loi","Alchimiste","Scribe"] },
+    { name: "Médecin des Rues (Chirurgien-Barbier)", category: "📜 Savoir, Foi & Mystère",
+      stat_plan: ["dex","int","cl","fm"],
+      skills: ["Chirurgie","Premiers soins","Herboristerie","Diagnostic"],
+      exits: ["Médecin diplômé","Apothicaire","Embaumeur"] },
+    { name: "Scribe", category: "📜 Savoir, Foi & Mystère",
+      stat_plan: ["dex","int","cl"],
+      skills: ["Calligraphie","Lecture & Écriture","Droit","Cryptographie"],
+      exits: ["Comptable","Érudit","Faussaire","Avocat"] },
+    { name: "Alchimiste Débutant", category: "📜 Savoir, Foi & Mystère",
+      stat_plan: ["dex","int","fm"],
+      skills: ["Chimie","Préparation de potions","Reconnaissance des minéraux","Herboristerie"],
+      exits: ["Maître Alchimiste","Apothicaire","Artisan"] },
+
+    // ⚒️ Bourgeoisie, Métiers & Société
+    { name: "Artisan", category: "⚒️ Bourgeoisie & Société",
+      stat_plan: ["dex","f","e","soc"],
+      skills: ["Métier spécialisé","Marchandage","Estimation","Travail du matériau"],
+      exits: ["Maître Artisan","Marchand","Contremaître"] },
+    { name: "Forgeron", category: "⚒️ Bourgeoisie & Société",
+      stat_plan: ["f","e","dex","cc"],
+      skills: ["Forge","Métallurgie","Travail des armes & armures","Force herculéenne"],
+      exits: ["Armurier","Artisan","Maître Forgeron"] },
+    { name: "Aubergiste / Tavernier", category: "⚒️ Bourgeoisie & Société",
+      stat_plan: ["soc","cd","cl","int"],
+      skills: ["Cuisine & Brasserie","Marchandage","Pilier d'auberge","Diplomatie"],
+      exits: ["Commerçant","Receleur","Bourgeois"] },
+    { name: "Marchand", category: "⚒️ Bourgeoisie & Société",
+      stat_plan: ["soc","int","cl","cd"],
+      skills: ["Commerce","Comptabilité","Évaluation","Langue étrangère"],
+      exits: ["Grand Négociant","Banquier","Bourgeois"] },
+    { name: "Valet / Domestique", category: "⚒️ Bourgeoisie & Société",
+      stat_plan: ["dex","i","soc","m"],
+      skills: ["Étiquette","Discrétion","Soins domestiques","Écoute clandestine"],
+      exits: ["Majordome","Espion","Aubergiste"] },
+    { name: "Ménestrel / Bateleur", category: "⚒️ Bourgeoisie & Société",
+      stat_plan: ["soc","dex","i","cl"],
+      skills: ["Musique & Chant","Jonglerie","Contes & Légendes","Séduction"],
+      exits: ["Poète de cour","Comédien","Charlatan"] }
+  ]
+};
+
+let ws=null, playerId=null, playerName=null, reconnDelay=1000;
+let gameConfig = DEFAULT_WFRP1_CONFIG;
 let chatMode='gm', myConditions=[], recus=[];
 let isOfflineMode=false;
 let currentServerAddr = localStorage.getItem('grimoire_server_addr') || (location.host && location.host !== 'localhost' ? location.host : '192.168.0.155:7438');
@@ -3469,6 +3668,7 @@ function rollHerboCheck(type) {
 
 // ── Init ───────────────────────────────────────────────────────────────
 buildProf();buildDice();
+populateRaceDropdown();populateCareerDropdown();
 initIndexedDB().then(async () => {
   await loadChar();
   updateDeviceHeroSummary();
