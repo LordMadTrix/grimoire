@@ -57,6 +57,8 @@ jobs:
 
             #### 📥 Téléchargement & Installation
             - **Windows** : Téléchargez l'installateur `.msi` ou le setup `.exe` ci-dessous.
+            - **Android (Compagnon Joueur)** : Téléchargez l'application autonome `.apk` pour smartphone et tablette Android.
+            - **iPhone / iPad (Apple)** : Connectez-vous sur Safari à l'adresse du MJ, touchez Partager ⬆️ puis « Sur l'écran d'accueil » pour installer l'app plein écran.
             - **Linux** : Téléchargez le paquet `.AppImage` ou `.deb`.
 
             ---
@@ -75,8 +77,47 @@ jobs:
           releaseDraft: false
           prerelease: false
 
+  build-android-companion:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: prepare companion assets
+        run: |
+          node scripts/sync-companion.mjs
+          cd player-companion
+          npm install
+          npx cap sync android
+
+      - name: build Android APK
+        run: |
+          cd player-companion/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: upload APK to release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: player-companion/android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   normalize-assets:
-    needs: release
+    needs: [release, build-android-companion]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
