@@ -476,6 +476,16 @@
             {@html serverInfo.qr_svg}
           </div>
           <p class="pm-hint" style="text-align:center">Scannez le QR ou entrez l'URL dans le navigateur.</p>
+
+          <div style="margin: 10px 0; background: rgba(229,168,83,0.08); border: 1px solid rgba(229,168,83,0.3); border-radius: 10px; padding: 10px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 3px;">📱 Application Joueur Autonome (Fiche Sécurisée)</div>
+            <p style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px;">La fiche reste enregistrée sur le téléphone du joueur même hors session.</p>
+            <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+              <a href="https://github.com/LordMadTrix/grimoire/releases/latest" target="_blank" rel="noopener noreferrer" style="text-decoration: none; font-size: 10px; padding: 5px 8px; border-radius: 6px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; font-weight: 700;">🤖 APK Android</a>
+              <button type="button" onclick={() => alert("Installation Apple (iPhone / iPad) :\n\n1. Ouvrez l'adresse de votre MJ dans Safari.\n2. Touchez le bouton Partager ⬆️ au bas de Safari.\n3. Sélectionnez « Sur l'écran d'accueil ».\n\nL'application s'installe en plein écran avec sa fiche hors-ligne permanente !")} style="font-size: 10px; padding: 5px 8px; border-radius: 6px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; font-weight: 700; cursor: pointer;">🍎 Guide iPhone / iPad</button>
+            </div>
+          </div>
+
           <button class="pm-btn-stop" onclick={handleStop}>⏹ Arrêter le Serveur</button>
         {/if}
       </div>

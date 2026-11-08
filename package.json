@@ -1,7 +1,7 @@
 {
   "name": "grimoire",
   "private": true,
-  "version": "0.8.16",
+  "version": "0.8.17",
   "type": "module",
   "scripts": {
     "vite-dev": "concurrently -n \"grimoire,map-editor\" -c \"blue,green\" \"vite\" \"npm run dev --prefix map-editor -- --port 5174 --strictPort\"",
@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "sync:companion": "node scripts/sync-companion.mjs",
     "manifest:winget": "bash scripts/generate-winget-manifest.sh"
   },
   "devDependencies": {

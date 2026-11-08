@@ -1,10 +1,10 @@
 {
-  "version": "0.8.16",
-  "notes": "Version 0.8.16 : Application Compagnon Mobile & Tablette (iPad / Android) entièrement responsive en 2 colonnes paysage (Split Layout), écran de connexion Glassmorphism doré avec blason, boutons rapides de vitalité (-5/-1/+1/+5), actions rapides de combat et D-Pad de déplacement du pion sur la table VTT, carte agrandie et grille de dés tactile panoramique.",
-  "pub_date": "2026-11-08T13:25:00Z",
+  "version": "0.8.17",
+  "notes": "Version 0.8.17 : Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA) avec persistance IndexedDB permanente (zéro perte de fiche), scanner QR Code par caméra intégré, sauvegarde/import JSON en 1 clic, mode hors-ligne complet et synchronisation bidirectionnelle automatique avec le MJ.",
+  "pub_date": "2026-11-08T22:30:00Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/LordMadTrix/grimoire/releases/download/v0.8.16/Grimoire_0.8.16_x64-setup.exe"
+      "url": "https://github.com/LordMadTrix/grimoire/releases/download/v0.8.17/Grimoire_0.8.17_x64-setup.exe"
     }
   }
 }

@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.16)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.17)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Compagnon Mobile & Tablette Réinventé (Split Layout 2 Colonnes Paysage, D-Pad VTT, Boutons Rapides PV & Glassmorphism) · Studio Cinéma d'Introduction (Défilement 3D, Voix-Off Ducking, Météo Affiche, Casting Héros & Normalisation Audio) · Lecteur de Playlists Locales · Visibilité Avancée des Tokens MJ · Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile GSM & PWA Sécurisé · IA Locale Ollama*
+> *Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA, Sauvegarde & Import JSON, Persistance Forte IndexedDB, Scanner QR Caméra) · Split Layout 2 Colonnes Paysage Tablette · D-Pad VTT Tactile · Studio Cinéma d'Introduction (Défilement 3D, Voix-Off Ducking, Météo Affiche, Casting Héros & Normalisation Audio) · Lecteur de Playlists Locales · Visibilité Avancée des Tokens MJ · Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Wiki Markdown & FTS5 · IA Locale Ollama*
 
 ---
 
@@ -20,7 +20,7 @@
 11. [Gestion des Tokens, Visibilité MJ & ConditionWheel](#11-gestion-des-tokens-visibilité-mj--conditionwheel)
 12. [Moteur de Combat & Résolution des Tests Opposés (SL Net WFRP)](#12-moteur-de-combat--résolution-des-tests-opposés-sl-net-wfrp)
 13. [Journal de Campagne, Quêtes & Résumés de Session](#13-journal-de-campagne-quêtes--résumés-de-session)
-14. [Compagnon Mobile PWA & Contrôle Tactile](#14-compagnon-mobile-pwa--contrôle-tactile)
+14. [Compagnon Joueur Autonome Offline-First & Applications Dédiées](#14-compagnon-joueur-autonome-offline-first--applications-dédiées-v0817)
 15. [Carnet Nomade du MJ (Version GSM & Dictée Vocale)](#15-carnet-nomade-du-mj-version-gsm-simplifiée--dictée-vocale)
 16. [Assistant Narratif & IA Locale Ollama](#16-assistant-narratif--ia-locale-ollama)
 17. [Boîte à Outils du MJ & Générateurs Aléatoires](#17-boîte-à-outils-du-mj--générateurs-aléatoires)
@@ -552,9 +552,29 @@ Accessible via **🧙‍♂️ Outils MJ → 📜 Journal de Quêtes & Campagne*
 
 ---
 
-## 14. Compagnon Mobile & Tablette PWA & Contrôle Tactile (v0.8.16)
+## 14. Compagnon Joueur Autonome Offline-First & Applications Dédiées (v0.8.17)
 
-Vos joueurs n'ont rien à installer : ils jouent depuis Safari, Chrome ou Firefox sur leur smartphone ou leur tablette (iPad / Android).
+Chaque joueur possède et conserve désormais sa **fiche de personnage directement sur son smartphone ou sa tablette**, de manière 100% autonome et sécurisée. Fini les fiches perdues lors d'un changement de PC ou d'un redémarrage !
+
+### 🤖 Deux Modes d'Installation Dédiés
+1. **Android (Application Native Dédiée .APK)** :
+   - Téléchargez directement `Grimoire_Compagnon_V0.8.17.apk` depuis les [GitHub Releases](https://github.com/LordMadTrix/grimoire/releases) ou depuis l'onglet **Mobile** de Grimoire.
+   - Installez l'APK sur n'importe quel smartphone ou tablette Android. L'application dispose de ses propres permissions caméra (pour le scanner de QR Code) et fonctionne en plein écran sans aucune barre de navigation.
+2. **Apple iPhone & iPad (Application PWA Standalone)** :
+   - Ouvrez Safari sur l'iPhone ou l'iPad et entrez l'adresse locale du serveur (ou scannez le QR Code).
+   - Touchez l'icône **Partager** (le carré avec une flèche vers le haut), puis sélectionnez **« Sur l'écran d'accueil »**.
+   - L'application s'ajoute à l'écran d'accueil avec son blason doré et son Service Worker pour un fonctionnement hors-ligne complet et persistant sans barre d'adresse.
+
+### 💾 Persistance Forte IndexedDB & Mode Hors-Ligne Total
+- **Zéro Perte de Fiche** : La fiche réside dans une base locale sécurisée `IndexedDB` avec persistance forte (`navigator.storage.persist()`). Même si le joueur vide le cache Safari/Chrome ou ferme son navigateur, sa fiche est intacte.
+- **Consultation Hors Ligne (« 📖 Consulter hors ligne »)** : Le joueur peut ouvrir son application à la maison sans être connecté au Wi-Fi du MJ pour relire ses compétences, son historique et son équipement.
+- **Sauvegarde & Import en 1 Clic** :
+  - **💾 Exporter (.json)** : Télécharge instantanément `[NomDuHéros].grimoire-hero.json` sur l'appareil pour archivage ou sauvegarde par mail.
+  - **📥 Importer** : Permet de restaurer une fiche en 1 seconde sur un nouvel appareil.
+
+### 📷 Scanner QR Code par Caméra Intégré
+- Plus besoin de taper l'adresse IP manuellement : un bouton **📷 Scanner QR** est présent directement sur l'écran d'accueil.
+- Il active la caméra arrière avec autofocus pour lire le QR Code affiché sur l'écran du MJ et synchronise instantanément la session.
 
 ### 📱 Optimisation Complète Tablette (Split Layout Paysage)
 Sur grand écran ou tablette en mode paysage ($\ge 860\text{px}$), l'application bascule automatiquement en **double colonne haute résolution** :
@@ -564,13 +584,10 @@ Sur grand écran ou tablette en mode paysage ($\ge 860\text{px}$), l'application
 - **🎲 Dés & Tests** : Grille panoramique 7 colonnes (d4 à d100), bouton *Fureur d'Ulric* (d10 explosif) et historique à gauche ; grille de compétences 4 colonnes, localisation d100 et jet d'initiative à droite.
 - **🗺️ Carte Tactique Grand Angle** : Fenêtre de carte agrandie à 480px de haut pour un suivi fluide des déplacements de l'équipe sans manipulation intempestive.
 
-### 🛡️ Connexion des Joueurs Sécurisée & Sans Friction
-1. Cliquez sur le bouton **📱 Mobile** de la barre d'outils pour afficher le QR Code et l'adresse IP locale (`http://[IP]:7438`).
-2. Chaque joueur scanne le QR Code avec son smartphone ou sa tablette pour ouvrir la web app.
-3. **Carte Glassmorphism Dorée** : Écran de connexion spacieux, blason tactile et typographie haute visibilité.
-4. **Sélecteur de Héros Intuitif** : Dès la page de connexion, un menu déroulant liste les personnages déjà créés sur la campagne. Le joueur clique simplement sur son nom, évitant ainsi toute faute de frappe !
-5. **Support Navigation Privée & Tolérance** : Le stockage des préférences fonctionne sans accroc même en navigation privée stricte. Si le joueur a oublié son mot de passe, le MJ peut le réinitialiser ou le supprimer en 1 clic depuis le panneau joueur de son écran.
-6. **Synchronisation Permanente des PV & Stats** : Fiole de santé avec boutons tactiles instantanés (`-5`, `-1`, `+1`, `+5`). Toute modification apportée par le MJ sur son écran ou dans le tiroir joueur met immédiatement à jour le compagnon mobile du joueur en temps réel.
+### 🛡️ Synchronisation Bidirectionnelle avec le MJ
+- Dès que le joueur se connecte à la table du MJ, Grimoire réconcilie automatiquement la fiche locale du joueur avec celle de la campagne.
+- **Bandeau d'état dynamique** : Un voyant indique en direct l'état de la connexion (⚪ Hors-Ligne, 🟢 Synchronisé avec le MJ).
+- Toute modification apportée par le MJ (dégâts, XP accordée, bénédictions) se reflète en temps réel sur l'appareil du joueur et se sauvegarde immédiatement dans son IndexedDB.
 
 ### Fonctionnalités Mobiles Exclusives :
 - **👁️ Screen Wake Lock (Anti-Veille)** : Bouton dédié en haut de l'écran pour empêcher le smartphone de s'éteindre tout au long de la partie.

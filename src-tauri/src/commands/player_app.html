@@ -6,8 +6,12 @@
 <meta name="theme-color" content="#0e1117"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Grimoire"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<title>Grimoire — WFRP</title>
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="icon" type="image/svg+xml" href="/icon.svg"/>
+<link rel="apple-touch-icon" href="/icon.svg"/>
+<title>Grimoire — Compagnon de Table</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0e1117;--bg2:#161b22;--bg3:#1c2233;--border:#2d3748;--accent:#e5a853;--text:#c9d1d9;--muted:#8899b7;--green:#22c55e;--red:#ef4444;--rad:8px}
@@ -245,6 +249,31 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   font-weight: 800 !important;
   opacity: 0.85;
 }
+.status.offline { color: var(--accent); }
+.conn-toggle-btn {
+  background: rgba(229,168,83,0.15);
+  border: 1px solid rgba(229,168,83,0.4);
+  color: var(--accent);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.conn-toggle-btn:hover { background: rgba(229,168,83,0.3); }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.active { display: flex; }
 .join-card {
   display: flex;
   flex-direction: column;
@@ -427,28 +456,80 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="join-card">
     <div style="font-size:42px;text-align:center;filter:drop-shadow(0 0 16px rgba(229,168,83,0.5))">⚔️</div>
     <h1 style="color:var(--accent);font-size:26px;letter-spacing:.02em;text-align:center">Grimoire TTRPG</h1>
-    <p style="color:var(--muted);font-size:13px;text-align:center;margin-top:-6px">Compagnon Mobile &amp; Tablette — Table de Jeu</p>
+    <p style="color:var(--muted);font-size:13px;text-align:center;margin-top:-6px">Compagnon Mobile &amp; Tablette — Fiche &amp; Table de Jeu</p>
     
+    <!-- Fiche sauvegardée localement sur cet appareil (Offline-First) -->
+    <div id="device-heroes-box" style="width:100%;display:flex;flex-direction:column;gap:8px">
+      <div id="active-hero-summary" style="background:rgba(229,168,83,0.08);border:1px solid rgba(229,168,83,0.3);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div id="sum-hero-name" style="font-weight:700;color:var(--accent);font-size:15px">⚔️ Aucun personnage</div>
+          <div id="sum-hero-career" style="font-size:11px;color:var(--muted)">Fiche enregistrée sur cet appareil</div>
+        </div>
+        <button type="button" class="sbtn" style="margin:0;padding:8px 12px;font-size:12px;background:var(--accent);color:#000;font-weight:800;border-radius:8px" onclick="openOfflineMode()">Ouvrir ma Fiche 🧙</button>
+      </div>
+    </div>
+
+    <!-- Adresse du serveur Grimoire (avec scanner QR caméra) -->
+    <div style="width:100%;display:flex;flex-direction:column;gap:6px">
+      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Serveur du MJ (Wi-Fi) :</label>
+      <div style="display:flex;gap:6px;width:100%">
+        <input class="jinp" id="server-address" placeholder="ex: 192.168.0.155:7438" style="flex:1;max-width:none"/>
+        <button type="button" class="jbtn" onclick="startQRScanner()" style="width:auto;max-width:none;padding:0 14px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.5);font-size:18px;color:#a5b4fc" title="Scanner le QR Code sur l'écran du MJ">📷</button>
+      </div>
+    </div>
+
     <!-- Sélecteur rapide de personnages existants de la campagne -->
     <div id="character-quick-picker" style="display:none;width:100%;flex-direction:column;gap:6px">
-      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Personnage enregistré :</label>
-      <select id="player-select" class="jinp" onchange="onSelectCharacter(this.value)">
+      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Personnage enregistré sur le PC du MJ :</label>
+      <select id="player-select" class="jinp" style="max-width:none" onchange="onSelectCharacter(this.value)">
         <option value="">-- Choisir un personnage existant --</option>
       </select>
     </div>
 
-    <input class="jinp" id="player-name" placeholder="Votre nom de personnage" maxlength="40"/>
-    <input class="jinp" id="player-password" type="password" placeholder="Mot de passe (facultatif)" maxlength="64"/>
-    <p id="pwd-hint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:-6px">Le mot de passe protège votre profil pour le retrouver à la prochaine session.</p>
+    <input class="jinp" id="player-name" placeholder="Votre nom de personnage" maxlength="40" style="max-width:none"/>
+    <input class="jinp" id="player-password" type="password" placeholder="Mot de passe (facultatif)" maxlength="64" style="max-width:none"/>
+    <p id="pwd-hint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:-6px">Le mot de passe protège votre profil sur la table du MJ.</p>
     <div id="join-error" style="color:#ef4444;font-size:13px;text-align:center;display:none;background:rgba(239,68,68,0.12);padding:10px;border-radius:6px;border:1px solid rgba(239,68,68,0.3);width:100%"></div>
-    <button class="jbtn" id="join-btn" onclick="joinGame()">Rejoindre la Table</button>
+    
+    <div style="display:flex;gap:8px;width:100%">
+      <button class="jbtn" id="join-btn" onclick="joinGame()" style="flex:1;max-width:none">🌐 Rejoindre la Table</button>
+      <button class="jbtn" onclick="openOfflineMode()" style="flex:1;max-width:none;background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text)">🧙 Fiche Hors-Ligne</button>
+    </div>
+
+    <!-- Actions de Sauvegarde / Exportation / Importation -->
+    <div style="display:flex;gap:8px;width:100%;margin-top:4px">
+      <button type="button" class="sbtn" onclick="exportHeroToFile()" style="flex:1;margin:0;font-size:11px;background:rgba(229,168,83,0.1);border-color:rgba(229,168,83,0.3);color:var(--accent)">💾 Exporter (.json)</button>
+      <button type="button" class="sbtn" onclick="document.getElementById('import-hero-input').click()" style="flex:1;margin:0;font-size:11px;background:rgba(255,255,255,0.06);border-color:var(--border);color:var(--muted)">📥 Importer (.json)</button>
+      <input type="file" id="import-hero-input" accept=".json,.grimoire-hero" onchange="importHeroFromFile(this)" style="display:none"/>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Scanner QR Code (Caméra) -->
+<div id="qr-scanner-modal" class="modal-overlay">
+  <div class="join-card" style="position:relative;max-width:360px;padding:24px">
+    <button type="button" onclick="stopQRScanner()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer">✕</button>
+    <h3 style="color:var(--accent);font-size:18px;margin-bottom:4px">📷 Scanner la Table</h3>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px">Pointez la caméra vers le QR Code affiché sur l'écran du MJ.</p>
+    <div style="width:100%;height:240px;background:#000;border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center">
+      <video id="qr-video" playsinline style="width:100%;height:100%;object-fit:cover"></video>
+      <div style="position:absolute;width:160px;height:160px;border:2px dashed var(--accent);border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,0.5)"></div>
+    </div>
+    <div id="qr-scan-status" style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Activation de la caméra…</div>
+    <button type="button" class="sbtn" onclick="stopQRScanner()" style="margin-top:12px;background:transparent;border-color:var(--border);color:var(--muted)">Annuler</button>
   </div>
 </div>
 
 <div id="app">
   <div class="status-bar-wrap">
-    <span class="status" id="status-bar">Connexion…</span>
-    <button class="wl-btn" id="wakelock-btn" onclick="toggleWakeLock()">👁️ Écran : Auto</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="status" id="status-bar">⚪ Hors-Ligne</span>
+      <button class="conn-toggle-btn" id="conn-toggle-btn" onclick="toggleConnectToGM()">🌐 Rejoindre le MJ</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="wl-btn" id="backup-quick-btn" onclick="exportHeroToFile()" title="Sauvegarde fichier immédiate">💾 Sauvegarde</button>
+      <button class="wl-btn" id="wakelock-btn" onclick="toggleWakeLock()">👁️ Écran : Auto</button>
+    </div>
   </div>
   <div id="party-bar"></div>
   <div class="tabs">
@@ -500,6 +581,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="tablet-split-grid">
       <!-- Colonne GAUCHE : Identité, Santé, Profil -->
       <div class="tablet-col">
+        <!-- Barre de Sauvegarde & Sécurité de la Fiche -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;background:rgba(22,27,34,0.6);border:1px solid rgba(229,168,83,0.25);border-radius:10px;padding:8px 10px">
+          <button type="button" class="sbtn" onclick="exportHeroToFile()" style="flex:1;margin:0;padding:8px 10px;font-size:11px;background:rgba(229,168,83,0.15);border-color:rgba(229,168,83,0.4);color:var(--accent);font-weight:700">💾 Exporter ma Fiche (.json)</button>
+          <button type="button" class="sbtn" onclick="document.getElementById('import-hero-perso').click()" style="flex:1;margin:0;padding:8px 10px;font-size:11px;background:rgba(255,255,255,0.06);border-color:var(--border);color:var(--muted)">📥 Importer (.json)</button>
+          <input type="file" id="import-hero-perso" accept=".json,.grimoire-hero" onchange="importHeroFromFile(this)" style="display:none"/>
+        </div>
+
         <div class="sec">Identité du Héros</div>
         <div class="fld"><div class="lbl">Nom</div><input class="inp" id="f-nom" oninput="sc()"/></div>
         <div class="fld">
@@ -1134,6 +1222,274 @@ let ch = {
 
 let ws=null, playerId=null, playerName=null, reconnDelay=1000, gameConfig=null;
 let chatMode='gm', myConditions=[], recus=[];
+let isOfflineMode=false;
+let currentServerAddr = localStorage.getItem('grimoire_server_addr') || (location.host && location.host !== 'localhost' ? location.host : '192.168.0.155:7438');
+
+// ── Moteur de Stockage Persistant IndexedDB & Sauvegardes ───────────────
+const DB_NAME = 'grimoire_player_db';
+const DB_VERSION = 1;
+let idb = null;
+
+function initIndexedDB() {
+  return new Promise((resolve) => {
+    if (!window.indexedDB) {
+      console.warn('IndexedDB non supporté');
+      return resolve(null);
+    }
+    try {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('characters')) {
+          db.createObjectStore('characters', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('settings')) {
+          db.createObjectStore('settings', { keyPath: 'key' });
+        }
+      };
+      req.onsuccess = (e) => {
+        idb = e.target.result;
+        if (navigator.storage && navigator.storage.persist) {
+          navigator.storage.persist().catch(() => {});
+        }
+        resolve(idb);
+      };
+      req.onerror = () => resolve(null);
+    } catch(err) {
+      resolve(null);
+    }
+  });
+}
+
+async function saveCharacterToStorage(charData) {
+  if (!charData) return;
+  const name = (charData.nom || playerName || 'Héros').trim();
+  const id = charData.id || name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  charData.id = id;
+  charData.nom = name;
+  charData.lastModified = Date.now();
+
+  // 1. IndexedDB (Persistance forte et sécurisée)
+  if (idb) {
+    try {
+      const tx = idb.transaction(['characters'], 'readwrite');
+      tx.objectStore('characters').put(charData);
+    } catch(err) {
+      console.warn('Erreur save IndexedDB:', err);
+    }
+  }
+
+  // 2. localStorage fallback immédiat
+  try {
+    localStorage.setItem('grimoire_wfrp2', JSON.stringify(charData));
+    localStorage.setItem('grimoire_active_hero_id', id);
+
+    let heroList = JSON.parse(localStorage.getItem('grimoire_heroes_index') || '[]');
+    const existingIdx = heroList.findIndex(h => h.id === id);
+    const maxB = parseInt(charData.profil?.act?.b) || 10;
+    const summary = {
+      id: id,
+      name: name,
+      career: charData.car || charData.voc || '',
+      hp: charData.bless || 0,
+      maxHp: maxB,
+      lastModified: charData.lastModified
+    };
+    if (existingIdx >= 0) heroList[existingIdx] = summary;
+    else heroList.push(summary);
+    localStorage.setItem('grimoire_heroes_index', JSON.stringify(heroList));
+  } catch(e) {}
+
+  updateDeviceHeroSummary();
+}
+
+function updateDeviceHeroSummary() {
+  const nameEl = document.getElementById('sum-hero-name');
+  const careerEl = document.getElementById('sum-hero-career');
+  if (!nameEl) return;
+  const name = ch.nom || localStorage.getItem('grimoire_player_name') || '';
+  if (name) {
+    const maxB = parseInt(ch.profil?.act?.b) || parseInt(ch.maxhp) || 10;
+    nameEl.textContent = `⚔️ ${name}`;
+    careerEl.textContent = `${ch.car || ch.voc || 'Aventurier'} · ${ch.bless || 0}/${maxB} PV`;
+  } else {
+    nameEl.textContent = '⚔️ Aucun personnage';
+    careerEl.textContent = 'Fiche enregistrée sur cet appareil';
+  }
+}
+
+function exportHeroToFile() {
+  collect();
+  const heroName = (ch.nom || playerName || 'heros').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const payload = {
+    format: 'grimoire-hero-v1',
+    exportDate: new Date().toISOString(),
+    character: ch
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const dl = document.createElement('a');
+  dl.href = url;
+  dl.download = `${heroName}.grimoire-hero.json`;
+  document.body.appendChild(dl);
+  dl.click();
+  dl.remove();
+  URL.revokeObjectURL(url);
+  showToast('💾', 'Fiche Sauvegardée', `Fichier ${heroName}.grimoire-hero.json téléchargé !`, 'success', 4000);
+}
+
+function importHeroFromFile(inputEl) {
+  const file = inputEl && inputEl.files && inputEl.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      let json = JSON.parse(e.target.result);
+      let charData = json.character || json;
+      if (charData && (charData.nom || charData.profil)) {
+        loadCharFromData(charData);
+        await saveCharacterToStorage(charData);
+        if (charData.nom) {
+          playerName = charData.nom;
+          const pNameInp = document.getElementById('player-name');
+          if (pNameInp) pNameInp.value = charData.nom;
+        }
+        updateDeviceHeroSummary();
+        showToast('📥', 'Fiche Importée', `${ch.nom || 'Personnage'} restauré avec succès !`, 'success', 4000);
+      } else {
+        alert('Le fichier sélectionné ne semble pas être une fiche Grimoire valide.');
+      }
+    } catch(err) {
+      alert('Erreur lors de la lecture du fichier : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  inputEl.value = '';
+}
+
+function openOfflineMode() {
+  collect();
+  document.getElementById('join').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  isOfflineMode = true;
+  updateStatusBanner();
+  showToast('🛡️', 'Mode Hors-Ligne', 'Votre fiche est prête (sauvegardée sur cet appareil).', 'success', 3500);
+}
+
+function updateStatusBanner() {
+  const bar = document.getElementById('status-bar');
+  const btn = document.getElementById('conn-toggle-btn');
+  if (!bar) return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    bar.textContent = '🟢 Synchronisé avec le MJ';
+    bar.className = 'status ok';
+    if (btn) btn.textContent = '📤 Sync';
+  } else if (isOfflineMode) {
+    bar.textContent = '⚪ Mode Hors-Ligne';
+    bar.className = 'status offline';
+    if (btn) btn.textContent = '🌐 Rejoindre le MJ';
+  } else {
+    bar.textContent = 'Connexion…';
+    bar.className = 'status';
+    if (btn) btn.textContent = '🌐 Rejoindre';
+  }
+}
+
+function toggleConnectToGM() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    sendCharacter();
+  } else {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('join').style.display = 'flex';
+    isOfflineMode = false;
+  }
+}
+
+// ── Scanner QR Code (Caméra) ───────────────────────────────────────────
+let qrStream = null;
+let qrVideoActive = false;
+
+async function startQRScanner() {
+  const modal = document.getElementById('qr-scanner-modal');
+  const video = document.getElementById('qr-video');
+  const status = document.getElementById('qr-scan-status');
+  if (!modal || !video) return;
+
+  modal.classList.add('active');
+  status.textContent = 'Activation de la caméra…';
+
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    video.srcObject = qrStream;
+    await video.play();
+    qrVideoActive = true;
+    status.textContent = 'Scannez le QR Code affiché sur l\'écran du MJ';
+    scanQRFrame();
+  } catch(err) {
+    status.textContent = 'Accès caméra refusé ou non supporté (' + err.message + ')';
+  }
+}
+
+function stopQRScanner() {
+  qrVideoActive = false;
+  if (qrStream) {
+    qrStream.getTracks().forEach(t => t.stop());
+    qrStream = null;
+  }
+  const modal = document.getElementById('qr-scanner-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function scanQRFrame() {
+  if (!qrVideoActive) return;
+  const video = document.getElementById('qr-video');
+  if (!video || video.readyState < 2) {
+    requestAnimationFrame(scanQRFrame);
+    return;
+  }
+
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const barcodes = await detector.detect(video);
+      if (barcodes && barcodes.length > 0) {
+        handleScannedQR(barcodes[0].rawValue);
+        return;
+      }
+    } catch(e) {}
+  }
+
+  requestAnimationFrame(scanQRFrame);
+}
+
+function handleScannedQR(rawVal) {
+  stopQRScanner();
+  if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+  try {
+    let url = new URL(rawVal);
+    let host = url.host;
+    if (host) {
+      const srvInp = document.getElementById('server-address');
+      if (srvInp) srvInp.value = host;
+      localStorage.setItem('grimoire_server_addr', host);
+      currentServerAddr = host;
+      showToast('📷', 'QR Code Scanné', `Connecté à ${host}`, 'success', 3000);
+      joinGame();
+      return;
+    }
+  } catch(e) {}
+  
+  if (rawVal.includes(':') || rawVal.includes('.')) {
+    const srvInp = document.getElementById('server-address');
+    if (srvInp) srvInp.value = rawVal;
+    localStorage.setItem('grimoire_server_addr', rawVal);
+    currentServerAddr = rawVal;
+    showToast('📷', 'QR Code Scanné', `Adresse : ${rawVal}`, 'success', 3000);
+    joinGame();
+  }
+}
 
 // ── Config-driven dropdowns ────────────────────────────────────────────
 function populateRaceDropdown(){
@@ -1505,11 +1861,13 @@ function collect(){
 let _scTimeout = null;
 function sc(){
   collect();
-  localStorage.setItem('grimoire_wfrp2',JSON.stringify(ch));
+  saveCharacterToStorage(ch);
   updateHealthState();
   if(_scTimeout) clearTimeout(_scTimeout);
   _scTimeout = setTimeout(() => {
-    sendCharacter(true);
+    if(ws && ws.readyState === WebSocket.OPEN) {
+      sendCharacter(true);
+    }
   }, 1000);
 }
 
@@ -1546,10 +1904,17 @@ function updateHealthState(){
   }
 }
 
-function loadChar(){
+async function loadChar(){
+  const activeId = localStorage.getItem('grimoire_active_hero_id');
+  if(activeId && idb){
+    try {
+      const d = await loadCharacterFromStorage(activeId);
+      if(d){ updateDeviceHeroSummary(); return; }
+    } catch(e){}
+  }
   const s=localStorage.getItem('grimoire_wfrp2');
   if(!s)return;
-  try{ loadCharFromData(JSON.parse(s)); }catch(e){}
+  try{ loadCharFromData(JSON.parse(s)); updateDeviceHeroSummary(); }catch(e){}
 }
 
 function sendCharacter(silent=false){
@@ -1916,8 +2281,29 @@ function setChatMode(mode){
 // ── WebSocket ──────────────────────────────────────────────────────────
 function connect(){
   if(ws){ws.close();ws=null;}
+  const srvInp = document.getElementById('server-address');
+  let targetHost = (srvInp && srvInp.value.trim()) || localStorage.getItem('grimoire_server_addr') || location.host;
+  targetHost = targetHost.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+  if (!targetHost || (targetHost.startsWith('localhost') && location.protocol === 'file:')) {
+    targetHost = '192.168.0.155:7438';
+  }
+  localStorage.setItem('grimoire_server_addr', targetHost);
+  currentServerAddr = targetHost;
+
   const proto=location.protocol==='https:'?'wss':'ws';
-  ws=new WebSocket(proto+'://'+location.host+'/ws');
+  try {
+    ws=new WebSocket(proto+'://'+targetHost+'/ws');
+  } catch(err) {
+    const errEl = document.getElementById('join-error');
+    if (errEl) {
+      errEl.textContent = 'Adresse invalide ou injoignable : ' + targetHost;
+      errEl.style.display = 'block';
+    }
+    const btn = document.getElementById('join-btn');
+    if (btn) { btn.textContent = 'Rejoindre la Table'; btn.disabled = false; }
+    return;
+  }
+
   ws.onopen=()=>{
     reconnDelay=1000;
     ws.send(JSON.stringify({event:'join',data:{name:playerName,password:playerPassword||undefined}}));
@@ -1931,8 +2317,12 @@ function connect(){
         // Connexion confirmée : afficher l'app
         document.getElementById('join').style.display='none';
         document.getElementById('app').style.display='flex';
+        isOfflineMode=false;
         if(!document.getElementById('f-nom').value)sv('f-nom',playerName);
-        showStatus('Connecté',true);
+        updateStatusBanner();
+        // Synchroniser immédiatement notre fiche locale avec le MJ
+        sendCharacter(true);
+        showToast('🛡️','Table Rejointe',`Connecté au Grimoire (${targetHost})`,'success',3000);
       }else if(env.event==='auth_error'){
         const errEl=document.getElementById('join-error');
         if(errEl){
@@ -1948,16 +2338,16 @@ function connect(){
         populateRaceDropdown();
         populateCareerDropdown();
       }else if(env.event==='restore_character'){
-        // Personnage sauvegardé côté serveur — priorité sur localStorage
+        // Personnage sauvegardé côté serveur — synchronisation avec le stockage local
         loadCharFromData(env.data);
-        localStorage.setItem('grimoire_wfrp2',JSON.stringify(ch));
-        showToast('🧙','Personnage','Profil restauré avec succès','success',4000);
+        saveCharacterToStorage(ch);
+        showToast('🧙','Personnage','Profil synchronisé depuis le MJ','success',4000);
       }else if(env.event==='push_character'){
         // MJ envoie un perso créé depuis le Créateur de personnage
         if(!env.data.playerId||env.data.playerId===playerId){
           loadCharFromData(env.data.character||env.data);
-          localStorage.setItem('grimoire_wfrp2',JSON.stringify(ch));
-          showToast('📋','Personnage','Nouveau personnage assigné par le MJ','success',5000);
+          saveCharacterToStorage(ch);
+          showToast('📋','Personnage','Fiche mise à jour par le MJ','success',5000);
         }
       }else if(env.event==='scene'){
         renderCombat(env.data);
@@ -1987,7 +2377,7 @@ function connect(){
         }
         sv('f-bless', newHp);
         updateHealthState();
-        localStorage.setItem('grimoire_wfrp2', JSON.stringify(ch));
+        saveCharacterToStorage(ch);
         const delta = env.data.damage;
         if(delta > 0){
           showToast('💥', 'Dégâts reçus', `-${delta} PV (${newHp} restants)`, 'danger', 4500);
@@ -3078,7 +3468,17 @@ function rollHerboCheck(type) {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────
-buildProf();buildDice();loadChar();
+buildProf();buildDice();
+initIndexedDB().then(async () => {
+  await loadChar();
+  updateDeviceHeroSummary();
+});
+
+const srvInp = document.getElementById('server-address');
+if(srvInp && currentServerAddr){
+  srvInp.value = currentServerAddr;
+}
+
 const sn=localStorage.getItem('grimoire_player_name');
 if(sn)document.getElementById('player-name').value=sn;
 const sp=localStorage.getItem('grimoire_player_pwd');
@@ -3088,6 +3488,11 @@ document.getElementById('player-password').addEventListener('keydown',e=>{if(e.k
 document.getElementById('comp-new').addEventListener('keydown',e=>{if(e.key==='Enter')addComp();});
 renderHerboSatchel();
 loadAvailableCharacters();
+
+// PWA Service Worker (pour fonctionnement 100% hors-ligne)
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {
+  navigator.serviceWorker.register('/sw.js').catch(e => console.warn('PWA SW error:', e));
+}
 </script>
 </body>
 </html>

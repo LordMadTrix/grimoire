@@ -248,6 +248,17 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.17 — Compagnon Joueur Autonome Offline-First & App Dédiée
+
+- **💾 Fiche Joueur Permanente & Offline-First (IndexedDB)** : Chaque joueur conserve sa fiche directement sur son appareil. Même si le PC du MJ redémarre ou que le navigateur est fermé, aucune donnée n'est perdue.
+- **📱 Application Dédiée Android (APK)** : Fichier `Grimoire_Compagnon_V0.8.17.apk` prêt à installer sur tout smartphone ou tablette Android, sans passer par le store, avec permissions caméra et expérience plein écran.
+- **🍎 Application Dédiée Apple iPhone & iPad (PWA Standalone)** : Installation en 1 clic via Safari (*« Sur l'écran d'accueil »*), icône dorée, Service Worker pour fonctionnement hors-ligne total et affichage immersif sans barre d'adresse.
+- **📷 Scanner QR Code par Caméra Intégré** : Bouton caméra sur l'écran d'accueil permettant de scanner instantanément le QR Code du MJ sans jamais avoir à taper d'adresse IP.
+- **💾 Export & Import JSON en 1 Clic** : Sauvegarde de secours téléchargeable en fichier `.json` et restauration immédiate sur un nouvel appareil.
+- **⚪/🟢 Synchronisation Automatique avec le MJ** : Dès l'arrivée à la table, l'application se connecte au Wi-Fi du MJ, synchronise l'état et réconcilie les modifications en temps réel.
+
+---
+
 ## 🌟 Nouveautés v0.8.16 — Compagnon Mobile & Tablette Réinventé, D-Pad VTT & Studio Cinéma
 
 - **📱 Interface Tablette Complète (Split Layout Paysage)** : Disposition responsive en double colonne haute résolution sur grand écran (iPad, Android, surface tactile).

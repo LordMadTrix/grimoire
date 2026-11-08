@@ -1,0 +1,19 @@
+{
+  "name": "Grimoire Compagnon",
+  "short_name": "Grimoire",
+  "description": "Fiche de Personnage & Compagnon TTRPG de Table (Warhammer)",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0c10",
+  "theme_color": "#e5a853",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

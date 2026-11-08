@@ -1,0 +1,8 @@
+{
+  "appId": "net.madtrix.grimoire.companion",
+  "appName": "Grimoire Compagnon",
+  "webDir": "www",
+  "server": {
+    "cleartext": true
+  }
+}

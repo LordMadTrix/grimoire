@@ -1,0 +1,16 @@
+{
+  "name": "grimoire-companion",
+  "version": "1.0.0",
+  "description": "Grimoire TTRPG Mobile & Tablet Companion App (Warhammer Fantasy)",
+  "scripts": {
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/android": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

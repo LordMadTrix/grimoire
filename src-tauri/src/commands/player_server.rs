@@ -175,6 +175,11 @@ pub async fn start_player_server(
     let app_state = std::sync::Arc::clone(srv);
     let router = Router::new()
         .route("/", get(serve_player_app))
+        .route("/manifest.webmanifest", get(serve_manifest))
+        .route("/sw.js", get(serve_sw))
+        .route("/icon.svg", get(serve_icon))
+        .route("/icon-192.png", get(serve_icon))
+        .route("/icon-512.png", get(serve_icon))
         .route("/mj", get(serve_carnet_mj))
         .route("/carnet", get(serve_carnet_mj))
         .route("/api/status", get(handle_status))
@@ -742,6 +747,18 @@ fn path_inside_vault(vault_path: &str, candidate: &std::path::Path) -> bool {
 
 async fn serve_player_app() -> impl IntoResponse {
     Html(PLAYER_APP_HTML)
+}
+
+async fn serve_manifest() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "application/manifest+json; charset=utf-8")], MANIFEST_JSON)
+}
+
+async fn serve_sw() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "application/javascript; charset=utf-8")], SERVICE_WORKER_JS)
+}
+
+async fn serve_icon() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "image/svg+xml; charset=utf-8")], ICON_SVG)
 }
 
 async fn serve_carnet_mj() -> impl IntoResponse {
@@ -1539,3 +1556,6 @@ fn generate_qr_svg(url: &str) -> String {
 
 const PLAYER_APP_HTML: &str = include_str!("player_app.html");
 const CARNET_MJ_HTML: &str = include_str!("carnet_mj.html");
+const MANIFEST_JSON: &str = include_str!("manifest.webmanifest");
+const SERVICE_WORKER_JS: &str = include_str!("sw.js");
+const ICON_SVG: &str = include_str!("icon.svg");
