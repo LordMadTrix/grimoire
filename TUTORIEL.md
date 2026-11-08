@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.15)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.16)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Studio Cinéma d'Introduction (Défilement 3D, Voix-Off Ducking, Météo Affiche, Casting Héros & Normalisation Audio) · Lecteur de Playlists Locales · Visibilité Avancée des Tokens MJ · Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile GSM & PWA Sécurisé · IA Locale Ollama*
+> *Compagnon Mobile & Tablette Réinventé (Split Layout 2 Colonnes Paysage, D-Pad VTT, Boutons Rapides PV & Glassmorphism) · Studio Cinéma d'Introduction (Défilement 3D, Voix-Off Ducking, Météo Affiche, Casting Héros & Normalisation Audio) · Lecteur de Playlists Locales · Visibilité Avancée des Tokens MJ · Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime (Menus Déroulants, Clic Droit, Inline Dice, Callouts, Mode Zen, Recherche & Split View) · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Bibliothèque Céleste Audio & Illustrations · Wiki Markdown & FTS5 · Compagnon Mobile GSM & PWA Sécurisé · IA Locale Ollama*
 
 ---
 
@@ -552,16 +552,25 @@ Accessible via **🧙‍♂️ Outils MJ → 📜 Journal de Quêtes & Campagne*
 
 ---
 
-## 14. Compagnon Mobile PWA & Contrôle Tactile
+## 14. Compagnon Mobile & Tablette PWA & Contrôle Tactile (v0.8.16)
 
-Vos joueurs n'ont rien à installer : ils jouent depuis Safari, Chrome ou Firefox sur leur smartphone.
+Vos joueurs n'ont rien à installer : ils jouent depuis Safari, Chrome ou Firefox sur leur smartphone ou leur tablette (iPad / Android).
 
-### Connexion des Joueurs (Fiabilisée & Sans Friction v0.8.14)
+### 📱 Optimisation Complète Tablette (Split Layout Paysage)
+Sur grand écran ou tablette en mode paysage ($\ge 860\text{px}$), l'application bascule automatiquement en **double colonne haute résolution** :
+- **🧙 Perso en 2 colonnes** : Fiole de vitalité, avatar et caractéristiques à gauche ; carrière, progression et liste des compétences interactives à droite.
+- **⚔️ Combat Unifié** : Actions rapides de combat (*Attaque, Esquive/Parade, Charge, Désengagement*), D-Pad tactile de déplacement VTT et armes à gauche ; jauge de santé, tableau de combat du MJ et armures par localisation à droite.
+- **🎒 Équipement & Magie** : Points vitaux (Destin, Magie, Pouvoir, Folie, XP) et grimoire de sorts à gauche ; dotations, richesses, allures et origines à droite.
+- **🎲 Dés & Tests** : Grille panoramique 7 colonnes (d4 à d100), bouton *Fureur d'Ulric* (d10 explosif) et historique à gauche ; grille de compétences 4 colonnes, localisation d100 et jet d'initiative à droite.
+- **🗺️ Carte Tactique Grand Angle** : Fenêtre de carte agrandie à 480px de haut pour un suivi fluide des déplacements de l'équipe sans manipulation intempestive.
+
+### 🛡️ Connexion des Joueurs Sécurisée & Sans Friction
 1. Cliquez sur le bouton **📱 Mobile** de la barre d'outils pour afficher le QR Code et l'adresse IP locale (`http://[IP]:7438`).
-2. Chaque joueur scanne le QR Code avec son smartphone pour ouvrir la web app.
-3. **Sélecteur de Héros Intuitif** : Dès la page de connexion, un menu déroulant liste les personnages déjà créés sur la campagne. Le joueur clique simplement sur son nom, évitant ainsi toute faute de frappe !
-4. **Tolérance & Sécurité** : La saisie du pseudo est insensible à la casse (`Grimli` ou `grimli`). Si le joueur a oublié son mot de passe, le MJ peut le réinitialiser ou le supprimer en 1 clic depuis le panneau joueur de son écran.
-5. **Synchronisation Permanente des PV & Stats** : Toute modification apportée par le MJ sur son écran ou dans le tiroir joueur met immédiatement à jour la fiole de vie et les points de vie sur le smartphone du joueur, sans aucun rechargement de page.
+2. Chaque joueur scanne le QR Code avec son smartphone ou sa tablette pour ouvrir la web app.
+3. **Carte Glassmorphism Dorée** : Écran de connexion spacieux, blason tactile et typographie haute visibilité.
+4. **Sélecteur de Héros Intuitif** : Dès la page de connexion, un menu déroulant liste les personnages déjà créés sur la campagne. Le joueur clique simplement sur son nom, évitant ainsi toute faute de frappe !
+5. **Support Navigation Privée & Tolérance** : Le stockage des préférences fonctionne sans accroc même en navigation privée stricte. Si le joueur a oublié son mot de passe, le MJ peut le réinitialiser ou le supprimer en 1 clic depuis le panneau joueur de son écran.
+6. **Synchronisation Permanente des PV & Stats** : Fiole de santé avec boutons tactiles instantanés (`-5`, `-1`, `+1`, `+5`). Toute modification apportée par le MJ sur son écran ou dans le tiroir joueur met immédiatement à jour le compagnon mobile du joueur en temps réel.
 
 ### Fonctionnalités Mobiles Exclusives :
 - **👁️ Screen Wake Lock (Anti-Veille)** : Bouton dédié en haut de l'écran pour empêcher le smartphone de s'éteindre tout au long de la partie.

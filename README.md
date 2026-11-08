@@ -248,6 +248,19 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.16 — Compagnon Mobile & Tablette Réinventé, D-Pad VTT & Studio Cinéma
+
+- **📱 Interface Tablette Complète (Split Layout Paysage)** : Disposition responsive en double colonne haute résolution sur grand écran (iPad, Android, surface tactile).
+  - *🧙 Perso* : Avatar, identité et fiole de santé avec boutons tactiles instantanés (`-5`, `-1`, `+1`, `+5`) à gauche ; carrière et compétences interactives à droite.
+  - *⚔️ Combat Unifié* : D-Pad tactile de déplacement en direct du pion sur la table VTT, actions rapides (Attaque, Esquive/Parade, Charge, Désengagement) et gestion des points d'armure par localisation.
+  - *🎒 Équipement & Magie* : Points vitaux (Destin, Magie, Folie, XP) et sortilèges à gauche ; inventaire, dotations et origines sociales à droite.
+  - *🎲 Dés Tactiles* : Grille panoramique 7 colonnes (d4 à d100), bouton Fureur d'Ulric (d10 explosif), historique et tests de compétences en 4 colonnes.
+  - *🗺️ Carte Tactique Agrandie* : Vue de jeu panoramique à 480px de haut pour suivre l'exploration de l'équipe sans manipulation.
+- **🛡️ Connexion Fiabilisée & Navigation Privée** : Écran de connexion Glassmorphism doré avec blason, tolérance aux minuscules/majuscules et compatibilité totale avec la navigation privée (Safari / Chrome).
+- **🎬 Studio Cinéma d'Introduction & Playlists Audio** : Défilement spatial 3D Star Wars / Prologue, météo cinématique en surimpression sur l'affiche, voix-off IA avec ducking audio automatique, casting des héros et normalisation sonore dynamique studio.
+
+---
+
 ## 🌟 Nouveautés v0.8.14 — Immersion VTT, Tiroir Notes & Mobile Fiabilisé
 
 - **📜 Tiroir Flottant de Notes MJ en Jeu (<kbd>N</kbd>)** : Consultez vos fiches de lore, bestiaires et secrets de donjon directement par-dessus la Table Virtuelle sans quitter votre scène. Recherche instantanée et bouton **« 🪙 Poser en Pion VTT »** pour placer instantanément un monstre ou PNJ sur la carte avec ses caractéristiques.

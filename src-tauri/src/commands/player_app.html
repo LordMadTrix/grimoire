@@ -227,27 +227,222 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   .combat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .c-action-btn { background:var(--bg3); border:1px solid var(--border); color:var(--accent); padding:15px 10px; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; }
   .c-action-btn:active { background:var(--accent); color:#000; transform:scale(0.95); }
+
+/* ── Responsive Tablet Layouts (iPad & Android Tablets) ── */
+.tablet-split-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+.tablet-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hp-sub5, .hp-add5 {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  opacity: 0.85;
+}
+.join-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 380px;
+}
+
+@media (min-width: 768px) {
+  body {
+    font-size: 15px;
+  }
+  #join {
+    background: radial-gradient(circle at center, #1b2333 0%, #0a0c10 100%);
+    padding: 40px 24px;
+  }
+  .join-card {
+    background: rgba(22, 27, 38, 0.94);
+    border: 1px solid rgba(229, 168, 83, 0.35);
+    border-radius: 20px;
+    padding: 44px 36px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 35px rgba(229, 168, 83, 0.12);
+    max-width: 480px;
+  }
+  .join-card h1 {
+    font-size: 32px !important;
+  }
+  .jinp {
+    font-size: 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    max-width: 100%;
+  }
+  .jbtn {
+    font-size: 16px;
+    padding: 14px 28px;
+    border-radius: 10px;
+    max-width: 100%;
+    box-shadow: 0 6px 20px rgba(229, 168, 83, 0.25);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .jbtn:active {
+    transform: scale(0.98);
+  }
+  .status-bar-wrap {
+    padding: 8px 24px;
+    background: #11141b;
+  }
+  .status {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tabs {
+    padding: 8px 16px 0;
+    gap: 6px;
+    justify-content: center;
+    background: #11141b;
+    border-bottom: 2px solid #232d3f;
+  }
+  .tab {
+    flex: initial;
+    padding: 12px 18px;
+    font-size: 13px;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s ease;
+  }
+  .tab:hover {
+    color: var(--accent);
+    background: rgba(229, 168, 83, 0.08);
+  }
+  .tab.active {
+    background: rgba(229, 168, 83, 0.16);
+    border-bottom: 3px solid var(--accent);
+  }
+  .panel {
+    padding: 24px 32px 160px;
+    max-width: 1160px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .sec {
+    font-size: 13px;
+    padding: 10px 0 6px;
+  }
+  .inp {
+    padding: 9px 12px;
+    font-size: 14px;
+    border-radius: 7px;
+  }
+  .dice-grid {
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 12px;
+  }
+  .die-btn {
+    padding: 18px 8px;
+    font-size: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.15s;
+  }
+  .die-btn:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .test-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px;
+  }
+  .test-btn {
+    padding: 12px 8px;
+    border-radius: 9px;
+  }
+  .test-key {
+    font-size: 15px;
+  }
+  .test-val {
+    font-size: 11px;
+  }
+  #map-container {
+    height: 480px;
+    border-radius: 14px;
+  }
+  .sk-wrap {
+    height: 450px;
+  }
+  .pts-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .bless-row {
+    padding: 24px;
+    border-radius: 16px;
+    gap: 14px;
+  }
+  .bless-cur {
+    font-size: 42px;
+    width: 84px;
+  }
+  .hp-quick-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
+  }
+  .prof-tbl th {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .prof-tbl td {
+    padding: 4px 6px;
+  }
+  .si {
+    width: 44px;
+    padding: 6px 4px;
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 860px) {
+  .tablet-split-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+    width: 100%;
+  }
+  .tablet-col {
+    background: rgba(22, 27, 34, 0.45);
+    border: 1px solid rgba(45, 55, 72, 0.7);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+}
 </style>
 </head>
 <body>
 
 <div id="join">
-  <h1>⚔️ Grimoire WFRP</h1>
-  <p>Warhammer Fantasy — Rejoignez la table de votre Maître du Jeu</p>
-  
-  <!-- Sélecteur rapide de personnages existants de la campagne -->
-  <div id="character-quick-picker" style="display:none;width:100%;max-width:320px;flex-direction:column;gap:6px">
-    <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Personnage enregistré :</label>
-    <select id="player-select" class="jinp" onchange="onSelectCharacter(this.value)">
-      <option value="">-- Choisir un personnage existant --</option>
-    </select>
-  </div>
+  <div class="join-card">
+    <div style="font-size:42px;text-align:center;filter:drop-shadow(0 0 16px rgba(229,168,83,0.5))">⚔️</div>
+    <h1 style="color:var(--accent);font-size:26px;letter-spacing:.02em;text-align:center">Grimoire TTRPG</h1>
+    <p style="color:var(--muted);font-size:13px;text-align:center;margin-top:-6px">Compagnon Mobile &amp; Tablette — Table de Jeu</p>
+    
+    <!-- Sélecteur rapide de personnages existants de la campagne -->
+    <div id="character-quick-picker" style="display:none;width:100%;flex-direction:column;gap:6px">
+      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Personnage enregistré :</label>
+      <select id="player-select" class="jinp" onchange="onSelectCharacter(this.value)">
+        <option value="">-- Choisir un personnage existant --</option>
+      </select>
+    </div>
 
-  <input class="jinp" id="player-name" placeholder="Votre nom de personnage" maxlength="40"/>
-  <input class="jinp" id="player-password" type="password" placeholder="Mot de passe (facultatif)" maxlength="64"/>
-  <p id="pwd-hint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:-8px">Le mot de passe protège votre profil pour le retrouver à la prochaine session.</p>
-  <div id="join-error" style="color:#ef4444;font-size:13px;text-align:center;display:none;background:rgba(239,68,68,0.12);padding:10px;border-radius:6px;border:1px solid rgba(239,68,68,0.3);width:100%;max-width:320px"></div>
-  <button class="jbtn" id="join-btn" onclick="joinGame()">Rejoindre la Table</button>
+    <input class="jinp" id="player-name" placeholder="Votre nom de personnage" maxlength="40"/>
+    <input class="jinp" id="player-password" type="password" placeholder="Mot de passe (facultatif)" maxlength="64"/>
+    <p id="pwd-hint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:-6px">Le mot de passe protège votre profil pour le retrouver à la prochaine session.</p>
+    <div id="join-error" style="color:#ef4444;font-size:13px;text-align:center;display:none;background:rgba(239,68,68,0.12);padding:10px;border-radius:6px;border:1px solid rgba(239,68,68,0.3);width:100%"></div>
+    <button class="jbtn" id="join-btn" onclick="joinGame()">Rejoindre la Table</button>
+  </div>
 </div>
 
 <div id="app">
@@ -302,304 +497,354 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
   <!-- ══ PERSO ══ -->
   <div id="tab-perso" class="panel active">
-    <div class="sec">Identité</div>
-    <div class="fld"><div class="lbl">Nom</div><input class="inp" id="f-nom" oninput="sc()"/></div>
-    <div class="fld">
-      <div class="lbl">Avatar</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
-        <input type="file" id="f-avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)"/>
-        <button class="jbtn" onclick="document.getElementById('f-avatar-upload').click()" style="padding:8px 12px;font-size:12px;width:auto;flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text)">📁 Charger</button>
-        <button class="jbtn" onclick="generateAvatar()" style="padding:8px 12px;font-size:12px;width:auto;flex:1;background:rgba(229,168,83,0.15);border:1px solid var(--accent);color:var(--accent)" id="btn-gen-avatar">✨ Générer</button>
-        <div id="avatar-preview-container" style="display:none;margin-left:auto;flex-shrink:0">
-          <img id="f-avatar-preview" src="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);display:block"/>
+    <div class="tablet-split-grid">
+      <!-- Colonne GAUCHE : Identité, Santé, Profil -->
+      <div class="tablet-col">
+        <div class="sec">Identité du Héros</div>
+        <div class="fld"><div class="lbl">Nom</div><input class="inp" id="f-nom" oninput="sc()"/></div>
+        <div class="fld">
+          <div class="lbl">Avatar</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+            <input type="file" id="f-avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)"/>
+            <button class="jbtn" onclick="document.getElementById('f-avatar-upload').click()" style="padding:8px 12px;font-size:12px;width:auto;flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text)">📁 Charger</button>
+            <button class="jbtn" onclick="generateAvatar()" style="padding:8px 12px;font-size:12px;width:auto;flex:1;background:rgba(229,168,83,0.15);border:1px solid var(--accent);color:var(--accent)" id="btn-gen-avatar">✨ Générer</button>
+            <div id="avatar-preview-container" style="display:none;margin-left:auto;flex-shrink:0">
+              <img id="f-avatar-preview" src="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);display:block"/>
+            </div>
+          </div>
+        </div>
+        <div class="fld">
+          <div class="lbl">Race</div>
+          <select class="inp" id="f-race" onchange="onRaceSelect(this.value)">
+            <option value="">— Choisir une race —</option>
+          </select>
+          <div id="race-info" style="display:none;font-size:11px;color:#a78bfa;padding:3px 0 1px;line-height:1.5"></div>
+        </div>
+        <div class="r2">
+          <div class="fld"><div class="lbl">Sexe</div>
+            <select class="inp" id="f-sexe" onchange="sc()">
+              <option value="">—</option>
+              <option>Masculin</option><option>Féminin</option><option>Autre</option>
+            </select>
+          </div>
+          <div class="fld"><div class="lbl">Alignement</div>
+            <select class="inp" id="f-align" onchange="sc()">
+              <option value="">—</option>
+              <option>Loyal</option><option>Neutre</option><option>Chaotique</option><option>Corrompu</option>
+            </select>
+          </div>
+        </div>
+        <div class="fld"><div class="lbl">Vocation</div><input class="inp" id="f-voc" oninput="sc()" placeholder="Auto-rempli par la carrière…"/></div>
+        <div class="r3">
+          <div class="fld"><div class="lbl">Âge</div><input class="inp" id="f-age" type="number" min="1" max="999" oninput="sc()"/></div>
+          <div class="fld"><div class="lbl">Taille</div>
+            <select class="inp" id="f-taille" onchange="sc()">
+              <option value="">—</option>
+              <option>Très Petit (&lt;1.3m)</option><option>Petit (1.3–1.6m)</option>
+              <option>Moyen (1.6–1.8m)</option><option>Grand (1.8–2.0m)</option>
+              <option>Très Grand (&gt;2.0m)</option>
+            </select>
+          </div>
+          <div class="fld"><div class="lbl">Corpulence</div>
+            <select class="inp" id="f-poids" onchange="sc()">
+              <option value="">—</option>
+              <option>Maigre</option><option>Mince</option><option>Moyen</option>
+              <option>Trapu</option><option>Costaud</option>
+            </select>
+          </div>
+        </div>
+        <div class="r2">
+          <div class="fld"><div class="lbl">Cheveux</div>
+            <select class="inp" id="f-chev" onchange="sc()">
+              <option value="">—</option>
+              <option>Noir</option><option>Brun</option><option>Châtain</option>
+              <option>Blond</option><option>Roux</option><option>Gris</option>
+              <option>Blanc</option><option>Argenté</option><option>Chauve</option>
+            </select>
+          </div>
+          <div class="fld"><div class="lbl">Yeux</div>
+            <select class="inp" id="f-yeux" onchange="sc()">
+              <option value="">—</option>
+              <option>Brun</option><option>Noir</option><option>Bleu</option>
+              <option>Vert</option><option>Gris</option><option>Noisette</option>
+              <option>Ambre</option><option>Violet</option><option>Rouge</option>
+            </select>
+          </div>
+        </div>
+        <div class="fld"><div class="lbl">Description</div><textarea class="inp" id="f-desc" rows="2" oninput="sc()" style="resize:vertical" placeholder="Signes particuliers, apparence…"></textarea></div>
+
+        <div class="sec">Blessures &amp; Points de Vie</div>
+        <div class="bless-row">
+          <button type="button" class="hp-quick-btn hp-sub5" onclick="adjustPlayerHp(-5)" title="Subir 5 blessures (−5)">−5</button>
+          <button type="button" class="hp-quick-btn" onclick="adjustPlayerHp(-1)" title="Subir une blessure (−1)">−</button>
+          <div class="bless-lbl">Blessures</div>
+          <input class="bless-cur" id="f-bless" type="number" min="0" value="0" oninput="sc()"/>
+          <div class="bless-sep">/</div>
+          <div class="bless-max" id="bless-max">—</div>
+          <button type="button" class="hp-quick-btn" onclick="adjustPlayerHp(1)" title="Soigner une blessure (+1)">+</button>
+          <button type="button" class="hp-quick-btn hp-add5" onclick="adjustPlayerHp(5)" title="Soigner 5 blessures (+5)">+5</button>
+        </div>
+        <div id="health-state" style="padding:7px 12px;border-radius:6px;font-size:12px;font-weight:600;text-align:center;background:var(--bg3);border:1px solid var(--border);color:var(--muted)">—</div>
+
+        <div class="sec">Profil &amp; Caractéristiques</div>
+        <div class="prof-wrap">
+          <table class="prof-tbl" id="prof-tbl">
+            <thead><tr>
+              <th></th><th>M</th><th>CC</th><th>CT</th><th>F</th><th>E</th><th>B</th>
+              <th>I</th><th>A</th><th>Dex</th><th>Cd</th><th>Int</th><th>Cl</th><th>FM</th><th>Soc</th>
+            </tr></thead>
+            <tbody>
+              <tr id="prow-init"></tr>
+              <tr id="prow-plan"></tr>
+              <tr id="prow-act"></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Colonne DROITE : Carrière, Compétences & Envoi MJ -->
+      <div class="tablet-col">
+        <div class="sec">Carrière</div>
+        <div class="fld">
+          <div class="lbl">Carrière Actuelle</div>
+          <select class="inp" id="f-car" onchange="onCareerSelect(this.value)">
+            <option value="">— Choisir une carrière —</option>
+          </select>
+          <div id="career-info" style="display:none;font-size:11px;color:var(--muted);padding:3px 0 1px;line-height:1.6"></div>
+        </div>
+        <div class="fld"><div class="lbl">Cheminement Professionnel</div><textarea class="inp" id="f-chem" rows="2" oninput="sc()" style="resize:vertical"></textarea></div>
+        <div class="fld"><div class="lbl">Débouchés</div><textarea class="inp" id="f-deb" rows="2" oninput="sc()" style="resize:vertical"></textarea></div>
+
+        <div class="sec">Compétences</div>
+        <div class="comp-list" id="comp-list"></div>
+        <div class="comp-add-row">
+          <input class="inp" id="comp-new" placeholder="Nouvelle compétence…" style="flex:1"/>
+          <button class="snd-btn" onclick="addComp()" style="padding:8px 12px">+</button>
+        </div>
+
+        <div style="margin-top:20px">
+          <button class="sbtn" onclick="sendCharacter()" style="padding:14px 20px;font-size:15px;font-weight:800;border-radius:10px;box-shadow:0 4px 16px rgba(229,168,83,0.25)">📤 Synchroniser avec le MJ</button>
         </div>
       </div>
     </div>
-    <div class="fld">
-      <div class="lbl">Race</div>
-      <select class="inp" id="f-race" onchange="onRaceSelect(this.value)">
-        <option value="">— Choisir une race —</option>
-      </select>
-      <div id="race-info" style="display:none;font-size:11px;color:#a78bfa;padding:3px 0 1px;line-height:1.5"></div>
-    </div>
-    <div class="r2">
-      <div class="fld"><div class="lbl">Sexe</div>
-        <select class="inp" id="f-sexe" onchange="sc()">
-          <option value="">—</option>
-          <option>Masculin</option><option>Féminin</option><option>Autre</option>
-        </select>
-      </div>
-      <div class="fld"><div class="lbl">Alignement</div>
-        <select class="inp" id="f-align" onchange="sc()">
-          <option value="">—</option>
-          <option>Loyal</option><option>Neutre</option><option>Chaotique</option><option>Corrompu</option>
-        </select>
-      </div>
-    </div>
-    <div class="fld"><div class="lbl">Vocation</div><input class="inp" id="f-voc" oninput="sc()" placeholder="Auto-rempli par la carrière…"/></div>
-    <div class="r3">
-      <div class="fld"><div class="lbl">Âge</div><input class="inp" id="f-age" type="number" min="1" max="999" oninput="sc()"/></div>
-      <div class="fld"><div class="lbl">Taille</div>
-        <select class="inp" id="f-taille" onchange="sc()">
-          <option value="">—</option>
-          <option>Très Petit (&lt;1.3m)</option><option>Petit (1.3–1.6m)</option>
-          <option>Moyen (1.6–1.8m)</option><option>Grand (1.8–2.0m)</option>
-          <option>Très Grand (&gt;2.0m)</option>
-        </select>
-      </div>
-      <div class="fld"><div class="lbl">Corpulence</div>
-        <select class="inp" id="f-poids" onchange="sc()">
-          <option value="">—</option>
-          <option>Maigre</option><option>Mince</option><option>Moyen</option>
-          <option>Trapu</option><option>Costaud</option>
-        </select>
-      </div>
-    </div>
-    <div class="r2">
-      <div class="fld"><div class="lbl">Cheveux</div>
-        <select class="inp" id="f-chev" onchange="sc()">
-          <option value="">—</option>
-          <option>Noir</option><option>Brun</option><option>Châtain</option>
-          <option>Blond</option><option>Roux</option><option>Gris</option>
-          <option>Blanc</option><option>Argenté</option><option>Chauve</option>
-        </select>
-      </div>
-      <div class="fld"><div class="lbl">Yeux</div>
-        <select class="inp" id="f-yeux" onchange="sc()">
-          <option value="">—</option>
-          <option>Brun</option><option>Noir</option><option>Bleu</option>
-          <option>Vert</option><option>Gris</option><option>Noisette</option>
-          <option>Ambre</option><option>Violet</option><option>Rouge</option>
-        </select>
-      </div>
-    </div>
-    <div class="fld"><div class="lbl">Description</div><textarea class="inp" id="f-desc" rows="2" oninput="sc()" style="resize:vertical" placeholder="Signes particuliers, apparence…"></textarea></div>
-
-    <div class="sec">Carrière</div>
-    <div class="fld">
-      <div class="lbl">Carrière Actuelle</div>
-      <select class="inp" id="f-car" onchange="onCareerSelect(this.value)">
-        <option value="">— Choisir une carrière —</option>
-      </select>
-      <div id="career-info" style="display:none;font-size:11px;color:var(--muted);padding:3px 0 1px;line-height:1.6"></div>
-    </div>
-    <div class="fld"><div class="lbl">Cheminement Professionnel</div><textarea class="inp" id="f-chem" rows="2" oninput="sc()" style="resize:vertical"></textarea></div>
-    <div class="fld"><div class="lbl">Débouchés</div><textarea class="inp" id="f-deb" rows="2" oninput="sc()" style="resize:vertical"></textarea></div>
-
-    <div class="sec">Blessures</div>
-    <div class="bless-row">
-      <button type="button" class="hp-quick-btn" onclick="adjustPlayerHp(-1)" title="Subir une blessure (−1)">−</button>
-      <div class="bless-lbl">Blessures actuelles</div>
-      <input class="bless-cur" id="f-bless" type="number" min="0" value="0" oninput="sc()"/>
-      <div class="bless-sep">/</div>
-      <div class="bless-max" id="bless-max">—</div>
-      <button type="button" class="hp-quick-btn" onclick="adjustPlayerHp(1)" title="Soigner une blessure (+1)">+</button>
-    </div>
-    <div id="health-state" style="padding:7px 12px;border-radius:6px;font-size:12px;font-weight:600;text-align:center;background:var(--bg3);border:1px solid var(--border);color:var(--muted)">—</div>
-
-    <div class="sec">Profil</div>
-    <div class="prof-wrap">
-      <table class="prof-tbl" id="prof-tbl">
-        <thead><tr>
-          <th></th><th>M</th><th>CC</th><th>CT</th><th>F</th><th>E</th><th>B</th>
-          <th>I</th><th>A</th><th>Dex</th><th>Cd</th><th>Int</th><th>Cl</th><th>FM</th><th>Soc</th>
-        </tr></thead>
-        <tbody>
-          <tr id="prow-init"></tr>
-          <tr id="prow-plan"></tr>
-          <tr id="prow-act"></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="sec">Compétences</div>
-    <div class="comp-list" id="comp-list"></div>
-    <div class="comp-add-row">
-      <input class="inp" id="comp-new" placeholder="Nouvelle compétence…" style="flex:1"/>
-      <button class="snd-btn" onclick="addComp()" style="padding:8px 12px">+</button>
-    </div>
-
-    <button class="sbtn" onclick="sendCharacter()">📤 Envoyer au MJ</button>
     <div style="height:60px;flex-shrink:0"></div>
   </div>
 
   <!-- ══ COMBAT ══ -->
   <div id="tab-combat" class="panel">
-    <div class="sec">Armes de Contact</div>
-    <div class="dyn-hdr">
-      <span style="flex:3">Arme</span>
-      <span style="width:34px">I</span><span style="width:34px">CC</span>
-      <span style="width:50px">D</span><span style="width:40px">Prd</span>
-      <span style="width:26px"></span>
-    </div>
-    <div id="ac-rows"></div>
-    <button class="add-btn" onclick="addAC()">+ arme de contact</button>
+    <div class="tablet-split-grid">
+      <!-- Colonne GAUCHE : Actions Rapides, Déplacement VTT & Armes -->
+      <div class="tablet-col">
+        <div class="sec">Actions de Combat Rapides</div>
+        <div class="combat-grid">
+          <button class="c-action-btn" onclick="send('action',{type:'attack'})">⚔️ Attaque Normale</button>
+          <button class="c-action-btn" onclick="send('action',{type:'dodge'})">🛡️ Esquive / Parade</button>
+          <button class="c-action-btn" onclick="send('action',{type:'charge'})">🏃 Charge !</button>
+          <button class="c-action-btn" onclick="send('action',{type:'disengage'})">💨 Désengagement</button>
+        </div>
 
-    <div class="sec">Armes de Distance</div>
-    <div class="dyn-hdr">
-      <span style="flex:2">Arme</span>
-      <span style="width:30px">PC</span><span style="width:30px">PL</span>
-      <span style="width:30px">PE</span><span style="width:30px">FE</span>
-      <span style="width:36px">A/T</span><span style="width:26px"></span>
-    </div>
-    <div id="ad-rows"></div>
-    <button class="add-btn" onclick="addAD()">+ arme de distance</button>
+        <!-- D-Pad Déplacement Pion VTT -->
+        <div class="sec">Déplacement sur la Table VTT</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <button class="c-action-btn" style="padding:10px 24px" onclick="sendTokenMove(0,-1)">⬆️</button>
+          <div style="display:flex;gap:8px">
+            <button class="c-action-btn" style="padding:10px 20px" onclick="sendTokenMove(-1,0)">⬅️</button>
+            <button class="c-action-btn" style="padding:10px 18px;background:rgba(229,168,83,0.2);color:var(--accent)" onclick="sendTokenMove(0,0)">📍</button>
+            <button class="c-action-btn" style="padding:10px 20px" onclick="sendTokenMove(1,0)">➡️</button>
+          </div>
+          <button class="c-action-btn" style="padding:10px 24px" onclick="sendTokenMove(0,1)">⬇️</button>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Déplace votre pion en direct sur la grille de jeu</div>
+        </div>
 
-    <div class="sec">Armure</div>
-    <div class="dyn-hdr">
-      <span style="flex:3">Description</span>
-      <span style="width:48px">Loc</span><span style="width:42px">ENC</span>
-      <span style="width:26px"></span>
-    </div>
-    <div id="arm-rows"></div>
-    <button class="add-btn" onclick="addArm()">+ armure</button>
+        <div class="sec">Armes de Contact</div>
+        <div class="dyn-hdr">
+          <span style="flex:3">Arme</span>
+          <span style="width:34px">I</span><span style="width:34px">CC</span>
+          <span style="width:50px">D</span><span style="width:40px">Prd</span>
+          <span style="width:26px"></span>
+        </div>
+        <div id="ac-rows"></div>
+        <button class="add-btn" onclick="addAC()">+ arme de contact</button>
 
-    <div class="sec">Points d'Armure</div>
-    <div class="pa-grid">
-      <div class="pa-cell"><div class="pa-lbl">Tête</div><div class="pa-range">01–15</div><input class="pa-inp" id="pa-tete" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pa-cell"><div class="pa-lbl">Bras Droit</div><div class="pa-range">16–35</div><input class="pa-inp" id="pa-bd" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pa-cell"><div class="pa-lbl">Bras Gauche</div><div class="pa-range">36–55</div><input class="pa-inp" id="pa-bg" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pa-cell"><div class="pa-lbl">Tronc</div><div class="pa-range">56–80</div><input class="pa-inp" id="pa-tronc" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pa-cell"><div class="pa-lbl">Jambe Droite</div><div class="pa-range">81–90</div><input class="pa-inp" id="pa-jd" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pa-cell"><div class="pa-lbl">Jambe Gauche</div><div class="pa-range">91–00</div><input class="pa-inp" id="pa-jg" type="number" min="0" value="0" oninput="sc()"/></div>
-    </div>
+        <div class="sec">Armes de Distance</div>
+        <div class="dyn-hdr">
+          <span style="flex:2">Arme</span>
+          <span style="width:30px">PC</span><span style="width:30px">PL</span>
+          <span style="width:30px">PE</span><span style="width:30px">FE</span>
+          <span style="width:36px">A/T</span><span style="width:26px"></span>
+        </div>
+        <div id="ad-rows"></div>
+        <button class="add-btn" onclick="addAD()">+ arme de distance</button>
+      </div>
 
-    <div class="sec">Table de Combat (MJ)</div>
-    <div id="combat-list"><div class="no-combat">En attente du MJ…</div></div>
+      <!-- Colonne DROITE : Ma Santé, Table MJ & Armures -->
+      <div class="tablet-col">
+        <div class="sec">Ma Santé &amp; Blessures (Combat)</div>
+        <div id="combat-my-hp"></div>
+
+        <div class="sec">Table de Combat (MJ)</div>
+        <div id="combat-list"><div class="no-combat">En attente du MJ…</div></div>
+
+        <div class="sec">Armure</div>
+        <div class="dyn-hdr">
+          <span style="flex:3">Description</span>
+          <span style="width:48px">Loc</span><span style="width:42px">ENC</span>
+          <span style="width:26px"></span>
+        </div>
+        <div id="arm-rows"></div>
+        <button class="add-btn" onclick="addArm()">+ armure</button>
+
+        <div class="sec">Points d'Armure par Localisation</div>
+        <div class="pa-grid">
+          <div class="pa-cell"><div class="pa-lbl">Tête</div><div class="pa-range">01–15</div><input class="pa-inp" id="pa-tete" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pa-cell"><div class="pa-lbl">Bras Droit</div><div class="pa-range">16–35</div><input class="pa-inp" id="pa-bd" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pa-cell"><div class="pa-lbl">Bras Gauche</div><div class="pa-range">36–55</div><input class="pa-inp" id="pa-bg" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pa-cell"><div class="pa-lbl">Tronc</div><div class="pa-range">56–80</div><input class="pa-inp" id="pa-tronc" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pa-cell"><div class="pa-lbl">Jambe Droite</div><div class="pa-range">81–90</div><input class="pa-inp" id="pa-jd" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pa-cell"><div class="pa-lbl">Jambe Gauche</div><div class="pa-range">91–00</div><input class="pa-inp" id="pa-jg" type="number" min="0" value="0" oninput="sc()"/></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ══ ÉQUIP ══ -->
   <div id="tab-equip" class="panel">
-    <div class="sec">Points Importants</div>
-    <div class="pts-grid">
-      <div class="pts-cell"><div class="pts-name">Pts de Destin</div><input class="pts-inp" id="p-destin" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pts-cell"><div class="pts-name">Pts de Magie</div><input class="pts-inp" id="p-magie" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pts-cell"><div class="pts-name">Niv. de Pouvoir</div><input class="pts-inp" id="p-pouvoir" type="number" min="0" value="0" oninput="sc()"/></div>
-      <div class="pts-cell"><div class="pts-name">Pts d'Expérience</div><input class="pts-inp" id="p-xp" type="number" min="0" value="0" oninput="sc()"/></div>
-    </div>
-    <div class="pts-cell" style="margin-top:6px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;text-align:center">
-      <div class="pts-name" style="color:var(--red)">Points de Folie</div>
-      <input class="pts-inp" id="p-folie" type="number" min="0" value="0" oninput="sc()" style="color:var(--red)"/>
-    </div>
+    <div class="tablet-split-grid">
+      <!-- Colonne GAUCHE : Points vitaux, Pouvoirs & Magie -->
+      <div class="tablet-col">
+        <div class="sec">Points Importants</div>
+        <div class="pts-grid">
+          <div class="pts-cell"><div class="pts-name">Pts de Destin</div><input class="pts-inp" id="p-destin" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pts-cell"><div class="pts-name">Pts de Magie</div><input class="pts-inp" id="p-magie" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pts-cell"><div class="pts-name">Niv. de Pouvoir</div><input class="pts-inp" id="p-pouvoir" type="number" min="0" value="0" oninput="sc()"/></div>
+          <div class="pts-cell"><div class="pts-name">Pts d'Expérience</div><input class="pts-inp" id="p-xp" type="number" min="0" value="0" oninput="sc()"/></div>
+        </div>
+        <div class="pts-cell" style="margin-top:6px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;text-align:center">
+          <div class="pts-name" style="color:var(--red)">Points de Folie</div>
+          <input class="pts-inp" id="p-folie" type="number" min="0" value="0" oninput="sc()" style="color:var(--red)"/>
+        </div>
 
-    <div class="sec">Emplacements de Sorts</div>
-    <div id="spell-slots-panel" style="padding:8px 0"></div>
-    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-      <button class="add-btn" onclick="addSlotLevel()" style="margin:0">+ Niveau</button>
-      <button class="add-btn" onclick="restoreAllSlots()" style="margin:0;background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4)">⟳ Repos long</button>
-    </div>
+        <div class="sec">Emplacements de Sorts</div>
+        <div id="spell-slots-panel" style="padding:8px 0"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <button class="add-btn" onclick="addSlotLevel()" style="margin:0">+ Niveau</button>
+          <button class="add-btn" onclick="restoreAllSlots()" style="margin:0;background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4)">⟳ Repos long</button>
+        </div>
 
-    <div class="sec">Sortilèges</div>
-    <div class="dyn-hdr">
-      <span style="flex:2">Sortilège</span>
-      <span style="width:26px">NS</span><span style="width:26px">PM</span>
-      <span style="width:26px">P</span><span style="width:26px">D</span>
-      <span style="flex:1.5">Comp.</span><span style="flex:1.5">Effets</span>
-      <span style="width:26px"></span>
-    </div>
-    <div id="sort-rows"></div>
-    <button class="add-btn" onclick="addSort()">+ sortilège</button>
-
-    <div class="sec">Équipement / Dotations</div>
-    <div class="dyn-hdr">
-      <span style="flex:3">Description</span>
-      <span style="width:48px">Loc</span><span style="width:42px">ENC</span>
-      <span style="width:26px"></span>
-    </div>
-    <div id="eq-rows"></div>
-    <button class="add-btn" onclick="addEq()">+ équipement</button>
-
-    <div class="sec">Richesses</div>
-    <div class="dyn-hdr">
-      <span style="flex:3">Description</span>
-      <span style="width:48px">Loc</span><span style="width:42px">ENC</span>
-      <span style="width:26px"></span>
-    </div>
-    <div id="rich-rows"></div>
-    <button class="add-btn" onclick="addRich()">+ richesse</button>
-
-    <div class="sec">Allures de Déplacement</div>
-    <table class="al-tbl">
-      <thead><tr><th></th><th>m/Round</th><th>m/Tour</th><th>km/h</th></tr></thead>
-      <tbody>
-        <tr><td class="al-lbl">Prudente</td><td><input class="inp-sm" id="dp-pr" oninput="sc()"/></td><td><input class="inp-sm" id="dp-pt" oninput="sc()"/></td><td><input class="inp-sm" id="dp-pk" oninput="sc()"/></td></tr>
-        <tr><td class="al-lbl">Normale</td><td><input class="inp-sm" id="dp-nr" oninput="sc()"/></td><td><input class="inp-sm" id="dp-nt" oninput="sc()"/></td><td><input class="inp-sm" id="dp-nk" oninput="sc()"/></td></tr>
-        <tr><td class="al-lbl">Rapide</td><td><input class="inp-sm" id="dp-rr" oninput="sc()"/></td><td><input class="inp-sm" id="dp-rt" oninput="sc()"/></td><td><input class="inp-sm" id="dp-rk" oninput="sc()"/></td></tr>
-      </tbody>
-    </table>
-
-    <div class="sec">Langages</div>
-    <textarea class="inp" id="f-lang" rows="2" placeholder="Langues connues…" oninput="sc()" style="resize:vertical"></textarea>
-
-    <div class="sec">Psychologie &amp; Santé</div>
-    <textarea class="inp" id="f-psycho" rows="3" placeholder="Phobies, folies, états mentaux…" oninput="sc()" style="resize:vertical"></textarea>
-
-    <div class="sec">Origines Sociales</div>
-    <div class="fld"><div class="lbl">Lieu de Naissance</div>
-      <select class="inp" id="f-lieu" onchange="sc()">
-        <option value="">— Choisir —</option>
-        <optgroup label="Reikland">
-          <option>Altdorf</option><option>Ubersreik</option><option>Bögenhafen</option>
-        </optgroup>
-        <optgroup label="Provinces de l'Empire">
-          <option>Middenheim (Middenland)</option><option>Nuln (Wissenland)</option>
-          <option>Talabheim (Talabecland)</option><option>Averheim (Averland)</option>
-          <option>Wulfburg (Hochland)</option><option>Wolfenburg (Ostland)</option>
-          <option>Bechafen (Ostermark)</option><option>Wörden (Nordland)</option>
-          <option>Wissenburg (Stirland)</option>
-          <option>Province inconnue (Empire)</option>
-        </optgroup>
-        <optgroup label="Hors Empire">
-          <option>Marienburg (Estalie)</option><option>Bretonnie</option>
-          <option>Kislev</option><option>Tilea</option><option>Araby</option>
-        </optgroup>
-        <optgroup label="Terres non-humaines">
-          <option>Karaz-a-Karak (Nains)</option><option>Zhufbar (Nains)</option>
-          <option>Ulthuan (Hauts Elfes)</option><option>Athel Loren (Elfes Sylvains)</option>
-          <option>La Moot (Halflings)</option>
-        </optgroup>
-      </select>
-    </div>
-    <div class="fld"><div class="lbl">Profession des Parents</div>
-      <select class="inp" id="f-parents" onchange="sc()">
-        <option value="">— Choisir —</option>
-        <option>Agriculteur / Paysan</option><option>Éleveur</option>
-        <option>Pêcheur</option><option>Chasseur</option>
-        <option>Artisan (forgeron)</option><option>Artisan (charpentier)</option>
-        <option>Artisan (cordonnier)</option><option>Tisserand</option>
-        <option>Aubergiste / Tavernier</option><option>Marchand</option>
-        <option>Soldat / Milicien</option><option>Garde de la cité</option>
-        <option>Marin</option><option>Cocher / Charretier</option>
-        <option>Prêtre / Ecclésiastique</option><option>Médecin des rues</option>
-        <option>Fonctionnaire impérial</option><option>Écrivain public</option>
-        <option>Serviteur noble</option><option>Criminel / Brigand</option>
-        <option>Inconnu / Orphelin</option>
-      </select>
-    </div>
-    <div class="fld"><div class="lbl">Membres de la Famille</div>
-      <textarea class="inp" id="f-famille" rows="2" oninput="sc()" style="resize:vertical" placeholder="Noms, liens, situation actuelle…"></textarea>
-    </div>
-    <div class="r2">
-      <div class="fld"><div class="lbl">Rang Social</div>
-        <select class="inp" id="f-rang" onchange="sc()">
-          <option value="">—</option>
-          <option>Serf</option><option>Paysan libre</option>
-          <option>Artisan</option><option>Marchand</option>
-          <option>Bourgeois</option><option>Écuyer</option>
-          <option>Prêtre</option><option>Chevalier</option>
-          <option>Noble</option><option>Hors-la-loi</option>
-        </select>
+        <div class="sec">Sortilèges</div>
+        <div class="dyn-hdr">
+          <span style="flex:2">Sortilège</span>
+          <span style="width:26px">NS</span><span style="width:26px">PM</span>
+          <span style="width:26px">P</span><span style="width:26px">D</span>
+          <span style="flex:1.5">Comp.</span><span style="flex:1.5">Effets</span>
+          <span style="width:26px"></span>
+        </div>
+        <div id="sort-rows"></div>
+        <button class="add-btn" onclick="addSort()">+ sortilège</button>
       </div>
-      <div class="fld"><div class="lbl">Religion</div>
-        <select class="inp" id="f-relig" onchange="sc()">
-          <option value="">—</option>
-          <option>Sigmar</option><option>Ulric</option><option>Morr</option>
-          <option>Taal &amp; Rhya</option><option>Verena</option>
-          <option>Manann</option><option>Shallya</option><option>Ranald</option>
-          <option>Myrmidiah</option><option>Solkan</option>
-          <option>Ancestres Nains</option><option>Isha (Elfes)</option>
-          <option>Aucune / Athée</option><option>Inconnue</option>
-        </select>
+
+      <!-- Colonne DROITE : Équipement, Dotations, Richesses & Origines -->
+      <div class="tablet-col">
+        <div class="sec">Équipement / Dotations</div>
+        <div class="dyn-hdr">
+          <span style="flex:3">Description</span>
+          <span style="width:48px">Loc</span><span style="width:42px">ENC</span>
+          <span style="width:26px"></span>
+        </div>
+        <div id="eq-rows"></div>
+        <button class="add-btn" onclick="addEq()">+ équipement</button>
+
+        <div class="sec">Richesses</div>
+        <div class="dyn-hdr">
+          <span style="flex:3">Description</span>
+          <span style="width:48px">Loc</span><span style="width:42px">ENC</span>
+          <span style="width:26px"></span>
+        </div>
+        <div id="rich-rows"></div>
+        <button class="add-btn" onclick="addRich()">+ richesse</button>
+
+        <div class="sec">Allures de Déplacement</div>
+        <table class="al-tbl">
+          <thead><tr><th></th><th>m/Round</th><th>m/Tour</th><th>km/h</th></tr></thead>
+          <tbody>
+            <tr><td class="al-lbl">Prudente</td><td><input class="inp-sm" id="dp-pr" oninput="sc()"/></td><td><input class="inp-sm" id="dp-pt" oninput="sc()"/></td><td><input class="inp-sm" id="dp-pk" oninput="sc()"/></td></tr>
+            <tr><td class="al-lbl">Normale</td><td><input class="inp-sm" id="dp-nr" oninput="sc()"/></td><td><input class="inp-sm" id="dp-nt" oninput="sc()"/></td><td><input class="inp-sm" id="dp-nk" oninput="sc()"/></td></tr>
+            <tr><td class="al-lbl">Rapide</td><td><input class="inp-sm" id="dp-rr" oninput="sc()"/></td><td><input class="inp-sm" id="dp-rt" oninput="sc()"/></td><td><input class="inp-sm" id="dp-rk" oninput="sc()"/></td></tr>
+          </tbody>
+        </table>
+
+        <div class="sec">Langages &amp; Santé Mentale</div>
+        <textarea class="inp" id="f-lang" rows="2" placeholder="Langues connues…" oninput="sc()" style="resize:vertical;margin-bottom:8px"></textarea>
+        <textarea class="inp" id="f-psycho" rows="2" placeholder="Phobies, folies, états mentaux…" oninput="sc()" style="resize:vertical"></textarea>
+
+        <div class="sec">Origines Sociales</div>
+        <div class="fld"><div class="lbl">Lieu de Naissance</div>
+          <select class="inp" id="f-lieu" onchange="sc()">
+            <option value="">— Choisir —</option>
+            <optgroup label="Reikland">
+              <option>Altdorf</option><option>Ubersreik</option><option>Bögenhafen</option>
+            </optgroup>
+            <optgroup label="Provinces de l'Empire">
+              <option>Middenheim (Middenland)</option><option>Nuln (Wissenland)</option>
+              <option>Talabheim (Talabecland)</option><option>Averheim (Averland)</option>
+              <option>Wulfburg (Hochland)</option><option>Wolfenburg (Ostland)</option>
+              <option>Bechafen (Ostermark)</option><option>Wörden (Nordland)</option>
+              <option>Wissenburg (Stirland)</option>
+              <option>Province inconnue (Empire)</option>
+            </optgroup>
+            <optgroup label="Hors Empire">
+              <option>Marienburg (Estalie)</option><option>Bretonnie</option>
+              <option>Kislev</option><option>Tilea</option><option>Araby</option>
+            </optgroup>
+            <optgroup label="Terres non-humaines">
+              <option>Karaz-a-Karak (Nains)</option><option>Zhufbar (Nains)</option>
+              <option>Ulthuan (Hauts Elfes)</option><option>Athel Loren (Elfes Sylvains)</option>
+              <option>La Moot (Halflings)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="fld"><div class="lbl">Profession des Parents</div>
+          <select class="inp" id="f-parents" onchange="sc()">
+            <option value="">— Choisir —</option>
+            <option>Agriculteur / Paysan</option><option>Éleveur</option>
+            <option>Pêcheur</option><option>Chasseur</option>
+            <option>Artisan (forgeron)</option><option>Artisan (charpentier)</option>
+            <option>Artisan (cordonnier)</option><option>Tisserand</option>
+            <option>Aubergiste / Tavernier</option><option>Marchand</option>
+            <option>Soldat / Milicien</option><option>Garde de la cité</option>
+            <option>Marin</option><option>Cocher / Charretier</option>
+            <option>Prêtre / Ecclésiastique</option><option>Médecin des rues</option>
+            <option>Fonctionnaire impérial</option><option>Écrivain public</option>
+            <option>Serviteur noble</option><option>Criminel / Brigand</option>
+            <option>Inconnu / Orphelin</option>
+          </select>
+        </div>
+        <div class="fld"><div class="lbl">Membres de la Famille</div>
+          <textarea class="inp" id="f-famille" rows="2" oninput="sc()" style="resize:vertical" placeholder="Noms, liens, situation actuelle…"></textarea>
+        </div>
+        <div class="r2">
+          <div class="fld"><div class="lbl">Rang Social</div>
+            <select class="inp" id="f-rang" onchange="sc()">
+              <option value="">—</option>
+              <option>Serf</option><option>Paysan libre</option>
+              <option>Artisan</option><option>Marchand</option>
+              <option>Bourgeois</option><option>Écuyer</option>
+              <option>Prêtre</option><option>Chevalier</option>
+              <option>Noble</option><option>Hors-la-loi</option>
+            </select>
+          </div>
+          <div class="fld"><div class="lbl">Religion</div>
+            <select class="inp" id="f-relig" onchange="sc()">
+              <option value="">—</option>
+              <option>Sigmar</option><option>Ulric</option><option>Morr</option>
+              <option>Taal &amp; Rhya</option><option>Verena</option>
+              <option>Manann</option><option>Shallya</option><option>Ranald</option>
+              <option>Myrmidiah</option><option>Solkan</option>
+              <option>Ancestres Nains</option><option>Isha (Elfes)</option>
+              <option>Aucune / Athée</option><option>Inconnue</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -611,42 +856,51 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
   <!-- ══ DÉS ══ -->
   <div id="tab-des" class="panel">
-    <div class="dice-grid" id="dice-grid"></div>
-    <button class="add-btn" onclick="fureurUlric()" style="border-style:solid;color:var(--accent);border-color:rgba(229,168,83,.5);margin-top:4px;font-weight:600">⚡ Fureur d'Ulric — d10 explosif</button>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-      <span style="font-size:12px;color:var(--muted)">Mod :</span>
-      <input class="inp" id="mod-val" type="number" value="0" style="width:72px"/>
-      <span style="font-size:12px;color:var(--muted)" id="last-formula"></span>
-    </div>
-    <div class="roll-result" id="roll-result">—</div>
-    <div id="roll-history"></div>
+    <div class="tablet-split-grid">
+      <!-- Colonne GAUCHE : Lanceur de Dés, Fureur d'Ulric & Historique -->
+      <div class="tablet-col">
+        <div class="sec">Lancer de Dés Rapides</div>
+        <div class="dice-grid" id="dice-grid"></div>
+        <button class="add-btn" onclick="fureurUlric()" style="border-style:solid;color:var(--accent);border-color:rgba(229,168,83,.5);margin-top:8px;font-weight:600">⚡ Fureur d'Ulric — d10 explosif</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+          <span style="font-size:12px;color:var(--muted)">Mod :</span>
+          <input class="inp" id="mod-val" type="number" value="0" style="width:72px"/>
+          <span style="font-size:12px;color:var(--muted)" id="last-formula"></span>
+        </div>
+        <div class="roll-result" id="roll-result">—</div>
+        <div id="roll-history"></div>
 
-    <!-- Stats dés -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
-      <div class="sec" style="margin:0;border:none">Statistiques</div>
-      <button onclick="toggleDiceStats()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer" id="stats-toggle-btn">📊 Afficher</button>
-    </div>
-    <div id="dice-stats-panel" style="display:none;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+        <!-- Stats dés -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+          <div class="sec" style="margin:0;border:none">Statistiques</div>
+          <button onclick="toggleDiceStats()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer" id="stats-toggle-btn">📊 Afficher</button>
+        </div>
+        <div id="dice-stats-panel" style="display:none;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+      </div>
 
-    <div class="sec">Test de Compétence</div>
-    <div id="test-grid" class="test-grid"></div>
-    <div class="test-result" id="test-result">
-      <div class="test-roll" id="test-roll-num">—</div>
-      <div class="test-verdict" id="test-verdict"></div>
-    </div>
+      <!-- Colonne DROITE : Test de Compétence, Localisation & Initiative -->
+      <div class="tablet-col">
+        <div class="sec">Test de Compétence</div>
+        <div id="test-grid" class="test-grid"></div>
+        <div class="test-result" id="test-result">
+          <div class="test-roll" id="test-roll-num">—</div>
+          <div class="test-verdict" id="test-verdict"></div>
+        </div>
 
-    <div class="sec">Table de Localisation</div>
-    <button class="sbtn" style="margin-top:0" onclick="rollLocalisation()">🎲 Jet de Localisation (d100)</button>
-    <div class="loc-result" id="loc-result">
-      <div class="loc-roll" id="loc-roll">—</div>
-      <div class="loc-zone" id="loc-zone"></div>
-    </div>
+        <div class="sec">Table de Localisation</div>
+        <button class="sbtn" style="margin-top:0" onclick="rollLocalisation()">🎲 Jet de Localisation (d100)</button>
+        <div class="loc-result" id="loc-result">
+          <div class="loc-roll" id="loc-roll">—</div>
+          <div class="loc-zone" id="loc-zone"></div>
+        </div>
 
-    <div class="sec">Jet d'Initiative</div>
-    <button class="sbtn" style="margin-top:0" onclick="rollInitiative()">⚡ Lancer l'Initiative (I + d10)</button>
-    <div class="loc-result" id="init-result">
-      <div class="loc-roll" id="init-roll">—</div>
-      <div class="loc-zone" id="init-zone" style="font-size:13px;color:var(--text)"></div>
+        <div class="sec">Jet d'Initiative</div>
+        <button class="sbtn" style="margin-top:0" onclick="rollInitiative()">⚡ Lancer l'Initiative (I + d10)</button>
+        <div class="loc-result" id="init-result">
+          <div class="loc-roll" id="init-roll">—</div>
+          <div class="loc-zone" id="init-zone" style="font-size:13px;color:var(--text)"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -729,33 +983,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">Dessinez ici pour montrer vos intentions au MJ</p>
   </div>
 
-  <!-- ══ COMBAT HUD ══ -->
-  <div id="tab-combat" class="panel">
-    <div class="sec">Actions de Combat Rapides</div>
-    <div class="combat-grid">
-      <button class="c-action-btn" onclick="send('action',{type:'attack'})">⚔️ Attaque Normale</button>
-      <button class="c-action-btn" onclick="send('action',{type:'dodge'})">🛡️ Esquive / Parade</button>
-      <button class="c-action-btn" onclick="send('action',{type:'charge'})">🏃 Charge !</button>
-      <button class="c-action-btn" onclick="send('action',{type:'disengage'})">💨 Désengagement</button>
-    </div>
 
-    <!-- D-Pad Déplacement Pion VTT -->
-    <div class="sec">Déplacement sur la Table VTT</div>
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px">
-      <button class="c-action-btn" style="padding:10px 20px" onclick="sendTokenMove(0,-1)">⬆️</button>
-      <div style="display:flex;gap:8px">
-        <button class="c-action-btn" style="padding:10px 18px" onclick="sendTokenMove(-1,0)">⬅️</button>
-        <button class="c-action-btn" style="padding:10px 16px;background:rgba(229,168,83,0.2);color:var(--accent)" onclick="sendTokenMove(0,0)">📍</button>
-        <button class="c-action-btn" style="padding:10px 18px" onclick="sendTokenMove(1,0)">➡️</button>
-      </div>
-      <button class="c-action-btn" style="padding:10px 20px" onclick="sendTokenMove(0,1)">⬇️</button>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px">Déplace votre pion sur la grille de jeu</div>
-    </div>
-
-    <div class="sec">Ma Santé</div>
-    <div id="combat-my-hp"></div>
-    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">Ces actions envoient une notification au MJ</p>
-  </div>
 
   <!-- ══ AIDE AI ══ -->
   <div id="tab-aide" class="panel">
@@ -1351,10 +1579,6 @@ function adjustPlayerHp(delta) {
   sendCharacter(true);
   if (navigator.vibrate) navigator.vibrate(delta < 0 ? [80, 40, 80] : 30);
   showToast(delta < 0 ? '🩸' : '💚', 'Points de Vie', `${cur} / ${maxB} PV`, delta < 0 ? 'danger' : 'success', 2500);
-}
-  sendCharacter();
-  if (navigator.vibrate) navigator.vibrate(delta < 0 ? [80, 40, 80] : 30);
-  showToast(delta < 0 ? '🩸' : '💚', 'Blessures', `${cur} / ${maxB}`, delta < 0 ? 'danger' : 'success', 2500);
 }
 
 function rollSkill(compName) {
@@ -2075,11 +2299,15 @@ function joinGame(){
   }
   playerPassword=document.getElementById('player-password').value.trim()||null;
   playerName=n;
-  localStorage.setItem('grimoire_player_name',n);
-  if(playerPassword){
-    localStorage.setItem('grimoire_player_pwd',playerPassword);
-  }else{
-    localStorage.removeItem('grimoire_player_pwd');
+  try{
+    localStorage.setItem('grimoire_player_name',n);
+    if(playerPassword){
+      localStorage.setItem('grimoire_player_pwd',playerPassword);
+    }else{
+      localStorage.removeItem('grimoire_player_pwd');
+    }
+  }catch(e){
+    console.warn('LocalStorage non disponible:', e);
   }
   if(!ch.nom)ch.nom=n;
 
@@ -2088,7 +2316,12 @@ function joinGame(){
     btn.textContent='Connexion en cours…';
     btn.disabled=true;
   }
-  connect();
+  try{
+    connect();
+  }catch(e){
+    if(btn){btn.textContent='Rejoindre la Table';btn.disabled=false;}
+    if(errEl){errEl.textContent='Erreur de connexion WebSocket: '+e.message;errEl.style.display='block';}
+  }
 }
 function showPollOverlay(question, options){
   const o=document.getElementById('poll-overlay');
