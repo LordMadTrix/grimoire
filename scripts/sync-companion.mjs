@@ -34,3 +34,4 @@ for (const m of mappings) {
 }
 
 console.log('Player companion assets synced successfully.');
+
