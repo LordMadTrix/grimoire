@@ -449,13 +449,20 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} onclick={() => activeMenu = null} />
+<svelte:window onkeydown={handleKeydown} />
+
+{#if activeMenu}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="menu-backdrop" onclick={() => activeMenu = null}></div>
+{/if}
 
 <div class="vtt-toolbar menubar-style" bind:this={toolbarEl}>
   <!-- Navigation Espaces de Travail (VTT, Notes, Graphe...) intégrée pour supprimer la double-barre -->
   {#if onSelectView}
     <div class="workspace-pill-nav">
       <button 
+        type="button"
         class="ws-pill" 
         class:active={activeView === 'vtt'} 
         onclick={() => onSelectView?.('vtt')}
@@ -464,6 +471,7 @@
         🗺️ <span class="ws-label">VTT</span>{#if vttStore.tokens.length > 0}<span class="ws-badge">{vttStore.tokens.length}</span>{/if}
       </button>
       <button 
+        type="button"
         class="ws-pill" 
         class:active={activeView === 'editor'} 
         onclick={() => onSelectView?.('editor')}
@@ -471,13 +479,13 @@
       >
         📄 <span class="ws-label">Notes</span>
       </button>
-      <button class="ws-pill" class:active={activeView === 'graph'} onclick={() => onSelectView?.('graph')} title="Graphe des relations">
+      <button type="button" class="ws-pill" class:active={activeView === 'graph'} onclick={() => onSelectView?.('graph')} title="Graphe des relations">
         🕸️ <span class="ws-label">Graphe</span>
       </button>
-      <button class="ws-pill" class:active={activeView === 'timeline'} onclick={() => onSelectView?.('timeline')} title="Chronologie">
+      <button type="button" class="ws-pill" class:active={activeView === 'timeline'} onclick={() => onSelectView?.('timeline')} title="Chronologie">
         📜 <span class="ws-label">Chrono</span>
       </button>
-      <button class="ws-pill" class:active={activeView === 'calendar'} onclick={() => onSelectView?.('calendar')} title="Calendrier">
+      <button type="button" class="ws-pill" class:active={activeView === 'calendar'} onclick={() => onSelectView?.('calendar')} title="Calendrier">
         📅 <span class="ws-label">Calendrier</span>
       </button>
     </div>
@@ -1480,6 +1488,8 @@
   
   /* Menubar UI */
   .menubar-style {
+    position: relative;
+    z-index: 500;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -1490,12 +1500,14 @@
     height: 40px;
     flex-shrink: 0;
     gap: 6px;
-    overflow-x: auto;
-    overflow-y: visible;
-    scrollbar-width: none;
+    overflow: visible !important;
   }
-  .menubar-style::-webkit-scrollbar {
-    display: none;
+
+  .menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: transparent;
   }
 
   /* ── Sélecteur d'Espace de Travail Unifié ── */
