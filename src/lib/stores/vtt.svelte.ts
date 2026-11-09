@@ -221,6 +221,25 @@ export type MapScene = {
   audioZones: AudioZoneDef[];
 };
 
+function safeGetStorageBool(key: string, defaultVal: boolean): boolean {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const v = window.localStorage.getItem(key);
+      if (v === 'true') return true;
+      if (v === 'false') return false;
+    }
+  } catch {}
+  return defaultVal;
+}
+
+function safeSetStorage(key: string, value: string): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, value);
+    }
+  } catch {}
+}
+
 export const vttStore = $state({
   currentMap: null as string | null,        // data URL (runtime uniquement)
   currentMapRelPath: null as string | null, // chemin relatif persisté
@@ -300,14 +319,14 @@ export const vttStore = $state({
   showMacroBar: true,
   showPlayerQuickDock: true,
   showGmNotes: true,
-  showTokenNames: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_token_names') === 'false') ? false : true,
-  showTokenHpBars: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_token_hp') === 'false') ? false : true,
-  showFps: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_fps') === 'true') || false,
-  showMinimap: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_minimap') === 'false') ? false : true,
-  showPins: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_pins') === 'false') ? false : true,
-  showVignette: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_vignette') === 'false') ? false : true,
-  snapToGrid: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_snap_grid') === 'false') ? false : true,
-  tokenAnimations: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_token_anim') === 'false') ? false : true,
+  showTokenNames: safeGetStorageBool('grimoire_vtt_show_token_names', true),
+  showTokenHpBars: safeGetStorageBool('grimoire_vtt_show_token_hp', true),
+  showFps: safeGetStorageBool('grimoire_vtt_show_fps', false),
+  showMinimap: safeGetStorageBool('grimoire_vtt_show_minimap', true),
+  showPins: safeGetStorageBool('grimoire_vtt_show_pins', true),
+  showVignette: safeGetStorageBool('grimoire_vtt_show_vignette', true),
+  snapToGrid: safeGetStorageBool('grimoire_vtt_snap_grid', true),
+  tokenAnimations: safeGetStorageBool('grimoire_vtt_token_anim', true),
 
   // Localisation de token (déclenche le centrage caméra)
   locateTokenId: null as string | null,
@@ -341,58 +360,42 @@ export const vttStore = $state({
 // ── Options VTT & Télémétrie ─────────────────────────────────────
 export function toggleShowFps() {
   vttStore.showFps = !vttStore.showFps;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_show_fps', String(vttStore.showFps));
-  }
+  safeSetStorage('grimoire_vtt_show_fps', String(vttStore.showFps));
 }
 
 export function toggleMinimap() {
   vttStore.showMinimap = !vttStore.showMinimap;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_show_minimap', String(vttStore.showMinimap));
-  }
+  safeSetStorage('grimoire_vtt_show_minimap', String(vttStore.showMinimap));
 }
 
 export function toggleTokenNames() {
   vttStore.showTokenNames = !vttStore.showTokenNames;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_show_token_names', String(vttStore.showTokenNames));
-  }
+  safeSetStorage('grimoire_vtt_show_token_names', String(vttStore.showTokenNames));
 }
 
 export function toggleTokenHpBars() {
   vttStore.showTokenHpBars = !vttStore.showTokenHpBars;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_show_token_hp', String(vttStore.showTokenHpBars));
-  }
+  safeSetStorage('grimoire_vtt_show_token_hp', String(vttStore.showTokenHpBars));
 }
 
 export function togglePins() {
   vttStore.showPins = !vttStore.showPins;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_show_pins', String(vttStore.showPins));
-  }
+  safeSetStorage('grimoire_vtt_show_pins', String(vttStore.showPins));
 }
 
 export function toggleVignette() {
   vttStore.showVignette = !vttStore.showVignette;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_show_vignette', String(vttStore.showVignette));
-  }
+  safeSetStorage('grimoire_vtt_show_vignette', String(vttStore.showVignette));
 }
 
 export function toggleSnapToGrid() {
   vttStore.snapToGrid = !vttStore.snapToGrid;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_snap_grid', String(vttStore.snapToGrid));
-  }
+  safeSetStorage('grimoire_vtt_snap_grid', String(vttStore.snapToGrid));
 }
 
 export function toggleTokenAnimations() {
   vttStore.tokenAnimations = !vttStore.tokenAnimations;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('grimoire_vtt_token_anim', String(vttStore.tokenAnimations));
-  }
+  safeSetStorage('grimoire_vtt_token_anim', String(vttStore.tokenAnimations));
 }
 
 export function setCampaignTitle(title: string) {
