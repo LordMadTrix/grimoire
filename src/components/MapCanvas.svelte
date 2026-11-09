@@ -6,7 +6,7 @@
   import ConditionWheel from './ConditionWheel.svelte';
   import TokenContextMenu from './TokenContextMenu.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
-  import { readFileBase64, fetchBinaryAssetUrl, emitToPlayerView } from '$lib/api';
+  import { readFileBase64, readFile, fetchBinaryAssetUrl, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
   import { updateDynamicLighting, hasLineOfSight, isPointInFieldOfView } from '$lib/vtt/lighting';
   import { TextureCacheManager } from '$lib/vtt/TextureCacheManager';
@@ -1668,9 +1668,9 @@
               img.src = `data:${mime};base64,${b64}`;
             }).catch(err => {
               // Fallback : si le fichier physique est introuvable, essayer le .json compagnon
-              if (token.imageUrl.startsWith('tokens/')) {
+              if (token.imageUrl && token.imageUrl.startsWith('tokens/')) {
                 const jsonRelPath = token.imageUrl.replace(/\.[^.]+$/, '.json');
-                readFile(vPath, jsonRelPath).then(raw => {
+                readFile(vPath, jsonRelPath).then((raw: string) => {
                   const desc = JSON.parse(raw);
                   const fallbackDataUrl = desc?.design?.imageUrl;
                   if (fallbackDataUrl && container && tokenSprite) {

@@ -78,6 +78,7 @@ export type Token = {
   linkedNote?: string;
   playerId?: string;
   animation?: 'none' | 'attack' | 'hit' | 'shake' | 'damage' | 'cast';
+  isShaped?: boolean;
   physicalMarkerId?: number | null;
   physicalRotation?: number;
 };
