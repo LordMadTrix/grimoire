@@ -157,7 +157,7 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
       text: 'Nouvelle réplique...',
       isDialogue: true,
       speakerName: 'Nouveau PNJ',
-      voiceId: 'fr-FR-AlainNeural',
+      voiceId: 'fr-FR-RemyMultilingualNeural',
       voiceEmoji: '⚔️'
     };
     segments = [...segments, newSeg];

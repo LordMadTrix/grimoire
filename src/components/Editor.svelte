@@ -1340,6 +1340,64 @@
           {/if}
         </div>
 
+        <!-- Menu Déroulant 4.5 : Narration & Dialogues -->
+        <div class="tb-dropdown" class:open={activeToolbarMenu === 'narration'}>
+          <button
+            type="button"
+            class="tb-dropdown-btn"
+            onmousedown={(e) => e.preventDefault()}
+            onclick={(e) => { e.stopPropagation(); toggleToolbarMenu('narration'); }}
+            title="Outils de narration, dialogues PNJ, formatage des guillemets et ponctuation pour voix IA"
+          >
+            <span class="btn-icon">🎭</span>
+            <span class="btn-label">Narration</span>
+            <span class="dropdown-caret">▾</span>
+          </button>
+          {#if activeToolbarMenu === 'narration'}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="tb-dropdown-menu" onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+              <div class="tb-menu-header">Dialogues &amp; Voix IA</div>
+              <button type="button" class="tb-menu-item highlight-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('dialogue-quote')}>
+                <span class="item-icon">💬</span>
+                <span class="item-label">Réplique / Dialogue</span>
+                <span class="item-badge">&quot;Texte.&quot;</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('dialogue-dash')}>
+                <span class="item-icon">—</span>
+                <span class="item-label">Tiret cadratin dialogue</span>
+                <span class="item-badge">— Réplique.</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('dialogue-callout')}>
+                <span class="item-icon">🎭</span>
+                <span class="item-label">Bloc Dialogue PNJ</span>
+                <span class="item-badge">&gt; [!DIALOGUE]</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('narration-callout')}>
+                <span class="item-icon">🧙‍♂️</span>
+                <span class="item-label">Bloc Récit / Narration</span>
+                <span class="item-badge">&gt; [!NARRATION]</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('pause-tts')}>
+                <span class="item-icon">⏸️</span>
+                <span class="item-label">Pause vocale (silence)</span>
+                <span class="item-badge">...</span>
+              </button>
+              <div class="tb-menu-divider"></div>
+              <div class="tb-menu-header">Correction &amp; Audio</div>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleFormatAction('clean-punctuation')}>
+                <span class="item-icon">🪄</span>
+                <span class="item-label">Harmoniser Guillemets &amp; Points</span>
+                <span class="item-badge">Auto &quot;.&quot;</span>
+              </button>
+              <button type="button" class="tb-menu-item" onmousedown={(e) => e.preventDefault()} onclick={() => { narrationStudioStore.open(getActiveContent()); activeToolbarMenu = null; }}>
+                <span class="item-icon">🎙️</span>
+                <span class="item-label">Ouvrir Studio Voix &amp; Narration</span>
+                <span class="item-badge">13 Voix</span>
+              </button>
+            </div>
+          {/if}
+        </div>
+
         <!-- Menu Déroulant 5 : Insérer -->
         <div class="tb-dropdown" class:open={activeToolbarMenu === 'insert'}>
           <button
@@ -1742,6 +1800,61 @@
           <span class="ctx-icon">👁️‍🗨️</span>
           <span class="ctx-label">Note invisible MJ</span>
           <span class="ctx-badge">%% note %%</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sous-menu Narration & Voix IA -->
+    <div
+      class="editor-ctx-has-sub"
+      class:open={activeCtxSubmenu === 'narration'}
+      onmouseenter={() => activeCtxSubmenu = 'narration'}
+      onmouseleave={() => activeCtxSubmenu = null}
+    >
+      <button
+        type="button"
+        class="editor-ctx-item"
+        onclick={() => activeCtxSubmenu = activeCtxSubmenu === 'narration' ? null : 'narration'}
+      >
+        <span class="ctx-icon">🎭</span>
+        <span class="ctx-label">Narration &amp; Dialogues</span>
+        <span class="ctx-arrow" class:rotated={activeCtxSubmenu === 'narration'}>▸</span>
+      </button>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 470}>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('dialogue-quote')}>
+          <span class="ctx-icon">💬</span>
+          <span class="ctx-label">Réplique / Dialogue</span>
+          <span class="ctx-badge">&quot;Texte.&quot;</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('dialogue-dash')}>
+          <span class="ctx-icon">—</span>
+          <span class="ctx-label">Tiret cadratin dialogue</span>
+          <span class="ctx-badge">—</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('dialogue-callout')}>
+          <span class="ctx-icon">🎭</span>
+          <span class="ctx-label">Bloc Dialogue PNJ</span>
+          <span class="ctx-badge">&gt; [!DIALOGUE]</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('narration-callout')}>
+          <span class="ctx-icon">🧙‍♂️</span>
+          <span class="ctx-label">Bloc Narration MJ</span>
+          <span class="ctx-badge">&gt; [!NARRATION]</span>
+        </button>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('pause-tts')}>
+          <span class="ctx-icon">⏸️</span>
+          <span class="ctx-label">Pause vocale IA</span>
+          <span class="ctx-badge">...</span>
+        </button>
+        <div class="editor-ctx-sep"></div>
+        <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('clean-punctuation')}>
+          <span class="ctx-icon">🪄</span>
+          <span class="ctx-label">Harmoniser Guillemets &amp; Points</span>
+          <span class="ctx-badge">TTS Auto</span>
+        </button>
+        <button type="button" class="editor-ctx-item highlight-gold" onmousedown={(e) => e.preventDefault()} onclick={() => { const text = (editorCtxMenu && editorCtxMenu.hasSelection) ? editorCtxMenu.selectedText : (getActiveContent() || ''); narrationStudioStore.open(text); editorCtxMenu = null; }}>
+          <span class="ctx-icon">🎙️</span>
+          <span class="ctx-label">Studio de Voix IA (13 voix)</span>
         </button>
       </div>
     </div>

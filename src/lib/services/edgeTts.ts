@@ -16,14 +16,17 @@ export interface NeuralVoice {
 export const NEURAL_VOICES: NeuralVoice[] = [
   { id: 'fr-FR-HenriNeural', name: '🧙‍♂️ Henri (Narrateur Fantastique)', gender: 'male', personality: 'Voix grave et posée, idéale pour les donjons & le lore', lang: 'fr-FR', isAi: true },
   { id: 'fr-FR-DeniseNeural', name: '🧝‍♀️ Denise (Conteuse Épique)', gender: 'female', personality: 'Voix douce, expressive et captivante', lang: 'fr-FR', isAi: true },
-  { id: 'fr-FR-EloiseNeural', name: '🔮 Éloïse (Mystique & Vive)', gender: 'female', personality: 'Voix jeune, dynamique et cristalline', lang: 'fr-FR', isAi: true },
-  { id: 'fr-FR-AlainNeural', name: '⚔️ Alain (Héros & Guerrier)', gender: 'male', personality: 'Voix héroïque, claire et martiale', lang: 'fr-FR', isAi: true },
-  { id: 'fr-FR-MauriceNeural', name: '📜 Maurice (Vieux Sage & Érudit)', gender: 'male', personality: 'Voix d\'ancien érudit, calme et posée', lang: 'fr-FR', isAi: true },
-  { id: 'fr-FR-ClaudeNeural', name: '👑 Claude (Noble & Solennel)', gender: 'male', personality: 'Voix impériale, solennelle et profonde', lang: 'fr-FR', isAi: true },
-  { id: 'fr-FR-JeromeNeural', name: '🎭 Jérôme (Barde & Voyageur)', gender: 'male', personality: 'Voix narrative, enjouée et vivante', lang: 'fr-FR', isAi: true },
-  { id: 'fr-FR-CoralieNeural', name: '🌿 Coralie (Prêtresse & Nature)', gender: 'female', personality: 'Voix sereine, harmonieuse et douce', lang: 'fr-FR', isAi: true },
-  { id: 'fr-CA-JeanNeural', name: '🛡️ Jean (Garde & Ranger)', gender: 'male', personality: 'Voix robuste et chaleureuse', lang: 'fr-CA', isAi: true },
-  { id: 'fr-CA-SylvieNeural', name: '✨ Sylvie (Fée & Enchanteresse)', gender: 'female', personality: 'Voix féerique et aérienne', lang: 'fr-CA', isAi: true }
+  { id: 'fr-FR-EloiseNeural', name: '🔮 Éloïse (Magicienne & Mystique)', gender: 'female', personality: 'Voix jeune, dynamique et cristalline', lang: 'fr-FR', isAi: true },
+  { id: 'fr-FR-RemyMultilingualNeural', name: '⚔️ Rémy (Héros & Aventurier)', gender: 'male', personality: 'Voix héroïque, claire et martiale', lang: 'fr-FR', isAi: true },
+  { id: 'fr-FR-VivienneMultilingualNeural', name: '👑 Vivienne (Reine & Châtelaine)', gender: 'female', personality: 'Voix noble, souveraine et expressive', lang: 'fr-FR', isAi: true },
+  { id: 'fr-CA-JeanNeural', name: '🛡️ Jean (Garde & Soldat)', gender: 'male', personality: 'Voix robuste, martiale et directe', lang: 'fr-CA', isAi: true },
+  { id: 'fr-CA-AntoineNeural', name: '🍺 Antoine (Tavernier & Marchand)', gender: 'male', personality: 'Voix chaleureuse, joviale et amicale', lang: 'fr-CA', isAi: true },
+  { id: 'fr-CA-ThierryNeural', name: '💀 Thierry (Guerrier Sombre & Nain)', gender: 'male', personality: 'Voix rauque, bourrue et imposante', lang: 'fr-CA', isAi: true },
+  { id: 'fr-CA-SylvieNeural', name: '✨ Sylvie (Fée & Enchanteresse)', gender: 'female', personality: 'Voix féerique, aérienne et mystique', lang: 'fr-CA', isAi: true },
+  { id: 'fr-BE-CharlineNeural', name: '🌿 Charline (Prêtresse & Guérisseuse)', gender: 'female', personality: 'Voix douce, bienveillante et lumineuse', lang: 'fr-BE', isAi: true },
+  { id: 'fr-BE-GerardNeural', name: '📜 Gérard (Vieux Sage & Érudit)', gender: 'male', personality: 'Voix d\'ancien savant, calme et posée', lang: 'fr-BE', isAi: true },
+  { id: 'fr-CH-ArianeNeural', name: '🏹 Ariane (Rôdeuse & Amazone)', gender: 'female', personality: 'Voix vive, déterminée et agile', lang: 'fr-CH', isAi: true },
+  { id: 'fr-CH-FabriceNeural', name: '🎭 Fabrice (Barde & Voyageur)', gender: 'male', personality: 'Voix narrative, enjouée et théâtrale', lang: 'fr-CH', isAi: true }
 ];
 
 /**

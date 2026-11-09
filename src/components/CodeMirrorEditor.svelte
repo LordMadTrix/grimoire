@@ -18,6 +18,7 @@
   import { quickAiPlugin, quickAiTheme } from '$lib/editor/quickAiPlugin';
   import { typewriterCompartment, getTypewriterExtension } from '$lib/editor/typewriterPlugin';
   import { forceLinting } from '@codemirror/lint';
+  import { normalizeMarkdownDialogueAndPunctuation } from '$lib/services/dialogueParser';
   import AiMenuModal from './AiMenuModal.svelte';
 
   let { value = '', scrollToLine = null, onInput = () => {}, onSave = () => {} }: {
@@ -651,6 +652,86 @@
           selection: { anchor: from + hr.length },
           scrollIntoView: true
         });
+        break;
+      }
+      case 'dialogue-quote': {
+        if (empty) {
+          const sample = '**Personnage** : "Réplique..."\n';
+          view.dispatch({
+            changes: { from, to, insert: sample },
+            selection: { anchor: from + 2, head: from + 12 },
+            scrollIntoView: true
+          });
+        } else {
+          let clean = selectedText.trim();
+          if (!/[.!?…:;]$/.test(clean)) clean += '.';
+          const wrapped = `"${clean}"`;
+          view.dispatch({
+            changes: { from, to, insert: wrapped },
+            selection: { anchor: from + 1, head: from + 1 + clean.length },
+            scrollIntoView: true
+          });
+        }
+        break;
+      }
+      case 'dialogue-dash': {
+        if (empty) {
+          const dash = '— ';
+          view.dispatch({
+            changes: { from, to, insert: dash },
+            selection: { anchor: from + dash.length },
+            scrollIntoView: true
+          });
+        } else {
+          toggleLinePrefix('— ');
+        }
+        break;
+      }
+      case 'narration-callout': {
+        const narrationSnippet = "\n> [!NARRATION]\n> Le silence pesant de la crypte est troublé par un souffle glacial...\n\n";
+        view.dispatch({
+          changes: { from, to, insert: narrationSnippet },
+          selection: { anchor: from + 17, head: from + 84 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'dialogue-callout': {
+        const pnjSnippet = "\n> [!DIALOGUE:Aubergiste]\n> \"Approchez du feu, voyageurs. Que puis-je vous servir ?\"\n\n";
+        view.dispatch({
+          changes: { from, to, insert: pnjSnippet },
+          selection: { anchor: from + 14, head: from + 24 },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'pause-tts': {
+        const pauseSnippet = ' ... ';
+        view.dispatch({
+          changes: { from, to, insert: pauseSnippet },
+          selection: { anchor: from + pauseSnippet.length },
+          scrollIntoView: true
+        });
+        break;
+      }
+      case 'clean-punctuation': {
+        if (empty) {
+          const fullDoc = doc.toString();
+          const cleaned = normalizeMarkdownDialogueAndPunctuation(fullDoc);
+          if (cleaned !== fullDoc) {
+            view.dispatch({
+              changes: { from: 0, to: doc.length, insert: cleaned },
+              scrollIntoView: true
+            });
+          }
+        } else {
+          const cleaned = normalizeMarkdownDialogueAndPunctuation(selectedText);
+          view.dispatch({
+            changes: { from, to, insert: cleaned },
+            selection: { anchor: from, head: from + cleaned.length },
+            scrollIntoView: true
+          });
+        }
         break;
       }
     }

@@ -72,6 +72,50 @@ pub async fn tts_synthesize_neural(
         format!("{pitch_hz}Hz")
     };
 
+    // ── Stratégie 1 : Appel direct au module système edge-tts (Python) ──
+    for py_bin in &["python", "py", "python3"] {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join(format!("grimoire_tts_{}.mp3", Uuid::new_v4().simple()));
+
+        let mut cmd = tokio::process::Command::new(py_bin);
+        cmd.args([
+            "-m",
+            "edge_tts",
+            "--voice",
+            &voice_id,
+            "--rate",
+            &rate_str,
+            "--pitch",
+            &pitch_str,
+            "--text",
+            clean_text,
+            "--write-media",
+            &temp_file.to_string_lossy(),
+        ]);
+
+        #[cfg(windows)]
+        {
+            #[allow(unused_imports)]
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        if let Ok(output) = cmd.output().await {
+            if output.status.success() && temp_file.exists() {
+                if let Ok(bytes) = std::fs::read(&temp_file) {
+                    let _ = std::fs::remove_file(&temp_file);
+                    if !bytes.is_empty() {
+                        return Ok(bytes);
+                    }
+                }
+            }
+            if temp_file.exists() {
+                let _ = std::fs::remove_file(&temp_file);
+            }
+        }
+    }
+
     let connection_id = Uuid::new_v4().simple().to_string();
     let sec_ms_gec = generate_sec_ms_gec();
 
@@ -178,4 +222,16 @@ pub async fn tts_synthesize_neural(
     }
 
     Ok(audio_bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_edge_tts() {
+        let res = tts_synthesize_neural("Bonjour aventurier".to_string(), "fr-FR-HenriNeural".to_string(), None, None).await;
+        println!("Test Edge TTS result: {:?}", res.as_ref().map(|v| v.len()));
+        assert!(res.is_ok(), "TTS failed: {:?}", res.err());
+    }
 }
