@@ -217,9 +217,30 @@
     poison: 0x44ff44, silence: 0xaa44ff, divine: 0xffffaa, darkness: 0x4400aa,
   };
 
-  // Multi-select
+  // Multi-select & Barre d'actions immédiate du pion
   let selectedTokenIds = $state<Set<string>>(new Set());
   let dragOffsets = new Map<string, { dx: number; dy: number }>();
+
+  const singleSelectedToken = $derived(
+    selectedTokenIds.size === 1 ? tokens.find(t => selectedTokenIds.has(t.id)) || null : null
+  );
+
+  let tokenBarX = $state(0);
+  let tokenBarY = $state(0);
+
+  function updateSelectedTokenBar() {
+    if (singleSelectedToken && worldContainer && app?.canvas) {
+      const canvasRect = app.canvas.getBoundingClientRect();
+      const sx = canvasRect.left + worldContainer.x + singleSelectedToken.x * worldContainer.scale.x;
+      const sy = canvasRect.top + worldContainer.y + (singleSelectedToken.y - (singleSelectedToken.size / 2)) * worldContainer.scale.y - 48;
+      tokenBarX = sx;
+      tokenBarY = Math.max(canvasRect.top + 8, sy);
+    }
+  }
+
+  // Listeners globaux de drag token
+  let onWindowPointerMove: ((ev: PointerEvent) => void) | null = null;
+  let onWindowPointerUp: ((ev: PointerEvent) => void) | null = null;
 
   // Chemin de déplacement
   let movePathG: PIXI.Graphics;
@@ -443,6 +464,75 @@
       app.canvas.addEventListener('wheel', onWheel);
       app.canvas.addEventListener('contextmenu', e => e.preventDefault());
       document.addEventListener('contextmenu', e => e.preventDefault());
+
+      // Écouteurs globaux window pour un drag-and-drop 100% garanti partout sur l'écran
+      onWindowPointerMove = (ev: PointerEvent) => {
+        if (!draggedTokenId || !worldContainer || !app?.canvas) return;
+        const rect = app.canvas.getBoundingClientRect();
+        const clientX = ev.clientX - rect.left;
+        const clientY = ev.clientY - rect.top;
+        const localPos = worldContainer.toLocal({ x: clientX, y: clientY });
+        const sprite = tokenSprites.get(draggedTokenId);
+        if (sprite) {
+          sprite.x = localPos.x;
+          sprite.y = localPos.y;
+          (sprite as any).__targetX = localPos.x;
+          (sprite as any).__targetY = localPos.y;
+          for (const [selId, off] of dragOffsets) {
+            const sel = tokenSprites.get(selId);
+            if (sel) {
+              sel.x = localPos.x + off.dx;
+              sel.y = localPos.y + off.dy;
+              (sel as any).__targetX = sel.x;
+              (sel as any).__targetY = sel.y;
+            }
+          }
+        }
+      };
+
+      onWindowPointerUp = (ev: PointerEvent) => {
+        if (!draggedTokenId || !worldContainer || !app?.canvas) return;
+        const rect = app.canvas.getBoundingClientRect();
+        const clientX = ev.clientX - rect.left;
+        const clientY = ev.clientY - rect.top;
+        let localPos = worldContainer.toLocal({ x: clientX, y: clientY });
+        if (gridEnabled && vttStore.snapToGrid) {
+          localPos.x = Math.floor(localPos.x / gridSize) * gridSize + gridSize / 2;
+          localPos.y = Math.floor(localPos.y / gridSize) * gridSize + gridSize / 2;
+        }
+        const sprite = tokenSprites.get(draggedTokenId);
+        if (sprite) {
+          sprite.x = localPos.x;
+          sprite.y = localPos.y;
+          (sprite as any).__targetX = localPos.x;
+          (sprite as any).__targetY = localPos.y;
+        }
+        onTokenMove(draggedTokenId, localPos.x, localPos.y);
+        for (const [selId, off] of dragOffsets) {
+          let sx = localPos.x + off.dx;
+          let sy = localPos.y + off.dy;
+          if (gridEnabled && vttStore.snapToGrid) {
+            sx = Math.floor(sx / gridSize) * gridSize + gridSize / 2;
+            sy = Math.floor(sy / gridSize) * gridSize + gridSize / 2;
+          }
+          const selSprite = tokenSprites.get(selId);
+          if (selSprite) {
+            selSprite.x = sx;
+            selSprite.y = sy;
+            (selSprite as any).__targetX = sx;
+            (selSprite as any).__targetY = sy;
+          }
+          onTokenMove(selId, sx, sy);
+        }
+        dragOffsets = new Map();
+        draggedTokenId = null;
+        movePathStart = null;
+        if (movePathG) movePathG.clear();
+        if (app?.canvas) app.canvas.style.cursor = 'default';
+      };
+
+      window.addEventListener('pointermove', onWindowPointerMove);
+      window.addEventListener('pointerup', onWindowPointerUp);
     }
 
     let lastVisibilityCheck = 0;
@@ -468,6 +558,10 @@
         currentFps = Math.round(app.ticker.FPS);
         if (typeof window !== 'undefined') (window as any).__VTT_FPS = currentFps;
         console.warn(`[VTT TELEMETRY] FPS: ${currentFps} | Delta: ${app.ticker.deltaMS.toFixed(1)}ms | Screen: ${app.screen.width}x${app.screen.height}`);
+      }
+
+      if (singleSelectedToken) {
+        updateSelectedTokenBar();
       }
 
       // ── Glissement fluide des pions vers leur position cible (Lerp 60 FPS ou saut direct) ──
@@ -815,6 +909,8 @@
   onDestroy(() => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('vtt-kill-all-audio', handleKillAllAudio);
+      if (onWindowPointerMove) window.removeEventListener('pointermove', onWindowPointerMove);
+      if (onWindowPointerUp) window.removeEventListener('pointerup', onWindowPointerUp);
     }
     opticalEngine.stop();
     window.removeEventListener('resize', handleResize);
@@ -1847,12 +1943,14 @@
         container.removeChild(condText); condText.destroy(); delete (container as any).__condText;
       }
 
-      if ((container as any).__targetX === undefined) {
-        container.x = token.x;
-        container.y = token.y;
+      if (token.id !== draggedTokenId && !dragOffsets.has(token.id)) {
+        if ((container as any).__targetX === undefined) {
+          container.x = token.x;
+          container.y = token.y;
+        }
+        (container as any).__targetX = token.x;
+        (container as any).__targetY = token.y;
       }
-      (container as any).__targetX = token.x;
-      (container as any).__targetY = token.y;
     });
   }
 
@@ -2301,7 +2399,11 @@
             (sel as any).__targetY = sel.y;
           }
         }
-        // Chemin de déplacement
+        // Listeners globaux de drag token
+  let onWindowPointerMove: ((ev: PointerEvent) => void) | null = null;
+  let onWindowPointerUp: ((ev: PointerEvent) => void) | null = null;
+
+  // Chemin de déplacement
         if (movePathStart && movePathG) {
           const dx = localPos.x - movePathStart.x;
           const dy = localPos.y - movePathStart.y;
@@ -3841,6 +3943,43 @@
   />
 {/if}
 
+{#if singleSelectedToken && isGM && !contextMenuTokenId}
+  <!-- svelte-ignore a11y_interactive_supports_focus a11y_click_events_have_key_events -->
+  <div 
+    class="token-floating-bar"
+    style="left: {tokenBarX}px; top: {tokenBarY}px;"
+    onclick={(e) => e.stopPropagation()}
+    role="toolbar"
+    tabindex="0"
+    aria-label="Actions du pion"
+  >
+    <span class="bar-token-name" title={singleSelectedToken.name}>{singleSelectedToken.name}</span>
+    <button class="bar-btn edit" onclick={() => editingTokenId = singleSelectedToken.id} title="Éditer la fiche (E)">
+      ✏️ Éditer
+    </button>
+    <button class="bar-btn dupl" onclick={() => { duplicateGmToken(singleSelectedToken.id, 1); notifStore.add('👥', singleSelectedToken.name, 'Pion dupliqué !', 'success', 2000); }} title="Dupliquer (Ctrl+D)">
+      👥 +1
+    </button>
+    <button class="bar-btn dupl" onclick={() => { duplicateGmToken(singleSelectedToken.id, 3); notifStore.add('👥', singleSelectedToken.name, '3 pions créés !', 'success', 2000); }} title="Créer 3 copies">
+      ✖️ x3
+    </button>
+    <div class="bar-sep"></div>
+    <button class="bar-btn size" onclick={() => onTokenUpdate({ ...singleSelectedToken, size: Math.max(20, Math.round(singleSelectedToken.size * 0.8)) })} title="Réduire la taille (-20%)">
+      ➖
+    </button>
+    <button class="bar-btn size" onclick={() => onTokenUpdate({ ...singleSelectedToken, size: Math.min(600, Math.round(singleSelectedToken.size * 1.25)) })} title="Agrandir la taille (+25%)">
+      ➕
+    </button>
+    <div class="bar-sep"></div>
+    <button class="bar-btn danger" onclick={() => { onTokenDelete(singleSelectedToken.id); selectedTokenIds = new Set(); notifStore.add('🗑️', singleSelectedToken.name, 'Pion supprimé de la carte !', 'info', 1800); }} title="Supprimer de la carte (Suppr)">
+      🗑️ Supprimer
+    </button>
+    <button class="bar-close-btn" onclick={() => selectedTokenIds = new Set()} title="Désélectionner">
+      ✕
+    </button>
+  </div>
+{/if}
+
 {#if contextMenuTokenId && isGM}
   <TokenContextMenu
     tokenId={contextMenuTokenId}
@@ -4086,5 +4225,123 @@
   .vtt-placement-cancel:hover {
     background: rgba(239, 68, 68, 0.4);
     color: #fff;
+  }
+
+  /* Barre Flottante d'Actions Rapides du Pion Sélectionné */
+  .token-floating-bar {
+    position: fixed;
+    transform: translate(-50%, -100%);
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid rgba(245, 158, 11, 0.6);
+    border-radius: 8px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 12px rgba(245, 158, 11, 0.25);
+    z-index: 10001;
+    backdrop-filter: blur(8px);
+    user-select: none;
+    animation: barPopIn 0.15s ease-out;
+  }
+
+  @keyframes barPopIn {
+    from { opacity: 0; transform: translate(-50%, -85%) scale(0.95); }
+    to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+  }
+
+  .bar-token-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fbbf24;
+    max-width: 110px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 4px;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .bar-btn {
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+    border-radius: 5px;
+    padding: 3px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+
+  .bar-btn:hover {
+    background: rgba(51, 65, 85, 1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .bar-btn.edit {
+    color: #60a5fa;
+    border-color: rgba(96, 165, 250, 0.4);
+  }
+
+  .bar-btn.edit:hover {
+    background: rgba(37, 99, 235, 0.3);
+    border-color: #60a5fa;
+  }
+
+  .bar-btn.dupl {
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.4);
+  }
+
+  .bar-btn.dupl:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #34d399;
+  }
+
+  .bar-btn.size {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  .bar-btn.danger {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.45);
+    font-weight: 700;
+  }
+
+  .bar-btn.danger:hover {
+    background: #dc2626;
+    color: #fff;
+    border-color: #ef4444;
+  }
+
+  .bar-sep {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 2px;
+  }
+
+  .bar-close-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.12s;
+  }
+
+  .bar-close-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
   }
 </style>

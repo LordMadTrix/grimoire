@@ -88,8 +88,19 @@
           const raw = await readFile(vp, imageUrl);
           const descriptor = JSON.parse(raw);
           const design = descriptor.design;
-          const imgPath = descriptor.imageFile || imageUrl.replace(/\.json$/i, '.png');
+          const tokenImg = (design?.imageUrl && design.imageUrl.startsWith('data:'))
+            ? design.imageUrl 
+            : (descriptor.imageFile || imageUrl.replace(/\.json$/i, '.png'));
           const tokenSize = (vttStore.gridSize || 50) * (design?.scaleGrid || 1);
+
+          // Si un fichier PNG correspondant doit être garanti sur le disque
+          const pngRelPath = descriptor.imageFile || imageUrl.replace(/\.json$/i, '.png');
+          if (design?.imageUrl && design.imageUrl.startsWith('data:') && vp) {
+            try {
+              const b64Data = design.imageUrl.split(',')[1] || design.imageUrl;
+              writeFileBase64(vp, pngRelPath, b64Data).catch(() => {});
+            } catch {}
+          }
 
           addGmToken({
             id: descriptor.id || ('tok_' + Math.random().toString(36).slice(2, 9)),
@@ -97,7 +108,7 @@
             x,
             y,
             size: tokenSize,
-            imageUrl: imgPath,
+            imageUrl: tokenImg,
             hp: design?.showHpBar ? design.hpPercent : undefined,
             maxHp: design?.showHpBar ? 100 : undefined,
             isEnemy: design?.status === 'hostile' || design?.status === 'boss',
