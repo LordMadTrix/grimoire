@@ -12,7 +12,8 @@
     isTauri, openUrl,
     type ServerInfo, type PlayerInfo,
   } from '$lib/api';
-  import { vttStore } from '$lib/stores/vtt.svelte';
+  import { vttStore, addGmToken, updateGmToken, startPlayerPlacement, cancelPlayerPlacement } from '$lib/stores/vtt.svelte';
+  import { notifStore } from '$lib/stores/notifications.svelte';
   import { getGameConfig } from '$lib/stores/gameConfig.svelte';
   import { getVaultPath, setVaultTree, setActiveFile, getActiveFile, setActiveContent, getIsDirty } from '$lib/stores/vault.svelte';
   import { invoke } from '@tauri-apps/api/core';
@@ -30,6 +31,116 @@
   let activeTab   = $state<'players' | 'carnet'>('players');
   let lastNote    = $state<{ title: string; filename: string } | null>(null);
   let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Fenêtre déplaçable & réductible
+  let posX = $state(80);
+  let posY = $state(60);
+  let isDragging = $state(false);
+  let dragOffset = { x: 0, y: 0 };
+  let isMinimized = $state(false);
+
+  function startDrag(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) return;
+    isDragging = true;
+    dragOffset = { x: e.clientX - posX, y: e.clientY - posY };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (!isDragging) return;
+    posX = Math.max(10, Math.min(window.innerWidth - 300, e.clientX - dragOffset.x));
+    posY = Math.max(10, Math.min(window.innerHeight - 80, e.clientY - dragOffset.y));
+  }
+
+  function onMouseUp() {
+    if (isDragging) {
+      isDragging = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      try {
+        localStorage.setItem('grimoire_player_mobile_pos', JSON.stringify({ x: posX, y: posY }));
+      } catch {}
+    }
+  }
+
+  // ── Placement & Drag des Joueurs sur la carte VTT ──
+  function handleDragStartPlayer(e: DragEvent, p: PlayerInfo) {
+    if (!e.dataTransfer) return;
+    const char = p.character;
+    const img = char?.portrait || char?.avatar || char?.imageUrl;
+    const hp = char?.hp ?? char?.bless ?? 10;
+    const maxHp = char?.maxhp ?? (parseInt(char?.profil?.act?.b) || 10);
+    const tokenData = {
+      id: p.id,
+      name: p.name,
+      hp,
+      maxHp,
+      imageUrl: img || undefined
+    };
+    e.dataTransfer.setData('vtt/player-token', JSON.stringify(tokenData));
+    e.dataTransfer.setData('text/plain', p.name);
+    e.dataTransfer.effectAllowed = 'copyMove';
+  }
+
+  function handleStartPlacingPlayer(p: PlayerInfo) {
+    const char = p.character;
+    const img = char?.portrait || char?.avatar || char?.imageUrl;
+    const hp = char?.hp ?? char?.bless ?? 10;
+    const maxHp = char?.maxhp ?? (parseInt(char?.profil?.act?.b) || 10);
+    startPlayerPlacement({
+      id: p.id,
+      name: p.name,
+      hp,
+      maxHp,
+      imageUrl: img || undefined
+    });
+    isMinimized = true; // Réduit la fenêtre pour laisser la vue libre sur la carte
+    notifStore.add('📍', p.name, 'Cliquez sur la carte pour poser le joueur (ou Échap pour annuler)', 'info', 4000);
+  }
+
+  function handleSpawnPlayerAtCenter(p: PlayerInfo) {
+    const char = p.character;
+    const img = char?.portrait || char?.avatar || char?.imageUrl;
+    const hp = char?.hp ?? char?.bless ?? 10;
+    const maxHp = char?.maxhp ?? (parseInt(char?.profil?.act?.b) || 10);
+    
+    // Vérifier si le token existe déjà
+    const existing = vttStore.tokens.find(t => t.playerId === p.id || t.name.toLowerCase() === p.name.toLowerCase());
+    if (existing) {
+      updateGmToken(existing.id, Math.round(vttStore.cameraCenter.x), Math.round(vttStore.cameraCenter.y));
+      notifStore.add('🧙‍♂️', p.name, 'Token téléporté au centre de votre vue', 'success', 2500);
+    } else {
+      addGmToken({
+        id: Math.random().toString(36).slice(2),
+        name: p.name,
+        x: Math.round(vttStore.cameraCenter.x),
+        y: Math.round(vttStore.cameraCenter.y),
+        size: vttStore.gridSize,
+        color: 0x22c55e,
+        hp,
+        maxHp,
+        imageUrl: img || undefined,
+        visionRange: 0,
+        isEnemy: false,
+        visible: true,
+        playerId: p.id
+      });
+      notifStore.add('🧙‍♂️', p.name, 'Nouveau token posé au centre de la vue !', 'success', 2500);
+    }
+  }
+
+  function handleCenterCameraOnPlayer(p: PlayerInfo) {
+    const token = vttStore.tokens.find(t => t.playerId === p.id || t.name.toLowerCase() === p.name.toLowerCase());
+    if (token) {
+      window.dispatchEvent(new CustomEvent('vtt-center-token', {
+        detail: { tokenId: token.id, playerId: p.id }
+      }));
+      notifStore.add('🎯', p.name, 'Caméra centrée sur le token', 'info', 2000);
+    } else {
+      notifStore.add('ℹ️', p.name, 'Ce joueur n\'a pas encore de token sur la carte. Cliquez sur « 📍 Placer » ou « ➕ Poser ».', 'warn', 3000);
+    }
+  }
 
   // Per-player GM controls
   let dmgInputs     = $state<Record<string, number>>({});
@@ -229,6 +340,17 @@
 
   onMount(async () => {
     try {
+      const savedPos = localStorage.getItem('grimoire_player_mobile_pos');
+      if (savedPos) {
+        const parsed = JSON.parse(savedPos);
+        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+          posX = Math.max(10, Math.min(window.innerWidth - 300, parsed.x));
+          posY = Math.max(10, Math.min(window.innerHeight - 80, parsed.y));
+        }
+      }
+    } catch {}
+
+    try {
       await mobileServerStore.init();
       if (mobileServerStore.serverInfo) {
         startPolling();
@@ -346,15 +468,21 @@
 </script>
 
 {#if visible}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="pm-backdrop" onclick={() => visible = false}>
-    <div class="pm-panel" onclick={e => e.stopPropagation()}>
+  <div 
+    class="pm-floating-window" 
+    class:minimized={isMinimized}
+    class:is-dragging={isDragging}
+    style="top: {posY}px; left: {posX}px;"
+  >
+    <div class="pm-panel">
 
-      <!-- ── Header ── -->
-      <div class="pm-header">
+      <!-- ── Header Draggable ── -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="pm-header" onmousedown={startDrag}>
         <div class="pm-header-left">
-          <span>📱 Joueurs Mobiles</span>
+          <span class="pm-drag-handle" title="Glisser pour déplacer la fenêtre">✥</span>
+          <span class="pm-title">📱 Joueurs & Mobiles</span>
           {#if serverInfo}
             <span class="pm-status-badge">
               <span class="pm-status-dot"></span>
@@ -364,9 +492,15 @@
             <span class="pm-status-badge pm-status-off">hors ligne</span>
           {/if}
         </div>
-        <button class="pm-close" onclick={() => visible = false}>✕</button>
+        <div class="pm-header-actions">
+          <button class="pm-btn-icon" onclick={() => isMinimized = !isMinimized} title={isMinimized ? "Agrandir" : "Réduire"}>
+            {isMinimized ? '🗖' : '🗕'}
+          </button>
+          <button class="pm-close" onclick={() => visible = false} title="Fermer">✕</button>
+        </div>
       </div>
 
+      {#if !isMinimized}
       <!-- ── Onglets Mode Joueurs / Mode Carnet MJ ── -->
       <div style="display: flex; gap: 4px; padding: 6px 16px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border);">
         <button
@@ -494,15 +628,22 @@
       <!-- ── Joueurs connectés ── -->
       {#if players.length > 0}
         <div class="pm-section">
-          <div class="pm-section-title">👥 Joueurs ({players.length})</div>
+          <div class="pm-section-title">👥 Joueurs Connectés ({players.length})</div>
           <div class="pm-players">
             {#each players as p (p.id)}
               {@const expanded = expandedCards.has(p.id)}
               <div class="pm-player-card" class:turn-active={p.active_turn}>
 
-                <!-- Card header — toujours visible, clic pour ouvrir les contrôles -->
+                <!-- Card header — draggable sur la carte VTT -->
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <div class="pm-player-header" onclick={() => toggleCard(p.id)}>
+                <div 
+                  class="pm-player-header" 
+                  draggable="true"
+                  ondragstart={(e) => handleDragStartPlayer(e, p)}
+                  onclick={() => toggleCard(p.id)}
+                  title="Glisser-déposer ce joueur sur la carte VTT, ou cliquer pour déplier ses réglages"
+                >
+                  <span class="pm-drag-token-grip" title="Glisser ce joueur sur la carte">✥</span>
                   <div class="pm-player-dot" class:active-dot={p.active_turn}></div>
                   {#if p.character?.portrait}
                     <img src={p.character.portrait} alt={p.name} style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); margin-right: 4px; flex-shrink: 0;" />
@@ -524,6 +665,34 @@
                     <span class="pm-player-hp">B {p.character.hp}</span>
                   {/if}
                   <span class="pm-chevron">{expanded ? '▲' : '▼'}</span>
+                </div>
+
+                <!-- Actions de placement direct sur la table VTT -->
+                <div class="pm-player-vtt-row">
+                  <button 
+                    type="button" 
+                    class="pm-vtt-btn pm-vtt-btn-target" 
+                    onclick={() => handleStartPlacingPlayer(p)}
+                    title="Activer le mode viseur : cliquez ensuite n'importe où sur la carte pour poser ce joueur"
+                  >
+                    📍 Placer où je veux
+                  </button>
+                  <button 
+                    type="button" 
+                    class="pm-vtt-btn" 
+                    onclick={() => handleSpawnPlayerAtCenter(p)}
+                    title="Poser immédiatement le joueur au centre exact de votre écran"
+                  >
+                    ➕ Au centre
+                  </button>
+                  <button 
+                    type="button" 
+                    class="pm-vtt-btn" 
+                    onclick={() => handleCenterCameraOnPlayer(p)}
+                    title="Centrer la caméra sur ce joueur s'il est déjà sur la carte"
+                  >
+                    🎯 Focus
+                  </button>
                 </div>
 
                 <!-- Conditions — toujours visibles -->
@@ -702,25 +871,26 @@
           {/if}
         </div>
       {/if}
+      {/if}
 
     </div>
   </div>
 {/if}
 
 <style>
-  /* ── Backdrop & Panel ── */
-  .pm-backdrop {
+  /* ── Fenêtre Flottante Déplaçable ── */
+  .pm-floating-window {
     position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.5);
     z-index: 9100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px;
-    box-sizing: border-box;
-    overflow-y: auto;
-    overflow-x: auto;
+    pointer-events: auto;
+    filter: drop-shadow(0 15px 35px rgba(0,0,0,0.6));
+    user-select: none;
+    transition: width 0.2s ease;
+  }
+
+  .pm-floating-window.is-dragging {
+    opacity: 0.95;
+    cursor: grabbing !important;
   }
 
   .pm-panel {
@@ -728,13 +898,17 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     width: 480px;
-    max-width: 100%;
-    max-height: calc(100vh - 24px);
-    margin: auto;
+    max-width: 95vw;
+    max-height: calc(100vh - 80px);
     overflow-y: auto;
     overflow-x: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,.6);
-    animation: slideDown .15s ease-out;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+
+  .pm-floating-window.minimized .pm-panel {
+    width: 320px;
+    max-height: none;
+    overflow: hidden;
   }
 
   .pm-panel::-webkit-scrollbar {
@@ -761,20 +935,49 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid var(--border);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
     position: sticky;
     top: 0;
     background: var(--bg-secondary);
-    z-index: 1;
+    z-index: 2;
+    cursor: grab;
+  }
+  .pm-header:active {
+    cursor: grabbing;
   }
   .pm-header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+  }
+  .pm-drag-handle {
+    color: var(--accent);
+    font-size: 14px;
+    cursor: grab;
+    opacity: 0.8;
+  }
+  .pm-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pm-btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    transition: all .15s;
+  }
+  .pm-btn-icon:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
   }
 
   .pm-status-badge {
@@ -925,14 +1128,64 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
+    cursor: grab;
     user-select: none;
     border-radius: 6px;
     margin: -4px;
     padding: 4px;
     transition: background .1s;
   }
-  .pm-player-header:hover { background: rgba(255,255,255,.04); }
+  .pm-player-header:active { cursor: grabbing; }
+  .pm-player-header:hover { background: rgba(255,255,255,.06); }
+
+  .pm-drag-token-grip {
+    color: var(--accent);
+    font-size: 13px;
+    cursor: grab;
+    opacity: 0.7;
+    margin-right: -2px;
+  }
+  .pm-drag-token-grip:hover { opacity: 1; }
+
+  /* ── VTT Placement Quick Actions ── */
+  .pm-player-vtt-row {
+    display: flex;
+    gap: 6px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(255,255,255,0.08);
+  }
+  .pm-vtt-btn {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all .15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    white-space: nowrap;
+  }
+  .pm-vtt-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--accent);
+  }
+  .pm-vtt-btn-target {
+    background: rgba(229,168,83,0.12);
+    border-color: rgba(229,168,83,0.4);
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .pm-vtt-btn-target:hover {
+    background: var(--accent);
+    color: #000;
+  }
 
   .pm-player-dot {
     width: 8px; height: 8px;

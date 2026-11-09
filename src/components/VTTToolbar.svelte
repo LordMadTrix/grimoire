@@ -504,6 +504,125 @@
       </div>
     </div>
 
+    <!-- 1bis. Menu Fonctions & Affichage (Interrupteurs Modules) -->
+    <div class="menu-dropdown" class:open={activeMenu === 'modules'}>
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'modules' ? null : 'modules'; }}>
+        🎛️ Fonctions & Affichage
+      </button>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div class="dropdown-content" class:hidden={activeMenu !== 'modules'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1" style="min-width: 290px;">
+        <div class="dropdown-title">Fenêtres Flottantes & HUDs</div>
+        
+        <div class="module-toggle-row" onclick={() => vttStore.showPlayerQuickDock = !vttStore.showPlayerQuickDock}>
+          <div class="module-info">
+            <span class="module-icon">👥</span>
+            <span class="module-name">Volet Joueurs Express</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showPlayerQuickDock}>
+            {vttStore.showPlayerQuickDock ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={() => onTogglePlayerMobileManager?.()}>
+          <div class="module-info">
+            <span class="module-icon">📱</span>
+            <span class="module-name">Hub Joueurs Mobiles & QR</span>
+          </div>
+          <span class="module-switch" class:active={mobileServerStore.isRunning}>
+            {mobileServerStore.isRunning ? 'EN LIGNE' : 'OUVRIR'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={() => { if (vttStore.combatActive) stopCombat(); else startCombat(); }}>
+          <div class="module-info">
+            <span class="module-icon">⚔️</span>
+            <span class="module-name">Suivi de Combat (Initiative)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.combatActive}>
+            {vttStore.combatActive ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={() => vttStore.showGmNotes = !vttStore.showGmNotes}>
+          <div class="module-info">
+            <span class="module-icon">📝</span>
+            <span class="module-name">Tiroir Notes MJ</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showGmNotes}>
+            {vttStore.showGmNotes ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={() => vttStore.showMacroBar = !vttStore.showMacroBar}>
+          <div class="module-info">
+            <span class="module-icon">🎲</span>
+            <span class="module-name">Barre de Macros Dés (Bas)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showMacroBar}>
+            {vttStore.showMacroBar ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Moteur de Carte & Effets VTT</div>
+
+        <div class="module-toggle-row" onclick={toggleGrid}>
+          <div class="module-info">
+            <span class="module-icon">#️⃣</span>
+            <span class="module-name">Grille Magnétique</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showGrid}>
+            {vttStore.showGrid ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={toggleFow}>
+          <div class="module-info">
+            <span class="module-icon">🌫️</span>
+            <span class="module-name">Brouillard de Guerre (FoW)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.fowEnabled}>
+            {vttStore.fowEnabled ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={() => vttStore.wallsEnabled = !vttStore.wallsEnabled}>
+          <div class="module-info">
+            <span class="module-icon">🧱</span>
+            <span class="module-name">Murs & Vision Dynamique</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.wallsEnabled}>
+            {vttStore.wallsEnabled ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={() => { vttStore.weather = vttStore.weather === 'none' ? 'rain' : 'none'; }}>
+          <div class="module-info">
+            <span class="module-icon">🌦️</span>
+            <span class="module-name">Météo & Particules</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.weather !== 'none'}>
+            {vttStore.weather !== 'none' ? vttStore.weather.toUpperCase() : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={toggleBlackout}>
+          <div class="module-info">
+            <span class="module-icon">🕶️</span>
+            <span class="module-name">Écran Noir Joueurs</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.isBlackout}>
+            {vttStore.isBlackout ? 'BLACKOUT' : 'NORMAL'}
+          </span>
+        </div>
+
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" onclick={() => { onOpenMonitorPicker?.(); activeMenu = null; }}>
+          🖥️ Multi-Écran (Vue Joueurs / TV)…
+        </button>
+      </div>
+    </div>
+
     <!-- 2. Outils interactifs -->
     {#if vttStore.currentMap}
       <div class="menu-dropdown" class:open={activeMenu === 'tools'}>
@@ -1446,6 +1565,55 @@
     color: var(--text-muted);
     padding: 4px 8px;
     letter-spacing: 0.05em;
+  }
+
+  /* ── Rangees Interrupteurs Modules ── */
+  .module-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    margin: 2px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    user-select: none;
+  }
+  .module-toggle-row:hover {
+    background: var(--bg-hover);
+  }
+  .module-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+  .module-icon {
+    font-size: 13px;
+    width: 18px;
+    text-align: center;
+  }
+  .module-name {
+    font-weight: 500;
+  }
+  .module-switch {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    min-width: 48px;
+    text-align: center;
+  }
+  .module-switch.active {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #4ade80;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
   }
 
   .dropdown-submenu-item {

@@ -284,6 +284,11 @@
 
   function emitCamera() {
     if (!isGM || !worldContainer) return;
+    if (canvasContainer) {
+      const rect = canvasContainer.getBoundingClientRect();
+      const center = worldContainer.toLocal(new PIXI.Point(rect.width / 2, rect.height / 2));
+      vttStore.cameraCenter = { x: Math.round(center.x), y: Math.round(center.y) };
+    }
     emitToPlayerView('sync_camera', {
       scaleX: worldContainer.scale.x,
       scaleY: worldContainer.scale.y,
@@ -2079,6 +2084,21 @@
   }
 
   function onPointerDown(e: PIXI.FederatedPointerEvent) {
+    // Mode Placement Rapide d'un Joueur (depuis Joueurs Express ou Mobile Manager)
+    if (vttStore.pendingPlayerPlacement && e.button === 0) {
+      const localPos = worldContainer.toLocal(e.global);
+      let x = localPos.x;
+      let y = localPos.y;
+      if (gridEnabled) {
+        x = Math.floor(x / gridSize) * gridSize + gridSize / 2;
+        y = Math.floor(y / gridSize) * gridSize + gridSize / 2;
+      }
+      onPlayerTokenDrop(vttStore.pendingPlayerPlacement, x, y);
+      spawnPing(x, y, 0x22c55e);
+      vttStore.pendingPlayerPlacement = null;
+      return;
+    }
+
     if (vttMode === 'dungeon-paint') {
       const localPos = worldContainer.toLocal(e.global);
       const col = Math.floor(localPos.x / gridSize);
@@ -2724,6 +2744,19 @@
 
   function onPointerDownForPing(e: PIXI.FederatedPointerEvent) {
     if (e.button !== 0) return;
+    if (vttStore.pendingPlayerPlacement) {
+      const localPos = worldContainer.toLocal(e.global);
+      let x = localPos.x;
+      let y = localPos.y;
+      if (gridEnabled) {
+        x = Math.floor(x / gridSize) * gridSize + gridSize / 2;
+        y = Math.floor(y / gridSize) * gridSize + gridSize / 2;
+      }
+      onPlayerTokenDrop(vttStore.pendingPlayerPlacement, x, y);
+      spawnPing(x, y, 0x22c55e);
+      vttStore.pendingPlayerPlacement = null;
+      return;
+    }
     if (vttMode === 'ping') {
       const localPos = worldContainer.toLocal(e.global);
       spawnPing(localPos.x, localPos.y);
@@ -2987,37 +3020,43 @@
 
   function onCanvasDragOver(e: DragEvent) {
     if (!isGM) return;
-    if (e.dataTransfer?.types.includes('vtt/token-image') || e.dataTransfer?.types.includes('vtt/player-token')) {
-      e.preventDefault();
+    e.preventDefault();
+    if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'copy';
     }
   }
 
   function onCanvasDrop(e: DragEvent) {
     if (!isGM || !worldContainer) return;
+    e.preventDefault();
 
-    // Déposer un token joueur depuis le panneau PlayerQuickDock
-    if (e.dataTransfer?.types.includes('vtt/player-token')) {
-      const raw = e.dataTransfer.getData('vtt/player-token');
-      if (raw) {
-        try {
-          const playerData = JSON.parse(raw);
-          e.preventDefault();
-          const rect = canvasContainer.getBoundingClientRect();
-          const screenX = e.clientX - rect.left;
-          const screenY = e.clientY - rect.top;
-          const local = worldContainer.toLocal(new PIXI.Point(screenX, screenY));
-          let x = local.x;
-          let y = local.y;
-          if (gridEnabled) {
-            x = Math.floor(x / gridSize) * gridSize + gridSize / 2;
-            y = Math.floor(y / gridSize) * gridSize + gridSize / 2;
-          }
-          onPlayerTokenDrop(playerData, x, y);
-          return;
-        } catch (err) {
-          console.error('Error parsing vtt/player-token drop:', err);
+    // Déposer un token joueur depuis le panneau PlayerQuickDock ou Hub Joueurs
+    let raw = e.dataTransfer?.getData('vtt/player-token');
+    if (!raw) {
+      const plain = e.dataTransfer?.getData('text/plain');
+      if (plain && plain.trim().startsWith('{')) {
+        raw = plain;
+      }
+    }
+
+    if (raw) {
+      try {
+        const playerData = JSON.parse(raw);
+        const rect = canvasContainer.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+        const local = worldContainer.toLocal(new PIXI.Point(screenX, screenY));
+        let x = local.x;
+        let y = local.y;
+        if (gridEnabled) {
+          x = Math.floor(x / gridSize) * gridSize + gridSize / 2;
+          y = Math.floor(y / gridSize) * gridSize + gridSize / 2;
         }
+        onPlayerTokenDrop(playerData, x, y);
+        spawnPing(x, y, 0x22c55e);
+        return;
+      } catch (err) {
+        console.error('Error parsing vtt/player-token drop:', err);
       }
     }
 
@@ -3729,6 +3768,14 @@
   <div class="vtt-fps-badge" class:fps-low={currentFps < 30} class:fps-mid={currentFps >= 30 && currentFps < 55}>
     ⚡ {currentFps} FPS
   </div>
+
+  {#if isGM && vttStore.pendingPlayerPlacement}
+    <div class="vtt-placement-banner">
+      <span class="vtt-placement-badge">📍 Mode Placement</span>
+      <span>Cliquez n'importe où sur la carte pour déposer <strong>{vttStore.pendingPlayerPlacement.name}</strong></span>
+      <button type="button" class="vtt-placement-cancel" onclick={() => vttStore.pendingPlayerPlacement = null}>Annuler (Échap)</button>
+    </div>
+  {/if}
 
   {#if vttStore.lightningFlash}
     <div class="vtt-lightning-flash"></div>

@@ -145,7 +145,6 @@
   let showAddonStore = $state(false);
   let showTokenEditor = $state(false);
   let showFeedback = $state(false);
-  let showPlayerQuickDock = $state(true);
   let monitors = $state<MonitorInfo[]>([]);
   let showMonitorPicker = $state(false);
   let viewMode = $state<'vtt' | 'editor' | 'graph' | 'timeline' | 'calendar'>('vtt');
@@ -855,7 +854,7 @@
         onTogglePlayerHub={() => playerHubRef?.toggle()} 
         onTogglePlayerManager={() => playerManagerRef?.toggle()}
         onTogglePlayerMobileManager={() => playerMobileManagerRef?.toggle()}
-        onTogglePlayerQuickDock={() => showPlayerQuickDock = !showPlayerQuickDock}
+        onTogglePlayerQuickDock={() => vttStore.showPlayerQuickDock = !vttStore.showPlayerQuickDock}
         onOpenMonitorPicker={() => showMonitorPicker = true}
         activeView={viewMode}
         onToggleView={() => { viewMode = viewMode === 'vtt' ? 'editor' : 'vtt'; }}
@@ -914,8 +913,10 @@
         {/if}
         <div class="vtt-viewport">
           <SessionDashboard />
-          <PlayerQuickDock bind:visible={showPlayerQuickDock} />
-          <GmNotesDrawer />
+          <PlayerQuickDock bind:visible={vttStore.showPlayerQuickDock} />
+          {#if vttStore.showGmNotes}
+            <GmNotesDrawer />
+          {/if}
           <MapCanvas
             mapUrl={vttStore.currentMap}
             gridEnabled={vttStore.showGrid}
@@ -953,9 +954,11 @@
             audioZones={vttStore.audioZones}
             terrainZones={vttStore.terrainZones}
           />
-          <div class="macro-bar-container">
-            <MacroBar onRollRequest={handleMapRoll} />
-          </div>
+          {#if vttStore.showMacroBar}
+            <div class="macro-bar-container">
+              <MacroBar onRollRequest={handleMapRoll} />
+            </div>
+          {/if}
         </div>
         {#if vttStore.combatActive}
           <InitiativeTracker />

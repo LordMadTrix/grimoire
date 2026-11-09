@@ -231,6 +231,14 @@ export const vttStore = $state({
   fitRequest: 0,
   showGrid: true,
   gridSize: 50,
+  cameraCenter: { x: 500, y: 500 } as { x: number; y: number },
+  pendingPlayerPlacement: null as {
+    id: string;
+    name: string;
+    hp?: number;
+    maxHp?: number;
+    imageUrl?: string;
+  } | null,
 
   // Effets visuels & Éclairage
   weather: 'none' as 'none' | 'rain' | 'snow' | 'fog' | 'embers' | 'storm',
@@ -287,6 +295,13 @@ export const vttStore = $state({
   // Titre de campagne (affiché côté joueur)
   campaignTitle: '' as string,
   fowEnabled: true,
+
+  // Affichage et Visibilité des Modules & HUDs
+  showMacroBar: true,
+  showPlayerQuickDock: true,
+  showGmNotes: true,
+  showTokenNames: true,
+  showTokenHpBars: true,
 
   // Localisation de token (déclenche le centrage caméra)
   locateTokenId: null as string | null,
@@ -1184,4 +1199,12 @@ export function triggerLightningFlash() {
   setTimeout(() => {
     vttStore.lightningFlash = false;
   }, 180);
+}
+
+export function startPlayerPlacement(playerData: { id: string; name: string; hp?: number; maxHp?: number; imageUrl?: string }) {
+  vttStore.pendingPlayerPlacement = playerData;
+}
+
+export function cancelPlayerPlacement() {
+  vttStore.pendingPlayerPlacement = null;
 }

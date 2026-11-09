@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import {
     vttStore,
     nextTurn, prevTurn, stopCombat,
@@ -11,6 +12,51 @@
   let newInitiative = $state(10);
   let newHp = $state(10);
   let newIsEnemy = $state(false);
+
+  // Position flottante & drag
+  let posX = $state(window.innerWidth ? Math.max(20, window.innerWidth - 380) : 600);
+  let posY = $state(80);
+  let isDragging = $state(false);
+  let dragOffset = { x: 0, y: 0 };
+  let isMinimized = $state(false);
+
+  onMount(() => {
+    try {
+      const saved = localStorage.getItem('grimoire_initiative_pos');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+          posX = Math.max(10, Math.min(window.innerWidth - 320, parsed.x));
+          posY = Math.max(10, Math.min(window.innerHeight - 80, parsed.y));
+        }
+      }
+    } catch {}
+  });
+
+  function startDrag(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) return;
+    isDragging = true;
+    dragOffset = { x: e.clientX - posX, y: e.clientY - posY };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (!isDragging) return;
+    posX = Math.max(10, Math.min(window.innerWidth - 280, e.clientX - dragOffset.x));
+    posY = Math.max(10, Math.min(window.innerHeight - 60, e.clientY - dragOffset.y));
+  }
+
+  function onMouseUp() {
+    if (isDragging) {
+      isDragging = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      try {
+        localStorage.setItem('grimoire_initiative_pos', JSON.stringify({ x: posX, y: posY }));
+      } catch {}
+    }
+  }
 
   function submitAdd() {
     if (!newName.trim()) return;
@@ -33,26 +79,41 @@
 
   function round() {
     if (vttStore.combatants.length === 0) return 1;
-    // Incrémenter le round à chaque fois qu'on revient au début
     return Math.floor(vttStore.currentTurn / vttStore.combatants.length) + 1;
   }
 </script>
 
-<div class="tracker">
-  <div class="tracker-header">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span class="tracker-title">⚔️ Combat</span>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div 
+  class="tracker" 
+  class:minimized={isMinimized}
+  class:is-dragging={isDragging}
+  style="top: {posY}px; left: {posX}px;"
+>
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="tracker-header" onmousedown={startDrag}>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span class="tracker-drag-handle" title="Glisser pour déplacer le panneau de combat">✥</span>
+      <span class="tracker-title">⚔️ Combat R.{round()}</span>
       <button type="button" class="roll-btn" onclick={() => rollAllInitiatives('d20')} title="Lancer toutes les initiatives (d20)">🎲 d20</button>
       <button type="button" class="roll-btn wfrp" onclick={() => rollAllInitiatives('wfrp')} title="Lancer toutes les initiatives (WFRP 1d10+3)">🎲 WFRP</button>
     </div>
+    
     <div class="turn-controls">
       <button class="ctrl-btn" onclick={prevTurn} title="Tour précédent">◀</button>
       <span class="current-turn" title="Combattant actuel">{currentName()}</span>
       <button class="ctrl-btn" onclick={nextTurn} title="Tour suivant">▶</button>
     </div>
-    <button class="stop-btn" onclick={stopCombat} title="Terminer le combat">✕</button>
+
+    <div class="header-actions">
+      <button class="icon-btn" onclick={() => isMinimized = !isMinimized} title={isMinimized ? "Agrandir" : "Réduire"}>
+        {isMinimized ? '🗖' : '🗕'}
+      </button>
+      <button class="stop-btn" onclick={stopCombat} title="Terminer le combat">✕</button>
+    </div>
   </div>
 
+  {#if !isMinimized}
   <ul class="combatant-list">
     {#each vttStore.combatants as c, i}
       {@const isActive = i === vttStore.currentTurn}
@@ -88,27 +149,76 @@
   {:else}
     <button class="add-btn" onclick={() => showAddForm = true}>+ Ajouter combattant</button>
   {/if}
+  {/if}
 </div>
 
 <style>
   .tracker {
+    position: fixed;
+    z-index: 9050;
+    width: 340px;
     background: var(--bg-secondary);
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-    max-height: 280px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    user-select: none;
+    pointer-events: auto;
+    transition: width 0.2s;
+  }
+
+  .tracker.is-dragging {
+    opacity: 0.95;
+    cursor: grabbing !important;
+  }
+
+  .tracker.minimized {
+    width: 320px;
   }
 
   .tracker-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    background: rgba(239, 68, 68, 0.08);
-    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    padding: 8px 10px;
+    background: rgba(239, 68, 68, 0.12);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.25);
     flex-shrink: 0;
+    cursor: grab;
+  }
+  .tracker-header:active {
+    cursor: grabbing;
+  }
+
+  .tracker-drag-handle {
+    color: #ef4444;
+    font-size: 13px;
+    cursor: grab;
+    opacity: 0.8;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
   }
 
   .tracker-title {

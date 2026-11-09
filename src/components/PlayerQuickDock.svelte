@@ -9,7 +9,7 @@
     getSavedPlayerAccounts, savePlayerAccount, deletePlayerAccount, type PlayerAccountSummary
   } from '$lib/api';
   import { getVaultPath, getVaultTree, setActiveFile } from '$lib/stores/vault.svelte';
-  import { vttStore, replaceGmToken, addGmToken, type Token } from '$lib/stores/vtt.svelte';
+  import { vttStore, replaceGmToken, addGmToken, updateGmToken, startPlayerPlacement, type Token } from '$lib/stores/vtt.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { parseCharacterMd, type ParsedCharacterData } from '$lib/services/characterParser';
   import CelestialArtPickerModal from './CelestialArtPickerModal.svelte';
@@ -674,6 +674,25 @@
     }
   }
 
+  function startPlacement(p: { id?: string; player_id?: string | null; name: string; character?: any; character_path?: string | null }) {
+    const hpData = p.character ? {
+      hp: p.character.hp ?? p.character.bless ?? 10,
+      maxHp: p.character.maxhp ?? (parseInt(p.character.profil?.act?.b) || 10)
+    } : { hp: 10, maxHp: 10 };
+
+    const pid = p.id || p.player_id || p.name;
+    const img = p.character?.imageUrl || p.character?.avatar || p.character?.portrait;
+
+    startPlayerPlacement({
+      id: pid,
+      name: p.name,
+      hp: hpData.hp,
+      maxHp: hpData.maxHp,
+      imageUrl: img || undefined
+    });
+    notifStore.add('📍', p.name, 'Cliquez sur la carte pour placer ce joueur (ou Échap pour annuler)', 'info', 4000);
+  }
+
   function spawnPlayerTokenNow(p: { id?: string; player_id?: string | null; name: string; character?: any; character_path?: string | null }) {
     const hpData = p.character ? {
       hp: p.character.hp ?? p.character.bless ?? 10,
@@ -683,11 +702,18 @@
     const pid = p.id || p.player_id || p.name;
     const img = p.character?.imageUrl || p.character?.avatar || p.character?.portrait;
 
+    const existing = vttStore.tokens.find(t => t.playerId === pid || t.name.toLowerCase() === p.name.toLowerCase());
+    if (existing) {
+      updateGmToken(existing.id, Math.round(vttStore.cameraCenter.x), Math.round(vttStore.cameraCenter.y));
+      notifStore.add('🧙‍♂️', p.name, 'Token déplacé au centre de votre vue', 'success', 2500);
+      return;
+    }
+
     addGmToken({
       id: Math.random().toString(36).slice(2),
       name: p.name,
-      x: 300 + (vttStore.tokens.length * 30) % 300,
-      y: 300 + (vttStore.tokens.length * 20) % 200,
+      x: Math.round(vttStore.cameraCenter.x),
+      y: Math.round(vttStore.cameraCenter.y),
       size: vttStore.gridSize,
       color: 0x22c55e,
       hp: hpData.hp,
@@ -698,7 +724,7 @@
       visible: true,
       playerId: pid
     });
-    notifStore.add('🧙‍♂️', p.name, 'Token posé sur la carte !', 'success', 2500);
+    notifStore.add('🧙‍♂️', p.name, 'Token posé au centre de la vue !', 'success', 2500);
   }
 
   async function sendRollRequest(playerId: string, statKey: string, statLabel: string) {
@@ -827,17 +853,19 @@
                     <div
                       class="avatar-drag-handle"
                       draggable="true"
-                      title="Glisser-déposer sur la carte pour poser le token !"
+                      title="Glisser-déposer directement sur la carte VTT !"
                       ondragstart={(e) => {
                         if (e.dataTransfer) {
-                          e.dataTransfer.setData('vtt/player-token', JSON.stringify({
+                          const dataStr = JSON.stringify({
                             id: (p as any).id || (p as any).player_id || p.name,
                             name: p.name,
                             hp: hpData.hp,
                             maxHp: hpData.maxHp,
                             imageUrl: p.character?.imageUrl || p.character?.avatar || p.character?.portrait
-                          }));
-                          e.dataTransfer.effectAllowed = 'copy';
+                          });
+                          e.dataTransfer.setData('vtt/player-token', dataStr);
+                          e.dataTransfer.setData('text/plain', dataStr);
+                          e.dataTransfer.effectAllowed = 'copyMove';
                         }
                       }}
                     >
@@ -848,7 +876,7 @@
                           {p.name.charAt(0).toUpperCase()}
                         {/if}
                       </div>
-                      <span class="drag-hint-badge">✋</span>
+                      <span class="drag-hint-badge" title="Attrapez pour glisser sur la carte">✋</span>
                     </div>
 
                     <!-- Infos joueur -->
@@ -884,8 +912,15 @@
                       </div>
                     </div>
 
-                    <!-- Actions Carte : Focus ou Poser -->
+                    <!-- Actions Carte : Placer, Focus ou Poser -->
                     <div class="map-action-col">
+                      <button
+                        class="map-btn place-target-btn"
+                        onclick={() => startPlacement(p)}
+                        title="📍 Placer où je veux : cliquez ici puis cliquez n'importe où sur la carte"
+                      >
+                        📍 Placer
+                      </button>
                       {#if onMap}
                         <button
                           class="map-btn focus-btn"
@@ -898,7 +933,7 @@
                         <button
                           class="map-btn spawn-btn"
                           onclick={() => spawnPlayerTokenNow(p)}
-                          title="Ajouter immédiatement le token sur la carte (ou glissez l'avatar)"
+                          title="Poser immédiatement le token au centre de l'écran"
                         >
                           ➕ Poser
                         </button>
@@ -990,14 +1025,16 @@
                       title="Glisser sur la carte pour poser ce personnage"
                       ondragstart={(e) => {
                         if (e.dataTransfer) {
-                          e.dataTransfer.setData('vtt/player-token', JSON.stringify({
+                          const dataStr = JSON.stringify({
                             id: vc.path,
                             name: vc.name,
                             hp: hpData.hp,
                             maxHp: hpData.maxHp,
                             imageUrl: undefined
-                          }));
-                          e.dataTransfer.effectAllowed = 'copy';
+                          });
+                          e.dataTransfer.setData('vtt/player-token', dataStr);
+                          e.dataTransfer.setData('text/plain', dataStr);
+                          e.dataTransfer.effectAllowed = 'copyMove';
                         }
                       }}
                     >
@@ -1017,6 +1054,13 @@
                     </div>
 
                     <div class="map-action-col">
+                      <button
+                        class="map-btn place-target-btn"
+                        onclick={() => startPlacement({ id: vc.path, name: vc.name, character: vc.data })}
+                        title="📍 Placer où je veux : cliquez ici puis cliquez n'importe où sur la carte"
+                      >
+                        📍 Placer
+                      </button>
                       {#if onMap}
                         <button
                           class="map-btn focus-btn"
@@ -1029,7 +1073,7 @@
                         <button
                           class="map-btn spawn-btn"
                           onclick={() => spawnPlayerTokenNow({ id: vc.path, name: vc.name, character: vc.data })}
-                          title="Poser le token sur la carte"
+                          title="Poser le token au centre de l'écran"
                         >
                           ➕ Poser
                         </button>
@@ -1063,7 +1107,7 @@
 
       <!-- Pied de panneau : Astuce & Statut -->
       <div class="dock-footer">
-        <span class="drag-tip">💡 Attrapez l'avatar pour le glisser sur la carte</span>
+        <span class="drag-tip">💡 Cliquez sur <strong>📍 Placer</strong> puis cliquez sur la carte, ou attrapez l'avatar pour le glisser</span>
       </div>
 
       <!-- Quick Edit Modal -->
@@ -1731,17 +1775,30 @@
 
   .map-action-col {
     flex-shrink: 0;
+    display: flex;
+    gap: 4px;
+    align-items: center;
   }
   .map-btn {
     border: none;
     border-radius: 4px;
-    padding: 3px 7px;
-    font-size: 11px;
+    padding: 3px 6px;
+    font-size: 10px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
   }
   .map-btn:active { transform: scale(0.96); }
+  .place-target-btn {
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+  }
+  .place-target-btn:hover {
+    background: rgba(56, 189, 248, 0.3);
+    color: #fff;
+  }
   .focus-btn {
     background: rgba(34, 197, 94, 0.15);
     border: 1px solid rgba(34, 197, 94, 0.4);
