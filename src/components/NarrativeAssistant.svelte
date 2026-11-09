@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getPlayerConnections, type PlayerInfo, broadcastToPlayers, askOllama } from '$lib/api';
   import { notifStore } from '$lib/stores/notifications.svelte';
+  import { narrationStudioStore } from '$lib/stores/narrationStudio.svelte';
   import { ensureNpcMemoryLoaded, findNpcMemory, saveNpcInteraction, forgetNpc, getNpcMemoryContext, type NpcMemory } from '$lib/stores/npcMemory.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
@@ -280,6 +281,7 @@
             <div class="na-result-text">{generatedAtmosphere}</div>
             <div class="na-result-actions">
               <button class="na-action-btn" onclick={() => copyText(generatedAtmosphere)}>📋 Copier</button>
+              <button class="na-action-btn" style="color: #a5b4fc; border-color: rgba(99, 102, 241, 0.4);" onclick={() => narrationStudioStore.open(generatedAtmosphere)}>🎙️ Narrer avec l'IA</button>
               <button class="na-action-btn na-action-send" onclick={() => sendAsHandout(generatedAtmosphere, 'Atmosphère')}>📤 Diffuser aux Joueurs</button>
             </div>
           </div>
@@ -368,6 +370,7 @@
             <div class="na-result-text">{generatedNpcReply}</div>
             <div class="na-result-actions">
               <button class="na-action-btn" onclick={() => copyText(generatedNpcReply)}>📋 Copier</button>
+              <button class="na-action-btn" style="color: #a5b4fc; border-color: rgba(99, 102, 241, 0.4);" onclick={() => narrationStudioStore.open(generatedNpcReply)}>🎙️ Narrer avec l'IA</button>
               <button class="na-action-btn na-action-send" onclick={() => sendAsHandout(generatedNpcReply, 'Parole du PNJ')}>📤 Envoyer aux Joueurs</button>
             </div>
           </div>

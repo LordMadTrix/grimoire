@@ -3,6 +3,7 @@
   "appName": "Grimoire Compagnon",
   "webDir": "www",
   "server": {
+    "androidScheme": "http",
     "cleartext": true
   }
 }

@@ -26,6 +26,8 @@
   import AddonStore from './components/AddonStore.svelte';
   import TokenEditorModal from './components/TokenEditorModal.svelte';
   import MonitorPickerModal from './components/MonitorPickerModal.svelte';
+  import NarrationStudioModal from './components/NarrationStudioModal.svelte';
+  import { narrationStudioStore } from '$lib/stores/narrationStudio.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
@@ -810,6 +812,9 @@
         <button onclick={() => showTokenEditor = true} class="footer-btn vtt-btn" style="color: #e6b450; font-weight: 700; border-color: rgba(230, 180, 80, 0.4);" title="Ouvrir l'éditeur de tokens personnalisé">
           🪙 Éditeur de Tokens
         </button>
+        <button onclick={() => narrationStudioStore.open()} class="footer-btn vtt-btn" style="color: #a5b4fc; font-weight: 700; border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08);" title="Ouvrir le Studio de Narration & Voix IA (Multi-acteurs)">
+          🎙️ Narration & Voix IA
+        </button>
         <button onclick={launchPlayerView} class="footer-btn vtt-btn" title="Ouvrir la vue Joueurs sur un 2ème écran (TV, vidéoprojecteur...)">
           🖥️ Multi-Écran (Vue Joueurs)
         </button>
@@ -1007,6 +1012,9 @@
 <UpdateModal bind:this={updateModalRef} />
 <NotificationToast />
 <TokenEditorModal isOpen={showTokenEditor || vttStore.showTokenEditorModal} onclose={() => { showTokenEditor = false; vttStore.showTokenEditorModal = false; }} />
+{#if narrationStudioStore.isOpen}
+  <NarrationStudioModal />
+{/if}
 
 <style>
   .app-layout {

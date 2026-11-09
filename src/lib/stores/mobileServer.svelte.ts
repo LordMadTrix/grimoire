@@ -126,7 +126,10 @@ export const mobileServerStore = {
     if (initialized || !isTauri()) return;
     initialized = true;
     await mobileServerStore.refresh();
-    if (serverInfo) {
+    if (!serverInfo) {
+      // Démarrage automatique transparent du Hub Mobile sur le port 7438
+      await mobileServerStore.start();
+    } else {
       mobileServerStore.startPolling();
     }
   },

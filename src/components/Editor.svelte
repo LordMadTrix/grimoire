@@ -20,6 +20,7 @@
   import { notifStore } from '$lib/stores/notifications.svelte';
   import ShareToPlayersModal from './ShareToPlayersModal.svelte';
   import { cleanNoteForPlayers, shareWithPlayers } from '$lib/playerShare';
+  import { narrationStudioStore } from '$lib/stores/narrationStudio.svelte';
 
   let saveTimeout: ReturnType<typeof setTimeout>;
   let backlinks = $state<BacklinkResult[]>([]);
@@ -124,6 +125,7 @@
   }
 
   let editorCtxMenu = $state<{ x: number; y: number; hasSelection: boolean; selectedText: string } | null>(null);
+  let activeCtxSubmenu = $state<string | null>(null);
 
   function handleEditorContextMenu(e: MouseEvent) {
     e.preventDefault();
@@ -132,7 +134,7 @@
     const hasSelection = selectedText.length > 0;
     
     const menuWidth = 230;
-    const menuHeight = 450;
+    const menuHeight = 440;
     const x = Math.min(e.clientX, window.innerWidth - menuWidth - 12);
     const y = Math.min(e.clientY, window.innerHeight - menuHeight - 12);
 
@@ -142,6 +144,7 @@
       hasSelection,
       selectedText
     };
+    activeCtxSubmenu = null;
   }
 
   function handleCtxAction(type: string) {
@@ -919,6 +922,9 @@
         <button onclick={() => document.dispatchEvent(new CustomEvent('trigger-ai'))} class="save-btn ai-btn" title="Générer avec l'IA (Ctrl+J). Sur ligne vide : résume tout le document.">
           🪄 Ollama
         </button>
+        <button onclick={() => narrationStudioStore.open(getActiveContent())} class="save-btn ai-btn" style="background: rgba(99, 102, 241, 0.18); border-color: rgba(99, 102, 241, 0.45); color: #c7d2fe;" title="Ouvrir le Studio de Narration & Voix IA multi-acteurs pour cette note">
+          🎙️ Narration IA
+        </button>
         {#if frontmatterType === 'session'}
           <button onclick={generateSessionSummary} class="save-btn ctx-btn session-btn" title="Résumé narratif de session">📋 Résumé</button>
         {/if}
@@ -1575,13 +1581,22 @@
     <div class="editor-ctx-sep"></div>
 
     <!-- Sous-menu Titres -->
-    <div class="editor-ctx-has-sub">
-      <div class="editor-ctx-item">
+    <div
+      class="editor-ctx-has-sub"
+      class:open={activeCtxSubmenu === 'titles'}
+      onmouseenter={() => activeCtxSubmenu = 'titles'}
+      onmouseleave={() => activeCtxSubmenu = null}
+    >
+      <button
+        type="button"
+        class="editor-ctx-item"
+        onclick={() => activeCtxSubmenu = activeCtxSubmenu === 'titles' ? null : 'titles'}
+      >
         <span class="ctx-icon">🗛</span>
         <span class="ctx-label">Titres</span>
-        <span class="ctx-arrow">▸</span>
-      </div>
-      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <span class="ctx-arrow" class:rotated={activeCtxSubmenu === 'titles'}>▸</span>
+      </button>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 470}>
         <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('h1')}>
           <span class="ctx-icon h-badge">H1</span>
           <span class="ctx-label">Titre 1 (Principal)</span>
@@ -1606,13 +1621,22 @@
     </div>
 
     <!-- Sous-menu Listes -->
-    <div class="editor-ctx-has-sub">
-      <div class="editor-ctx-item">
+    <div
+      class="editor-ctx-has-sub"
+      class:open={activeCtxSubmenu === 'lists'}
+      onmouseenter={() => activeCtxSubmenu = 'lists'}
+      onmouseleave={() => activeCtxSubmenu = null}
+    >
+      <button
+        type="button"
+        class="editor-ctx-item"
+        onclick={() => activeCtxSubmenu = activeCtxSubmenu === 'lists' ? null : 'lists'}
+      >
         <span class="ctx-icon">☰</span>
         <span class="ctx-label">Listes</span>
-        <span class="ctx-arrow">▸</span>
-      </div>
-      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <span class="ctx-arrow" class:rotated={activeCtxSubmenu === 'lists'}>▸</span>
+      </button>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 470}>
         <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('bullet-list')}>
           <span class="ctx-icon">☰</span>
           <span class="ctx-label">Liste à puces</span>
@@ -1632,13 +1656,22 @@
     </div>
 
     <!-- Sous-menu Blocs & JdR -->
-    <div class="editor-ctx-has-sub">
-      <div class="editor-ctx-item">
+    <div
+      class="editor-ctx-has-sub"
+      class:open={activeCtxSubmenu === 'blocks'}
+      onmouseenter={() => activeCtxSubmenu = 'blocks'}
+      onmouseleave={() => activeCtxSubmenu = null}
+    >
+      <button
+        type="button"
+        class="editor-ctx-item"
+        onclick={() => activeCtxSubmenu = activeCtxSubmenu === 'blocks' ? null : 'blocks'}
+      >
         <span class="ctx-icon">🎲</span>
         <span class="ctx-label">Blocs &amp; JdR</span>
-        <span class="ctx-arrow">▸</span>
-      </div>
-      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <span class="ctx-arrow" class:rotated={activeCtxSubmenu === 'blocks'}>▸</span>
+      </button>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 470}>
         <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('readaloud')}>
           <span class="ctx-icon">🗣️</span>
           <span class="ctx-label">Récit MJ à voix haute</span>
@@ -1674,13 +1707,22 @@
     </div>
 
     <!-- Sous-menu Insérer -->
-    <div class="editor-ctx-has-sub">
-      <div class="editor-ctx-item">
+    <div
+      class="editor-ctx-has-sub"
+      class:open={activeCtxSubmenu === 'insert'}
+      onmouseenter={() => activeCtxSubmenu = 'insert'}
+      onmouseleave={() => activeCtxSubmenu = null}
+    >
+      <button
+        type="button"
+        class="editor-ctx-item"
+        onclick={() => activeCtxSubmenu = activeCtxSubmenu === 'insert' ? null : 'insert'}
+      >
         <span class="ctx-icon">📎</span>
         <span class="ctx-label">Insérer</span>
-        <span class="ctx-arrow">▸</span>
-      </div>
-      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <span class="ctx-arrow" class:rotated={activeCtxSubmenu === 'insert'}>▸</span>
+      </button>
+      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 470}>
         <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAction('link')}>
           <span class="ctx-icon">🌐</span>
           <span class="ctx-label">Lien Web hypertexte</span>
@@ -1707,13 +1749,22 @@
     <div class="editor-ctx-sep"></div>
 
     <!-- Sous-menu Assistant IA (Ollama) -->
-    <div class="editor-ctx-has-sub">
-      <div class="editor-ctx-item ai-ctx-item">
+    <div
+      class="editor-ctx-has-sub"
+      class:open={activeCtxSubmenu === 'ai'}
+      onmouseenter={() => activeCtxSubmenu = 'ai'}
+      onmouseleave={() => activeCtxSubmenu = null}
+    >
+      <button
+        type="button"
+        class="editor-ctx-item ai-ctx-item"
+        onclick={() => activeCtxSubmenu = activeCtxSubmenu === 'ai' ? null : 'ai'}
+      >
         <span class="ctx-icon">🪄</span>
         <span class="ctx-label">Assistant IA</span>
-        <span class="ctx-arrow">▸</span>
-      </div>
-      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <span class="ctx-arrow" class:rotated={activeCtxSubmenu === 'ai'}>▸</span>
+      </button>
+      <div class="editor-ctx-sub open-up" class:open-left={editorCtxMenu.x > window.innerWidth - 470}>
         {#if editorCtxMenu.hasSelection}
           <button type="button" class="editor-ctx-item" onmousedown={(e) => e.preventDefault()} onclick={() => handleCtxAI('describe')}>
             <span class="ctx-icon">🎭</span>
@@ -1738,19 +1789,33 @@
           <span class="ctx-label">Menu IA complet</span>
           <span class="ctx-badge">Ctrl+J</span>
         </button>
+        <div class="editor-ctx-sep"></div>
+        <button type="button" class="editor-ctx-item highlight-gold" onmousedown={(e) => e.preventDefault()} onclick={() => { const text = (editorCtxMenu && editorCtxMenu.hasSelection) ? editorCtxMenu.selectedText : (getActiveContent() || ''); narrationStudioStore.open(text); }}>
+          <span class="ctx-icon">🎙️</span>
+          <span class="ctx-label">Narrer avec plusieurs voix (IA)</span>
+        </button>
       </div>
     </div>
 
     <div class="editor-ctx-sep"></div>
 
     <!-- Sous-menu Diffusion Joueurs (TV & Mobiles) -->
-    <div class="editor-ctx-has-sub">
-      <div class="editor-ctx-item ctx-share-item">
+    <div
+      class="editor-ctx-has-sub"
+      class:open={activeCtxSubmenu === 'share'}
+      onmouseenter={() => activeCtxSubmenu = 'share'}
+      onmouseleave={() => activeCtxSubmenu = null}
+    >
+      <button
+        type="button"
+        class="editor-ctx-item ctx-share-item"
+        onclick={() => activeCtxSubmenu = activeCtxSubmenu === 'share' ? null : 'share'}
+      >
         <span class="ctx-icon">📤</span>
         <span class="ctx-label">Diffuser aux Joueurs</span>
-        <span class="ctx-arrow">▸</span>
-      </div>
-      <div class="editor-ctx-sub" class:open-left={editorCtxMenu.x > window.innerWidth - 450}>
+        <span class="ctx-arrow" class:rotated={activeCtxSubmenu === 'share'}>▸</span>
+      </button>
+      <div class="editor-ctx-sub open-up" class:open-left={editorCtxMenu.x > window.innerWidth - 470}>
         {#if editorCtxMenu.hasSelection}
           <button type="button" class="editor-ctx-item highlight-gold" onmousedown={(e) => e.preventDefault()} onclick={() => shareSelectionDirect('all', 'parchment')}>
             <span class="ctx-icon">🌐</span>
@@ -3084,9 +3149,9 @@
     border-radius: 8px;
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 14px rgba(229, 168, 83, 0.15);
     padding: 6px;
-    min-width: 225px;
+    min-width: 230px;
     max-height: calc(100vh - 24px);
-    overflow-y: auto;
+    overflow: visible !important;
     overscroll-behavior: contain;
     user-select: none;
     animation: slideDown 0.1s ease-out;
@@ -3141,8 +3206,8 @@
     text-decoration: none;
   }
 
-  .editor-ctx-item:hover {
-    background: rgba(229, 168, 83, 0.12);
+  .editor-ctx-item:hover, .editor-ctx-has-sub.open > .editor-ctx-item {
+    background: rgba(229, 168, 83, 0.14);
     color: var(--accent);
   }
 
@@ -3154,7 +3219,8 @@
     position: relative;
   }
 
-  .editor-ctx-has-sub:hover > .editor-ctx-sub {
+  .editor-ctx-has-sub:hover > .editor-ctx-sub,
+  .editor-ctx-has-sub.open > .editor-ctx-sub {
     display: flex;
   }
 
@@ -3162,22 +3228,42 @@
     display: none;
     position: absolute;
     top: -4px;
-    left: calc(100% + 2px);
-    min-width: 200px;
+    left: 100%;
+    min-width: 220px;
     background: #161b22;
-    border: 1px solid rgba(229, 168, 83, 0.35);
-    border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
-    padding: 4px;
+    border: 1px solid rgba(229, 168, 83, 0.45);
+    border-radius: 7px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 14px rgba(229, 168, 83, 0.15);
+    padding: 5px;
     flex-direction: column;
     gap: 2px;
-    z-index: 1202;
+    z-index: 1210;
     animation: slideDown 0.1s ease-out;
+  }
+
+  .editor-ctx-sub.open-up {
+    top: auto;
+    bottom: -4px;
   }
 
   .editor-ctx-sub.open-left {
     left: auto;
-    right: calc(100% + 2px);
+    right: 100%;
+  }
+
+  /* Pont de survol invisible pour empêcher la perte du hover en déplacement diagonal */
+  .editor-ctx-sub::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    bottom: -10px;
+    left: -12px;
+    width: 12px;
+  }
+
+  .editor-ctx-sub.open-left::before {
+    left: auto;
+    right: -12px;
   }
 
   .ctx-icon {
@@ -3196,9 +3282,15 @@
 
   .ctx-arrow {
     margin-left: auto;
-    font-size: 9px;
+    font-size: 11px;
     color: var(--text-muted);
     opacity: 0.8;
+    transition: transform 0.15s ease;
+  }
+
+  .ctx-arrow.rotated {
+    transform: rotate(90deg);
+    color: var(--accent);
   }
 
   .ctx-badge {

@@ -34,6 +34,7 @@
   import ChaosMutations from './ChaosMutations.svelte';
   import MerchantGenerator from './MerchantGenerator.svelte';
   import HerboristeModal from './herboriste/HerboristeModal.svelte';
+  import { narrationStudioStore } from '$lib/stores/narrationStudio.svelte';
   import RumorManager from './RumorManager.svelte';
   import { timeStore, advanceTime, formatImperialDate } from '$lib/stores/timeStore';
   import PlayerMobileManager from './PlayerMobileManager.svelte';
@@ -898,6 +899,13 @@
           onclick={() => { sessionIntroStore.open(); activeMenu = null; }}
         >
           🎬 Lecteur d'Intro de Soirée (MP3)
+        </button>
+        <button 
+          class="dropdown-item" 
+          style="color: #a5b4fc; font-weight: 700; background: rgba(99, 102, 241, 0.12); margin-top: 2px;" 
+          onclick={() => { narrationStudioStore.open(); activeMenu = null; }}
+        >
+          🎙️ Studio de Narration & Voix IA
         </button>
         <div class="dropdown-divider"></div>
 

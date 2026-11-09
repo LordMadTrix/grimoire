@@ -164,6 +164,64 @@ class TtsReaderStore {
     this.speakFromSentence(0);
   }
 
+  /**
+   * Lit directement une suite de segments pré-découpés et personnalisés (Studio de Narration)
+   */
+  speakSegments(customSegments: NarrationSegment[]) {
+    this.stop();
+    if (!customSegments || customSegments.length === 0) return;
+
+    this.segments = customSegments.map(s => ({ ...s }));
+    this.sentences = customSegments.map(s => s.text);
+    this.currentFullText = customSegments.map(s => s.text).join(' ');
+    this.currentSentenceIndex = 0;
+    this.isPlaying = true;
+    this.isPaused = false;
+    this.preloadedUrls.clear();
+
+    ambianceStore.setDucking(true);
+    soundscape.setDucking(true);
+
+    this.speakFromSentence(0);
+  }
+
+  /**
+   * Écoute une réplique unique isolée (prévisualisation de voix)
+   */
+  speakSingleSegment(segment: NarrationSegment) {
+    this.stop();
+    this.segments = [{ ...segment }];
+    this.sentences = [segment.text];
+    this.currentFullText = segment.text;
+    this.currentSentenceIndex = 0;
+    this.isPlaying = true;
+    this.isPaused = false;
+    this.preloadedUrls.clear();
+
+    ambianceStore.setDucking(true);
+    soundscape.setDucking(true);
+
+    this.speakFromSentence(0);
+  }
+
+  /**
+   * Saute directement à un segment précis pendant la lecture
+   */
+  jumpToSegment(index: number) {
+    if (index >= 0 && index < this.sentences.length) {
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+      if (this.synth) {
+        try { this.synth.cancel(); } catch {}
+      }
+      this.isPlaying = true;
+      this.isPaused = false;
+      this.speakFromSentence(index);
+    }
+  }
+
   private async speakFromSentence(index: number) {
     if (index >= this.sentences.length || !this.isPlaying) {
       this.stop();

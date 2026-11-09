@@ -471,10 +471,14 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
     <!-- Adresse du serveur Grimoire (avec scanner QR caméra) -->
     <div style="width:100%;display:flex;flex-direction:column;gap:6px">
-      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Serveur du MJ (Wi-Fi) :</label>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Serveur du MJ (Wi-Fi) :</label>
+        <span id="server-ping-badge" style="font-size:11px;font-weight:600"></span>
+      </div>
       <div style="display:flex;gap:6px;width:100%">
         <input class="jinp" id="server-address" placeholder="ex: 192.168.0.155:7438" style="flex:1;max-width:none"/>
         <button type="button" class="jbtn" onclick="startQRScanner()" style="width:auto;max-width:none;padding:0 14px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.5);font-size:18px;color:#a5b4fc" title="Scanner le QR Code sur l'écran du MJ">📷</button>
+        <button type="button" class="jbtn" onclick="checkServerConnectivity(true)" style="width:auto;max-width:none;padding:0 12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);font-size:12px;color:#4ade80" title="Tester la connexion au PC">⚡ Test</button>
       </div>
     </div>
 
@@ -2477,19 +2481,65 @@ function setChatMode(mode){
   if(inp)inp.placeholder=mode==='group'?'Message au groupe…':'Message privé au MJ…';
 }
 
+function getResolvedTargetHost() {
+  const srvInp = document.getElementById('server-address');
+  let targetHost = (srvInp && srvInp.value.trim()) || localStorage.getItem('grimoire_server_addr') || '';
+  targetHost = targetHost.replace(/^https?:\/\//i, '').replace(/^wss?:\/\//i, '').replace(/\/.*$/, '').trim();
+  
+  const isCapacitorOrPhone = location.protocol === 'capacitor:' || location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!targetHost || (isCapacitorOrPhone && (targetHost.startsWith('localhost') || targetHost.startsWith('127.0.0.1')))) {
+    if (location.host && !location.host.startsWith('localhost') && !location.host.startsWith('127.0.0.1')) {
+      targetHost = location.host;
+    } else {
+      targetHost = '192.168.0.155:7438';
+    }
+  }
+  if (!targetHost.includes(':')) {
+    targetHost += ':7438';
+  }
+  return targetHost;
+}
+
+async function checkServerConnectivity(manual = false) {
+  const badge = document.getElementById('server-ping-badge');
+  const target = getResolvedTargetHost();
+  if (badge) {
+    badge.textContent = 'Vérification…';
+    badge.style.color = 'var(--muted)';
+  }
+  try {
+    const res = await fetch('http://' + target + '/api/status', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (badge) {
+        badge.textContent = '🟢 En ligne (' + (data.version ? 'v' + data.version : 'PC MJ') + ')';
+        badge.style.color = '#4ade80';
+      }
+      if (manual) showToast('🟢', 'Grimoire Connecté', `Le PC de jeu (${target}) répond parfaitement !`, 'success', 3500);
+      loadAvailableCharacters();
+      return true;
+    }
+  } catch(e) {
+    if (badge) {
+      badge.textContent = '🔴 PC injoignable (même Wi-Fi ?)';
+      badge.style.color = '#ef4444';
+    }
+    if (manual) showToast('⚠️', 'Connexion Impossible', `Impossible de contacter http://${target}. Vérifiez que le smartphone est sur le même Wi-Fi que le PC.`, 'warn', 5500);
+  }
+  return false;
+}
+
 // ── WebSocket ──────────────────────────────────────────────────────────
 function connect(){
   if(ws){ws.close();ws=null;}
+  const targetHost = getResolvedTargetHost();
   const srvInp = document.getElementById('server-address');
-  let targetHost = (srvInp && srvInp.value.trim()) || localStorage.getItem('grimoire_server_addr') || location.host;
-  targetHost = targetHost.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
-  if (!targetHost || (targetHost.startsWith('localhost') && location.protocol === 'file:')) {
-    targetHost = '192.168.0.155:7438';
-  }
+  if (srvInp && !srvInp.value) srvInp.value = targetHost;
   localStorage.setItem('grimoire_server_addr', targetHost);
   currentServerAddr = targetHost;
 
-  const proto=location.protocol==='https:'?'wss':'ws';
+  const isLocalOrDirect = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|127\.0\.0\.1|localhost)/.test(targetHost) || targetHost.includes(':7438');
+  const proto = (!isLocalOrDirect && location.protocol === 'https:') ? 'wss' : 'ws';
   try {
     ws=new WebSocket(proto+'://'+targetHost+'/ws');
   } catch(err) {
@@ -2808,7 +2858,8 @@ let playerPassword=null;
 
 async function loadAvailableCharacters(){
   try{
-    const res=await fetch('/api/characters');
+    const target = getResolvedTargetHost();
+    const res = await fetch('http://' + target + '/api/characters');
     if(res.ok){
       const chars=await res.json();
       if(Array.isArray(chars)&&chars.length>0){
@@ -3688,6 +3739,7 @@ document.getElementById('player-password').addEventListener('keydown',e=>{if(e.k
 document.getElementById('comp-new').addEventListener('keydown',e=>{if(e.key==='Enter')addComp();});
 renderHerboSatchel();
 loadAvailableCharacters();
+checkServerConnectivity();
 
 // PWA Service Worker (pour fonctionnement 100% hors-ligne)
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {

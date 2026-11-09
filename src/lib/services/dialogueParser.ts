@@ -5,6 +5,7 @@
 import { NEURAL_VOICES } from '$lib/services/edgeTts';
 
 export interface NarrationSegment {
+  id?: string;
   text: string;
   isDialogue: boolean;
   speakerName: string;
@@ -12,40 +13,68 @@ export interface NarrationSegment {
   voiceEmoji: string;
 }
 
-// Mappage des profils de voix IA
-const VOICE_NARRATOR = 'fr-FR-HenriNeural';   // 🧙‍♂️ Henri - Narrateur principal
-const VOICE_FEMALE_NPC = 'fr-FR-DeniseNeural'; // 🧝‍♀️ Denise - PNJ Féminin doux/noble
-const VOICE_MAGE_NPC = 'fr-FR-EloiseNeural';   // 🔮 Éloïse - Magicienne/Fée/Jeune PNJ
-const VOICE_HERO_NPC = 'fr-FR-AlainNeural';    // ⚔️ Alain - Guerrier/Aventurier
-const VOICE_SAGE_NPC = 'fr-FR-MauriceNeural';  // 📜 Maurice - Ancien/Érudit/Prêtre
-const VOICE_GUARD_NPC = 'fr-CA-JeanNeural';    // 🛡️ Jean - Garde/Soldat/Ranger
+// Mappage des profils de voix IA neuronales HD
+export const VOICE_PROFILES = {
+  narrator: { id: 'fr-FR-HenriNeural', name: '🧙‍♂️ Henri (Narrateur Fantastique)', emoji: '🧙‍♂️' },
+  epic_female: { id: 'fr-FR-DeniseNeural', name: '🧝‍♀️ Denise (Conteuse & Reine)', emoji: '🧝‍♀️' },
+  mage_female: { id: 'fr-FR-EloiseNeural', name: '🔮 Éloïse (Magicienne & Vive)', emoji: '🔮' },
+  hero_male: { id: 'fr-FR-AlainNeural', name: '⚔️ Alain (Héros & Guerrier)', emoji: '⚔️' },
+  sage_male: { id: 'fr-FR-MauriceNeural', name: '📜 Maurice (Vieux Sage & Érudit)', emoji: '📜' },
+  guard_male: { id: 'fr-CA-JeanNeural', name: '🛡️ Jean (Garde & Ranger)', emoji: '🛡️' },
+  noble_male: { id: 'fr-FR-ClaudeNeural', name: '👑 Claude (Noble & Solennel)', emoji: '👑' },
+  bard_male: { id: 'fr-FR-JeromeNeural', name: '🎭 Jérôme (Barde & Voyageur)', emoji: '🎭' },
+  druid_female: { id: 'fr-FR-CoralieNeural', name: '🌿 Coralie (Prêtresse & Nature)', emoji: '🌿' },
+  fairy_female: { id: 'fr-CA-SylvieNeural', name: '✨ Sylvie (Fée & Enchanteresse)', emoji: '✨' }
+};
 
 /**
- * Détermine la voix PNJ la plus appropriée selon le contexte sémantique entourant la réplique
+ * Détermine la voix PNJ la plus appropriée selon le contexte sémantique ou le nom de l'orateur
  */
-function inferNpcVoice(contextText: string): { voiceId: string; speaker: string; emoji: string } {
-  const lower = contextText.toLowerCase();
+export function inferSpeakerVoice(speakerName: string, contextText = ''): { voiceId: string; speaker: string; emoji: string } {
+  const combined = `${speakerName} ${contextText}`.toLowerCase();
 
-  // Détection PNJ Féminin / Magique
-  if (lower.match(/\b(elle|femme|fille|dame|magicienne|sorcière|prêtresse|reine|elfe|fée|aubergiste)\b/) || lower.match(/\b(dit-elle|s'écria-t-elle|demanda-t-elle|murmura-t-elle)\b/)) {
-    if (lower.match(/\b(jeune|fée|magique|mystique|sort)\b/)) {
-      return { voiceId: VOICE_MAGE_NPC, speaker: '🔮 Magicienne / PNJ', emoji: '🔮' };
-    }
-    return { voiceId: VOICE_FEMALE_NPC, speaker: '🧝‍♀️ PNJ Féminin', emoji: '🧝‍♀️' };
+  // Fée / Enchanteresse / Elfe céleste
+  if (combined.match(/\b(fée|pixie|sylphide|esprit|enchanteresse|nymphe)\b/)) {
+    return { voiceId: VOICE_PROFILES.fairy_female.id, speaker: speakerName || '✨ Fée / Enchanteresse', emoji: '✨' };
   }
 
-  // Détection Ancien / Sage
-  if (lower.match(/\b(vieux|sage|érudit|ancien|druide|maître|prêtre|moine|vieillard)\b/)) {
-    return { voiceId: VOICE_SAGE_NPC, speaker: '📜 Sage / Érudit', emoji: '📜' };
+  // Prêtresse / Druidesse / Nature
+  if (combined.match(/\b(druide|druidesse|prêtresse|soigneuse|guérisseuse|nature|plante|arbre)\b/)) {
+    return { voiceId: VOICE_PROFILES.druid_female.id, speaker: speakerName || '🌿 Prêtresse / Druidesse', emoji: '🌿' };
   }
 
-  // Détection Garde / Soldat / Nain / Monstre
-  if (lower.match(/\b(garde|soldat|nain|orc|gobelin|tavernier|bandit|voleur|capitaine)\b/) || lower.match(/\b(grogna|hurla|aboya|ordonna)\b/)) {
-    return { voiceId: VOICE_GUARD_NPC, speaker: '🛡️ Garde / Soldat', emoji: '🛡️' };
+  // Magicienne / Sorcière / Jeune PNJ
+  if (combined.match(/\b(magicienne|sorcière|mage|illusion|sort|jeune fille|apprentie|faucon)\b/)) {
+    return { voiceId: VOICE_PROFILES.mage_female.id, speaker: speakerName || '🔮 Magicienne / Sorcière', emoji: '🔮' };
   }
 
-  // PNJ Masculin / Aventurier par défaut
-  return { voiceId: VOICE_HERO_NPC, speaker: '⚔️ PNJ / Aventurier', emoji: '⚔️' };
+  // Femme / Dame / Reine / PNJ Féminin noble
+  if (combined.match(/\b(elle|femme|dame|reine|duchesse|aubergiste|servante|tavernier|châtelaine)\b/) || combined.match(/\b(dit-elle|s'écria-t-elle|demanda-t-elle|murmura-t-elle)\b/)) {
+    return { voiceId: VOICE_PROFILES.epic_female.id, speaker: speakerName || '🧝‍♀️ PNJ Féminin', emoji: '🧝‍♀️' };
+  }
+
+  // Vieux Sage / Érudit / Moine / Ancien
+  if (combined.match(/\b(vieux|sage|érudit|ancien|maître|prêtre|moine|vieillard|savant|archiviste)\b/)) {
+    return { voiceId: VOICE_PROFILES.sage_male.id, speaker: speakerName || '📜 Vieux Sage', emoji: '📜' };
+  }
+
+  // Noble / Roi / Seigneur / Juge / Démon solennel
+  if (combined.match(/\b(roi|prince|seigneur|duc|noble|juge|baron|empereur|commandant)\b/)) {
+    return { voiceId: VOICE_PROFILES.noble_male.id, speaker: speakerName || '👑 Seigneur / Noble', emoji: '👑' };
+  }
+
+  // Barde / Voleur / Filou / Marchand
+  if (combined.match(/\b(barde|ménestrel|voleur|filou|marchand|jongleur|voyageur|musicien)\b/)) {
+    return { voiceId: VOICE_PROFILES.bard_male.id, speaker: speakerName || '🎭 Barde / Voyageur', emoji: '🎭' };
+  }
+
+  // Garde / Soldat / Nain / Orc / Tavernier bourru
+  if (combined.match(/\b(garde|soldat|nain|orc|gobelin|tavernier|bandit|milicien|capitaine|patron)\b/) || combined.match(/\b(grogna|hurla|aboya|ordonna)\b/)) {
+    return { voiceId: VOICE_PROFILES.guard_male.id, speaker: speakerName || '🛡️ Garde / Soldat', emoji: '🛡️' };
+  }
+
+  // PNJ Masculin / Aventurier / Guerrier par défaut
+  return { voiceId: VOICE_PROFILES.hero_male.id, speaker: speakerName || '⚔️ Aventurier / Combattant', emoji: '⚔️' };
 }
 
 /**
@@ -53,63 +82,122 @@ function inferNpcVoice(contextText: string): { voiceId: string; speaker: string;
  */
 export function parseMultiVoiceSegments(
   text: string,
-  defaultNarratorVoice = VOICE_NARRATOR
+  defaultNarratorVoice = VOICE_PROFILES.narrator.id
 ): NarrationSegment[] {
   if (!text || !text.trim()) return [];
 
+  const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   const segments: NarrationSegment[] = [];
 
-  // Regex pour capturer les dialogues entre guillemets français « ... » ou anglais " ... "
-  const quoteRegex = /(«[^»]+»|"[^"]+"|[“][^”]+[”])/g;
+  for (const line of rawLines) {
+    // Cas 1 : Préfixe de dialogue explicite "Nom : Réplique" ou "Nom: « Réplique »"
+    const speakerPrefixMatch = line.match(/^([A-ZÀ-Ýa-zà-ÿ0-9_\s'’\u00C0-\u017F-]{2,25})\s*:\s*(.+)$/);
+    if (speakerPrefixMatch) {
+      const rawName = speakerPrefixMatch[1].trim();
+      let dialogueBody = speakerPrefixMatch[2].trim();
+      dialogueBody = dialogueBody.replace(/^[«"“—\-]\s*/, '').replace(/\s*[»"”]$/, '').trim();
 
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = quoteRegex.exec(text)) !== null) {
-    const start = match.index;
-    const end = quoteRegex.lastIndex;
-
-    // 1. Texte narratif avant la réplique
-    const beforeText = text.slice(lastIndex, start).trim();
-    if (beforeText.length > 0) {
-      segments.push({
-        text: beforeText,
-        isDialogue: false,
-        speakerName: 'Narrateur',
-        voiceId: defaultNarratorVoice,
-        voiceEmoji: '🧙‍♂️'
-      });
+      const isNarrator = rawName.toLowerCase().includes('narrateur') || rawName.toLowerCase().includes('description');
+      if (isNarrator) {
+        segments.push({
+          id: `seg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          text: dialogueBody,
+          isDialogue: false,
+          speakerName: 'Narrateur',
+          voiceId: defaultNarratorVoice,
+          voiceEmoji: '🧙‍♂️'
+        });
+      } else {
+        const voiceInfo = inferSpeakerVoice(rawName, dialogueBody);
+        segments.push({
+          id: `seg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          text: dialogueBody,
+          isDialogue: true,
+          speakerName: rawName,
+          voiceId: voiceInfo.voiceId,
+          voiceEmoji: voiceInfo.emoji
+        });
+      }
+      continue;
     }
 
-    // 2. Réplique du dialogue
-    const dialogueRaw = match[0];
-    const cleanDialogue = dialogueRaw
-      .replace(/^[«"“]\s*/, '')
-      .replace(/\s*[»"”]$/, '')
-      .trim();
-
-    if (cleanDialogue.length > 0) {
-      // Regarder le contexte narratif autour de la réplique pour déduire qui parle
-      const surroundingContext = text.slice(Math.max(0, start - 60), Math.min(text.length, end + 60));
-      const npcInfo = inferNpcVoice(surroundingContext);
-
+    // Cas 2 : Ligne commençant par un tiret cadratin ou tiret de dialogue (— ou -)
+    if (line.match(/^[—–\-]\s*(.+)$/)) {
+      const dialogueBody = line.replace(/^[—–\-]\s*/, '').trim();
+      const voiceInfo = inferSpeakerVoice('', dialogueBody);
       segments.push({
-        text: cleanDialogue,
+        id: `seg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        text: dialogueBody,
         isDialogue: true,
-        speakerName: npcInfo.speaker,
-        voiceId: npcInfo.voiceId,
-        voiceEmoji: npcInfo.emoji
+        speakerName: voiceInfo.speaker,
+        voiceId: voiceInfo.voiceId,
+        voiceEmoji: voiceInfo.emoji
       });
+      continue;
     }
 
-    lastIndex = end;
-  }
+    // Cas 3 : Ligne contenant des guillemets (mélange de narration et de dialogues inline)
+    const quoteRegex = /(«[^»]+»|"[^"]+"|[“][^”]+[”])/g;
+    if (quoteRegex.test(line)) {
+      quoteRegex.lastIndex = 0;
+      let lastIdx = 0;
+      let match: RegExpExecArray | null;
 
-  // 3. Texte narratif final restant après le dernier dialogue
-  const remainingText = text.slice(lastIndex).trim();
-  if (remainingText.length > 0) {
+      while ((match = quoteRegex.exec(line)) !== null) {
+        const start = match.index;
+        const end = quoteRegex.lastIndex;
+
+        // Narration avant
+        const beforeText = line.slice(lastIdx, start).trim();
+        if (beforeText.length > 0) {
+          segments.push({
+            id: `seg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            text: beforeText,
+            isDialogue: false,
+            speakerName: 'Narrateur',
+            voiceId: defaultNarratorVoice,
+            voiceEmoji: '🧙‍♂️'
+          });
+        }
+
+        // Réplique
+        const rawQuote = match[0];
+        const cleanQuote = rawQuote.replace(/^[«"“]\s*/, '').replace(/\s*[»"”]$/, '').trim();
+        if (cleanQuote.length > 0) {
+          const surroundingContext = line.slice(Math.max(0, start - 50), Math.min(line.length, end + 50));
+          const voiceInfo = inferSpeakerVoice('', surroundingContext);
+          segments.push({
+            id: `seg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            text: cleanQuote,
+            isDialogue: true,
+            speakerName: voiceInfo.speaker,
+            voiceId: voiceInfo.voiceId,
+            voiceEmoji: voiceInfo.emoji
+          });
+        }
+
+        lastIdx = end;
+      }
+
+      // Reste après
+      const afterText = line.slice(lastIdx).trim();
+      if (afterText.length > 0) {
+        segments.push({
+          id: `seg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          text: afterText,
+          isDialogue: false,
+          speakerName: 'Narrateur',
+          voiceId: defaultNarratorVoice,
+          voiceEmoji: '🧙‍♂️'
+        });
+      }
+      continue;
+    }
+
+    // Cas 4 : Ligne de narration classique
     segments.push({
-      text: remainingText,
+      id: `seg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      text: line,
       isDialogue: false,
       speakerName: 'Narrateur',
       voiceId: defaultNarratorVoice,
@@ -117,9 +205,10 @@ export function parseMultiVoiceSegments(
     });
   }
 
-  // Si aucun dialogue n'a été détecté, renvoyer le texte entier en narration pure
+  // Si aucun segment n'a été produit, fallback sur le texte brut
   if (segments.length === 0) {
     segments.push({
+      id: `seg_${Date.now()}_root`,
       text: text.trim(),
       isDialogue: false,
       speakerName: 'Narrateur',

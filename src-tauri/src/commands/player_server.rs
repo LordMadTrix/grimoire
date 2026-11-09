@@ -714,6 +714,12 @@ fn hub_cors() -> CorsLayer {
         "http://localhost:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5173",
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
+        "ionic://localhost",
+        "http://localhost:7438",
+        "http://127.0.0.1:7438",
         "https://lordmadtrix.github.io",
     ];
     let origins: Vec<HeaderValue> = trusted_origins
