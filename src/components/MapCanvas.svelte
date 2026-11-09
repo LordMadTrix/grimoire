@@ -1639,9 +1639,16 @@
           } else if (vPath) {
             // Fichier local dans le coffre de campagne
             const ext = token.imageUrl.split('.').pop()?.toLowerCase() ?? 'png';
-            const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
 
             readFileBase64(cacheKey).then(b64 => {
+              if (!b64) throw new Error('Empty base64 content');
+              // Détection intelligente du vrai format de l'image
+              let mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
+              if (b64.startsWith('/9j/')) mime = 'image/jpeg';
+              else if (b64.startsWith('iVBORw')) mime = 'image/png';
+              else if (b64.startsWith('R0lGOD')) mime = 'image/gif';
+              else if (b64.startsWith('UklGR')) mime = 'image/webp';
+
               const img = new Image();
               img.onload = () => {
                 if (container && tokenSprite) {
@@ -1660,9 +1667,41 @@
               };
               img.src = `data:${mime};base64,${b64}`;
             }).catch(err => {
-              console.error('Token image load error:', cacheKey, err);
-              loadingTextures.delete(cacheKey);
-              tokenSprite.visible = false;
+              // Fallback : si le fichier physique est introuvable, essayer le .json compagnon
+              if (token.imageUrl.startsWith('tokens/')) {
+                const jsonRelPath = token.imageUrl.replace(/\.[^.]+$/, '.json');
+                readFile(vPath, jsonRelPath).then(raw => {
+                  const desc = JSON.parse(raw);
+                  const fallbackDataUrl = desc?.design?.imageUrl;
+                  if (fallbackDataUrl && container && tokenSprite) {
+                    const img = new Image();
+                    img.onload = () => {
+                      const tex = PIXI.Texture.from(img);
+                      tex.label = cacheKey;
+                      tokenSprite.texture = tex;
+                      tokenSprite.width = token.size;
+                      tokenSprite.height = token.size;
+                      tokenSprite.visible = true;
+                      loadingTextures.delete(cacheKey);
+                    };
+                    img.onerror = () => {
+                      loadingTextures.delete(cacheKey);
+                      tokenSprite.visible = false;
+                    };
+                    img.src = fallbackDataUrl;
+                    return;
+                  }
+                  loadingTextures.delete(cacheKey);
+                  tokenSprite.visible = false;
+                }).catch(() => {
+                  loadingTextures.delete(cacheKey);
+                  tokenSprite.visible = false;
+                });
+              } else {
+                console.error('Token image load error:', cacheKey, err);
+                loadingTextures.delete(cacheKey);
+                tokenSprite.visible = false;
+              }
             });
           } else {
             loadingTextures.delete(cacheKey);
@@ -1670,8 +1709,11 @@
           }
         }
         
-        // Pions personnalisés issus de l'Éditeur de Tokens (Data URL ou flag isShaped)
-        const isCustomToken = isDataUrl || (token as any).isShaped || (token as any).customShape;
+        // Pions personnalisés issus de l'Éditeur de Tokens (Data URL, flag isShaped ou dossier tokens/)
+        const isCustomToken = isDataUrl 
+          || (token as any).isShaped 
+          || (token as any).customShape 
+          || (token.imageUrl && (token.imageUrl.startsWith('tokens/') || token.imageUrl.includes('tokens/')));
 
         if (isCustomToken) {
           // La forme (hexagone, bouclier, cercle avec frise métallique) est DÉJÀ dans le PNG !

@@ -141,7 +141,7 @@
         }
 
         addGmToken({
-          id: descriptor.id || ('tok_' + Math.random().toString(36).slice(2, 9)),
+          id: 'tok_' + Math.random().toString(36).slice(2, 9) + '_' + Date.now().toString(36),
           name: descriptor.name || entry.name.replace(/\.json$/i, ''),
           x: cx,
           y: cy,
@@ -151,6 +151,7 @@
           maxHp: design?.showHpBar ? 100 : undefined,
           isEnemy: design?.status === 'hostile' || design?.status === 'boss',
           visible: true,
+          isShaped: true,
           notes: `Token importé depuis ${entry.path}`,
         });
         notifStore.add('🪙', descriptor.name || 'Token', 'Pion déposé sur la carte au centre de la vue !', 'success', 3000);
@@ -162,7 +163,7 @@
 
     // Fichier image direct (.png, .jpg, etc.)
     addGmToken({
-      id: 'tok_' + Math.random().toString(36).slice(2, 9),
+      id: 'tok_' + Math.random().toString(36).slice(2, 9) + '_' + Date.now().toString(36),
       name: entry.name.replace(/\.[^.]+$/, ''),
       x: cx,
       y: cy,

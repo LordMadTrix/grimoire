@@ -760,21 +760,21 @@
         <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'tools' ? null : 'tools'; }}>🛠️ Outils</button>
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="dropdown-content" class:hidden={activeMenu !== 'tools'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
-          <button class="dropdown-item" class:active={vttStore.mode === 'select'} onclick={() => vttStore.mode = 'select'}>👆 Sélectionner</button>
-          <button class="dropdown-item" class:active={vttStore.mode === 'measure'} onclick={() => vttStore.mode = 'measure'}>📏 Mesurer distance</button>
-          <button class="dropdown-item" class:active={vttStore.mode === 'ping'} onclick={() => vttStore.mode = 'ping'}>📍 Ping (Joueurs)</button>
-          <button class="dropdown-item" class:active={vttStore.mode === 'pin'} onclick={() => vttStore.mode = 'pin'}>📌 Épingle Permanente</button>
+          <button class="dropdown-item" class:active={vttStore.mode === 'select'} onclick={() => { vttStore.mode = 'select'; activeMenu = null; }}>👆 Sélectionner</button>
+          <button class="dropdown-item" class:active={vttStore.mode === 'measure'} onclick={() => { vttStore.mode = 'measure'; activeMenu = null; }}>📏 Mesurer distance</button>
+          <button class="dropdown-item" class:active={vttStore.mode === 'ping'} onclick={() => { vttStore.mode = 'ping'; activeMenu = null; }}>📍 Ping (Joueurs)</button>
+          <button class="dropdown-item" class:active={vttStore.mode === 'pin'} onclick={() => { vttStore.mode = 'pin'; activeMenu = null; }}>📌 Épingle Permanente</button>
           {#if vttStore.pins.length > 0}
-            <button class="dropdown-item text-danger" onclick={clearGmPins}>📌🗑️ Effacer épingles</button>
+            <button class="dropdown-item text-danger" onclick={() => { clearGmPins(); activeMenu = null; }}>📌🗑️ Effacer épingles</button>
           {/if}
           
           <div class="dropdown-divider"></div>
           <div class="dropdown-title">Brouillard de Guerre</div>
           <button class="dropdown-item" class:active={!vttStore.fowEnabled} onclick={toggleFow}>🌫️ {vttStore.fowEnabled ? 'Désactiver' : 'Activer'} Brouillard</button>
           {#if vttStore.fowEnabled}
-            <button class="dropdown-item" class:active={vttStore.mode === 'fog-reveal'} onclick={() => vttStore.mode = 'fog-reveal'}>👁️ Révéler (Glisser)</button>
-            <button class="dropdown-item" class:active={vttStore.mode === 'fog-hide'} onclick={() => vttStore.mode = 'fog-hide'}>⬛ Cacher (Glisser)</button>
-            <button class="dropdown-item" class:active={vttStore.mode === 'fog-rect'} onclick={() => vttStore.mode = 'fog-rect'}>▭ Zone rectangulaire</button>
+            <button class="dropdown-item" class:active={vttStore.mode === 'fog-reveal'} onclick={() => { vttStore.mode = 'fog-reveal'; activeMenu = null; }}>👁️ Révéler (Glisser)</button>
+            <button class="dropdown-item" class:active={vttStore.mode === 'fog-hide'} onclick={() => { vttStore.mode = 'fog-hide'; activeMenu = null; }}>⬛ Cacher (Glisser)</button>
+            <button class="dropdown-item" class:active={vttStore.mode === 'fog-rect'} onclick={() => { vttStore.mode = 'fog-rect'; activeMenu = null; }}>▭ Zone rectangulaire</button>
             <div class="dropdown-submenu-item tools-row">
               <button class="mini-btn text-only" onclick={revealAllGmFow}>🌅 Tout révéler</button>
               <button class="mini-btn text-only" onclick={clearGmFow}>🌑 Tout cacher</button>
