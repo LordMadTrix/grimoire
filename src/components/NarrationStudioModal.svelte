@@ -13,6 +13,7 @@
   import { askOllama, broadcastToPlayers } from '$lib/api';
   import { getAiModel } from '$lib/stores/settings.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
+  import { vttStore } from '$lib/stores/vtt.svelte';
 
   // ── Onglets & États ──
   type StudioTab = 'staged' | 'raw_text' | 'voice_manager';
@@ -486,7 +487,7 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
             </div>
           {/if}
         </div>
-      {:else}
+      {:else if activeTab === 'raw_text'}
         <!-- Vue Texte Brut / Éditeur -->
         <div class="ns-raw-editor-wrap">
           <p class="ns-hint-box">
@@ -769,6 +770,22 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
       </div>
 
       <div class="ns-footer-controls">
+        <!-- Acoustique DSP & Lieux -->
+        <div class="ns-acoustics-picker">
+          <span class="ns-label-dim">Lieu :</span>
+          <select 
+            class="ns-acoustics-select" 
+            bind:value={vttStore.acousticsPreset}
+            title="Effet acoustique de pièce (DSP en temps réel)"
+          >
+            <option value="normal">🎙️ Studio Normal</option>
+            <option value="cave">🦇 Caverne / Donjon</option>
+            <option value="cathedral">⛪ Cathédrale / Grand Temple</option>
+            <option value="telepathy">🧠 Télépathie Mentale</option>
+            <option value="spectral">👻 Écho Spectral</option>
+          </select>
+        </div>
+
         <!-- Vitesse -->
         <div class="ns-rate-picker">
           <span class="ns-label-dim">Vitesse :</span>
@@ -1897,6 +1914,29 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
   .ns-vc-btn-del:hover {
     background: #ef4444;
     color: #fff;
+  }
+
+  .ns-acoustics-picker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ns-acoustics-select {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #f8fafc;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .ns-acoustics-select:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
   }
 </style>
 

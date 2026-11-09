@@ -3,6 +3,7 @@
 // dialogues de PNJ et assigner automatiquement la voix IA la plus adaptée.
 
 import { NEURAL_VOICES } from '$lib/services/edgeTts';
+import { voiceProfilesStore } from '$lib/stores/voiceProfiles.svelte';
 
 export interface NarrationSegment {
   id?: string;
@@ -11,6 +12,10 @@ export interface NarrationSegment {
   speakerName: string;
   voiceId: string;
   voiceEmoji: string;
+  rate?: number;
+  pitch?: number;
+  acoustics?: 'normal' | 'cave' | 'cathedral' | 'telepathy' | 'spectral';
+  tokenId?: string;
 }
 
 // Mappage des profils de voix IA neuronales HD
@@ -33,71 +38,15 @@ export const VOICE_PROFILES = {
 /**
  * Détermine la voix PNJ la plus appropriée selon le contexte sémantique ou le nom de l'orateur
  */
-export function inferSpeakerVoice(speakerName: string, contextText = ''): { voiceId: string; speaker: string; emoji: string } {
-  const combined = `${speakerName} ${contextText}`.toLowerCase();
-
-  // Fée / Enchanteresse / Elfe céleste
-  if (combined.match(/\b(fée|pixie|sylphide|esprit|enchanteresse|nymphe)\b/)) {
-    return { voiceId: VOICE_PROFILES.fairy_female.id, speaker: speakerName || '✨ Fée / Enchanteresse', emoji: '✨' };
-  }
-
-  // Prêtresse / Druidesse / Nature
-  if (combined.match(/\b(druide|druidesse|prêtresse|soigneuse|guérisseuse|nature|plante|arbre)\b/)) {
-    return { voiceId: VOICE_PROFILES.druid_female.id, speaker: speakerName || '🌿 Prêtresse / Druidesse', emoji: '🌿' };
-  }
-
-  // Magicienne / Sorcière / Jeune PNJ
-  if (combined.match(/\b(magicienne|sorcière|mage|illusion|sort|jeune fille|apprentie|faucon)\b/)) {
-    return { voiceId: VOICE_PROFILES.mage_female.id, speaker: speakerName || '🔮 Magicienne / Sorcière', emoji: '🔮' };
-  }
-
-  // Femme / Dame / Reine / PNJ Féminin noble
-  if (combined.match(/\b(elle|femme|dame|reine|duchesse|aubergiste|servante|tavernier|châtelaine)\b/) || combined.match(/\b(dit-elle|s'écria-t-elle|demanda-t-elle|murmura-t-elle)\b/)) {
-    return { voiceId: VOICE_PROFILES.epic_female.id, speaker: speakerName || '🧝‍♀️ PNJ Féminin', emoji: '🧝‍♀️' };
-  }
-
-  // Vieux Sage / Érudit / Moine / Ancien
-  if (combined.match(/\b(vieux|sage|érudit|ancien|maître|prêtre|moine|vieillard|savant|archiviste)\b/)) {
-    return { voiceId: VOICE_PROFILES.sage_male.id, speaker: speakerName || '📜 Vieux Sage', emoji: '📜' };
-  }
-
-  // Noble / Roi / Seigneur / Juge / Démon solennel
-  if (combined.match(/\b(roi|prince|seigneur|duc|noble|juge|baron|empereur|commandant)\b/)) {
-    return { voiceId: VOICE_PROFILES.noble_male.id, speaker: speakerName || '👑 Seigneur / Noble', emoji: '👑' };
-  }
-
-  // Barde / Voleur / Filou / Marchand
-  if (combined.match(/\b(barde|ménestrel|voleur|filou|marchand|jongleur|voyageur|musicien)\b/)) {
-    return { voiceId: VOICE_PROFILES.bard_male.id, speaker: speakerName || '🎭 Barde / Voyageur', emoji: '🎭' };
-  }
-
-  // Tavernier / Aubergiste / Marchand
-  if (combined.match(/\b(tavernier|aubergiste|marchand|commerçant|aubergiste|patron|hôte)\b/)) {
-    return { voiceId: VOICE_PROFILES.innkeeper_male.id, speaker: speakerName || '🍺 Tavernier / Marchand', emoji: '🍺' };
-  }
-
-  // Nain / Orc / Guerrier sombre / Monstre bourru
-  if (combined.match(/\b(nain|orc|gobelin|barbare|bourru|brute|troll|guerrier sombre)\b/) || combined.match(/\b(grogna|aboya|rugit)\b/)) {
-    return { voiceId: VOICE_PROFILES.dark_warrior_male.id, speaker: speakerName || '💀 Nain / Guerrier Sombre', emoji: '💀' };
-  }
-
-  // Reine / Noble / Haute dame
-  if (combined.match(/\b(reine|duchesse|châtelaine|impératrice|princesse|comtesse|noble dame)\b/)) {
-    return { voiceId: VOICE_PROFILES.noble_female.id, speaker: speakerName || '👑 Reine / Dame Noble', emoji: '👑' };
-  }
-
-  // Rôdeuse / Amazone / Chasseresse
-  if (combined.match(/\b(rôdeuse|chasseresse|amazone|archère|elfe des bois)\b/)) {
-    return { voiceId: VOICE_PROFILES.ranger_female.id, speaker: speakerName || '🏹 Rôdeuse / Amazone', emoji: '🏹' };
-  }
-
-  // Garde / Soldat / Capitaine / Milicien
-  if (combined.match(/\b(garde|soldat|milicien|capitaine|vigile|guet|sentinelle)\b/) || combined.match(/\b(hurla|ordonna)\b/)) {
-    return { voiceId: VOICE_PROFILES.guard_male.id, speaker: speakerName || '🛡️ Garde / Soldat', emoji: '🛡️' };
-  }
-
-  // PNJ Masculin / Aventurier / Guerrier par défaut
-  return { voiceId: VOICE_PROFILES.hero_male.id, speaker: speakerName || '⚔️ Aventurier / Combattant', emoji: '⚔️' };
+export function inferSpeakerVoice(speakerName: string, contextText = ''): { voiceId: string; speaker: string; emoji: string; rate?: number; pitch?: number } {
+  const profile = voiceProfilesStore.inferVoiceFor(speakerName, contextText);
+  return {
+    voiceId: profile.baseVoiceId,
+    speaker: speakerName || profile.name,
+    emoji: profile.emoji,
+    rate: profile.rate,
+    pitch: profile.pitch
+  };
 }
 
 /**

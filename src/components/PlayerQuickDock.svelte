@@ -4,7 +4,7 @@
   import { listen } from '@tauri-apps/api/event';
   import {
     getPlayerConnections, applyDamageToPlayer, applyConditionToPlayer,
-    removeConditionFromPlayer, requestRoll, pushMapSnapshot,
+    removeConditionFromPlayer, requestRoll, pushMapSnapshot, sendPrivateMessage, broadcastToPlayers,
     readFile, writeFile, type PlayerInfo, type VaultEntry,
     getSavedPlayerAccounts, savePlayerAccount, deletePlayerAccount, type PlayerAccountSummary
   } from '$lib/api';
@@ -13,6 +13,8 @@
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { parseCharacterMd, type ParsedCharacterData } from '$lib/services/characterParser';
   import CelestialArtPickerModal from './CelestialArtPickerModal.svelte';
+  import { synthesizeNeuralSpeech } from '$lib/services/edgeTts';
+  import { ttsReader } from '$lib/stores/ttsReader.svelte';
 
   let { visible = $bindable(true), onClose }: { visible?: boolean; onClose?: () => void } = $props();
 
@@ -757,6 +759,53 @@
       console.error('Push map error:', err);
     }
   }
+
+  // ── 🤫 Murmures Secrets IA sur Smartphone (Hub Mobile) ─────────────
+  let whisperTargetPlayer = $state<any | null>(null);
+  let whisperContent = $state('');
+  let isSendingWhisper = $state(false);
+
+  function openWhisperModal(p: any) {
+    whisperTargetPlayer = p;
+    whisperContent = '';
+  }
+
+  async function sendSecretWhisper() {
+    if (!whisperTargetPlayer || !whisperContent.trim() || isSendingWhisper) return;
+    isSendingWhisper = true;
+    const targetName = whisperTargetPlayer.name;
+    const text = whisperContent.trim();
+
+    try {
+      // 1. Envoyer le message secret au smartphone du joueur via WebSocket
+      await sendPrivateMessage(targetName, `🤫 [Murmure du MJ] : "${text}"`);
+      await broadcastToPlayers('whisper', {
+        playerId: whisperTargetPlayer.id || whisperTargetPlayer.name,
+        targetName,
+        text,
+        from: 'MJ'
+      });
+
+      // 2. Jouer l'audio neuronal en local dans Grimoire pour vérification du MJ
+      const voice = ttsReader.selectedVoiceName || 'fr-FR-DeniseNeural';
+      synthesizeNeuralSpeech(text, voice, 0.95, 0.92)
+        .then(url => {
+          const a = new Audio(url);
+          a.volume = 0.85;
+          a.play().catch(() => {});
+        })
+        .catch(() => {});
+
+      notifStore.add('🤫', targetName, `Murmure secret transmis sur son mobile : "${text.slice(0, 35)}…"`, 'success', 4000);
+      whisperTargetPlayer = null;
+      whisperContent = '';
+    } catch (e) {
+      console.warn('Erreur envoi murmure secret:', e);
+      notifStore.add('⚠️', targetName, 'Échec transmission du murmure', 'warn', 2500);
+    } finally {
+      isSendingWhisper = false;
+    }
+  }
 </script>
 
 {#if visible}
@@ -950,6 +999,13 @@
                           ➕ Poser
                         </button>
                       {/if}
+                      <button
+                        class="map-btn whisper-btn"
+                        onclick={() => openWhisperModal(p)}
+                        title="🤫 Chuchoter un secret IA sur le smartphone de ce joueur"
+                      >
+                        🤫
+                      </button>
                       <button
                         class="map-btn expand-btn"
                         class:active={isExpanded}
@@ -1151,6 +1207,60 @@
       <div class="dock-footer">
         <span class="drag-tip">💡 Cliquez sur <strong>📍 Placer</strong> puis cliquez sur la carte, ou attrapez l'avatar pour le glisser</span>
       </div>
+
+      <!-- Modale Murmure Secret IA -->
+      {#if whisperTargetPlayer}
+        <div class="dock-edit-overlay" transition:fade={{ duration: 150 }}>
+          <div class="dock-edit-modal whisper-modal" transition:slide={{ duration: 150 }}>
+            <div class="dock-edit-header">
+              <div class="header-title-box">
+                <span class="header-icon">🤫</span>
+                <div>
+                  <h4>Murmure Secret IA</h4>
+                  <span class="header-acc-name">Pour {whisperTargetPlayer.name} uniquement</span>
+                </div>
+              </div>
+              <button class="dock-btn-close-sm" onclick={() => whisperTargetPlayer = null}>✕</button>
+            </div>
+
+            <div class="whisper-body">
+              <label class="whisper-label">
+                Message secret (sera lu ou affiché sur son smartphone) :
+              </label>
+              <textarea
+                class="whisper-textarea"
+                rows="3"
+                bind:value={whisperContent}
+                placeholder="Ex : Tu ressens une présence glaciale qui s'approche de ton dos..."
+              ></textarea>
+
+              <div class="whisper-presets">
+                <button type="button" class="preset-chip" onclick={() => whisperContent = "Tu sens qu'on t'observe dans l'ombre..."}>
+                  👁️ Ombre
+                </button>
+                <button type="button" class="preset-chip" onclick={() => whisperContent = "Un frisson magique parcourt ton échine..."}>
+                  🔮 Frisson
+                </button>
+                <button type="button" class="preset-chip" onclick={() => whisperContent = "Une voix venue d'outre-tombe résonne dans ta tête..."}>
+                  💀 Voix
+                </button>
+              </div>
+
+              <div class="whisper-footer">
+                <button type="button" class="dock-btn-cancel" onclick={() => whisperTargetPlayer = null}>Annuler</button>
+                <button
+                  type="button"
+                  class="whisper-submit-btn"
+                  onclick={sendSecretWhisper}
+                  disabled={!whisperContent.trim() || isSendingWhisper}
+                >
+                  {isSendingWhisper ? '⏳ Transmission…' : '🎙️ Envoyer à l\'oreille !'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      {/if}
 
       <!-- Quick Edit Modal -->
       {#if quickEditAccount}
@@ -2444,5 +2554,97 @@
     color: #cbd5e1;
     cursor: pointer;
     margin-top: 4px;
+  }
+
+  /* ── Modale Murmure Secret ── */
+  .whisper-modal {
+    max-width: 360px;
+    border-color: rgba(168, 85, 247, 0.45);
+  }
+
+  .whisper-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px 14px;
+  }
+
+  .whisper-label {
+    font-size: 11px;
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+
+  .whisper-textarea {
+    width: 100%;
+    background: #020617;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #f8fafc;
+    font-size: 12px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .whisper-textarea:focus {
+    border-color: #a855f7;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+  }
+
+  .whisper-presets {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .preset-chip {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
+    font-size: 10px;
+    border-radius: 4px;
+    padding: 4px 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .preset-chip:hover {
+    background: rgba(168, 85, 247, 0.2);
+    color: #e9d5ff;
+    border-color: #a855f7;
+  }
+
+  .whisper-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .whisper-submit-btn {
+    background: linear-gradient(135deg, #a855f7, #6366f1);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .whisper-submit-btn:hover:not(:disabled) {
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .whisper-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>

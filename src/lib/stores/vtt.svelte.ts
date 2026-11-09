@@ -286,6 +286,20 @@ export const vttStore = $state({
   combatActive: false,
   currentTurn: 0,
   combatRound: 1,
+  combatAnnouncerEnabled: true as boolean,
+
+  // Immersion Sonore DSP & Lieux
+  acousticsPreset: 'normal' as 'normal' | 'cave' | 'cathedral' | 'telepathy' | 'spectral',
+
+  // Bulles de Dialogue & Halo Vocal VTT
+  activeSpeechBubble: null as {
+    tokenId?: string;
+    speakerName: string;
+    text: string;
+    x?: number;
+    y?: number;
+    expiresAt: number;
+  } | null,
 
   // Timer de session
   sessionTimerStart: null as number | null,
@@ -1310,3 +1324,62 @@ export function startPlayerPlacement(playerData: { id: string; name: string; hp?
 export function cancelPlayerPlacement() {
   vttStore.pendingPlayerPlacement = null;
 }
+
+// ── Bulles de Dialogue & Halo Vocal VTT ────────────────────────────
+let speechBubbleTimer: any = null;
+
+export function showSpeechBubble(speakerName: string, text: string, tokenId?: string, durationMs = 6000) {
+  let x: number | undefined;
+  let y: number | undefined;
+  let tid = tokenId;
+
+  if (!tid && speakerName) {
+    const clean = speakerName.toLowerCase().trim();
+    const found = vttStore.tokens.find(t =>
+      t.name.toLowerCase().trim() === clean ||
+      clean.includes(t.name.toLowerCase().trim()) ||
+      t.name.toLowerCase().trim().includes(clean)
+    );
+    if (found) {
+      tid = found.id;
+      x = found.x;
+      y = found.y;
+    }
+  } else if (tid) {
+    const found = vttStore.tokens.find(t => t.id === tid);
+    if (found) {
+      x = found.x;
+      y = found.y;
+    }
+  }
+
+  if (speechBubbleTimer) {
+    clearTimeout(speechBubbleTimer);
+    speechBubbleTimer = null;
+  }
+
+  vttStore.activeSpeechBubble = {
+    tokenId: tid,
+    speakerName,
+    text,
+    x,
+    y,
+    expiresAt: Date.now() + durationMs,
+  };
+
+  emitToPlayerView('speech_bubble', vttStore.activeSpeechBubble);
+
+  speechBubbleTimer = setTimeout(() => {
+    clearSpeechBubble();
+  }, durationMs);
+}
+
+export function clearSpeechBubble() {
+  if (speechBubbleTimer) {
+    clearTimeout(speechBubbleTimer);
+    speechBubbleTimer = null;
+  }
+  vttStore.activeSpeechBubble = null;
+  emitToPlayerView('clear_speech_bubble', {});
+}
+

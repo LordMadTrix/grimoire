@@ -9,6 +9,8 @@ import { parseMultiVoiceSegments, type NarrationSegment } from '$lib/services/di
 import { ambianceStore } from '$lib/stores/ambianceStore.svelte';
 import { soundscape } from '$lib/stores/soundscape.svelte';
 import { voiceProfilesStore } from '$lib/stores/voiceProfiles.svelte';
+import { audioAcoustics } from '$lib/services/audioAcoustics';
+import { vttStore, showSpeechBubble, clearSpeechBubble } from '$lib/stores/vtt.svelte';
 
 export interface VoiceOption {
   name: string;
@@ -254,8 +256,38 @@ class TtsReaderStore {
     this.currentSpeakerName = segment.speakerName;
     this.currentSpeakerEmoji = segment.voiceEmoji;
 
-    const sentenceText = segment.text;
+    const rawText = segment.text;
     const voiceToUse = segment.voiceId || this.selectedVoiceName;
+
+    // ── 1. Balises Sonores Synchronisées [sfx: <id>] ──
+    const sfxMatch = rawText.match(/\[sfx:\s*([a-zA-Z0-9_\-]+)\]/i);
+    if (sfxMatch) {
+      const sfxId = sfxMatch[1].toLowerCase();
+      try {
+        soundscape.playSfx(sfxId, true);
+      } catch (e) {
+        console.warn('SFX auto-trigger error:', e);
+      }
+    }
+
+    // ── 2. Acoustique DSP & Lieux ──
+    let acousticPreset = segment.acoustics || (vttStore as any).acousticsPreset || 'normal';
+    const acousticTagMatch = rawText.match(/\[(cave|cathedral|telepathy|spectral|normal)\]/i);
+    if (acousticTagMatch) {
+      acousticPreset = acousticTagMatch[1].toLowerCase() as any;
+    }
+
+    // Nettoyage complet des balises techniques pour que la voix ne les lise pas à voix haute
+    const cleanSpeechText = rawText
+      .replace(/\[sfx:\s*[a-zA-Z0-9_\-]+\]/gi, '')
+      .replace(/\[(cave|cathedral|telepathy|spectral|normal)\]/gi, '')
+      .replace(/>\s*\[!ACOUSTIQUE:[^\]]+\]/gi, '')
+      .trim();
+
+    // ── 3. Bulle de Dialogue & Halo Vocal VTT ──
+    if (cleanSpeechText.length > 0) {
+      showSpeechBubble(segment.speakerName, cleanSpeechText, (segment as any).tokenId);
+    }
 
     const selectedVoice = this.availableVoices.find(
       v => v.aiId === voiceToUse || v.name === voiceToUse
@@ -275,7 +307,7 @@ class TtsReaderStore {
         const actualPitch = segmentPitch * this.pitch;
 
         if (!audioUrl) {
-          audioUrl = await synthesizeNeuralSpeech(sentenceText, actualBaseVoice, actualRate, actualPitch);
+          audioUrl = await synthesizeNeuralSpeech(cleanSpeechText, actualBaseVoice, actualRate, actualPitch);
         }
 
         if (!this.isPlaying || this.currentSentenceIndex !== index) return;
@@ -288,6 +320,11 @@ class TtsReaderStore {
         this.currentAudio = audio;
         this.currentBlobUrl = audioUrl;
 
+        // Application de l'acoustique de la pièce / DSP
+        if (acousticPreset && acousticPreset !== 'normal') {
+          audioAcoustics.applyEffects(audio, acousticPreset as any);
+        }
+
         // Pré-charger la phrase suivante en arrière-plan avec sa propre voix et ses réglages de pitch/tempo
         if (index + 1 < this.sentences.length && !this.preloadedUrls.has(index + 1)) {
           const nextSegment = this.segments[index + 1];
@@ -296,8 +333,13 @@ class TtsReaderStore {
           const nextBaseVoice = nextProfile?.baseVoiceId || nextVoiceKey;
           const nextRate = (nextSegment?.rate ?? nextProfile?.rate ?? 1.0) * this.rate;
           const nextPitch = (nextSegment?.pitch ?? nextProfile?.pitch ?? 1.0) * this.pitch;
+          const nextClean = (this.sentences[index + 1] || '')
+            .replace(/\[sfx:\s*[a-zA-Z0-9_\-]+\]/gi, '')
+            .replace(/\[(cave|cathedral|telepathy|spectral|normal)\]/gi, '')
+            .replace(/>\s*\[!ACOUSTIQUE:[^\]]+\]/gi, '')
+            .trim();
 
-          synthesizeNeuralSpeech(this.sentences[index + 1], nextBaseVoice, nextRate, nextPitch)
+          synthesizeNeuralSpeech(nextClean, nextBaseVoice, nextRate, nextPitch)
             .then(nextUrl => {
               if (this.isPlaying) this.preloadedUrls.set(index + 1, nextUrl);
             })
@@ -305,6 +347,7 @@ class TtsReaderStore {
         }
 
         audio.onended = () => {
+          clearSpeechBubble();
           if (this.isPlaying && !this.isPaused) {
             this.speakFromSentence(index + 1);
           }
@@ -312,6 +355,7 @@ class TtsReaderStore {
 
         audio.onerror = (e) => {
           console.warn('Erreur lecture audio IA:', e);
+          clearSpeechBubble();
           if (this.isPlaying) this.speakFromSentence(index + 1);
         };
 
@@ -319,11 +363,11 @@ class TtsReaderStore {
       } catch (err) {
         console.warn('Synthèse vocale IA échouée, bascule sur voix système...', err);
         this.isLoadingAudio = false;
-        this.speakWithWebSpeech(sentenceText, index);
+        this.speakWithWebSpeech(cleanSpeechText, index);
       }
     } else {
       // ── Cas 2 : Voix Système Locale ──
-      this.speakWithWebSpeech(sentenceText, index);
+      this.speakWithWebSpeech(cleanSpeechText, index);
     }
   }
 
@@ -412,6 +456,7 @@ class TtsReaderStore {
     this.isLoadingAudio = false;
     this.currentSentenceIndex = -1;
     this.currentSpeakerName = '🧙‍♂️ Narrateur';
+    clearSpeechBubble();
 
     // Rétablir la musique de fond
     ambianceStore.setDucking(false);

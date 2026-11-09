@@ -6,6 +6,8 @@
     updateCombatantHp, addCombatant, removeCombatant,
     rollAllInitiatives
   } from '$lib/stores/vtt.svelte';
+  import { ttsReader } from '$lib/stores/ttsReader.svelte';
+  import { synthesizeNeuralSpeech } from '$lib/services/edgeTts';
 
   let showAddForm = $state(false);
   let newName = $state('');
@@ -68,9 +70,44 @@
     showAddForm = false;
   }
 
+  async function announceEpic(text: string) {
+    if (!vttStore.combatAnnouncerEnabled) return;
+    try {
+      const voice = ttsReader.selectedVoiceName || 'fr-FR-HenriNeural';
+      const audioUrl = await synthesizeNeuralSpeech(text, voice, 1.08, 1.0);
+      const audio = new Audio(audioUrl);
+      audio.volume = 1.0;
+      audio.play().catch(() => {});
+    } catch {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        const ut = new SpeechSynthesisUtterance(text);
+        ut.lang = 'fr-FR';
+        ut.rate = 1.1;
+        window.speechSynthesis.speak(ut);
+      }
+    }
+  }
+
   function hpDelta(id: string, delta: number) {
     const c = vttStore.combatants.find(c => c.id === id);
-    if (c) updateCombatantHp(id, c.hp + delta);
+    if (c) {
+      const prevHp = c.hp;
+      const nextHp = c.hp + delta;
+      updateCombatantHp(id, nextHp);
+      if (prevHp > 0 && nextHp <= 0) {
+        announceEpic(`${c.name} s'effondre au combat !`);
+      }
+    }
+  }
+
+  function handleNextTurn() {
+    nextTurn();
+    if (vttStore.combatAnnouncerEnabled) {
+      setTimeout(() => {
+        const cur = currentName();
+        if (cur) announceEpic(`C'est au tour de ${cur} !`);
+      }, 200);
+    }
   }
 
   function currentName() {
@@ -95,6 +132,15 @@
     <div style="display:flex; align-items:center; gap:6px;">
       <span class="tracker-drag-handle" title="Glisser pour déplacer le panneau de combat">✥</span>
       <span class="tracker-title">⚔️ Combat R.{round()}</span>
+      <button 
+        type="button" 
+        class="roll-btn announcer-toggle-btn"
+        class:active={vttStore.combatAnnouncerEnabled}
+        onclick={() => vttStore.combatAnnouncerEnabled = !vttStore.combatAnnouncerEnabled}
+        title={vttStore.combatAnnouncerEnabled ? "🎙️ Annonceur de combat vocal ACTIF (cliquer pour couper)" : "🔇 Annonceur de combat vocal COUPÉ"}
+      >
+        {vttStore.combatAnnouncerEnabled ? '🎙️ Vocal ON' : '🔇 Vocal OFF'}
+      </button>
       <button type="button" class="roll-btn" onclick={() => rollAllInitiatives('d20')} title="Lancer toutes les initiatives (d20)">🎲 d20</button>
       <button type="button" class="roll-btn wfrp" onclick={() => rollAllInitiatives('wfrp')} title="Lancer toutes les initiatives (WFRP 1d10+3)">🎲 WFRP</button>
     </div>
@@ -102,7 +148,7 @@
     <div class="turn-controls">
       <button class="ctrl-btn" onclick={prevTurn} title="Tour précédent">◀</button>
       <span class="current-turn" title="Combattant actuel">{currentName()}</span>
-      <button class="ctrl-btn" onclick={nextTurn} title="Tour suivant">▶</button>
+      <button class="ctrl-btn" onclick={handleNextTurn} title="Tour suivant">▶</button>
     </div>
 
     <div class="header-actions">
@@ -238,6 +284,13 @@
     padding: 2px 7px;
     cursor: pointer;
     transition: all 0.15s ease;
+  }
+
+  .announcer-toggle-btn.active {
+    background: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+    color: #38bdf8;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
   }
 
   .roll-btn:hover {

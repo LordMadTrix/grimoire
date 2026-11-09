@@ -218,6 +218,81 @@
   };
 
   // Multi-select & Barre d'actions immédiate du pion
+  let speechBubbleScreen = $state<{ x: number; y: number; text: string; speaker: string; visible: boolean }>({
+    x: 0,
+    y: 0,
+    text: '',
+    speaker: '',
+    visible: false
+  });
+
+  function cleanSvgDataUrl(dataUrl: string): string {
+    if (!dataUrl || !dataUrl.startsWith('data:image/svg+xml')) return dataUrl;
+    try {
+      let svg = '';
+      if (dataUrl.includes(';base64,')) {
+        const b64 = dataUrl.split(';base64,')[1];
+        svg = decodeURIComponent(escape(atob(b64)));
+      } else {
+        svg = decodeURIComponent(dataUrl.split(',')[1]);
+      }
+      // Supprimer les masques figma viewboxMask qui provoquent des carrés noirs dans le canvas 2D
+      svg = svg.replace(/<mask\s+id="[^"]*viewboxMask"[^>]*>[\s\S]*?<\/mask>/gi, '');
+      svg = svg.replace(/mask="url\(#[^"]*viewboxMask\)"/gi, '');
+      // S'assurer que le svg a un width et height si absent
+      if (!svg.match(/<svg[^>]+(width|height)=/i)) {
+        svg = svg.replace(/<svg/i, '<svg width="512" height="512"');
+      }
+      return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    } catch {
+      return dataUrl;
+    }
+  }
+
+  function renderCircularPortrait(img: HTMLImageElement, isPlayer: boolean, playerColor: number = 0x22c55e): HTMLCanvasElement {
+    const cv = document.createElement('canvas');
+    cv.width = 512;
+    cv.height = 512;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return cv;
+
+    // Découpe circulaire nette
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(256, 256, 250, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    // Fond de couleur pour éviter tout trou noir
+    ctx.fillStyle = isPlayer ? '#166534' : '#1e293b';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Dessin de l'image de l'avatar
+    try {
+      ctx.drawImage(img, 0, 0, 512, 512);
+    } catch (e) {
+      console.warn('Canvas drawImage portrait error:', e);
+    }
+    ctx.restore();
+
+    // Anneau de couleur lumineux
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(256, 256, 246, 0, Math.PI * 2);
+    ctx.strokeStyle = isPlayer ? '#22c55e' : ('#' + (playerColor || 0x3b82f6).toString(16).padStart(6, '0'));
+    ctx.lineWidth = 14;
+    ctx.stroke();
+
+    // Filet doré intérieur
+    ctx.beginPath();
+    ctx.arc(256, 256, 238, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    return cv;
+  }
   let selectedTokenIds = $state<Set<string>>(new Set());
   let dragOffsets = new Map<string, { dx: number; dy: number }>();
 
@@ -711,6 +786,63 @@
           }
           ring.alpha = 0.45 + 0.55 * Math.sin(now / 320);
         }
+      }
+
+      // ── Halo Vocal & Positionnement Bulle de Dialogue VTT ─────
+      const speakingTokenId = vttStore.activeSpeechBubble?.tokenId;
+      for (const [id, c] of tokenSprites) {
+        const halo = (c as any).__speechHalo as PIXI.Graphics | undefined;
+        if (halo && id !== speakingTokenId) {
+          c.removeChild(halo); halo.destroy(); delete (c as any).__speechHalo;
+        }
+      }
+      if (speakingTokenId) {
+        const container = tokenSprites.get(speakingTokenId);
+        const token = tokens.find(t => t.id === speakingTokenId);
+        if (container && token) {
+          let halo = (container as any).__speechHalo as PIXI.Graphics | undefined;
+          if (!halo) {
+            halo = new PIXI.Graphics();
+            container.addChildAt(halo, 0);
+            (container as any).__speechHalo = halo;
+          }
+          halo.clear();
+          const r = token.size / 2;
+          const pulse = (Math.sin(now / 160) + 1) * 0.5; // 0..1
+          halo.circle(0, 0, r + 8 + pulse * 10).fill({ color: 0x38bdf8, alpha: 0.18 + pulse * 0.2 });
+          halo.setStrokeStyle({ width: 3, color: 0x67e8f9, alpha: 0.7 + pulse * 0.3 });
+          halo.circle(0, 0, r + 6 + pulse * 6).stroke();
+        }
+      }
+
+      // Synchroniser la position écran de la bulle de dialogue
+      if (vttStore.activeSpeechBubble && worldContainer && app?.canvas) {
+        const bubble = vttStore.activeSpeechBubble;
+        let bx = bubble.x;
+        let by = bubble.y;
+        let bSize = 50;
+        if (bubble.tokenId) {
+          const tok = tokens.find(t => t.id === bubble.tokenId);
+          if (tok) {
+            bx = tok.x;
+            by = tok.y;
+            bSize = tok.size;
+          }
+        }
+        if (bx !== undefined && by !== undefined) {
+          const canvasRect = app.canvas.getBoundingClientRect();
+          speechBubbleScreen = {
+            x: canvasRect.left + worldContainer.x + bx * worldContainer.scale.x,
+            y: canvasRect.top + worldContainer.y + (by - bSize / 2) * worldContainer.scale.y - 12,
+            text: bubble.text,
+            speaker: bubble.speakerName,
+            visible: true
+          };
+        } else {
+          speechBubbleScreen.visible = false;
+        }
+      } else if (speechBubbleScreen.visible) {
+        speechBubbleScreen.visible = false;
       }
 
       // ── Spell glow (Modulation alpha GPU pure sans aucune réallocation) ──
@@ -1582,9 +1714,16 @@
         const isHttp = token.imageUrl.startsWith('http://') || token.imageUrl.startsWith('https://');
         const vPath = vaultPath || getVaultPath();
         
+        // Pions personnalisés issus de l'Éditeur de Tokens (flag isShaped ou dossier tokens/ avec PNG détouré)
+        const isCustomToken = !token.playerId && (
+          Boolean((token as any).isShaped) 
+          || Boolean((token as any).customShape) 
+          || (token.imageUrl && !token.imageUrl.startsWith('data:') && (token.imageUrl.startsWith('tokens/') || token.imageUrl.includes('tokens/')))
+        );
+
         // Clé de cache pour PixiJS
         const cacheKey = isDataUrl 
-          ? (token.id + '_custom_dataurl') 
+          ? (token.id + '_custom_dataurl_' + (token.playerId ? 'player' : 'npc')) 
           : (isBuiltin || isHttp ? token.imageUrl : (vPath ? vPath + '/' + token.imageUrl : token.imageUrl));
 
         if (tokenSprite.texture?.label === cacheKey && tokenSprite.texture.width > 0) {
@@ -1596,53 +1735,38 @@
           tokenSprite.visible = false;
           loadingTextures.add(cacheKey);
 
+          const prepareAndApplyTexture = (imgElement: HTMLImageElement) => {
+            if (container && tokenSprite) {
+              const texSource: HTMLImageElement | HTMLCanvasElement = isCustomToken
+                ? imgElement
+                : renderCircularPortrait(imgElement, Boolean(token.playerId), color);
+
+              const tex = PIXI.Texture.from(texSource);
+              tex.label = cacheKey;
+              tokenSprite.texture = tex;
+              tokenSprite.width = token.size;
+              tokenSprite.height = token.size;
+              tokenSprite.visible = true;
+            }
+            loadingTextures.delete(cacheKey);
+          };
+
           if (isDataUrl) {
             // Data URL directe (pions personnalisés créés dans l'Éditeur de Tokens ou avatars joueurs)
+            const cleanUrl = cleanSvgDataUrl(token.imageUrl);
             const img = new Image();
-            img.onload = () => {
-              if (container && tokenSprite) {
-                let texSource: HTMLImageElement | HTMLCanvasElement = img;
-                // Si SVG ou image sans dimensions intrinsèques, rasteriser proprement sur un canvas 512x512
-                if (token.imageUrl.startsWith('data:image/svg+xml') || img.naturalWidth === 0 || img.naturalHeight === 0) {
-                  const cv = document.createElement('canvas');
-                  cv.width = 512;
-                  cv.height = 512;
-                  const ctx = cv.getContext('2d');
-                  if (ctx) {
-                    ctx.drawImage(img, 0, 0, 512, 512);
-                    texSource = cv;
-                  }
-                }
-                const tex = PIXI.Texture.from(texSource);
-                tex.label = cacheKey;
-                tokenSprite.texture = tex;
-                tokenSprite.width = token.size;
-                tokenSprite.height = token.size;
-                tokenSprite.visible = true;
-              }
-              loadingTextures.delete(cacheKey);
-            };
+            img.onload = () => prepareAndApplyTexture(img);
             img.onerror = (e) => {
               console.error('Token dataURL load error:', e);
               loadingTextures.delete(cacheKey);
               tokenSprite.visible = false;
             };
-            img.src = token.imageUrl;
+            img.src = cleanUrl;
           } else if (isBuiltin || isHttp) {
             // Chargement direct pour les assets built-in (/tokens/...) ou HTTP
             const img = new Image();
             if (isHttp) img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              if (container && tokenSprite) {
-                const tex = PIXI.Texture.from(img);
-                tex.label = cacheKey;
-                tokenSprite.texture = tex;
-                tokenSprite.width = token.size;
-                tokenSprite.height = token.size;
-                tokenSprite.visible = true;
-              }
-              loadingTextures.delete(cacheKey);
-            };
+            img.onload = () => prepareAndApplyTexture(img);
             img.onerror = () => {
               loadingTextures.delete(cacheKey);
               tokenSprite.visible = false;
@@ -1654,7 +1778,6 @@
 
             readFileBase64(cacheKey).then(b64 => {
               if (!b64) throw new Error('Empty base64 content');
-              // Détection intelligente du vrai format de l'image
               let mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : `image/${ext}`;
               if (b64.startsWith('/9j/')) mime = 'image/jpeg';
               else if (b64.startsWith('iVBORw')) mime = 'image/png';
@@ -1662,24 +1785,13 @@
               else if (b64.startsWith('UklGR')) mime = 'image/webp';
 
               const img = new Image();
-              img.onload = () => {
-                if (container && tokenSprite) {
-                  const tex = PIXI.Texture.from(img);
-                  tex.label = cacheKey;
-                  tokenSprite.texture = tex;
-                  tokenSprite.width = token.size;
-                  tokenSprite.height = token.size;
-                  tokenSprite.visible = true;
-                }
-                loadingTextures.delete(cacheKey);
-              };
+              img.onload = () => prepareAndApplyTexture(img);
               img.onerror = () => {
                 loadingTextures.delete(cacheKey);
                 tokenSprite.visible = false;
               };
               img.src = `data:${mime};base64,${b64}`;
             }).catch(err => {
-              // Fallback : si le fichier physique est introuvable, essayer le .json compagnon
               if (token.imageUrl && token.imageUrl.startsWith('tokens/')) {
                 const jsonRelPath = token.imageUrl.replace(/\.[^.]+$/, '.json');
                 readFile(vPath, jsonRelPath).then((raw: string) => {
@@ -1687,15 +1799,7 @@
                   const fallbackDataUrl = desc?.design?.imageUrl;
                   if (fallbackDataUrl && container && tokenSprite) {
                     const img = new Image();
-                    img.onload = () => {
-                      const tex = PIXI.Texture.from(img);
-                      tex.label = cacheKey;
-                      tokenSprite.texture = tex;
-                      tokenSprite.width = token.size;
-                      tokenSprite.height = token.size;
-                      tokenSprite.visible = true;
-                      loadingTextures.delete(cacheKey);
-                    };
+                    img.onload = () => prepareAndApplyTexture(img);
                     img.onerror = () => {
                       loadingTextures.delete(cacheKey);
                       tokenSprite.visible = false;
@@ -1721,49 +1825,28 @@
           }
         }
         
-        // Pions personnalisés issus de l'Éditeur de Tokens (flag isShaped ou dossier tokens/ avec PNG détouré)
-        // ATTENTION : les tokens de joueurs (token.playerId) ne sont PAS des customTokens détourés,
-        // ils doivent TOUJOURS avoir leur masque circulaire et leur anneau de couleur !
-        const isCustomToken = !token.playerId && (
-          Boolean((token as any).isShaped) 
-          || Boolean((token as any).customShape) 
-          || (token.imageUrl && !token.imageUrl.startsWith('data:') && (token.imageUrl.startsWith('tokens/') || token.imageUrl.includes('tokens/')))
-        );
+        // Nettoyage de tout ancien masque PixiJS qui pourrait déformer le rendu
+        if (tokenSprite.mask) {
+          tokenSprite.mask = null;
+        }
+        const maskG = (container as any).__maskG as PIXI.Graphics | undefined;
+        if (maskG) {
+          maskG.clear();
+        }
 
-        if (isCustomToken) {
-          // La forme (hexagone, bouclier, cercle avec frise métallique) est DÉJÀ dans le PNG !
-          if (tokenSprite.mask) {
-            tokenSprite.mask = null;
-          }
-          const maskG = (container as any).__maskG as PIXI.Graphics | undefined;
-          if (maskG) {
-            maskG.clear();
-          }
-          // On ne dessine pas de cercle noir de masquage
-          circleG.clear();
-          if (token.auraRadius && token.auraRadius > 0) {
-            const ac = token.auraColor ?? 0x3b82f6;
-            circleG.circle(0, 0, r + token.auraRadius).fill({ color: ac, alpha: 0.14 });
-            circleG.setStrokeStyle({ width: 2, color: ac, alpha: 0.45 });
-            circleG.circle(0, 0, r + token.auraRadius).stroke();
-          }
-        } else {
-          // Masque circulaire standard pour portraits bruts non découpés
-          let maskG = (container as any).__maskG as PIXI.Graphics | undefined;
-          if (!maskG) {
-            maskG = new PIXI.Graphics();
-            container.addChild(maskG);
-            tokenSprite.mask = maskG;
-            (container as any).__maskG = maskG;
-          }
-          maskG.clear().circle(0, 0, r).fill(0xffffff);
-          maskG.position.set(0, 0);
+        circleG.clear();
+        // Aura sous le token
+        if (token.auraRadius && token.auraRadius > 0) {
+          const ac = token.auraColor ?? 0x3b82f6;
+          circleG.circle(0, 0, r + token.auraRadius).fill({ color: ac, alpha: 0.14 });
+          circleG.setStrokeStyle({ width: 2, color: ac, alpha: 0.45 });
+          circleG.circle(0, 0, r + token.auraRadius).stroke();
+        }
 
-          // Fond de secours (si l'image est transparente ou en cours de chargement)
+        // Si l'image n'est pas encore prête, dessiner un cercle placeholder
+        if (!tokenSprite.visible) {
           circleG.circle(0, 0, r).fill({ color: 0x222222, alpha: 0.8 });
-          
-          // Bordure
-          circleG.setStrokeStyle({ width: 4, color: color, alpha: 1 });
+          circleG.setStrokeStyle({ width: 3, color: color, alpha: 1 });
           circleG.circle(0, 0, r).stroke();
         }
       } else {
@@ -4072,6 +4155,18 @@
   role="region"
   aria-label="Table de jeu VTT"
 >
+  {#if speechBubbleScreen.visible && speechBubbleScreen.text}
+    <div
+      class="vtt-speech-bubble-wrapper"
+      style="left: {speechBubbleScreen.x}px; top: {speechBubbleScreen.y}px;"
+    >
+      <div class="vtt-speech-bubble">
+        <div class="bubble-speaker">🗣️ {speechBubbleScreen.speaker}</div>
+        <div class="bubble-text">{speechBubbleScreen.text}</div>
+      </div>
+      <div class="bubble-stem"></div>
+    </div>
+  {/if}
   {#if errorMessage}
     <div class="error-overlay">{errorMessage}</div>
   {/if}
@@ -4400,5 +4495,68 @@
   .bar-close-btn:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* ── Bulle de Dialogue & Halo Vocal VTT ── */
+  .vtt-speech-bubble-wrapper {
+    position: fixed;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: bubblePop 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-width: 340px;
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
+  }
+
+  @keyframes bubblePop {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -85%) scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -100%) scale(1);
+    }
+  }
+
+  .vtt-speech-bubble {
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(8px);
+    border: 1.5px solid rgba(245, 158, 11, 0.85);
+    border-radius: 12px;
+    padding: 8px 14px;
+    color: #f8fafc;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 16px rgba(245, 158, 11, 0.25);
+    text-align: center;
+    min-width: 140px;
+  }
+
+  .bubble-speaker {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fbbf24;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+
+  .bubble-text {
+    font-size: 13.5px;
+    line-height: 1.4;
+    font-weight: 500;
+    color: #ffffff;
+    word-break: break-word;
+  }
+
+  .bubble-stem {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 9px solid rgba(245, 158, 11, 0.9);
+    margin-top: -1px;
   }
 </style>

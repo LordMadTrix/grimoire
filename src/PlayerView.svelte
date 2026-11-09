@@ -176,6 +176,12 @@
           else if (event === 'sfx_play') {
             if (payload?.sfx) soundscape.playSfx(payload.sfx, false);
           }
+          else if (event === 'speech_bubble') {
+            vttStore.activeSpeechBubble = payload;
+          }
+          else if (event === 'clear_speech_bubble') {
+            vttStore.activeSpeechBubble = null;
+          }
           else if (event === 'update_combatants') {
             combatants = payload.combatants ?? [];
             combatActive = payload.active ?? false;
@@ -220,6 +226,12 @@
     }).then(fn => unlistens.push(fn));
     listen('sfx_play', (e: any) => {
       if (e.payload?.sfx) soundscape.playSfx(e.payload.sfx, false);
+    }).then(fn => unlistens.push(fn));
+    listen('speech_bubble', (e: any) => {
+      vttStore.activeSpeechBubble = e.payload;
+    }).then(fn => unlistens.push(fn));
+    listen('clear_speech_bubble', () => {
+      vttStore.activeSpeechBubble = null;
     }).then(fn => unlistens.push(fn));
     listen('update_combatants',      (e: any) => { combatants = e.payload.combatants ?? []; combatActive = e.payload.active ?? false; currentTurn = e.payload.currentTurn ?? 0; combatRound = e.payload.combatRound ?? 1; }).then(fn => unlistens.push(fn));
     listen('spotlight_token',        (e: any) => { spotlightTokenId = e.payload.tokenId ?? null;               }).then(fn => unlistens.push(fn));
