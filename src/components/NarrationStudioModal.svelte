@@ -9,12 +9,13 @@
     type NarrationSegment
   } from '$lib/services/dialogueParser';
   import { narrationStudioStore } from '$lib/stores/narrationStudio.svelte';
+  import { voiceProfilesStore, type CustomVoiceProfile } from '$lib/stores/voiceProfiles.svelte';
   import { askOllama, broadcastToPlayers } from '$lib/api';
   import { getAiModel } from '$lib/stores/settings.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
 
   // ── Onglets & États ──
-  type StudioTab = 'staged' | 'raw_text';
+  type StudioTab = 'staged' | 'raw_text' | 'voice_manager';
   let activeTab = $state<StudioTab>('staged');
 
   let rawSourceText = $state<string>('');
@@ -22,6 +23,20 @@
   let isGeneratingAi = $state<boolean>(false);
   let aiPromptInput = $state<string>('');
   let playbackRate = $state<number>(1.0);
+
+  // ── Gestionnaire de Voix & Casting ──
+  let editingProfile = $state<CustomVoiceProfile | null>(null);
+  let isCreatingVoice = $state<boolean>(false);
+  let formName = $state<string>('');
+  let formEmoji = $state<string>('🧙‍♂️');
+  let formBaseVoiceId = $state<string>('fr-FR-HenriNeural');
+  let formPitch = $state<number>(1.0);
+  let formRate = $state<number>(1.0);
+  let formDescription = $state<string>('');
+  let formKeywords = $state<string>('');
+  let formTestSample = $state<string>('Par les neuf enfers, qui ose franchir les portes de mon domaine ?');
+
+  const EMOJI_SUGGESTIONS = ['🧙‍♂️', '🧝‍♀️', '👑', '⚔️', '🛡️', '🍺', '💀', '✨', '🌿', '📜', '🏹', '🎭', '🧟', '👹', '🐲', '🦇', '🦹', '🧙‍♀️', '🧛', '🤖'];
 
   // Exemples de scènes immersives prêtes à jouer
   const PRESET_SCENES = [
@@ -143,12 +158,126 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
   }
 
   function updateSegmentVoice(segIndex: number, newVoiceId: string) {
-    const voiceObj = NEURAL_VOICES.find(v => v.id === newVoiceId);
-    if (voiceObj && segments[segIndex]) {
-      segments[segIndex].voiceId = newVoiceId;
-      const emojiMatch = voiceObj.name.match(/^(\p{Emoji})/u);
-      if (emojiMatch) segments[segIndex].voiceEmoji = emojiMatch[1];
+    const profile = voiceProfilesStore.getVoice(newVoiceId);
+    if (profile && segments[segIndex]) {
+      segments[segIndex].voiceId = profile.id;
+      segments[segIndex].voiceEmoji = profile.emoji;
+      segments[segIndex].rate = profile.rate;
+      segments[segIndex].pitch = profile.pitch;
+    } else {
+      const voiceObj = NEURAL_VOICES.find(v => v.id === newVoiceId);
+      if (voiceObj && segments[segIndex]) {
+        segments[segIndex].voiceId = newVoiceId;
+        const emojiMatch = voiceObj.name.match(/^(\p{Emoji})/u);
+        if (emojiMatch) segments[segIndex].voiceEmoji = emojiMatch[1];
+      }
     }
+  }
+
+  function openCreateVoice() {
+    editingProfile = null;
+    isCreatingVoice = true;
+    formName = '';
+    formEmoji = '👹';
+    formBaseVoiceId = 'fr-CA-ThierryNeural';
+    formPitch = 0.8;
+    formRate = 0.95;
+    formDescription = 'Voix personnalisée pour PNJ / Créature';
+    formKeywords = '';
+    formTestSample = 'Par les dieux du Grimoire, tremblez pauvres mortels !';
+  }
+
+  function openEditVoice(profile: CustomVoiceProfile) {
+    isCreatingVoice = false;
+    editingProfile = profile;
+    formName = profile.name;
+    formEmoji = profile.emoji;
+    formBaseVoiceId = profile.baseVoiceId;
+    formPitch = profile.pitch;
+    formRate = profile.rate;
+    formDescription = profile.description;
+    formKeywords = profile.keywords.join(', ');
+    formTestSample = `Bonjour, je suis ${profile.name}. Que puis-je faire pour vous ?`;
+  }
+
+  function cancelVoiceEdit() {
+    editingProfile = null;
+    isCreatingVoice = false;
+    voiceProfilesStore.stopTest();
+  }
+
+  function saveVoiceProfile() {
+    const trimmedName = formName.trim();
+    if (!trimmedName) {
+      alert('Veuillez entrer un nom pour ce personnage vocal.');
+      return;
+    }
+
+    const keywordsArray = formKeywords
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+
+    if (isCreatingVoice) {
+      voiceProfilesStore.addVoice({
+        name: trimmedName,
+        emoji: formEmoji || '🎭',
+        baseVoiceId: formBaseVoiceId,
+        rate: formRate,
+        pitch: formPitch,
+        description: formDescription.trim() || 'Personnage vocal personnalisé',
+        keywords: keywordsArray
+      });
+      notifStore.add('✨', 'Voix Créée', `Le personnage vocal "${trimmedName}" est prêt !`, 'success', 2500);
+    } else if (editingProfile) {
+      voiceProfilesStore.updateVoice(editingProfile.id, {
+        name: trimmedName,
+        emoji: formEmoji || '🎭',
+        baseVoiceId: formBaseVoiceId,
+        rate: formRate,
+        pitch: formPitch,
+        description: formDescription.trim(),
+        keywords: keywordsArray
+      });
+      notifStore.add('✏️', 'Voix Modifiée', `Profil "${trimmedName}" mis à jour avec succès.`, 'info', 2500);
+    }
+
+    editingProfile = null;
+    isCreatingVoice = false;
+    voiceProfilesStore.stopTest();
+    ttsReader.buildVoiceList();
+  }
+
+  function deleteVoiceProfile(id: string) {
+    const profile = voiceProfilesStore.getVoice(id);
+    if (!profile) return;
+    if (confirm(`Supprimer définitivement la voix "${profile.name}" ?`)) {
+      voiceProfilesStore.deleteVoice(id);
+      notifStore.add('🗑️', 'Voix Supprimée', `La voix "${profile.name}" a été retirée.`, 'info', 2000);
+      ttsReader.buildVoiceList();
+    }
+  }
+
+  function resetAllVoices() {
+    if (confirm('Rétablir les 13 profils et voix par défaut ? Vos voix personnalisées seront réinitialisées.')) {
+      voiceProfilesStore.resetToDefaults();
+      notifStore.add('🔄', 'Voix Réinitialisées', 'Casting d\'origine rétabli.', 'info', 2000);
+      ttsReader.buildVoiceList();
+    }
+  }
+
+  function testFormVoice() {
+    const tempProfile: CustomVoiceProfile = {
+      id: 'temp_test',
+      name: formName || 'Test',
+      emoji: formEmoji || '🔊',
+      baseVoiceId: formBaseVoiceId,
+      rate: formRate,
+      pitch: formPitch,
+      description: '',
+      keywords: []
+    };
+    voiceProfilesStore.testVoice(tempProfile, formTestSample);
   }
 
   function addEmptySegment() {
@@ -253,7 +382,7 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
         class:active={activeTab === 'staged'}
         onclick={() => { parseAndLoadSegments(); activeTab = 'staged'; }}
       >
-        🎭 Régie des Voix & Acteurs ({segments.length} répliques)
+        🎭 Régie des Voix & Acteurs ({segments.length})
       </button>
       <button
         type="button"
@@ -262,6 +391,14 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
         onclick={() => activeTab = 'raw_text'}
       >
         📝 Texte Brut & Scénario
+      </button>
+      <button
+        type="button"
+        class="ns-tab-btn"
+        class:active={activeTab === 'voice_manager'}
+        onclick={() => activeTab = 'voice_manager'}
+      >
+        👥 Casting & Voix Personnalisées ({voiceProfilesStore.profiles.length})
       </button>
     </div>
 
@@ -308,8 +445,8 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
                       value={seg.voiceId}
                       onchange={(e) => updateSegmentVoice(idx, (e.target as HTMLSelectElement).value)}
                     >
-                      {#each NEURAL_VOICES as nv}
-                        <option value={nv.id}>{nv.name}</option>
+                      {#each voiceProfilesStore.profiles as vp}
+                        <option value={vp.id}>{vp.emoji} {vp.name}</option>
                       {/each}
                     </select>
 
@@ -368,6 +505,246 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
             >
               ✨ Analyser & Répartir les Voix Multi-Acteurs
             </button>
+          </div>
+        </div>
+      {:else if activeTab === 'voice_manager'}
+        <!-- Vue Gestionnaire de Casting & Voix Personnalisées -->
+        <div class="ns-voice-manager-wrap">
+          <div class="ns-vm-header">
+            <div>
+              <h3 class="ns-vm-title">👥 Casting de la Campagne &amp; Voix Personnalisées</h3>
+              <p class="ns-vm-desc">
+                Créez, modifiez et modulez la hauteur (grave/aigu) et le tempo pour donner vie à vos PNJ et monstres.
+              </p>
+            </div>
+            <div class="ns-vm-header-actions">
+              <button type="button" class="ns-btn-add-line" onclick={openCreateVoice}>
+                ➕ Nouveau Personnage Vocal
+              </button>
+              <button type="button" class="ns-btn-secondary" onclick={resetAllVoices} title="Restaurer les voix par défaut">
+                🔄 Rétablir Par Défaut
+              </button>
+            </div>
+          </div>
+
+          {#if isCreatingVoice || editingProfile}
+            <!-- Formulaire d'édition / création -->
+            <div class="ns-vm-form-card">
+              <div class="ns-vm-form-title">
+                {isCreatingVoice ? '✨ Nouveau Personnage Vocal' : `✏️ Modifier "${editingProfile?.name}"`}
+              </div>
+
+              <div class="ns-vm-form-grid">
+                <!-- Nom & Avatar -->
+                <div class="ns-vm-field">
+                  <label class="ns-vm-label" for="vm-input-name">Nom du Personnage / Rôle :</label>
+                  <input
+                    id="vm-input-name"
+                    type="text"
+                    class="ns-vm-input"
+                    bind:value={formName}
+                    placeholder="Ex: Grommash l'Orc Noir, Reine Lyanna..."
+                  />
+                </div>
+
+                <div class="ns-vm-field">
+                  <label class="ns-vm-label" for="vm-emoji-input">Emoji / Icône :</label>
+                  <div class="ns-emoji-picker-row">
+                    <input id="vm-emoji-input" type="text" class="ns-vm-emoji-input" bind:value={formEmoji} maxlength="4" />
+                    <div class="ns-emoji-suggestions">
+                      {#each EMOJI_SUGGESTIONS as em}
+                        <button type="button" class="ns-emoji-pick-btn" class:selected={formEmoji === em} onclick={() => formEmoji = em}>
+                          {em}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Voix Neuronale de Base -->
+                <div class="ns-vm-field">
+                  <label class="ns-vm-label" for="vm-select-voice">Voix Source (Edge-TTS HD) :</label>
+                  <select id="vm-select-voice" class="ns-vm-select" bind:value={formBaseVoiceId}>
+                    {#each NEURAL_VOICES as nv}
+                      <option value={nv.id}>{nv.name} ({nv.gender === 'male' ? 'Homme' : 'Femme'})</option>
+                    {/each}
+                  </select>
+                </div>
+
+                <!-- Modulation Pitch (Hauteur) -->
+                <div class="ns-vm-field">
+                  <div class="ns-slider-header">
+                    <label class="ns-vm-label" for="vm-slider-pitch">Hauteur / Pitch (Grave ↔ Aigu) :</label>
+                    <span class="ns-slider-val">
+                      {formPitch < 0.95 ? `💀 Grave (${Math.round((formPitch - 1.0) * 100)} Hz)` : formPitch > 1.05 ? `✨ Aigu (+${Math.round((formPitch - 1.0) * 100)} Hz)` : '⚖️ Naturel (0 Hz)'}
+                    </span>
+                  </div>
+                  <input
+                    id="vm-slider-pitch"
+                    type="range"
+                    min="0.5"
+                    max="1.5"
+                    step="0.05"
+                    class="ns-vm-slider"
+                    bind:value={formPitch}
+                  />
+                  <div class="ns-slider-marks">
+                    <span>-50Hz (Monstre/Géant)</span>
+                    <span>0Hz (Normal)</span>
+                    <span>+50Hz (Fée/Lutin)</span>
+                  </div>
+                </div>
+
+                <!-- Modulation Vitesse / Débit -->
+                <div class="ns-vm-field">
+                  <div class="ns-slider-header">
+                    <label class="ns-vm-label" for="vm-slider-rate">Vitesse de diction :</label>
+                    <span class="ns-slider-val">{formRate.toFixed(2)}x</span>
+                  </div>
+                  <input
+                    id="vm-slider-rate"
+                    type="range"
+                    min="0.6"
+                    max="1.4"
+                    step="0.05"
+                    class="ns-vm-slider"
+                    bind:value={formRate}
+                  />
+                  <div class="ns-slider-marks">
+                    <span>0.6x (Lent/Solennel)</span>
+                    <span>1.0x (Standard)</span>
+                    <span>1.4x (Rapide/Paniqué)</span>
+                  </div>
+                </div>
+
+                <!-- Description / Rôle -->
+                <div class="ns-vm-field">
+                  <label class="ns-vm-label" for="vm-input-desc">Rôle / Description :</label>
+                  <input
+                    id="vm-input-desc"
+                    type="text"
+                    class="ns-vm-input"
+                    bind:value={formDescription}
+                    placeholder="Ex: Voix rauque et menaçante pour les nains et guerriers barbares"
+                  />
+                </div>
+
+                <!-- Mots-clés de détection automatique -->
+                <div class="ns-vm-field span-2">
+                  <label class="ns-vm-label" for="vm-input-keywords">Mots-clés de détection automatique dans vos notes :</label>
+                  <input
+                    id="vm-input-keywords"
+                    type="text"
+                    class="ns-vm-input"
+                    bind:value={formKeywords}
+                    placeholder="Ex: orc, brute, barbare, grogna, colosse (séparés par des virgules)"
+                  />
+                  <span class="ns-field-help">Si ces mots apparaissent dans vos récits ou répliques, cette voix sera automatiquement sélectionnée.</span>
+                </div>
+
+                <!-- Phrase de test -->
+                <div class="ns-vm-field span-2">
+                  <label class="ns-vm-label" for="vm-input-sample">Phrase de test pour l'écoute :</label>
+                  <div class="ns-test-row">
+                    <input
+                      id="vm-input-sample"
+                      type="text"
+                      class="ns-vm-input"
+                      bind:value={formTestSample}
+                    />
+                    <button
+                      type="button"
+                      class="ns-btn-preview-voice"
+                      onclick={testFormVoice}
+                      disabled={voiceProfilesStore.isTesting}
+                    >
+                      {voiceProfilesStore.isTesting ? '⏳ Lecture...' : '🔊 Tester cette voix'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ns-vm-form-actions">
+                <button type="button" class="ns-btn-secondary" onclick={cancelVoiceEdit}>Annuler</button>
+                <button type="button" class="ns-btn-primary" onclick={saveVoiceProfile}>
+                  💾 Enregistrer le Personnage Vocal
+                </button>
+              </div>
+            </div>
+          {/if}
+
+          <!-- Grille des Voix Existantes -->
+          <div class="ns-vm-grid">
+            {#each voiceProfilesStore.profiles as vp (vp.id)}
+              {@const isTestingThis = voiceProfilesStore.isTesting && voiceProfilesStore.testingProfileId === vp.id}
+              <div class="ns-voice-card" class:testing={isTestingThis}>
+                <div class="ns-vc-top">
+                  <div class="ns-vc-avatar">{vp.emoji}</div>
+                  <div class="ns-vc-info">
+                    <div class="ns-vc-name-row">
+                      <span class="ns-vc-name">{vp.name}</span>
+                      {#if vp.isBuiltin}
+                        <span class="ns-badge-builtin">Archétype</span>
+                      {:else}
+                        <span class="ns-badge-custom">Personnalisé</span>
+                      {/if}
+                    </div>
+                    <span class="ns-vc-desc">{vp.description}</span>
+                  </div>
+                </div>
+
+                <div class="ns-vc-chips">
+                  <span class="ns-vc-chip">
+                    🎙️ {NEURAL_VOICES.find(n => n.id === vp.baseVoiceId)?.name.split(' ')[1] || vp.baseVoiceId}
+                  </span>
+                  <span class="ns-vc-chip" class:accent={vp.pitch !== 1.0}>
+                    Pitch: {vp.pitch < 1.0 ? `${Math.round((vp.pitch - 1.0) * 100)}Hz` : vp.pitch > 1.0 ? `+${Math.round((vp.pitch - 1.0) * 100)}Hz` : '0Hz'}
+                  </span>
+                  <span class="ns-vc-chip" class:accent={vp.rate !== 1.0}>
+                    Vitesse: {vp.rate}x
+                  </span>
+                </div>
+
+                {#if vp.keywords && vp.keywords.length > 0}
+                  <div class="ns-vc-keywords">
+                    {#each vp.keywords.slice(0, 4) as kw}
+                      <span class="ns-kw-tag">#{kw}</span>
+                    {/each}
+                    {#if vp.keywords.length > 4}
+                      <span class="ns-kw-tag">+{vp.keywords.length - 4}</span>
+                    {/if}
+                  </div>
+                {/if}
+
+                <div class="ns-vc-actions">
+                  <button
+                    type="button"
+                    class="ns-vc-btn-test"
+                    onclick={() => voiceProfilesStore.testVoice(vp)}
+                  >
+                    {isTestingThis ? '⏹️ Stop' : '🔊 Tester'}
+                  </button>
+                  <button
+                    type="button"
+                    class="ns-vc-btn-edit"
+                    onclick={() => openEditVoice(vp)}
+                    title="Modifier les caractéristiques de cette voix"
+                  >
+                    ✏️ Modifier
+                  </button>
+                  {#if !vp.isBuiltin}
+                    <button
+                      type="button"
+                      class="ns-vc-btn-del"
+                      onclick={() => deleteVoiceProfile(vp.id)}
+                      title="Supprimer ce personnage vocal"
+                    >
+                      🗑️
+                    </button>
+                  {/if}
+                </div>
+              </div>
+            {/each}
           </div>
         </div>
       {/if}
@@ -1135,6 +1512,391 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
     padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ns-btn-secondary:hover {
+    background: rgba(229, 168, 83, 0.22);
+    border-color: #e5a853;
+  }
+
+  /* ── Styles du Casting & Gestionnaire de Voix ── */
+  .ns-voice-manager-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 4px;
+  }
+
+  .ns-vm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    gap: 16px;
+  }
+
+  .ns-vm-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0 0 4px 0;
+  }
+
+  .ns-vm-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    margin: 0;
+  }
+
+  .ns-vm-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Formulaire */
+  .ns-vm-form-card {
+    background: #171c28;
+    border: 1px solid rgba(229, 168, 83, 0.45);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    animation: nsFadeIn 0.2s ease;
+  }
+
+  .ns-vm-form-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #e5a853;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+  }
+
+  .ns-vm-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .ns-vm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ns-vm-field.span-2 {
+    grid-column: span 2;
+  }
+
+  .ns-vm-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #cbd5e1;
+  }
+
+  .ns-vm-input, .ns-vm-select {
+    background: #0f131a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #f8fafc;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .ns-vm-input:focus, .ns-vm-select:focus {
+    border-color: #e5a853;
+  }
+
+  .ns-emoji-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ns-vm-emoji-input {
+    width: 44px;
+    text-align: center;
+    font-size: 20px;
+    background: #0f131a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 4px;
+    color: #fff;
+    outline: none;
+  }
+
+  .ns-emoji-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .ns-emoji-pick-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 16px;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .ns-emoji-pick-btn:hover, .ns-emoji-pick-btn.selected {
+    background: rgba(229, 168, 83, 0.2);
+    border-color: #e5a853;
+    transform: scale(1.1);
+  }
+
+  .ns-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ns-slider-val {
+    font-size: 11px;
+    font-weight: 800;
+    color: #e5a853;
+  }
+
+  .ns-vm-slider {
+    accent-color: #e5a853;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .ns-slider-marks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #64748b;
+  }
+
+  .ns-field-help {
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  .ns-test-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .ns-test-row .ns-vm-input {
+    flex: 1;
+  }
+
+  .ns-vm-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Grille des Voix */
+  .ns-vm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .ns-voice-card {
+    background: #141822;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ns-voice-card:hover {
+    border-color: rgba(229, 168, 83, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .ns-voice-card.testing {
+    border-color: #e5a853;
+    box-shadow: 0 0 16px rgba(229, 168, 83, 0.25);
+    background: rgba(229, 168, 83, 0.04);
+  }
+
+  .ns-vc-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .ns-vc-avatar {
+    font-size: 26px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+  }
+
+  .ns-vc-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ns-vc-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .ns-vc-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ns-badge-builtin {
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .ns-badge-custom {
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(229, 168, 83, 0.2);
+    color: #e5a853;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .ns-vc-desc {
+    font-size: 11px;
+    color: #64748b;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  .ns-vc-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ns-vc-chip {
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+
+  .ns-vc-chip.accent {
+    border-color: rgba(229, 168, 83, 0.35);
+    color: #e5a853;
+    background: rgba(229, 168, 83, 0.08);
+  }
+
+  .ns-vc-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .ns-kw-tag {
+    font-size: 9px;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .ns-vc-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .ns-vc-btn-test {
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.35);
+    color: #e5a853;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex: 1;
+    transition: all 0.15s;
+  }
+
+  .ns-vc-btn-test:hover {
+    background: #e5a853;
+    color: #0b0d13;
+  }
+
+  .ns-vc-btn-edit {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ns-vc-btn-edit:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .ns-vc-btn-del {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+    font-size: 12px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ns-vc-btn-del:hover {
+    background: #ef4444;
+    color: #fff;
   }
 </style>
 

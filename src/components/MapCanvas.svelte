@@ -1597,11 +1597,23 @@
           loadingTextures.add(cacheKey);
 
           if (isDataUrl) {
-            // Data URL directe (pions personnalisés créés dans l'Éditeur de Tokens)
+            // Data URL directe (pions personnalisés créés dans l'Éditeur de Tokens ou avatars joueurs)
             const img = new Image();
             img.onload = () => {
               if (container && tokenSprite) {
-                const tex = PIXI.Texture.from(img);
+                let texSource: HTMLImageElement | HTMLCanvasElement = img;
+                // Si SVG ou image sans dimensions intrinsèques, rasteriser proprement sur un canvas 512x512
+                if (token.imageUrl.startsWith('data:image/svg+xml') || img.naturalWidth === 0 || img.naturalHeight === 0) {
+                  const cv = document.createElement('canvas');
+                  cv.width = 512;
+                  cv.height = 512;
+                  const ctx = cv.getContext('2d');
+                  if (ctx) {
+                    ctx.drawImage(img, 0, 0, 512, 512);
+                    texSource = cv;
+                  }
+                }
+                const tex = PIXI.Texture.from(texSource);
                 tex.label = cacheKey;
                 tokenSprite.texture = tex;
                 tokenSprite.width = token.size;
@@ -1709,11 +1721,14 @@
           }
         }
         
-        // Pions personnalisés issus de l'Éditeur de Tokens (Data URL, flag isShaped ou dossier tokens/)
-        const isCustomToken = isDataUrl 
-          || (token as any).isShaped 
-          || (token as any).customShape 
-          || (token.imageUrl && (token.imageUrl.startsWith('tokens/') || token.imageUrl.includes('tokens/')));
+        // Pions personnalisés issus de l'Éditeur de Tokens (flag isShaped ou dossier tokens/ avec PNG détouré)
+        // ATTENTION : les tokens de joueurs (token.playerId) ne sont PAS des customTokens détourés,
+        // ils doivent TOUJOURS avoir leur masque circulaire et leur anneau de couleur !
+        const isCustomToken = !token.playerId && (
+          Boolean((token as any).isShaped) 
+          || Boolean((token as any).customShape) 
+          || (token.imageUrl && !token.imageUrl.startsWith('data:') && (token.imageUrl.startsWith('tokens/') || token.imageUrl.includes('tokens/')))
+        );
 
         if (isCustomToken) {
           // La forme (hexagone, bouclier, cercle avec frise métallique) est DÉJÀ dans le PNG !

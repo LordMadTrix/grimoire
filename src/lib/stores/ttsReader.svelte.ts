@@ -8,6 +8,7 @@ import { clusterTextIntoNaturalSentences, formatTextForNaturalSpeech } from '$li
 import { parseMultiVoiceSegments, type NarrationSegment } from '$lib/services/dialogueParser';
 import { ambianceStore } from '$lib/stores/ambianceStore.svelte';
 import { soundscape } from '$lib/stores/soundscape.svelte';
+import { voiceProfilesStore } from '$lib/stores/voiceProfiles.svelte';
 
 export interface VoiceOption {
   name: string;
@@ -58,18 +59,31 @@ class TtsReaderStore {
   buildVoiceList() {
     const list: VoiceOption[] = [];
 
-    // 1. Ajouter toutes les voix neuronales IA Ultra-Réalistes
-    for (const nv of NEURAL_VOICES) {
+    // 1. Ajouter tous les profils de voix personnalisés et archétypes MJ
+    for (const vp of voiceProfilesStore.profiles) {
       list.push({
-        name: nv.name,
-        lang: nv.lang,
+        name: `${vp.emoji} ${vp.name}`,
+        lang: 'fr-FR',
         isAi: true,
-        aiId: nv.id,
-        personality: nv.personality
+        aiId: vp.id,
+        personality: vp.description
       });
     }
 
-    // 2. Ajouter les voix locales de l'ordinateur (SAPI/Web Speech)
+    // 2. Ajouter les voix neuronales brutes si elles ne sont pas déjà sous forme de profil
+    for (const nv of NEURAL_VOICES) {
+      if (!list.some(v => v.aiId === nv.id)) {
+        list.push({
+          name: nv.name,
+          lang: nv.lang,
+          isAi: true,
+          aiId: nv.id,
+          personality: nv.personality
+        });
+      }
+    }
+
+    // 3. Ajouter les voix locales de l'ordinateur (SAPI/Web Speech)
     if (this.synth) {
       const systemVoices = this.synth.getVoices() || [];
       const frVoices = systemVoices.filter(v => v.lang.toLowerCase().startsWith('fr'));
@@ -87,7 +101,7 @@ class TtsReaderStore {
     this.availableVoices = list;
 
     if (!this.selectedVoiceName || !list.some(v => v.aiId === this.selectedVoiceName || v.name === this.selectedVoiceName)) {
-      this.selectedVoiceName = 'fr-FR-HenriNeural';
+      this.selectedVoiceName = 'narrator';
     }
   }
 
@@ -253,8 +267,15 @@ class TtsReaderStore {
       try {
         let audioUrl = this.preloadedUrls.get(index);
 
+        const profile = voiceProfilesStore.getVoice(selectedVoice.aiId);
+        const actualBaseVoice = profile?.baseVoiceId || selectedVoice.aiId;
+        const segmentRate = segment.rate ?? profile?.rate ?? 1.0;
+        const segmentPitch = segment.pitch ?? profile?.pitch ?? 1.0;
+        const actualRate = segmentRate * this.rate;
+        const actualPitch = segmentPitch * this.pitch;
+
         if (!audioUrl) {
-          audioUrl = await synthesizeNeuralSpeech(sentenceText, selectedVoice.aiId, this.rate, this.pitch);
+          audioUrl = await synthesizeNeuralSpeech(sentenceText, actualBaseVoice, actualRate, actualPitch);
         }
 
         if (!this.isPlaying || this.currentSentenceIndex !== index) return;
@@ -267,11 +288,16 @@ class TtsReaderStore {
         this.currentAudio = audio;
         this.currentBlobUrl = audioUrl;
 
-        // Pré-charger la phrase suivante en arrière-plan avec sa propre voix
+        // Pré-charger la phrase suivante en arrière-plan avec sa propre voix et ses réglages de pitch/tempo
         if (index + 1 < this.sentences.length && !this.preloadedUrls.has(index + 1)) {
           const nextSegment = this.segments[index + 1];
-          const nextVoiceId = nextSegment?.voiceId || selectedVoice.aiId;
-          synthesizeNeuralSpeech(this.sentences[index + 1], nextVoiceId, this.rate, this.pitch)
+          const nextVoiceKey = nextSegment?.voiceId || selectedVoice.aiId;
+          const nextProfile = voiceProfilesStore.getVoice(nextVoiceKey);
+          const nextBaseVoice = nextProfile?.baseVoiceId || nextVoiceKey;
+          const nextRate = (nextSegment?.rate ?? nextProfile?.rate ?? 1.0) * this.rate;
+          const nextPitch = (nextSegment?.pitch ?? nextProfile?.pitch ?? 1.0) * this.pitch;
+
+          synthesizeNeuralSpeech(this.sentences[index + 1], nextBaseVoice, nextRate, nextPitch)
             .then(nextUrl => {
               if (this.isPlaying) this.preloadedUrls.set(index + 1, nextUrl);
             })
