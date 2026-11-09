@@ -98,7 +98,6 @@
   let minimapImgReady = false;
   let app: PIXI.Application;
   let appReady = $state(false);
-  let showMinimap = $state(true);
 
   // World Container pour Pan/Zoom
   let worldContainer: PIXI.Container;
@@ -455,27 +454,34 @@
       const now = Date.now();
       const tStart = performance.now();
 
-      // Vignette écran (suivez la taille du canvas, sans coût de composition DOM)
-      if (vignetteSprite && (vignetteSprite.width !== app.screen.width || vignetteSprite.height !== app.screen.height)) {
-        vignetteSprite.width = app.screen.width;
-        vignetteSprite.height = app.screen.height;
-        vignetteSprite.x = 0;
-        vignetteSprite.y = 0;
+      if (vignetteSprite) {
+        vignetteSprite.visible = vttStore.showVignette;
+        if (vignetteSprite.visible && (vignetteSprite.width !== app.screen.width || vignetteSprite.height !== app.screen.height)) {
+          vignetteSprite.width = app.screen.width;
+          vignetteSprite.height = app.screen.height;
+          vignetteSprite.x = 0;
+          vignetteSprite.y = 0;
+        }
       }
-      if (now - lastFpsCalc >= 2000) {
+      if (vttStore.showFps && now - lastFpsCalc >= 2000) {
         lastFpsCalc = now;
         currentFps = Math.round(app.ticker.FPS);
         if (typeof window !== 'undefined') (window as any).__VTT_FPS = currentFps;
         console.warn(`[VTT TELEMETRY] FPS: ${currentFps} | Delta: ${app.ticker.deltaMS.toFixed(1)}ms | Screen: ${app.screen.width}x${app.screen.height}`);
       }
 
-      // ── Glissement fluide des pions vers leur position cible (Lerp 60 FPS) ──
+      // ── Glissement fluide des pions vers leur position cible (Lerp 60 FPS ou saut direct) ──
       for (const [id, c] of tokenSprites) {
         // IMPORTANT: Ne pas interpoler si le token est actuellement attrapé et déplacé par le MJ !
         if (id === draggedTokenId || dragOffsets.has(id)) continue;
         const tx = (c as any).__targetX;
         const ty = (c as any).__targetY;
         if (tx !== undefined && ty !== undefined) {
+          if (!vttStore.tokenAnimations) {
+            c.x = tx;
+            c.y = ty;
+            continue;
+          }
           const dx = tx - c.x;
           const dy = ty - c.y;
           if (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8) {
@@ -737,7 +743,7 @@
       }
 
       // ── Minimap ──────────────────────────────────────────────
-      if (isGM && showMinimap && minimapCanvas && minimapImgReady && minimapImg && backgroundSprite && worldContainer) {
+      if (isGM && vttStore.showMinimap && minimapCanvas && minimapImgReady && minimapImg && backgroundSprite && worldContainer) {
         const mCtx = minimapCanvas.getContext('2d');
         if (mCtx) {
           const mW = minimapCanvas.width;
@@ -869,10 +875,12 @@
     tokens; // track
     selectedTokenIds; // track (pour anneaux de sélection)
     spotlightTokenId; // track (pour halo spotlight)
+    vttStore.showTokenNames; // track
+    vttStore.showTokenHpBars; // track
     if (!appReady) return;
     renderIfChanged(
       'tokens',
-      `${spotlightTokenId}|${[...selectedTokenIds].join(',')}|${layerSignature(tokens)}`,
+      `${vttStore.showTokenNames}|${vttStore.showTokenHpBars}|${spotlightTokenId}|${[...selectedTokenIds].join(',')}|${layerSignature(tokens)}`,
       renderTokens
     );
   });
@@ -887,8 +895,10 @@
   // Épingles sur la carte
   $effect(() => {
     pins; // track
+    vttStore.showPins; // track
     if (!appReady) return;
-    renderIfChanged('pins', layerSignature(pins), renderPins);
+    if (pinLayer) pinLayer.visible = vttStore.showPins;
+    renderIfChanged('pins', `${vttStore.showPins}|${layerSignature(pins)}`, renderPins);
   });
 
   // Sorts / AOE
@@ -1610,13 +1620,15 @@
         circleG.circle(0, 0, r).fill(color).stroke();
       }
 
-      // Texte
+      // Texte (nom du pion)
+      textT.visible = vttStore.showTokenNames;
       textT.text = token.name || 'Inconnu';
       textT.y = -r - 10;
 
       // Barre de vie — proportionnelle au token
       hpBar.clear();
-      if (token.maxHp && token.maxHp > 0) {
+      hpBar.visible = vttStore.showTokenHpBars;
+      if (vttStore.showTokenHpBars && token.maxHp && token.maxHp > 0) {
         const hp = token.hp ?? token.maxHp;
         const pct = Math.max(0, Math.min(1, hp / token.maxHp));
         const barW = Math.max(30, token.size * 0.85);
@@ -2597,7 +2609,7 @@
 
     if (draggedTokenId && worldContainer) {
       let localPos = worldContainer.toLocal(e.global);
-      if (gridEnabled) {
+      if (gridEnabled && vttStore.snapToGrid) {
         localPos.x = Math.floor(localPos.x / gridSize) * gridSize + gridSize / 2;
         localPos.y = Math.floor(localPos.y / gridSize) * gridSize + gridSize / 2;
       }
@@ -2613,7 +2625,7 @@
       for (const [selId, off] of dragOffsets) {
         let sx = localPos.x + off.dx;
         let sy = localPos.y + off.dy;
-        if (gridEnabled) {
+        if (gridEnabled && vttStore.snapToGrid) {
           sx = Math.floor(sx / gridSize) * gridSize + gridSize / 2;
           sy = Math.floor(sy / gridSize) * gridSize + gridSize / 2;
         }
@@ -3764,10 +3776,12 @@
     <div class="error-overlay">{errorMessage}</div>
   {/if}
 
-  <!-- Télémétrie FPS en direct -->
-  <div class="vtt-fps-badge" class:fps-low={currentFps < 30} class:fps-mid={currentFps >= 30 && currentFps < 55}>
-    ⚡ {currentFps} FPS
-  </div>
+  <!-- Télémétrie FPS en direct (activable via le menu Modules / Carte) -->
+  {#if isGM && vttStore.showFps}
+    <div class="vtt-fps-badge" class:fps-low={currentFps < 30} class:fps-mid={currentFps >= 30 && currentFps < 55}>
+      ⚡ {currentFps} FPS
+    </div>
+  {/if}
 
   {#if isGM && vttStore.pendingPlayerPlacement}
     <div class="vtt-placement-banner">
@@ -3787,21 +3801,17 @@
     <div class="vtt-ambient-pitch-black"></div>
   {/if}
 
-  {#if isGM && appReady && mapUrl}
+  {#if isGM && appReady && mapUrl && vttStore.showMinimap}
     <div
       class="minimap-wrapper"
-      onclick={() => showMinimap = !showMinimap}
-      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showMinimap = !showMinimap; } }}
+      onclick={() => vttStore.showMinimap = !vttStore.showMinimap}
+      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vttStore.showMinimap = !vttStore.showMinimap; } }}
       title="Minimap (clic pour masquer/afficher)"
       role="button"
       tabindex="0"
       aria-label="Afficher ou masquer la minimap"
     >
-      {#if showMinimap}
-        <canvas bind:this={minimapCanvas} class="minimap-canvas" width="180" height="120"></canvas>
-      {:else}
-        <div class="minimap-collapsed">🗺️</div>
-      {/if}
+      <canvas bind:this={minimapCanvas} class="minimap-canvas" width="180" height="120"></canvas>
     </div>
   {/if}
 </div>
@@ -3922,4 +3932,55 @@
   }
   .vtt-fps-badge.fps-mid { color: #facc15; }
   .vtt-fps-badge.fps-low { color: #ef4444; }
+
+  /* ── Bannière Mode Placement Flottante ── */
+  .vtt-placement-banner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid var(--accent, #e5a853);
+    color: #f1f5f9;
+    padding: 8px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.65);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+    animation: fadeInDown 0.18s ease-out;
+  }
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translate(-50%, -10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .vtt-placement-badge {
+    background: var(--accent, #e5a853);
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .vtt-placement-cancel {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .vtt-placement-cancel:hover {
+    background: rgba(239, 68, 68, 0.4);
+    color: #fff;
+  }
 </style>

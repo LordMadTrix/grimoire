@@ -224,7 +224,7 @@
     top: 50%;
     transform: translateY(-50%);
     right: 0;
-    z-index: 9200;
+    z-index: 250;
     background: rgba(15, 23, 42, 0.85);
     border: 1px solid rgba(229, 168, 83, 0.35);
     border-right: none;

@@ -300,8 +300,14 @@ export const vttStore = $state({
   showMacroBar: true,
   showPlayerQuickDock: true,
   showGmNotes: true,
-  showTokenNames: true,
-  showTokenHpBars: true,
+  showTokenNames: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_token_names') === 'false') ? false : true,
+  showTokenHpBars: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_token_hp') === 'false') ? false : true,
+  showFps: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_fps') === 'true') || false,
+  showMinimap: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_minimap') === 'false') ? false : true,
+  showPins: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_pins') === 'false') ? false : true,
+  showVignette: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_show_vignette') === 'false') ? false : true,
+  snapToGrid: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_snap_grid') === 'false') ? false : true,
+  tokenAnimations: (typeof localStorage !== 'undefined' && localStorage.getItem('grimoire_vtt_token_anim') === 'false') ? false : true,
 
   // Localisation de token (déclenche le centrage caméra)
   locateTokenId: null as string | null,
@@ -332,7 +338,63 @@ export const vttStore = $state({
   dungeonSelection: null as { minCol: number, minRow: number, maxCol: number, maxRow: number } | null,
 });
 
-// ── Campaign Title ────────────────────────────────────────────────
+// ── Options VTT & Télémétrie ─────────────────────────────────────
+export function toggleShowFps() {
+  vttStore.showFps = !vttStore.showFps;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_show_fps', String(vttStore.showFps));
+  }
+}
+
+export function toggleMinimap() {
+  vttStore.showMinimap = !vttStore.showMinimap;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_show_minimap', String(vttStore.showMinimap));
+  }
+}
+
+export function toggleTokenNames() {
+  vttStore.showTokenNames = !vttStore.showTokenNames;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_show_token_names', String(vttStore.showTokenNames));
+  }
+}
+
+export function toggleTokenHpBars() {
+  vttStore.showTokenHpBars = !vttStore.showTokenHpBars;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_show_token_hp', String(vttStore.showTokenHpBars));
+  }
+}
+
+export function togglePins() {
+  vttStore.showPins = !vttStore.showPins;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_show_pins', String(vttStore.showPins));
+  }
+}
+
+export function toggleVignette() {
+  vttStore.showVignette = !vttStore.showVignette;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_show_vignette', String(vttStore.showVignette));
+  }
+}
+
+export function toggleSnapToGrid() {
+  vttStore.snapToGrid = !vttStore.snapToGrid;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_snap_grid', String(vttStore.snapToGrid));
+  }
+}
+
+export function toggleTokenAnimations() {
+  vttStore.tokenAnimations = !vttStore.tokenAnimations;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('grimoire_vtt_token_anim', String(vttStore.tokenAnimations));
+  }
+}
+
 export function setCampaignTitle(title: string) {
   vttStore.campaignTitle = title;
   emitToPlayerView('set_campaign_title', { title });

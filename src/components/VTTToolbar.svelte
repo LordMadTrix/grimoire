@@ -23,6 +23,7 @@
     clearTerrainZones,
     setAmbientLight, triggerLightningFlash,
     clearGmTokens, removeGmDemoTokens, removeGmTokensByFilter, resetVttScene, DEMO_TOKEN_IDS,
+    toggleShowFps, toggleMinimap, toggleTokenNames, toggleTokenHpBars, togglePins, toggleVignette, toggleSnapToGrid, toggleTokenAnimations,
   } from '$lib/stores/vtt.svelte';
   import type { VaultEntry } from '$lib/api';
   import SoundBoard from './SoundBoard.svelte';
@@ -447,15 +448,18 @@
       isEnemy: false,
     });
   }
+
+  function handleGlobalClick(e: MouseEvent) {
+    if (!activeMenu) return;
+    const target = e.target as HTMLElement | null;
+    if (toolbarEl && toolbarEl.contains(target)) {
+      return;
+    }
+    activeMenu = null;
+  }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if activeMenu}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="menu-backdrop" onclick={() => activeMenu = null}></div>
-{/if}
+<svelte:window onkeydown={handleKeydown} onclick={handleGlobalClick} />
 
 <div class="vtt-toolbar menubar-style" bind:this={toolbarEl}>
   <!-- Navigation Espaces de Travail (VTT, Notes, Graphe...) intégrée pour supprimer la double-barre -->
@@ -538,6 +542,9 @@
         <button class="dropdown-item blackout-item" class:active={vttStore.isBlackout} onclick={toggleBlackout}>
           {vttStore.isBlackout ? '👁️ Désactiver Écran Noir' : '🕶️ Activer Écran Noir'}
         </button>
+        <button class="dropdown-item" class:active={vttStore.showFps} onclick={() => { toggleShowFps(); activeMenu = null; }}>
+          ⚡ {vttStore.showFps ? 'Masquer le Compteur FPS' : 'Afficher le Compteur FPS'}
+        </button>
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" onclick={() => { onOpenMonitorPicker?.(); activeMenu = null; }}>
           🖥️ Multi-Écran (Vue Joueurs / TV)…
@@ -604,8 +611,61 @@
           </span>
         </div>
 
+        <div class="module-toggle-row" onclick={toggleMinimap}>
+          <div class="module-info">
+            <span class="module-icon">🗺️</span>
+            <span class="module-name">Mini-carte VTT (Minimap)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showMinimap}>
+            {vttStore.showMinimap ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
         <div class="dropdown-divider"></div>
-        <div class="dropdown-title">Moteur de Carte & Effets VTT</div>
+        <div class="dropdown-title">Pions & Tokens</div>
+
+        <div class="module-toggle-row" onclick={toggleTokenNames}>
+          <div class="module-info">
+            <span class="module-icon">🏷️</span>
+            <span class="module-name">Noms sous les Pions</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showTokenNames}>
+            {vttStore.showTokenNames ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={toggleTokenHpBars}>
+          <div class="module-info">
+            <span class="module-icon">💚</span>
+            <span class="module-name">Barres de Vie (PV)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showTokenHpBars}>
+            {vttStore.showTokenHpBars ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={toggleSnapToGrid}>
+          <div class="module-info">
+            <span class="module-icon">🧲</span>
+            <span class="module-name">Aimantation Grille (Snap)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.snapToGrid}>
+            {vttStore.snapToGrid ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={toggleTokenAnimations}>
+          <div class="module-info">
+            <span class="module-icon">🏃</span>
+            <span class="module-name">Animations Fluides (Lerp)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.tokenAnimations}>
+            {vttStore.tokenAnimations ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Moteur de Carte & Ambiance</div>
 
         <div class="module-toggle-row" onclick={toggleGrid}>
           <div class="module-info">
@@ -637,6 +697,26 @@
           </span>
         </div>
 
+        <div class="module-toggle-row" onclick={togglePins}>
+          <div class="module-info">
+            <span class="module-icon">📍</span>
+            <span class="module-name">Épingles de Carte & Secrets</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showPins}>
+            {vttStore.showPins ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={toggleVignette}>
+          <div class="module-info">
+            <span class="module-icon">🎬</span>
+            <span class="module-name">Vignette & Ombres Cinéma</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showVignette}>
+            {vttStore.showVignette ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
         <div class="module-toggle-row" onclick={() => { vttStore.weather = vttStore.weather === 'none' ? 'rain' : 'none'; }}>
           <div class="module-info">
             <span class="module-icon">🌦️</span>
@@ -644,6 +724,16 @@
           </div>
           <span class="module-switch" class:active={vttStore.weather !== 'none'}>
             {vttStore.weather !== 'none' ? vttStore.weather.toUpperCase() : 'OFF'}
+          </span>
+        </div>
+
+        <div class="module-toggle-row" onclick={toggleShowFps}>
+          <div class="module-info">
+            <span class="module-icon">⚡</span>
+            <span class="module-name">Compteur FPS (Télémétrie)</span>
+          </div>
+          <span class="module-switch" class:active={vttStore.showFps}>
+            {vttStore.showFps ? 'ACTIF' : 'OFF'}
           </span>
         </div>
 
@@ -1489,7 +1579,7 @@
   /* Menubar UI */
   .menubar-style {
     position: relative;
-    z-index: 500;
+    z-index: 1000;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -1501,13 +1591,6 @@
     flex-shrink: 0;
     gap: 6px;
     overflow: visible !important;
-  }
-
-  .menu-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 999;
-    background: transparent;
   }
 
   /* ── Sélecteur d'Espace de Travail Unifié ── */
@@ -1603,7 +1686,8 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    z-index: 1000;
+    z-index: 2500;
+    pointer-events: auto;
     animation: slideDown 0.1s ease-out;
   }
   .dropdown-content.hidden { display: none !important; }
@@ -1626,6 +1710,9 @@
     padding: 6px 8px;
     border-radius: 4px;
     cursor: pointer;
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
   }
   .dropdown-item:hover { background: var(--bg-hover); color: var(--text-primary); }
   .dropdown-item.active { background: rgba(229,168,83,0.15); color: var(--accent); }
@@ -1654,6 +1741,7 @@
     margin: 2px 4px;
     border-radius: 6px;
     cursor: pointer;
+    pointer-events: auto;
     transition: background 0.15s ease;
     user-select: none;
   }
