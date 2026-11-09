@@ -461,7 +461,7 @@
         onclick={() => onSelectView?.('vtt')}
         title="Table Virtuelle VTT (Raccourci: F2)"
       >
-        🗺️ VTT {#if vttStore.tokens.length > 0}<span class="ws-badge">{vttStore.tokens.length}</span>{/if}
+        🗺️ <span class="ws-label">VTT</span>{#if vttStore.tokens.length > 0}<span class="ws-badge">{vttStore.tokens.length}</span>{/if}
       </button>
       <button 
         class="ws-pill" 
@@ -469,11 +469,17 @@
         onclick={() => onSelectView?.('editor')}
         title="Éditeur de Notes Markdown"
       >
-        📄 Notes
+        📄 <span class="ws-label">Notes</span>
       </button>
-      <button class="ws-pill" class:active={activeView === 'graph'} onclick={() => onSelectView?.('graph')}>🕸️ Graphe</button>
-      <button class="ws-pill" class:active={activeView === 'timeline'} onclick={() => onSelectView?.('timeline')}>📜 Chrono</button>
-      <button class="ws-pill" class:active={activeView === 'calendar'} onclick={() => onSelectView?.('calendar')}>📅 Calendrier</button>
+      <button class="ws-pill" class:active={activeView === 'graph'} onclick={() => onSelectView?.('graph')} title="Graphe des relations">
+        🕸️ <span class="ws-label">Graphe</span>
+      </button>
+      <button class="ws-pill" class:active={activeView === 'timeline'} onclick={() => onSelectView?.('timeline')} title="Chronologie">
+        📜 <span class="ws-label">Chrono</span>
+      </button>
+      <button class="ws-pill" class:active={activeView === 'calendar'} onclick={() => onSelectView?.('calendar')} title="Calendrier">
+        📅 <span class="ws-label">Calendrier</span>
+      </button>
     </div>
   {/if}
 
@@ -761,7 +767,7 @@
     {/if}
 
     <!-- 3. Ambiance & Audio -->
-    <div class="menu-dropdown" class:open={activeMenu === 'audio'}>
+    <div class="menu-dropdown align-right" class:open={activeMenu === 'audio'}>
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'audio' ? null : 'audio'; }}>🎭 Ambiance</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'audio'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
@@ -895,7 +901,7 @@
     </div>
 
     <!-- 4. Joueurs & Groupe -->
-    <div class="menu-dropdown" class:open={activeMenu === 'players'}>
+    <div class="menu-dropdown align-right" class:open={activeMenu === 'players'}>
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'players' ? null : 'players'; }}>👥 Joueurs</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'players'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
@@ -959,7 +965,7 @@
     </div>
 
     <!-- 5. Outils du MJ -->
-    <div class="menu-dropdown" class:open={activeMenu === 'gm'}>
+    <div class="menu-dropdown align-right" class:open={activeMenu === 'gm'}>
       <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'gm' ? null : 'gm'; }}>🧙‍♂️ Outils MJ</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'gm'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
@@ -1023,7 +1029,7 @@
       {vttStore.weather === 'none' ? '☀️' : vttStore.weather === 'rain' ? '🌧️' : vttStore.weather === 'snow' ? '❄️' : vttStore.weather === 'fog' ? '🌫️' : vttStore.weather === 'embers' ? '🔥' : '🌩️'}
     </button>
     <button class="token-quick-btn" onclick={() => showTokenEditor = true} title="Éditeur de Tokens Grimoire">
-      🪙 Tokens
+      🪙 <span class="tb-label">Tokens</span>
     </button>
     <button class="btn icon-btn combat-btn ml-1" class:active={vttStore.combatActive}
       onclick={() => vttStore.combatActive ? stopCombat() : startCombat()}
@@ -1033,17 +1039,17 @@
     <button class="soundscape-quick-btn" class:active-sound={soundscape.activeTracksCount > 0}
       onclick={() => showSoundscapeMixer = true}
       title="Mixeur d'Ambiances Sonores">
-      🌧️ Ambiance {#if soundscape.activeTracksCount > 0}<span class="sound-badge">{soundscape.activeTracksCount}</span>{/if}
+      🌧️ <span class="tb-label">Ambiance</span> {#if soundscape.activeTracksCount > 0}<span class="sound-badge">{soundscape.activeTracksCount}</span>{/if}
     </button>
     <button class="sfx-quick-btn" class:active-sound={showSfxSoundboard}
       onclick={() => showSfxSoundboard = !showSfxSoundboard}
       title="Soundboard SFX instantané (Raccourcis: Pavé 1-8)">
-      🔊 SFX
+      🔊 <span class="tb-label">SFX</span>
     </button>
     <button class="intro-quick-btn" class:active-intro={sessionIntroStore.isOpen || sessionIntroStore.isPlaying}
       onclick={() => sessionIntroStore.toggle()}
       title="Lecteur d'Intro de Soirée (MP3 cinématique)">
-      🎬 Intro {#if sessionIntroStore.isPlaying}▶️{/if}
+      🎬 <span class="tb-label">Intro</span> {#if sessionIntroStore.isPlaying}▶️{/if}
     </button>
     <!-- Widget Musique & Playlist -->
     <div class="music-quick-cluster">
@@ -1057,7 +1063,7 @@
         <span class="music-icon">{!playlistStore.isMusicEnabled ? '🔇' : playlistStore.isPlaying ? '▶️' : '🎵'}</span>
         <span class="music-title-truncated">
           {#if !playlistStore.isMusicEnabled}
-            Musique OFF
+            OFF
           {:else if playlistStore.currentTrack}
             {playlistStore.currentTrack.name}
           {:else}
@@ -1092,14 +1098,14 @@
       {/if}
     </div>
     <button class="backup-quick-btn" onclick={() => showBackupModal = true} title="Sauvegarder et exporter la campagne (.grimoire)">
-      💾 Campagne
+      💾 <span class="tb-label">Campagne</span>
     </button>
     <div class="mobile-quick-group">
       <button class="mobile-quick-btn" class:active-server={mobileServerStore.isRunning}
         onclick={() => onTogglePlayerMobileManager?.()}
         title="Ouvrir le Hub Mobile & Carnet MJ (QR Code iPad / Android)">
         <span class="mobile-status-dot" class:online={mobileServerStore.isRunning}></span>
-        📱 Mobile
+        📱 <span class="tb-label">Mobile</span>
         {#if mobileServerStore.playerCount > 0}
           <span class="mobile-badge">{mobileServerStore.playerCount}</span>
         {/if}
@@ -1121,7 +1127,7 @@
       title="Gérer le multi-écran : projeter la vue joueurs sur votre 2ème écran (TV, vidéo-projecteur)"
     >
       <span class="screen-status-dot" class:online={playerViewOpen}></span>
-      🖥️ Vue Joueurs
+      🖥️ <span class="tb-label">Vue Joueurs</span>
       {#if playerViewOpen && playerViewMonitor !== null}
         <span class="screen-badge">Écran {playerViewMonitor + 1}</span>
       {/if}
@@ -1503,7 +1509,13 @@
     padding: 0 8px;
     height: 40px;
     flex-shrink: 0;
-    gap: 8px;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
+  }
+  .menubar-style::-webkit-scrollbar {
+    display: none;
   }
 
   /* ── Sélecteur d'Espace de Travail Unifié ── */
@@ -1583,8 +1595,10 @@
     top: 100%;
     left: 0;
     min-width: 240px;
-    max-height: 85vh;
+    max-width: min(420px, 90vw);
+    max-height: calc(100vh - 48px);
     overflow-y: auto;
+    overscroll-behavior: contain;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -1597,6 +1611,12 @@
     animation: slideDown 0.1s ease-out;
   }
   .dropdown-content.hidden { display: none !important; }
+
+  /* Alignement à droite pour les dropdowns de droite : ne déborde jamais de l'écran */
+  .menu-dropdown.align-right .dropdown-content {
+    left: auto;
+    right: 0;
+  }
 
   .dropdown-item {
     display: flex;
@@ -2226,5 +2246,62 @@
   .music-sub-btn.play:hover {
     background: #10b981;
     color: #ffffff;
+  }
+
+  /* ── Responsive pour résolutions petites et moyennes (< 1600px et < 1350px) ── */
+  @media (max-width: 1600px) {
+    .tb-label {
+      display: none;
+    }
+    .campaign-title-input {
+      max-width: 100px;
+    }
+    .music-title-truncated {
+      max-width: 75px;
+    }
+    .time-widget {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+  }
+
+  @media (max-width: 1380px) {
+    .ws-label {
+      display: none;
+    }
+    .menu-btn {
+      font-size: 11px;
+      padding: 4px 6px;
+    }
+    .menubar-items {
+      gap: 2px;
+    }
+    .workspace-pill-nav {
+      padding: 1px;
+    }
+    .ws-pill {
+      padding: 2px 6px;
+      font-size: 10px;
+    }
+    .campaign-title-input {
+      display: none;
+    }
+    .time-widget {
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 1150px) {
+    .menubar-style {
+      gap: 3px;
+      padding: 0 4px;
+    }
+    .menu-btn {
+      padding: 4px 4px;
+      font-size: 10px;
+    }
+    .toolbar-permanent {
+      gap: 3px;
+    }
   }
 </style>

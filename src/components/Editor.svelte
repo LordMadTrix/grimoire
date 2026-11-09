@@ -132,9 +132,9 @@
     const hasSelection = selectedText.length > 0;
     
     const menuWidth = 230;
-    const menuHeight = 360;
-    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 10);
-    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 10);
+    const menuHeight = 450;
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 12);
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 12);
 
     editorCtxMenu = {
       x: Math.max(10, x),
@@ -3085,6 +3085,9 @@
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 14px rgba(229, 168, 83, 0.15);
     padding: 6px;
     min-width: 225px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     user-select: none;
     animation: slideDown 0.1s ease-out;
   }

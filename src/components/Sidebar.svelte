@@ -540,8 +540,8 @@
     <div class="ctx-overlay" onclick={() => ctxMenu = null}></div>
     <div
       class="ctx-menu"
-      style="left: {Math.min(ctxMenu.x, window.innerWidth - 190)}px;
-             top: {Math.min(ctxMenu.y, window.innerHeight - 200)}px;"
+      style="left: {Math.max(10, Math.min(ctxMenu.x, window.innerWidth - 200))}px;
+             top: {Math.max(10, Math.min(ctxMenu.y, window.innerHeight - 260))}px;"
     >
       <button class="ctx-item" onclick={ctxNewFile}>📄 Nouveau fichier</button>
       <button class="ctx-item" onclick={ctxFromTemplate}>📋 Depuis un template</button>
@@ -887,6 +887,8 @@
     border-radius: 8px;
     padding: 4px;
     min-width: 180px;
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     animation: fadeIn 0.1s ease;
   }

@@ -14,9 +14,21 @@
 
   const token = $derived(vttStore.tokens.find(t => t.id === tokenId));
 
-  // Ajustement position écran
-  const menuX = $derived(Math.min(Math.max(x, 10), (typeof window !== 'undefined' ? window.innerWidth : 1200) - 280));
-  const menuY = $derived(Math.min(Math.max(y, 10), (typeof window !== 'undefined' ? window.innerHeight : 800) - 480));
+  let menuWidth = $state(280);
+  let menuHeight = $state(520);
+
+  // Ajustement position écran dynamique : ne déborde jamais ni en bas, ni à droite, ni en haut, ni à gauche
+  const menuX = $derived.by(() => {
+    const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const w = menuWidth || 280;
+    return Math.max(10, Math.min(x, winW - w - 12));
+  });
+
+  const menuY = $derived.by(() => {
+    const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const h = menuHeight || 520;
+    return Math.max(10, Math.min(y, winH - h - 12));
+  });
 
   function changeHp(delta: number) {
     if (!token) return;
@@ -128,6 +140,8 @@
 <div class="ctx-backdrop" onclick={onclose}>
   <div 
     class="ctx-menu" 
+    bind:clientWidth={menuWidth}
+    bind:clientHeight={menuHeight}
     style="left: {menuX}px; top: {menuY}px;" 
     onclick={(e) => e.stopPropagation()}
     role="menu"
@@ -305,8 +319,8 @@
 
   .ctx-menu {
     position: fixed;
-    width: 275px;
-    max-height: 88vh;
+    width: 280px;
+    max-height: calc(100vh - 24px);
     overflow-y: auto;
     background: #0f172a;
     border: 1px solid rgba(245, 158, 11, 0.45);
@@ -322,6 +336,8 @@
     animation: popIn 0.12s ease-out;
     scrollbar-width: thin;
     scrollbar-color: rgba(245, 158, 11, 0.3) transparent;
+    overscroll-behavior: contain;
+    z-index: 10000;
   }
 
   @keyframes popIn {
