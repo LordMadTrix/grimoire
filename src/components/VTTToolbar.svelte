@@ -74,7 +74,8 @@
     onTogglePlayerQuickDock,
     onOpenMonitorPicker,
     activeView = 'vtt',
-    onToggleView
+    onToggleView,
+    onSelectView
   }: { 
     onRoll?: ((result: number, label: string) => void) | null,
     onTogglePlayerHub?: (() => void) | null,
@@ -83,7 +84,8 @@
     onTogglePlayerQuickDock?: (() => void) | null,
     onOpenMonitorPicker?: (() => void) | null,
     activeView?: string,
-    onToggleView?: (() => void) | null
+    onToggleView?: (() => void) | null,
+    onSelectView?: ((view: 'vtt' | 'editor' | 'graph' | 'timeline' | 'calendar') => void) | null
   } = $props();
 
   let playerViewOpen = $state(false);
@@ -450,6 +452,31 @@
 <svelte:window onkeydown={handleKeydown} onclick={() => activeMenu = null} />
 
 <div class="vtt-toolbar menubar-style" bind:this={toolbarEl}>
+  <!-- Navigation Espaces de Travail (VTT, Notes, Graphe...) intégrée pour supprimer la double-barre -->
+  {#if onSelectView}
+    <div class="workspace-pill-nav">
+      <button 
+        class="ws-pill" 
+        class:active={activeView === 'vtt'} 
+        onclick={() => onSelectView?.('vtt')}
+        title="Table Virtuelle VTT (Raccourci: F2)"
+      >
+        🗺️ VTT {#if vttStore.tokens.length > 0}<span class="ws-badge">{vttStore.tokens.length}</span>{/if}
+      </button>
+      <button 
+        class="ws-pill" 
+        class:active={activeView === 'editor'} 
+        onclick={() => onSelectView?.('editor')}
+        title="Éditeur de Notes Markdown"
+      >
+        📄 Notes
+      </button>
+      <button class="ws-pill" class:active={activeView === 'graph'} onclick={() => onSelectView?.('graph')}>🕸️ Graphe</button>
+      <button class="ws-pill" class:active={activeView === 'timeline'} onclick={() => onSelectView?.('timeline')}>📜 Chrono</button>
+      <button class="ws-pill" class:active={activeView === 'calendar'} onclick={() => onSelectView?.('calendar')}>📅 Calendrier</button>
+    </div>
+  {/if}
+
   <div class="menubar-items">
     
     <!-- 1. Carte & Vue -->
@@ -1067,16 +1094,6 @@
     <button class="backup-quick-btn" onclick={() => showBackupModal = true} title="Sauvegarder et exporter la campagne (.grimoire)">
       💾 Campagne
     </button>
-    {#if onToggleView}
-      <button 
-        class="view-toggle-btn" 
-        class:is-editor={activeView === 'editor'}
-        onclick={() => onToggleView?.()}
-        title={activeView === 'vtt' ? "Basculer vers l'Éditeur Markdown (Raccourci: F2)" : "Revenir sur la Table Virtuelle VTT (Raccourci: F2)"}
-      >
-        {activeView === 'vtt' ? '📄 Notes MD' : '🗺️ Carte VTT'}
-      </button>
-    {/if}
     <div class="mobile-quick-group">
       <button class="mobile-quick-btn" class:active-server={mobileServerStore.isRunning}
         onclick={() => onTogglePlayerMobileManager?.()}
@@ -1486,6 +1503,51 @@
     padding: 0 8px;
     height: 40px;
     flex-shrink: 0;
+    gap: 8px;
+  }
+
+  /* ── Sélecteur d'Espace de Travail Unifié ── */
+  .workspace-pill-nav {
+    display: flex;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 2px;
+    gap: 1px;
+    flex-shrink: 0;
+  }
+  .ws-pill {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .ws-pill:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .ws-pill.active {
+    background: var(--accent, #e5a853);
+    color: #000;
+    font-weight: 700;
+  }
+  .ws-badge {
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 10px;
   }
 
   .menubar-items {
@@ -1973,33 +2035,7 @@
     box-shadow: 0 0 10px rgba(230, 180, 80, 0.3);
   }
 
-  /* ── Bouton Bascule Vue VTT / Éditeur MD ── */
-  .view-toggle-btn {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(14, 165, 233, 0.3) 100%);
-    border: 1px solid rgba(56, 189, 248, 0.5);
-    color: #38bdf8;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 9px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.15s;
-    margin-left: 2px;
-  }
-  .view-toggle-btn:hover {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.35) 0%, rgba(14, 165, 233, 0.45) 100%);
-    color: #fff;
-    border-color: #38bdf8;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
-  }
-  .view-toggle-btn.is-editor {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.35) 100%);
-    border-color: #f59e0b;
-    color: #fde68a;
-  }
+
 
   /* ── Actions & Recherche Modal Audio ── */
   .audio-picker-actions {

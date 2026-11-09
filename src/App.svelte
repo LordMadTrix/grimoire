@@ -858,33 +858,9 @@
         onOpenMonitorPicker={() => showMonitorPicker = true}
         activeView={viewMode}
         onToggleView={() => { viewMode = viewMode === 'vtt' ? 'editor' : 'vtt'; }}
+        onSelectView={(v) => { viewMode = v; }}
       />
     {/if}
-
-    <!-- Barre d'Onglets Globale : Navigation fluide entre Carte VTT, Éditeur Notes, Graphe, etc. -->
-    <div class="view-header">
-      <div class="view-toggle">
-        {#if vttStore.currentMap}
-          <button 
-            class:active={viewMode === 'vtt'} 
-            onclick={() => viewMode = 'vtt'}
-            title="Afficher la Table Virtuelle (Raccourci: F2 ou Alt+M)"
-          >
-            🗺️ Carte VTT {#if vttStore.tokens.length > 0}<span class="view-token-count">{vttStore.tokens.length}</span>{/if}
-          </button>
-        {/if}
-        <button 
-          class:active={viewMode === 'editor'} 
-          onclick={() => viewMode = 'editor'}
-          title="Afficher l'Éditeur de Notes Markdown (Raccourci: F2 ou Alt+E)"
-        >
-          📄 Éditeur Notes
-        </button>
-        <button class:active={viewMode === 'graph'} onclick={() => viewMode = 'graph'}>🕸️ Graphe</button>
-        <button class:active={viewMode === 'timeline'} onclick={() => viewMode = 'timeline'}>📜 Timeline</button>
-        <button class:active={viewMode === 'calendar'} onclick={() => viewMode = 'calendar'}>📅 Calendrier</button>
-      </div>
-    </div>
     
     <!-- Table Virtuelle VTT (préservée en mémoire avec 0 latence) -->
     {#if vttStore.currentMap}
@@ -1246,48 +1222,7 @@
     min-width: 0;
   }
 
-  .view-header {
-    display: flex;
-    justify-content: center;
-    padding: 8px;
-    background: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border);
-  }
 
-  .view-toggle {
-    display: flex;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 2px;
-  }
-
-  .view-toggle button {
-    background: transparent;
-    border: none;
-    padding: 4px 16px;
-    border-radius: 18px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .view-toggle button.active {
-    background: var(--accent);
-    color: var(--bg-primary);
-  }
-
-  .view-token-count {
-    background: rgba(0, 0, 0, 0.25);
-    color: inherit;
-    font-size: 9px;
-    font-weight: 800;
-    padding: 1px 5px;
-    border-radius: 9999px;
-    margin-left: 4px;
-  }
 
   /* ── Scene Tabs (multimap) ────────────────────────────────── */
 

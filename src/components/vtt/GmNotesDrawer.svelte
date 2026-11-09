@@ -218,37 +218,47 @@
 {/if}
 
 <style>
-  /* ── Bouton Déclencheur ────────────────────────────────────────── */
+  /* ── Bouton Déclencheur Fin sur la tranche droite ──────────────── */
   .gm-drawer-toggle-btn {
     position: absolute;
-    top: 70px;
+    top: 50%;
+    transform: translateY(-50%);
     right: 0;
     z-index: 9200;
-    background: rgba(15, 23, 42, 0.92);
-    border: 1px solid rgba(229, 168, 83, 0.45);
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(229, 168, 83, 0.35);
     border-right: none;
-    border-radius: 8px 0 0 8px;
-    padding: 8px 10px;
+    border-radius: 6px 0 0 6px;
+    padding: 6px 8px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     color: var(--accent, #e5a853);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.5);
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
+    opacity: 0.85;
   }
   .gm-drawer-toggle-btn:hover,
   .gm-drawer-toggle-btn.is-active {
-    background: rgba(30, 41, 59, 0.98);
+    opacity: 1;
+    background: rgba(30, 41, 59, 0.95);
     border-color: var(--accent, #e5a853);
-    padding-left: 14px;
-    box-shadow: -4px 4px 20px rgba(229, 168, 83, 0.3);
+    padding-left: 10px;
+    box-shadow: -3px 0 14px rgba(229, 168, 83, 0.25);
   }
-  .btn-icon { font-size: 14px; }
-  .btn-text { letter-spacing: 0.3px; }
+  .btn-icon { font-size: 13px; }
+  .btn-text { 
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 1px;
+    font-size: 9px;
+    text-transform: uppercase;
+  }
 
   /* ── Panneau Tiroir ────────────────────────────────────────────── */
   .gm-notes-drawer {

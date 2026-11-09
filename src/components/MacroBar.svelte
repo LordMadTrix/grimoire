@@ -22,6 +22,7 @@
   let editIcon = $state('');
   let editCmd = $state('');
   let historyOpen = $state(false);
+  let isCollapsed = $state(false);
 
   // Drag-and-drop reorder
   let dragSrcId: string | null = null;
@@ -92,7 +93,21 @@
   }
 </script>
 
+{#if isCollapsed}
+  <button 
+    class="mb-collapsed-pill"
+    onclick={() => isCollapsed = false}
+    title="Déplier la barre de macros & jets rapides"
+  >
+    <span>⚡ Macros ({macros.length})</span>
+    <span class="mb-pill-arrow">▲</span>
+  </button>
+{:else}
 <div class="mb-wrap">
+  <div class="mb-header-row">
+    <span class="mb-title">⚡ Macros & Actions Rapides</span>
+    <button class="mb-collapse-btn" onclick={() => isCollapsed = true} title="Réduire">🗕</button>
+  </div>
   <div class="mb-presets">
     {#each macros as macro (macro.id)}
       <button
@@ -147,8 +162,61 @@
     </div>
   {/if}
 </div>
+{/if}
 
 <style>
+  /* ── Mode Réduit ── */
+  .mb-collapsed-pill {
+    background: rgba(13,17,23,0.92);
+    border: 1px solid rgba(229,168,83,0.3);
+    border-radius: 20px;
+    padding: 5px 12px;
+    color: var(--accent, #e5a853);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+  .mb-collapsed-pill:hover {
+    border-color: var(--accent, #e5a853);
+    box-shadow: 0 4px 20px rgba(229,168,83,0.3);
+  }
+  .mb-pill-arrow {
+    font-size: 9px;
+    opacity: 0.7;
+  }
+
+  .mb-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 2px;
+  }
+  .mb-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+  }
+  .mb-collapse-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 2px;
+    transition: color 0.15s;
+  }
+  .mb-collapse-btn:hover { color: #f1f5f9; }
+
   .mb-wrap {
     display: flex; flex-direction: column; gap: 6px;
     background: rgba(13,17,23,0.92);

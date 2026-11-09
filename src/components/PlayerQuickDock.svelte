@@ -31,6 +31,14 @@
   let isRefreshing = $state(false);
   let pollInterval: ReturnType<typeof setInterval> | null = null;
   let unlistenFns: (() => void)[] = [];
+  let expandedCards = $state<Set<string>>(new Set());
+
+  function togglePlayerExpand(id: string) {
+    const next = new Set(expandedCards);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    expandedCards = next;
+  }
 
   const displayAccounts = $derived.by(() => {
     const list: PlayerAccountSummary[] = savedAccounts.map(a => ({ ...a }));
@@ -846,8 +854,9 @@
               {#each displayAccounts as p (p.name)}
                 {@const hpData = getPlayerHp(p)}
                 {@const onMap = isTokenOnMap(p)}
-                <div class="player-item" class:on-map={onMap}>
-                  <!-- Ligne supérieure : Avatar + Nom + Focus Carte -->
+                {@const isExpanded = expandedCards.has(p.name)}
+                <div class="player-item" class:on-map={onMap} class:is-expanded={isExpanded}>
+                  <!-- Ligne supérieure compacte et épurée -->
                   <div class="player-top">
                     <!-- Avatar Draggable -->
                     <div
@@ -909,10 +918,13 @@
                       <div class="sub-status">
                         <span class={p.is_online ? "dot-online" : "dot-offline"}></span>
                         <span>{p.is_online ? (p.character?.voc || p.character?.race || 'En ligne') : 'Hors-ligne'}</span>
+                        <span class="compact-hp-tag" style="color: {hpData.pct > 50 ? '#4ade80' : hpData.pct > 20 ? '#facc15' : '#f87171'}">
+                          {hpData.hp}/{hpData.maxHp} PV
+                        </span>
                       </div>
                     </div>
 
-                    <!-- Actions Carte : Placer, Focus ou Poser -->
+                    <!-- Actions Carte : Placer, Focus ou Poser + Dépliage -->
                     <div class="map-action-col">
                       <button
                         class="map-btn place-target-btn"
@@ -938,67 +950,80 @@
                           ➕ Poser
                         </button>
                       {/if}
-                    </div>
-                  </div>
-
-                  <!-- Jauge PV & Ajustements Express -->
-                  <div class="hp-row">
-                    <div class="hp-bar-container">
-                      <div
-                        class="hp-bar-fill"
-                        style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
-                      ></div>
-                      <span class="hp-text">{hpData.hp} / {hpData.maxHp} PV</span>
-                    </div>
-
-                    <div class="hp-buttons">
-                      <button class="hp-btn neg" onclick={() => adjustHp(p, -5)} title="-5 PV">-5</button>
-                      <button class="hp-btn neg" onclick={() => adjustHp(p, -1)} title="-1 PV">-1</button>
-                      <button class="hp-btn pos" onclick={() => adjustHp(p, 1)} title="+1 PV">+1</button>
-                      <button class="hp-btn pos" onclick={() => adjustHp(p, 5)} title="+5 PV">+5</button>
-                    </div>
-                  </div>
-
-                  <!-- Conditions Express -->
-                  <div class="conditions-row">
-                    {#each QUICK_CONDITIONS as cond}
-                      {@const hasCond = (p.conditions || []).includes(cond.id)}
                       <button
-                        class="condition-pill"
-                        class:active={hasCond}
-                        onclick={() => toggleCondition(p, cond.id)}
-                        title="{hasCond ? 'Retirer' : 'Appliquer'} {cond.label}"
+                        class="map-btn expand-btn"
+                        class:active={isExpanded}
+                        onclick={() => togglePlayerExpand(p.name)}
+                        title={isExpanded ? "Replier les contrôles" : "Déplier réglages PV et conditions"}
                       >
-                        <span>{cond.icon}</span>
+                        {isExpanded ? '▲' : '⚙️'}
                       </button>
-                    {/each}
+                    </div>
+                  </div>
 
-                    <!-- Bouton Jet de dés express -->
-                    {#if (p as any).id || (p as any).player_id}
-                      {@const pid = (p as any).id || (p as any).player_id}
-                      <div class="roll-dropdown-wrap">
-                        <button
-                          class="roll-trigger-btn"
-                          onclick={() => activeRollMenuPlayerId = activeRollMenuPlayerId === pid ? null : pid}
-                          title="Demander un test / jet au joueur"
-                        >
-                          🎲 Jet ▾
-                        </button>
-                        {#if activeRollMenuPlayerId === pid}
-                          <div class="roll-menu" transition:slide={{ duration: 120 }}>
-                            {#each QUICK_ROLLS as r}
-                              <button
-                                class="roll-menu-item"
-                                onclick={() => sendRollRequest(pid, r.key, r.lbl)}
-                              >
-                                {r.lbl}
-                              </button>
-                            {/each}
+                  <!-- Jauge PV fine intégrée -->
+                  <div class="mini-hp-track">
+                    <div 
+                      class="mini-hp-fill" 
+                      style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
+                    ></div>
+                  </div>
+
+                  <!-- Contrôles détaillés (dépliables d'un clic pour ne pas alourdir la carte) -->
+                  {#if isExpanded}
+                    <div class="player-expanded-body" transition:slide={{ duration: 140 }}>
+                      <div class="hp-row">
+                        <span class="hp-text-lbl">PV : <strong>{hpData.hp} / {hpData.maxHp}</strong></span>
+                        <div class="hp-buttons">
+                          <button class="hp-btn neg" onclick={() => adjustHp(p, -5)} title="-5 PV">-5</button>
+                          <button class="hp-btn neg" onclick={() => adjustHp(p, -1)} title="-1 PV">-1</button>
+                          <button class="hp-btn pos" onclick={() => adjustHp(p, 1)} title="+1 PV">+1</button>
+                          <button class="hp-btn pos" onclick={() => adjustHp(p, 5)} title="+5 PV">+5</button>
+                        </div>
+                      </div>
+
+                      <!-- Conditions Express -->
+                      <div class="conditions-row">
+                        {#each QUICK_CONDITIONS as cond}
+                          {@const hasCond = (p.conditions || []).includes(cond.id)}
+                          <button
+                            class="condition-pill"
+                            class:active={hasCond}
+                            onclick={() => toggleCondition(p, cond.id)}
+                            title="{hasCond ? 'Retirer' : 'Appliquer'} {cond.label}"
+                          >
+                            <span>{cond.icon}</span>
+                          </button>
+                        {/each}
+
+                        <!-- Bouton Jet de dés express -->
+                        {#if (p as any).id || (p as any).player_id}
+                          {@const pid = (p as any).id || (p as any).player_id}
+                          <div class="roll-dropdown-wrap">
+                            <button
+                              class="roll-trigger-btn"
+                              onclick={() => activeRollMenuPlayerId = activeRollMenuPlayerId === pid ? null : pid}
+                              title="Demander un test / jet au joueur"
+                            >
+                              🎲 Jet ▾
+                            </button>
+                            {#if activeRollMenuPlayerId === pid}
+                              <div class="roll-menu" transition:slide={{ duration: 120 }}>
+                                {#each QUICK_ROLLS as r}
+                                  <button
+                                    class="roll-menu-item"
+                                    onclick={() => sendRollRequest(pid, r.key, r.lbl)}
+                                  >
+                                    {r.lbl}
+                                  </button>
+                                {/each}
+                              </div>
+                            {/if}
                           </div>
                         {/if}
                       </div>
-                    {/if}
-                  </div>
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -1016,7 +1041,8 @@
               {#each vaultCharacters as vc (vc.path)}
                 {@const hpData = getVaultCharHp(vc)}
                 {@const onMap = isTokenOnMap(vc)}
-                <div class="player-item" class:on-map={onMap}>
+                {@const isExpanded = expandedCards.has(vc.path)}
+                <div class="player-item" class:on-map={onMap} class:is-expanded={isExpanded}>
                   <div class="player-top">
                     <!-- Avatar Draggable -->
                     <div
@@ -1050,6 +1076,9 @@
                       </div>
                       <div class="sub-status">
                         <span>{vc.data.voc || vc.data.race || 'Fiche Coffre'}</span>
+                        <span class="compact-hp-tag" style="color: {hpData.pct > 50 ? '#4ade80' : hpData.pct > 20 ? '#facc15' : '#f87171'}">
+                          {hpData.hp}/{hpData.maxHp} PV
+                        </span>
                       </div>
                     </div>
 
@@ -1078,26 +1107,39 @@
                           ➕ Poser
                         </button>
                       {/if}
+                      <button
+                        class="map-btn expand-btn"
+                        class:active={isExpanded}
+                        onclick={() => togglePlayerExpand(vc.path)}
+                        title={isExpanded ? "Replier les contrôles" : "Déplier réglages PV"}
+                      >
+                        {isExpanded ? '▲' : '⚙️'}
+                      </button>
                     </div>
                   </div>
 
-                  <!-- Jauge PV -->
-                  <div class="hp-row">
-                    <div class="hp-bar-container">
-                      <div
-                        class="hp-bar-fill"
-                        style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
-                      ></div>
-                      <span class="hp-text">{hpData.hp} / {hpData.maxHp} PV</span>
-                    </div>
-
-                    <div class="hp-buttons">
-                      <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -5)}>-5</button>
-                      <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -1)}>-1</button>
-                      <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 1)}>+1</button>
-                      <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 5)}>+5</button>
-                    </div>
+                  <!-- Jauge PV fine -->
+                  <div class="mini-hp-track">
+                    <div 
+                      class="mini-hp-fill" 
+                      style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
+                    ></div>
                   </div>
+
+                  <!-- Contrôles détaillés -->
+                  {#if isExpanded}
+                    <div class="player-expanded-body" transition:slide={{ duration: 140 }}>
+                      <div class="hp-row">
+                        <span class="hp-text-lbl">PV : <strong>{hpData.hp} / {hpData.maxHp}</strong></span>
+                        <div class="hp-buttons">
+                          <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -5)}>-5</button>
+                          <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -1)}>-1</button>
+                          <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 1)}>+1</button>
+                          <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 5)}>+5</button>
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -1756,9 +1798,17 @@
   .sub-status {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     font-size: 11px;
     color: #94a3b8;
+  }
+  .compact-hp-tag {
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: auto;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
   }
   .dot-online {
     width: 6px;
@@ -1790,6 +1840,46 @@
     white-space: nowrap;
   }
   .map-btn:active { transform: scale(0.96); }
+  .expand-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 3px 5px;
+    font-size: 10px;
+  }
+  .expand-btn:hover, .expand-btn.active {
+    background: rgba(229, 168, 83, 0.2);
+    color: var(--accent, #e5a853);
+    border-color: var(--accent, #e5a853);
+  }
+
+  /* ── Jauge Fine ── */
+  .mini-hp-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  .mini-hp-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.25s ease;
+  }
+
+  /* ── Volet Depliable ── */
+  .player-expanded-body {
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .hp-text-lbl {
+    font-size: 11px;
+    color: #94a3b8;
+  }
   .place-target-btn {
     background: rgba(56, 189, 248, 0.15);
     border: 1px solid rgba(56, 189, 248, 0.4);
@@ -1822,31 +1912,7 @@
     align-items: center;
     gap: 6px;
   }
-  .hp-bar-container {
-    flex: 1;
-    position: relative;
-    height: 18px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .hp-bar-fill {
-    height: 100%;
-    transition: width 0.25s ease-out, background-color 0.25s ease;
-  }
-  .hp-text {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-    font-family: monospace;
-  }
+
 
   .hp-buttons {
     display: flex;
@@ -2334,21 +2400,22 @@
   .dock-btn-cancel:hover { background: #475569; color: white; }
 
   .dock-add-player-btn {
-    background: linear-gradient(135deg, #d97706, #b45309);
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-size: 11px;
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    border-radius: 4px;
+    color: var(--accent, #e5a853);
+    font-size: 10px;
     font-weight: 700;
-    padding: 4px 8px;
+    padding: 3px 7px;
     cursor: pointer;
     margin-left: auto;
-    transition: all 0.15s;
-    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);
+    transition: all 0.15s ease;
   }
   .dock-add-player-btn:hover {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    transform: translateY(-1px);
+    background: var(--accent, #e5a853);
+    color: #000;
+    transform: none;
+    box-shadow: 0 0 8px rgba(229, 168, 83, 0.3);
   }
   .quick-del-btn {
     background: transparent;
