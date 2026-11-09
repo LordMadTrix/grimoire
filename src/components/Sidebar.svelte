@@ -21,7 +21,8 @@
     getVaultStats, getAllTags, getFilesByTag
   } from '$lib/stores/vault.svelte';
   import { getAiModel, getAiSystemPrompt } from '$lib/stores/settings.svelte';
-  import { setGmCurrentMap } from '$lib/stores/vtt.svelte';
+  import { vttStore, addGmToken, setGmCurrentMap } from '$lib/stores/vtt.svelte';
+  import { notifStore } from '$lib/stores/notifications.svelte';
   import { loadAndDisplayMap } from '$lib/services/mapResolver';
   import PdfReaderModal from './PdfReaderModal.svelte';
   import CampaignBackupModal from './CampaignBackupModal.svelte';
@@ -95,6 +96,75 @@
 
   function isImage(entry: VaultEntry): boolean {
     return !entry.is_dir && IMAGE_EXTS.has(entry.extension?.toLowerCase() ?? '');
+  }
+
+  function isDraggableToken(entry: VaultEntry): boolean {
+    if (entry.is_dir) return false;
+    if (isImage(entry)) return true;
+    if (entry.extension?.toLowerCase() === 'json' && entry.path.startsWith('tokens/')) return true;
+    return false;
+  }
+
+  async function ctxPlaceTokenOnMap() {
+    if (!ctxMenu) return;
+    const entry = ctxMenu.entry;
+    ctxMenu = null;
+
+    if (!vttStore.currentMap) {
+      notifStore.add('⚠️', 'Table Virtuelle (VTT)', 'Ouvrez d\'abord une carte de jeu avant de placer un pion.', 'warn', 3500);
+      return;
+    }
+
+    const vp = getVaultPath();
+    if (!vp) return;
+
+    const cx = vttStore.cameraCenter?.x ?? 500;
+    const cy = vttStore.cameraCenter?.y ?? 500;
+
+    if (entry.extension?.toLowerCase() === 'json' && entry.path.startsWith('tokens/')) {
+      try {
+        const raw = await readFile(vp, entry.path);
+        const descriptor = JSON.parse(raw);
+        const design = descriptor.design;
+        const imgPath = descriptor.imageFile || entry.path.replace(/\.json$/i, '.png');
+        const tokenSize = (vttStore.gridSize || 50) * (design?.scaleGrid || 1);
+
+        addGmToken({
+          id: descriptor.id || ('tok_' + Math.random().toString(36).slice(2, 9)),
+          name: descriptor.name || entry.name.replace(/\.json$/i, ''),
+          x: cx,
+          y: cy,
+          size: tokenSize,
+          imageUrl: imgPath,
+          hp: design?.showHpBar ? design.hpPercent : undefined,
+          maxHp: design?.showHpBar ? 100 : undefined,
+          isEnemy: design?.status === 'hostile' || design?.status === 'boss',
+          visible: true,
+          notes: `Token importé depuis ${entry.path}`,
+        });
+        notifStore.add('🪙', descriptor.name || 'Token', 'Pion déposé sur la carte au centre de la vue !', 'success', 3000);
+        return;
+      } catch (err) {
+        console.error('Erreur lecture token JSON:', err);
+      }
+    }
+
+    // Fichier image direct (.png, .jpg, etc.)
+    addGmToken({
+      id: 'tok_' + Math.random().toString(36).slice(2, 9),
+      name: entry.name.replace(/\.[^.]+$/, ''),
+      x: cx,
+      y: cy,
+      size: vttStore.gridSize || 50,
+      color: 0x3b82f6,
+      hp: 10,
+      maxHp: 10,
+      visionRange: 0,
+      isEnemy: false,
+      imageUrl: entry.path,
+      visible: true,
+    });
+    notifStore.add('🪙', entry.name, 'Pion déposé sur la carte au centre de la vue !', 'success', 3000);
   }
 
   async function handleImageMouseEnter(e: MouseEvent, entry: VaultEntry) {
@@ -365,6 +435,9 @@
           <button
             class="tree-item"
             class:active={getActiveFile() === entry.path}
+            class:draggable-token={isDraggableToken(entry)}
+            draggable={isDraggableToken(entry)}
+            ondragstart={(e) => { if (isDraggableToken(entry) && e.dataTransfer) { e.dataTransfer.setData('vtt/token-image', entry.path); e.dataTransfer.effectAllowed = 'copy'; } }}
             onclick={() => handleFileClick(entry)}
             oncontextmenu={(e) => handleContextMenu(e, entry)}
             onmouseenter={(e) => handleImageMouseEnter(e, entry)}
@@ -479,9 +552,9 @@
           class:book-pdf={entry.extension?.toLowerCase() === 'pdf'}
           class:non-editable={!entry.is_dir && entry.extension !== 'md' && entry.extension?.toLowerCase() !== 'pdf' && !isImage(entry)}
           class:map-image={isImage(entry) && entry.path.startsWith('assets/maps/')}
-          class:draggable-token={isImage(entry)}
-          draggable={isImage(entry)}
-          ondragstart={(e) => { if (isImage(entry) && e.dataTransfer) { e.dataTransfer.setData('vtt/token-image', entry.path); e.dataTransfer.effectAllowed = 'copy'; } }}
+          class:draggable-token={isDraggableToken(entry)}
+          draggable={isDraggableToken(entry)}
+          ondragstart={(e) => { if (isDraggableToken(entry) && e.dataTransfer) { e.dataTransfer.setData('vtt/token-image', entry.path); e.dataTransfer.effectAllowed = 'copy'; } }}
           onclick={() => handleFileClick(entry)}
           oncontextmenu={(e) => handleContextMenu(e, entry)}
           onmouseenter={(e) => handleImageMouseEnter(e, entry)}
@@ -546,6 +619,12 @@
       <button class="ctx-item" onclick={ctxNewFile}>📄 Nouveau fichier</button>
       <button class="ctx-item" onclick={ctxFromTemplate}>📋 Depuis un template</button>
       <button class="ctx-item" onclick={ctxNewFolder}>📁 Nouveau dossier</button>
+      {#if !ctxMenu.entry.is_dir && (isImage(ctxMenu.entry) || ctxMenu.entry.path.startsWith('tokens/'))}
+        <div class="ctx-sep"></div>
+        <button class="ctx-item" style="color: #e5a853; font-weight: 700;" onclick={ctxPlaceTokenOnMap}>
+          🪙 Poser sur la Carte VTT
+        </button>
+      {/if}
       <div class="ctx-sep"></div>
       {#if !ctxMenu.entry.is_dir}
         <button class="ctx-item" onclick={ctxToggleStar}>

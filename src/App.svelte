@@ -30,7 +30,7 @@
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
   import { getAiModel, setAiModel } from '$lib/stores/settings.svelte';
-  import { isTauri, openVault, reindex, openPlayerView, listMonitors, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath, getServerStatus, getPlayerConnections } from '$lib/api';
+  import { isTauri, openVault, reindex, openPlayerView, listMonitors, readFile, writeFile, writeFileBase64, createDirectory, emitToPlayerView, openMapEditor, checkOllamaStatus, setServerVaultPath, getServerStatus, getPlayerConnections } from '$lib/api';
   import { mobileServerStore } from '$lib/stores/mobileServer.svelte';
   import { loadGameConfig } from '$lib/stores/gameConfig.svelte';
   import type { MonitorInfo } from '$lib/api';
@@ -79,8 +79,39 @@
   }
 
   let tokenDropCount = 0;
-  function handleTokenDrop(imageUrl: string, x: number, y: number) {
+  async function handleTokenDrop(imageUrl: string, x: number, y: number) {
     tokenDropCount++;
+    if (imageUrl.toLowerCase().endsWith('.json') && imageUrl.startsWith('tokens/')) {
+      const vp = getVaultPath();
+      if (vp) {
+        try {
+          const raw = await readFile(vp, imageUrl);
+          const descriptor = JSON.parse(raw);
+          const design = descriptor.design;
+          const imgPath = descriptor.imageFile || imageUrl.replace(/\.json$/i, '.png');
+          const tokenSize = (vttStore.gridSize || 50) * (design?.scaleGrid || 1);
+
+          addGmToken({
+            id: descriptor.id || ('tok_' + Math.random().toString(36).slice(2, 9)),
+            name: descriptor.name || imageUrl.split('/').pop()?.replace(/\.json$/i, '') || `Token ${tokenDropCount}`,
+            x,
+            y,
+            size: tokenSize,
+            imageUrl: imgPath,
+            hp: design?.showHpBar ? design.hpPercent : undefined,
+            maxHp: design?.showHpBar ? 100 : undefined,
+            isEnemy: design?.status === 'hostile' || design?.status === 'boss',
+            visible: true,
+            notes: `Token importé depuis ${imageUrl}`,
+          });
+          notifStore.add('🪙', descriptor.name || 'Token', 'Pion déposé sur la carte !', 'success', 2500);
+          return;
+        } catch (err) {
+          console.error('Erreur lecture token JSON:', err);
+        }
+      }
+    }
+
     addGmToken({
       id: Math.random().toString(36).slice(2),
       name: imageUrl.split('/').pop()?.replace(/\.[^.]+$/, '') ?? `Token ${tokenDropCount}`,
