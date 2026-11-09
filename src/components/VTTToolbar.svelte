@@ -487,7 +487,7 @@
     
     <!-- 1. Carte & Vue -->
     <div class="menu-dropdown" class:open={activeMenu === 'map'}>
-      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'map' ? null : 'map'; }}>🗺️ Carte & Vue</button>
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'map' ? null : 'map'; }} title="Gestion de la carte et de la vue">🗺️ Carte</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'map'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
         {#if !vttStore.currentMap}
@@ -539,8 +539,8 @@
 
     <!-- 1bis. Menu Fonctions & Affichage (Interrupteurs Modules) -->
     <div class="menu-dropdown" class:open={activeMenu === 'modules'}>
-      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'modules' ? null : 'modules'; }}>
-        🎛️ Fonctions & Affichage
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'modules' ? null : 'modules'; }} title="Activer / Désactiver les fenêtres et modules VTT">
+        🎛️ Modules
       </button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'modules'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1" style="min-width: 290px;">
@@ -966,7 +966,7 @@
 
     <!-- 5. Outils du MJ -->
     <div class="menu-dropdown align-right" class:open={activeMenu === 'gm'}>
-      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'gm' ? null : 'gm'; }}>🧙‍♂️ Outils MJ</button>
+      <button class="menu-btn" onclick={(e) => { e.stopPropagation(); activeMenu = activeMenu === 'gm' ? null : 'gm'; }} title="Outils et générateurs du Maître du Jeu">🧙‍♂️ MJ</button>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div class="dropdown-content" class:hidden={activeMenu !== 'gm'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
         <button class="dropdown-item" onclick={() => { gmScreen?.toggle(); activeMenu = null; }}>🛡️ Écran Tactique (Dashboard)</button>
@@ -1025,31 +1025,31 @@
         const nextW = weathers[(curIdx + 1) % weathers.length];
         setWeather(nextW);
       }}
-      title={`Météo : ${vttStore.weather} (Raccourci: W - cliquer pour changer)`}>
+      title={`Météo : ${vttStore.weather} (Raccourci: W)`}>
       {vttStore.weather === 'none' ? '☀️' : vttStore.weather === 'rain' ? '🌧️' : vttStore.weather === 'snow' ? '❄️' : vttStore.weather === 'fog' ? '🌫️' : vttStore.weather === 'embers' ? '🔥' : '🌩️'}
     </button>
-    <button class="token-quick-btn" onclick={() => showTokenEditor = true} title="Éditeur de Tokens Grimoire">
-      🪙 <span class="tb-label">Tokens</span>
-    </button>
-    <button class="btn icon-btn combat-btn ml-1" class:active={vttStore.combatActive}
+    <button class="btn icon-btn combat-btn" class:active={vttStore.combatActive}
       onclick={() => vttStore.combatActive ? stopCombat() : startCombat()}
       title={vttStore.combatActive ? 'Terminer le combat' : 'Démarrer le tracker de combat'}>
       ⚔️
     </button>
+    <button class="token-quick-btn" onclick={() => showTokenEditor = true} title="Éditeur de Tokens Grimoire">
+      🪙
+    </button>
     <button class="soundscape-quick-btn" class:active-sound={soundscape.activeTracksCount > 0}
       onclick={() => showSoundscapeMixer = true}
       title="Mixeur d'Ambiances Sonores">
-      🌧️ <span class="tb-label">Ambiance</span> {#if soundscape.activeTracksCount > 0}<span class="sound-badge">{soundscape.activeTracksCount}</span>{/if}
+      🌧️{#if soundscape.activeTracksCount > 0}<span class="sound-badge">{soundscape.activeTracksCount}</span>{/if}
     </button>
     <button class="sfx-quick-btn" class:active-sound={showSfxSoundboard}
       onclick={() => showSfxSoundboard = !showSfxSoundboard}
-      title="Soundboard SFX instantané (Raccourcis: Pavé 1-8)">
-      🔊 <span class="tb-label">SFX</span>
+      title="Soundboard SFX (Pavé 1-8)">
+      🔊
     </button>
     <button class="intro-quick-btn" class:active-intro={sessionIntroStore.isOpen || sessionIntroStore.isPlaying}
       onclick={() => sessionIntroStore.toggle()}
       title="Lecteur d'Intro de Soirée (MP3 cinématique)">
-      🎬 <span class="tb-label">Intro</span> {#if sessionIntroStore.isPlaying}▶️{/if}
+      🎬{#if sessionIntroStore.isPlaying}▶️{/if}
     </button>
     <!-- Widget Musique & Playlist -->
     <div class="music-quick-cluster">
@@ -1058,32 +1058,23 @@
         class:is-playing={playlistStore.isPlaying && playlistStore.isMusicEnabled}
         class:is-disabled={!playlistStore.isMusicEnabled}
         onclick={() => showPlaylistModal = true}
-        title={!playlistStore.isMusicEnabled ? "Musique désactivée (cliquer pour ouvrir la Playlist)" : playlistStore.currentTrack ? `En cours : ${playlistStore.currentTrack.name}` : "Ouvrir la Playlist VTT"}
+        title={!playlistStore.isMusicEnabled ? "Musique désactivée (ouvrir Playlist)" : playlistStore.currentTrack ? `En cours : ${playlistStore.currentTrack.name}` : "Ouvrir la Playlist VTT"}
       >
         <span class="music-icon">{!playlistStore.isMusicEnabled ? '🔇' : playlistStore.isPlaying ? '▶️' : '🎵'}</span>
-        <span class="music-title-truncated">
-          {#if !playlistStore.isMusicEnabled}
-            OFF
-          {:else if playlistStore.currentTrack}
-            {playlistStore.currentTrack.name}
-          {:else}
-            Playlist
-          {/if}
-        </span>
       </button>
 
       {#if playlistStore.isMusicEnabled && (playlistStore.isPlaying || playlistStore.currentTrack)}
         <button 
           class="music-sub-btn stop" 
           onclick={(e) => { e.stopPropagation(); playlistStore.disableMusic(); }}
-          title="Désactiver / Couper la musique immédiatement (⏹️)"
+          title="Couper la musique immédiatement (⏹️)"
         >
           ⏹️
         </button>
         <button 
           class="music-sub-btn next" 
           onclick={(e) => { e.stopPropagation(); playlistStore.nextTrack(); }}
-          title="Morceau suivant de la playlist (⏭️)"
+          title="Morceau suivant (⏭️)"
         >
           ⏭️
         </button>
@@ -1098,14 +1089,14 @@
       {/if}
     </div>
     <button class="backup-quick-btn" onclick={() => showBackupModal = true} title="Sauvegarder et exporter la campagne (.grimoire)">
-      💾 <span class="tb-label">Campagne</span>
+      💾
     </button>
     <div class="mobile-quick-group">
       <button class="mobile-quick-btn" class:active-server={mobileServerStore.isRunning}
         onclick={() => onTogglePlayerMobileManager?.()}
-        title="Ouvrir le Hub Mobile & Carnet MJ (QR Code iPad / Android)">
+        title="Ouvrir le Hub Mobile & Carnet MJ (iPad / Android)">
         <span class="mobile-status-dot" class:online={mobileServerStore.isRunning}></span>
-        📱 <span class="tb-label">Mobile</span>
+        📱
         {#if mobileServerStore.playerCount > 0}
           <span class="mobile-badge">{mobileServerStore.playerCount}</span>
         {/if}
@@ -1127,22 +1118,11 @@
       title="Gérer le multi-écran : projeter la vue joueurs sur votre 2ème écran (TV, vidéo-projecteur)"
     >
       <span class="screen-status-dot" class:online={playerViewOpen}></span>
-      🖥️ <span class="tb-label">Vue Joueurs</span>
+      🖥️
       {#if playerViewOpen && playerViewMonitor !== null}
-        <span class="screen-badge">Écran {playerViewMonitor + 1}</span>
+        <span class="screen-badge">{playerViewMonitor + 1}</span>
       {/if}
     </button>
-    <div class="separator"></div>
-    <div class="time-widget" style="display:flex; align-items:center; gap:4px; font-size:11px; background:var(--bg-secondary); padding:2px 8px; border-radius:4px; border:1px solid var(--border);">
-      <span style="color:var(--text-secondary)">🕒 {$timeStore ? formatImperialDate($timeStore) : ''}</span>
-      <button class="mini-btn text-only" onclick={() => advanceTime(1)} title="+1 Heure">+1h</button>
-      <button class="mini-btn text-only" onclick={() => advanceTime(24)} title="+1 Jour">+1j</button>
-    </div>
-    <div class="separator"></div>
-    <input type="text" class="campaign-title-input" placeholder="Titre de campagne…"
-      value={vttStore.campaignTitle}
-      oninput={(e) => setCampaignTitle((e.target as HTMLInputElement).value)}
-      title="Titre affiché sur l'écran joueur" />
   </div>
 </div>
 
@@ -1580,12 +1560,16 @@
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    padding: 6px 10px;
+    padding: 4px 7px;
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 3px;
   }
   .menu-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
   .menu-dropdown.open .menu-btn { background: rgba(255,255,255,0.12); color: var(--accent); }
@@ -1727,9 +1711,8 @@
   .toolbar-permanent {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
   }
-  .ml-1 { margin-left: 4px; }
 
   .hidden-toggles > :global(button) {
     display: none !important;
@@ -1772,14 +1755,16 @@
     background: #141d2b;
     border: 1px solid #1e293b;
     color: #94a3b8;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 2px 6px;
+    height: 26px;
     border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 3px;
     transition: all 0.15s;
   }
   .soundscape-quick-btn:hover {
@@ -1797,14 +1782,15 @@
     background: #141d2b;
     border: 1px solid #1e293b;
     color: #94a3b8;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 2px 6px;
+    height: 26px;
     border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
     transition: all 0.15s;
   }
   .sfx-quick-btn:hover,
@@ -1818,14 +1804,15 @@
     background: rgba(16, 185, 129, 0.12);
     border: 1px solid rgba(16, 185, 129, 0.35);
     color: #6ee7b7;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 2px 6px;
+    height: 26px;
     border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
     transition: all 0.15s;
   }
   .backup-quick-btn:hover {
@@ -1910,14 +1897,16 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: #e5e7eb;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    padding: 3px 8px;
+    padding: 2px 6px;
+    height: 26px;
     border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 3px;
     transition: all 0.2s;
   }
   .player-screen-quick-btn:hover {
@@ -2037,16 +2026,17 @@
     background: linear-gradient(135deg, rgba(230, 180, 80, 0.2) 0%, rgba(184, 134, 11, 0.25) 100%);
     border: 1px solid rgba(230, 180, 80, 0.5);
     color: #ffd700;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    padding: 3px 8px;
+    padding: 2px 6px;
+    height: 26px;
     border-radius: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
     transition: all 0.15s;
-    margin-left: 4px;
+    margin-left: 2px;
   }
   .token-quick-btn:hover {
     background: linear-gradient(135deg, rgba(230, 180, 80, 0.35) 0%, rgba(184, 134, 11, 0.4) 100%);
@@ -2141,16 +2131,17 @@
     background: rgba(245, 158, 11, 0.15);
     border: 1px solid #d97706;
     color: #fde68a;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    padding: 3px 8px;
+    padding: 2px 6px;
+    height: 26px;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
   }
 
   .intro-quick-btn:hover {
@@ -2210,11 +2201,7 @@
     opacity: 0.85;
   }
 
-  .music-title-truncated {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+
 
   .music-sub-btn {
     background: #252b3d;
@@ -2248,24 +2235,37 @@
     color: #ffffff;
   }
 
-  /* ── Responsive pour résolutions petites et moyennes (< 1600px et < 1350px) ── */
-  @media (max-width: 1600px) {
-    .tb-label {
-      display: none;
-    }
-    .campaign-title-input {
-      max-width: 100px;
-    }
-    .music-title-truncated {
-      max-width: 75px;
-    }
-    .time-widget {
-      font-size: 10px;
-      padding: 2px 4px;
-    }
+  .icon-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 2px 6px;
+    height: 26px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+  }
+  .icon-btn.active {
+    background: rgba(229, 168, 83, 0.2);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .combat-btn.active {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #f87171;
   }
 
-  @media (max-width: 1380px) {
+  /* ── Responsive pour résolutions petites et moyennes (< 1400px et < 1150px) ── */
+  @media (max-width: 1400px) {
     .ws-label {
       display: none;
     }
@@ -2283,12 +2283,6 @@
       padding: 2px 6px;
       font-size: 10px;
     }
-    .campaign-title-input {
-      display: none;
-    }
-    .time-widget {
-      display: none !important;
-    }
   }
 
   @media (max-width: 1150px) {
@@ -2301,7 +2295,7 @@
       font-size: 10px;
     }
     .toolbar-permanent {
-      gap: 3px;
+      gap: 2px;
     }
   }
 </style>
