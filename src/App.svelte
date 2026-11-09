@@ -994,7 +994,7 @@
 
 <UpdateModal bind:this={updateModalRef} />
 <NotificationToast />
-<TokenEditorModal isOpen={showTokenEditor} onclose={() => showTokenEditor = false} />
+<TokenEditorModal isOpen={showTokenEditor || vttStore.showTokenEditorModal} onclose={() => { showTokenEditor = false; vttStore.showTokenEditorModal = false; }} />
 
 <style>
   .app-layout {

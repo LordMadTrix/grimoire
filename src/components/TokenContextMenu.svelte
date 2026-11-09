@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { vttStore, replaceGmToken, removeGmToken, setSpotlightToken } from '$lib/stores/vtt.svelte';
+  import { vttStore, replaceGmToken, removeGmToken, setSpotlightToken, duplicateGmToken } from '$lib/stores/vtt.svelte';
   import { emitToPlayerView } from '$lib/api';
   import { notifStore } from '$lib/stores/notifications.svelte';
 
@@ -133,6 +133,18 @@
   function hasCond(cid: string) {
     return (token?.conditions ?? []).includes(cid);
   }
+
+  function handleDuplicate(count: number = 1) {
+    if (!token) return;
+    duplicateGmToken(token.id, count);
+    notifStore.add('👥', token.name, `${count} pion${count > 1 ? 's' : ''} dupliqué${count > 1 ? 's' : ''} sur la carte !`, 'success', 2500);
+    onclose();
+  }
+
+  function handleOpenStudio() {
+    vttStore.showTokenEditorModal = true;
+    onclose();
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -166,6 +178,35 @@
           </span>
         </div>
         <button class="ctx-close-btn" onclick={onclose}>✕</button>
+      </div>
+
+      <!-- ACTIONS MAJEURES : ÉDITION & MULTIPLICATION -->
+      <div class="ctx-section action-highlight-box">
+        <div class="primary-actions-row">
+          <button class="ctx-big-btn edit" onclick={() => { onEdit?.(token); onclose(); }} title="Modifier le nom, PV, CA, taille et image">
+            <span class="btn-icon">✏️</span>
+            <span class="btn-txt">Éditer (Fiche)</span>
+          </button>
+          <button class="ctx-big-btn studio" onclick={handleOpenStudio} title="Personnaliser dans l'Éditeur Studio Grimoire (Bordures, frises, cartouches)">
+            <span class="btn-icon">🎨</span>
+            <span class="btn-txt">Studio Pions</span>
+          </button>
+        </div>
+
+        <div class="dupl-box">
+          <div class="dupl-header">
+            <span class="dupl-label">👥 Multiplier sur la carte :</span>
+            <button class="dupl-quick-btn single" onclick={() => handleDuplicate(1)} title="Dupliquer 1 fois (raccourci : Ctrl+D)">
+              +1 Copie
+            </button>
+          </div>
+          <div class="dupl-multi-row">
+            <button class="multi-btn" onclick={() => handleDuplicate(2)} title="Générer 2 pions">+2</button>
+            <button class="multi-btn" onclick={() => handleDuplicate(3)} title="Générer 3 pions">+3</button>
+            <button class="multi-btn" onclick={() => handleDuplicate(5)} title="Générer 5 pions">+5</button>
+            <button class="multi-btn" onclick={() => handleDuplicate(10)} title="Générer 10 pions">+10</button>
+          </div>
+        </div>
       </div>
 
       <!-- Action rapide PV -->
@@ -300,10 +341,16 @@
 
       <div class="ctx-divider"></div>
 
+      <!-- Astuce Déplacement -->
+      <div class="move-hint-box">
+        <span class="hint-icon">💡</span>
+        <span class="hint-text"><strong>Déplacer :</strong> Glissez à la souris (clic gauche), ou sélectionnez le pion puis <em>Clic Droit</em> sur la case voulue, ou utilisez les <strong>Flèches du clavier</strong>.</span>
+      </div>
+
       <!-- Supprimer le token -->
       <button class="ctx-item danger" onclick={() => { onDelete?.(token.id); onclose(); }}>
         <span class="item-icon">🗑️</span>
-        <span>Retirer ce pion de la carte</span>
+        <span>Retirer ce pion de la carte (Suppr)</span>
       </button>
     {/if}
   </div>
@@ -691,6 +738,146 @@
     color: #fde68a;
     font-weight: 700;
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
+  }
+
+  /* Actions Majeures & Duplication */
+  .action-highlight-box {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .primary-actions-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .ctx-big-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+  }
+
+  .ctx-big-btn.edit {
+    background: #1e293b;
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #60a5fa;
+  }
+
+  .ctx-big-btn.edit:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #60a5fa;
+    color: #fff;
+  }
+
+  .ctx-big-btn.studio {
+    background: #1e293b;
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+  }
+
+  .ctx-big-btn.studio:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #fbbf24;
+    color: #fff;
+  }
+
+  .dupl-box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px dashed rgba(245, 158, 11, 0.35);
+    border-radius: 6px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .dupl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dupl-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .dupl-quick-btn {
+    font-size: 10px;
+    font-weight: 700;
+    background: #d97706;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .dupl-quick-btn:hover {
+    background: #b45309;
+  }
+
+  .dupl-multi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+
+  .multi-btn {
+    background: rgba(51, 65, 85, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+    border-radius: 4px;
+    padding: 4px 2px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .multi-btn:hover {
+    background: #3b82f6;
+    border-color: #60a5fa;
+    color: #fff;
+  }
+
+  .move-hint-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.5);
+    border-left: 2px solid #38bdf8;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.35;
+    color: #94a3b8;
+  }
+
+  .move-hint-box strong {
+    color: #38bdf8;
+  }
+
+  .move-hint-box em {
+    color: #e2e8f0;
+    font-style: normal;
+    text-decoration: underline;
   }
 </style>
 

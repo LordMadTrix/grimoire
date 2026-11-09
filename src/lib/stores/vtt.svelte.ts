@@ -319,6 +319,7 @@ export const vttStore = $state({
   showMacroBar: true,
   showPlayerQuickDock: true,
   showGmNotes: true,
+  showTokenEditorModal: false,
   showTokenNames: safeGetStorageBool('grimoire_vtt_show_token_names', true),
   showTokenHpBars: safeGetStorageBool('grimoire_vtt_show_token_hp', true),
   showFps: safeGetStorageBool('grimoire_vtt_show_fps', false),
@@ -762,6 +763,41 @@ export function addGmToken(token: Token) {
   };
   vttStore.tokens = [...vttStore.tokens, sized];
   emitToPlayerView('update_tokens', vttStore.tokens);
+}
+
+export function duplicateGmToken(tokenId: string, count: number = 1): Token[] {
+  const tok = vttStore.tokens.find(t => t.id === tokenId);
+  if (!tok) return [];
+  const newTokens: Token[] = [];
+  const gSize = vttStore.gridSize || 50;
+  
+  // Extraire la racine du nom (ex: "Mimic", "Gobelin")
+  const baseName = tok.name.replace(/\s+\d+$/, '').trim();
+  const existingMatches = vttStore.tokens.filter(t => t.name.startsWith(baseName));
+  let counter = existingMatches.length + 1;
+
+  for (let i = 0; i < count; i++) {
+    const angle = (i * (Math.PI / 3));
+    const dist = gSize * Math.max(1, Math.ceil((i + 1) / 3));
+    let nx = tok.x + Math.round(Math.cos(angle) * dist);
+    let ny = tok.y + Math.round(Math.sin(angle) * dist);
+
+    if (vttStore.snapToGrid) {
+      nx = Math.floor(nx / gSize) * gSize + gSize / 2;
+      ny = Math.floor(ny / gSize) * gSize + gSize / 2;
+    }
+
+    const copy: Token = {
+      ...tok,
+      id: 'tok_' + Math.random().toString(36).slice(2, 9),
+      name: `${baseName} ${counter++}`,
+      x: nx,
+      y: ny,
+    };
+    addGmToken(copy);
+    newTokens.push(copy);
+  }
+  return newTokens;
 }
 
 export function removeGmToken(id: string) {

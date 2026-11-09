@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import * as PIXI from 'pixi.js';
   import type { FowShape, Token, MapPin, SpellMarker, DrawPath, WallDef, AudioZoneDef, TerrainZone, TileType } from '$lib/stores/vtt.svelte';
-  import { vttStore, setWeather, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone, setDungeonTile, pushDungeonUndo } from '$lib/stores/vtt.svelte';
+  import { vttStore, setWeather, addGmWall, addGmAudioZone, toggleGmDoor, removeGmAudioZone, addTerrainZone, setDungeonTile, pushDungeonUndo, duplicateGmToken } from '$lib/stores/vtt.svelte';
   import ConditionWheel from './ConditionWheel.svelte';
   import TokenContextMenu from './TokenContextMenu.svelte';
   import TokenSettingsModal from './TokenSettingsModal.svelte';
@@ -1905,6 +1905,9 @@
     emitCameraThrottled();
   }
 
+  let lastTokenClickTime = 0;
+  let lastTokenClickId: string | null = null;
+
   function onTokenPointerDown(e: any, id: string) {
     e.stopPropagation();
     if (e.button === 2) {
@@ -1919,6 +1922,18 @@
       contextMenuTokenId = id;
       condWheelTokenId = null;
     } else {
+      // Détection Double-clic gauche pour ouvrir l'éditeur de token
+      const now = Date.now();
+      if (lastTokenClickId === id && now - lastTokenClickTime < 320) {
+        editingTokenId = id;
+        draggedTokenId = null;
+        lastTokenClickTime = 0;
+        lastTokenClickId = null;
+        return;
+      }
+      lastTokenClickTime = now;
+      lastTokenClickId = id;
+
       // Clic gauche sur un token : si un autre outil était actif, on bascule en mode 'select'
       if (vttMode !== 'select') {
         vttStore.mode = 'select';
@@ -3681,6 +3696,95 @@
     if (!isGM) return;
     const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
     if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return;
+
+    // 1. Raccourci Duplication : Ctrl + D
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+      e.preventDefault();
+      const targets = selectedTokenIds.size > 0 
+        ? Array.from(selectedTokenIds) 
+        : (hoveredTokenId ? [hoveredTokenId] : []);
+      if (targets.length > 0) {
+        let totalCreated = 0;
+        const newIds: string[] = [];
+        for (const tid of targets) {
+          const copies = duplicateGmToken(tid, 1);
+          totalCreated += copies.length;
+          copies.forEach(c => newIds.push(c.id));
+        }
+        if (newIds.length > 0) {
+          selectedTokenIds = new Set(newIds);
+        }
+        notifStore.add('👥', 'Duplication', `${totalCreated} pion${totalCreated > 1 ? 's' : ''} dupliqué${totalCreated > 1 ? 's' : ''} sur la carte !`, 'success', 2000);
+      }
+      return;
+    }
+
+    // 2. Raccourci Suppression : Suppr ou Backspace
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      const targets = selectedTokenIds.size > 0 
+        ? Array.from(selectedTokenIds) 
+        : (hoveredTokenId ? [hoveredTokenId] : []);
+      if (targets.length > 0) {
+        e.preventDefault();
+        for (const tid of targets) {
+          onTokenDelete(tid);
+        }
+        selectedTokenIds = new Set();
+        notifStore.add('🗑️', 'Pions', `${targets.length} pion${targets.length > 1 ? 's' : ''} retiré${targets.length > 1 ? 's' : ''}`, 'info', 1800);
+      }
+      return;
+    }
+
+    // 3. Déplacement des pions sélectionnés avec les flèches du clavier
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const targets = selectedTokenIds.size > 0 
+        ? Array.from(selectedTokenIds) 
+        : (hoveredTokenId ? [hoveredTokenId] : []);
+      if (targets.length > 0) {
+        e.preventDefault();
+        const mult = e.shiftKey ? 2 : 1;
+        const step = gridSize * mult;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === 'ArrowUp') dy = -step;
+        if (e.key === 'ArrowDown') dy = step;
+        if (e.key === 'ArrowLeft') dx = -step;
+        if (e.key === 'ArrowRight') dx = step;
+
+        for (const tid of targets) {
+          const tok = tokens.find(t => t.id === tid);
+          if (tok) {
+            let nx = tok.x + dx;
+            let ny = tok.y + dy;
+            if (gridEnabled && vttStore.snapToGrid) {
+              nx = Math.floor(nx / gridSize) * gridSize + gridSize / 2;
+              ny = Math.floor(ny / gridSize) * gridSize + gridSize / 2;
+            }
+            const sprite = tokenSprites.get(tid);
+            if (sprite) {
+              (sprite as any).__targetX = nx;
+              (sprite as any).__targetY = ny;
+              if (!vttStore.tokenAnimations) {
+                sprite.x = nx;
+                sprite.y = ny;
+              }
+            }
+            onTokenMove(tid, nx, ny);
+          }
+        }
+        return;
+      }
+    }
+
+    // 4. Raccourci Édition : Touche E ou Entrée sur un token sélectionné
+    if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') {
+      const targetId = hoveredTokenId || (selectedTokenIds.size === 1 ? Array.from(selectedTokenIds)[0] : null);
+      if (targetId) {
+        editingTokenId = targetId;
+        return;
+      }
+    }
+
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     if (e.key === 'm' || e.key === 'M') {
