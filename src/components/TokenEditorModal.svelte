@@ -115,11 +115,20 @@
   function onNameMouseDown(e: MouseEvent) {
     e.preventDefault();
     isDraggingName = true;
-    design.namePreset = 'custom';
     nameStartX = e.clientX;
     nameStartY = e.clientY;
-    initialNameX = design.namePosition.x;
-    initialNameY = design.namePosition.y;
+
+    if (namePodRef && stageRef) {
+      const stageRect = stageRef.getBoundingClientRect();
+      const podRect = namePodRef.getBoundingClientRect();
+      initialNameX = Math.round((podRect.left + podRect.width / 2) - stageRect.left);
+      initialNameY = Math.round(podRect.top - stageRect.top);
+    } else {
+      initialNameX = design.namePosition.x;
+      initialNameY = design.namePosition.y;
+    }
+    design.namePreset = 'custom';
+    design.namePosition = { x: initialNameX, y: initialNameY };
 
     window.addEventListener('mousemove', onNameMouseMove);
     window.addEventListener('mouseup', onNameMouseUp);
@@ -448,10 +457,10 @@
           {#if design.showName}
             <div 
               bind:this={namePodRef}
-              class="name-banner"
-              style:left="{design.namePosition.x}px"
-              style:top="{design.namePosition.y}px"
-              style:transform="translateX(-50%)"
+              class="name-banner preset-{design.namePreset}"
+              style={design.namePreset === 'custom'
+                ? `left: ${design.namePosition.x}px; top: ${design.namePosition.y}px; transform: translateX(-50%);`
+                : ''}
               onmousedown={onNameMouseDown}
               role="button"
               tabindex="0"
@@ -1088,6 +1097,30 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+  .name-banner.preset-bottom {
+    left: 50%;
+    bottom: 8px;
+    top: auto;
+    transform: translateX(-50%);
+  }
+  .name-banner.preset-top {
+    left: 50%;
+    top: 14px;
+    bottom: auto;
+    transform: translateX(-50%);
+  }
+  .name-banner.preset-center {
+    left: 50%;
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+  }
+  .name-banner.preset-inside-bottom {
+    left: 50%;
+    bottom: 48px;
+    top: auto;
+    transform: translateX(-50%);
   }
 
   .name-move-icon {
