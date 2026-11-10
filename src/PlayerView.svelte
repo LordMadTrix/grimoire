@@ -3,7 +3,7 @@
   import AudioPlayer from './components/AudioPlayer.svelte';
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
-  import { vttStore, type FowShape, type Token, type MapPin, type SpellMarker, type DrawPath, type WallDef, type AudioZoneDef } from '$lib/stores/vtt.svelte';
+  import { vttStore, triggerVttProjectile, type FowShape, type Token, type MapPin, type SpellMarker, type DrawPath, type WallDef, type AudioZoneDef } from '$lib/stores/vtt.svelte';
   import { isTauri, closePlayerView, togglePlayerViewFullscreen, movePlayerViewToMonitor, listMonitors, getPlayerViewStatus } from '$lib/api';
   import PlayerEffects from './components/PlayerEffects.svelte';
   import Dice3DOverlay from './components/Dice3DOverlay.svelte';
@@ -232,6 +232,11 @@
     }).then(fn => unlistens.push(fn));
     listen('clear_speech_bubble', () => {
       vttStore.activeSpeechBubble = null;
+    }).then(fn => unlistens.push(fn));
+    listen('vtt:projectile', (e: any) => {
+      if (e.payload) {
+        triggerVttProjectile(e.payload.fromX, e.payload.fromY, e.payload.toX, e.payload.toY, e.payload.type);
+      }
     }).then(fn => unlistens.push(fn));
     listen('update_combatants',      (e: any) => { combatants = e.payload.combatants ?? []; combatActive = e.payload.active ?? false; currentTurn = e.payload.currentTurn ?? 0; combatRound = e.payload.combatRound ?? 1; }).then(fn => unlistens.push(fn));
     listen('spotlight_token',        (e: any) => { spotlightTokenId = e.payload.tokenId ?? null;               }).then(fn => unlistens.push(fn));

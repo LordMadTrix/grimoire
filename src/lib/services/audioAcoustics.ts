@@ -1,8 +1,8 @@
 // ── Audio Acoustics DSP Processor ──────────────────────────────────────────
-// Fournit des effets acoustiques en temps réel (Caverne, Grande Cathédrale, Télépathie, Écho)
-// pour les voix de narration et de dialogues PNJ via le Web Audio API.
+// Fournit des effets acoustiques en temps réel (Caverne, Grande Cathédrale, Télépathie, Écho, Voix Divine, Démon)
+// ainsi que la synthèse procédurale de bruits de pas et projectiles magiques pour la table VTT.
 
-export type AcousticPreset = 'normal' | 'cave' | 'cathedral' | 'telepathy' | 'spectral';
+export type AcousticPreset = 'normal' | 'cave' | 'cathedral' | 'telepathy' | 'spectral' | 'divine' | 'demonic';
 
 class AudioAcousticsEngine {
   private ctx: AudioContext | null = null;
@@ -181,6 +181,87 @@ class AudioAcousticsEngine {
         };
       }
 
+      if (preset === 'divine') {
+        // 👑 Voix Divine / Entité Céleste : Réverbération cathédrale longue + doublement éthéré scintillant
+        const convolver = ctx.createConvolver();
+        convolver.buffer = this.getImpulseBuffer(3.8, 1.2);
+
+        const highShelf = ctx.createBiquadFilter();
+        highShelf.type = 'highshelf';
+        highShelf.frequency.value = 3200;
+        highShelf.gain.value = 5.0; // Brillance angélique
+
+        const microDelay = ctx.createDelay();
+        microDelay.delayTime.value = 0.055; // 55ms dédoublement de voix
+
+        const shimmerGain = ctx.createGain();
+        shimmerGain.gain.value = 0.55;
+
+        const dryGain = ctx.createGain();
+        dryGain.gain.value = 0.85;
+
+        source.connect(dryGain);
+        dryGain.connect(output);
+
+        source.connect(microDelay);
+        microDelay.connect(highShelf);
+        highShelf.connect(convolver);
+        convolver.connect(shimmerGain);
+        shimmerGain.connect(output);
+
+        return {
+          disconnect: () => {
+            try {
+              source.disconnect();
+              microDelay.disconnect();
+              highShelf.disconnect();
+              convolver.disconnect();
+            } catch {}
+          }
+        };
+      }
+
+      if (preset === 'demonic') {
+        // 👹 Voix Démoniaque : Résonance d'outre-tombe, renfort de basses et distorsion caverneuse
+        const lowpass = ctx.createBiquadFilter();
+        lowpass.type = 'lowpass';
+        lowpass.frequency.value = 950;
+
+        const lowShelf = ctx.createBiquadFilter();
+        lowShelf.type = 'lowshelf';
+        lowShelf.frequency.value = 180;
+        lowShelf.gain.value = 8.0; // Grave abyssal
+
+        const convolver = ctx.createConvolver();
+        convolver.buffer = this.getImpulseBuffer(2.8, 2.4);
+
+        const wetGain = ctx.createGain();
+        wetGain.gain.value = 0.7;
+
+        const dryGain = ctx.createGain();
+        dryGain.gain.value = 0.75;
+
+        source.connect(dryGain);
+        dryGain.connect(output);
+
+        source.connect(lowShelf);
+        lowShelf.connect(lowpass);
+        lowpass.connect(convolver);
+        convolver.connect(wetGain);
+        wetGain.connect(output);
+
+        return {
+          disconnect: () => {
+            try {
+              source.disconnect();
+              lowShelf.disconnect();
+              lowpass.disconnect();
+              convolver.disconnect();
+            } catch {}
+          }
+        };
+      }
+
       if (preset === 'spectral') {
         // 👻 Spectre / Démon : Écho spectral et balayage fantomatique
         const convolver = ctx.createConvolver();
@@ -228,6 +309,131 @@ class AudioAcousticsEngine {
     }
 
     return { disconnect: () => {} };
+  }
+
+  /**
+   * Bruit de pas synthétique procédural ultra-léger selon le type de surface
+   */
+  playFootstep(surface: 'stone' | 'water' | 'wood' | 'foliage' = 'stone', volume: number = 0.22) {
+    try {
+      const ctx = this.getContext();
+      const t0 = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      if (surface === 'water') {
+        // Splash liquide
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, t0);
+        osc.frequency.exponentialRampToValueAtTime(140, t0 + 0.12);
+        filter.type = 'lowpass';
+        filter.frequency.value = 800;
+        gain.gain.setValueAtTime(volume * 0.9, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.13);
+      } else if (surface === 'wood') {
+        // Toc de parquet/bois
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, t0);
+        osc.frequency.exponentialRampToValueAtTime(60, t0 + 0.08);
+        gain.gain.setValueAtTime(volume * 0.8, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.09);
+      } else if (surface === 'foliage') {
+        // Bruissement d'herbe (bruit blanc court)
+        const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.08), ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        filter.type = 'bandpass';
+        filter.frequency.value = 2400;
+        gain.gain.setValueAtTime(volume * 0.7, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        src.start(t0);
+      } else {
+        // Pierre / Donjon : clac sec et sourd
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(120, t0);
+        osc.frequency.exponentialRampToValueAtTime(45, t0 + 0.07);
+        gain.gain.setValueAtTime(volume, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.07);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.08);
+      }
+    } catch {}
+  }
+
+  /**
+   * Effet sonore synthétique de projectile ou sortilège
+   */
+  playProjectileSound(type: 'arrow' | 'fire' | 'magic' | 'lightning') {
+    try {
+      const ctx = this.getContext();
+      const t0 = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      if (type === 'arrow') {
+        // Sifflement d'empennage
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, t0);
+        osc.frequency.exponentialRampToValueAtTime(120, t0 + 0.25);
+        gain.gain.setValueAtTime(0.25, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.26);
+      } else if (type === 'fire') {
+        // Vrombissement ardent
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, t0);
+        osc.frequency.exponentialRampToValueAtTime(70, t0 + 0.35);
+        gain.gain.setValueAtTime(0.3, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.36);
+      } else if (type === 'lightning') {
+        // Craquement foudroyant
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1200, t0);
+        osc.frequency.exponentialRampToValueAtTime(60, t0 + 0.28);
+        gain.gain.setValueAtTime(0.35, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.29);
+      } else {
+        // Magie cristalline
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, t0);
+        osc.frequency.linearRampToValueAtTime(880, t0 + 0.15);
+        osc.frequency.exponentialRampToValueAtTime(220, t0 + 0.35);
+        gain.gain.setValueAtTime(0.28, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.36);
+      }
+    } catch {}
   }
 }
 

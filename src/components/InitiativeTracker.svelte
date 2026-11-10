@@ -8,6 +8,8 @@
   } from '$lib/stores/vtt.svelte';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import { synthesizeNeuralSpeech } from '$lib/services/edgeTts';
+  import { combatLogStore } from '$lib/stores/combatLogStore.svelte';
+  import { notifStore } from '$lib/stores/notifications.svelte';
 
   let showAddForm = $state(false);
   let newName = $state('');
@@ -94,7 +96,16 @@
       const prevHp = c.hp;
       const nextHp = c.hp + delta;
       updateCombatantHp(id, nextHp);
+      
+      // Enregistrement chronologique
+      if (delta < 0) {
+        combatLogStore.add(c.name, `subit ${-delta} dégâts (${nextHp}/${c.maxHp} PV)`, 'damage', round());
+      } else if (delta > 0) {
+        combatLogStore.add(c.name, `récupère ${delta} PV (${nextHp}/${c.maxHp} PV)`, 'heal', round());
+      }
+
       if (prevHp > 0 && nextHp <= 0) {
+        combatLogStore.add(c.name, `s'effondre au combat !`, 'defeat', round());
         announceEpic(`${c.name} s'effondre au combat !`);
       }
     }
@@ -102,9 +113,12 @@
 
   function handleNextTurn() {
     nextTurn();
+    const cur = currentName();
+    if (cur) {
+      combatLogStore.add(cur, `prend son tour d'action`, 'turn', round());
+    }
     if (vttStore.combatAnnouncerEnabled) {
       setTimeout(() => {
-        const cur = currentName();
         if (cur) announceEpic(`C'est au tour de ${cur} !`);
       }, 200);
     }
@@ -193,7 +207,69 @@
       <button class="add-cancel"  onclick={() => showAddForm = false}>✕</button>
     </div>
   {:else}
-    <button class="add-btn" onclick={() => showAddForm = true}>+ Ajouter combattant</button>
+    <div class="combat-footer-row">
+      <button class="add-btn" onclick={() => showAddForm = true}>+ Ajouter</button>
+      <button 
+        type="button" 
+        class="log-toggle-btn"
+        class:active={combatLogStore.isDrawerOpen}
+        onclick={() => combatLogStore.toggleDrawer()}
+        title="Ouvrir l'historique chronologique des actions et le résumé IA"
+      >
+        📜 Log ({combatLogStore.entries.length})
+      </button>
+    </div>
+  {/if}
+
+  {#if combatLogStore.isDrawerOpen}
+    <div class="combat-log-drawer">
+      <div class="cld-header">
+        <span class="cld-title">📜 Chronique de la Bataille</span>
+        <div class="cld-actions">
+          <button
+            type="button"
+            class="cld-btn-ai"
+            onclick={() => combatLogStore.generateBattleNarrative()}
+            disabled={combatLogStore.isGeneratingNarrative}
+            title="Générer un compte-rendu héroïque par Ollama"
+          >
+            {combatLogStore.isGeneratingNarrative ? '⏳ Rédaction…' : '🪄 Résumé IA'}
+          </button>
+          <button type="button" class="cld-btn-clear" onclick={() => combatLogStore.clear()} title="Effacer l'historique">🗑️</button>
+        </div>
+      </div>
+
+      {#if combatLogStore.generatedNarrative}
+        <div class="cld-narrative-box">
+          <div class="cld-narrative-title">✨ Récit Épique (Ollama) :</div>
+          <p class="cld-narrative-text">{combatLogStore.generatedNarrative}</p>
+          <button
+            type="button"
+            class="cld-btn-copy"
+            onclick={() => {
+              navigator.clipboard.writeText(combatLogStore.generatedNarrative);
+              notifStore.add('📋', 'Copié !', 'Résumé copié dans le presse-papier', 'success', 2000);
+            }}
+          >
+            📋 Copier le Récit
+          </button>
+        </div>
+      {/if}
+
+      <div class="cld-list">
+        {#if combatLogStore.entries.length === 0}
+          <div class="cld-empty">Aucune action enregistrée pour le moment.</div>
+        {:else}
+          {#each combatLogStore.entries as entry (entry.id)}
+            <div class="cld-item cld-type-{entry.type}">
+              <span class="cld-time">{entry.time} · R.{entry.round}</span>
+              <span class="cld-actor">{entry.actor}</span>
+              <span class="cld-action">{entry.action}</span>
+            </div>
+          {/each}
+        {/if}
+      </div>
+    </div>
   {/if}
   {/if}
 </div>
@@ -510,19 +586,165 @@
   .add-confirm:hover { background: rgba(229, 168, 83, 0.15); }
   .add-cancel:hover { background: var(--bg-hover); }
 
+  .combat-footer-row {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
   .add-btn {
-    display: block;
-    width: 100%;
+    flex: 1;
     padding: 7px;
     background: transparent;
     border: none;
-    border-top: 1px solid var(--border);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 11.5px;
     cursor: pointer;
     text-align: center;
     transition: all 0.15s;
-    flex-shrink: 0;
   }
   .add-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .log-toggle-btn {
+    background: none;
+    border: none;
+    border-left: 1px solid var(--border);
+    padding: 7px 12px;
+    color: #94a3b8;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .log-toggle-btn:hover, .log-toggle-btn.active {
+    background: rgba(229, 168, 83, 0.15);
+    color: #fbbf24;
+  }
+
+  /* Drawer Log de combat */
+  .combat-log-drawer {
+    border-top: 1.5px solid rgba(229, 168, 83, 0.35);
+    background: #090d16;
+    max-height: 220px;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 10px;
+    gap: 6px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .cld-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cld-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #e5a853;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .cld-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cld-btn-ai {
+    background: rgba(229, 168, 83, 0.15);
+    border: 1px solid rgba(229, 168, 83, 0.4);
+    color: #fbbf24;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .cld-btn-ai:hover:not(:disabled) {
+    background: #e5a853;
+    color: #000;
+  }
+  .cld-btn-clear {
+    background: none;
+    border: none;
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0.6;
+  }
+  .cld-btn-clear:hover { opacity: 1; }
+
+  .cld-narrative-box {
+    background: rgba(229, 168, 83, 0.08);
+    border: 1px solid rgba(229, 168, 83, 0.3);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .cld-narrative-title {
+    color: #fbbf24;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .cld-narrative-text {
+    color: #f1f5f9;
+    line-height: 1.4;
+    margin: 0 0 6px 0;
+    font-style: italic;
+  }
+  .cld-btn-copy {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .cld-list {
+    overflow-y: auto;
+    max-height: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scrollbar-width: thin;
+  }
+  .cld-empty {
+    font-size: 11px;
+    color: #64748b;
+    text-align: center;
+    padding: 8px 0;
+  }
+  .cld-item {
+    font-size: 11px;
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    line-height: 1.3;
+    padding: 2px 4px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .cld-time {
+    color: #64748b;
+    font-size: 9.5px;
+    font-family: monospace;
+    flex-shrink: 0;
+  }
+  .cld-actor {
+    font-weight: 700;
+    color: #e2e8f0;
+    flex-shrink: 0;
+  }
+  .cld-action {
+    color: #cbd5e1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cld-type-damage .cld-action { color: #f87171; }
+  .cld-type-heal .cld-action { color: #4ade80; }
+  .cld-type-defeat { background: rgba(239, 68, 68, 0.15); }
+  .cld-type-defeat .cld-action { color: #fca5a5; font-weight: 700; }
 </style>

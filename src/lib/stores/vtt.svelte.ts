@@ -289,7 +289,7 @@ export const vttStore = $state({
   combatAnnouncerEnabled: true as boolean,
 
   // Immersion Sonore DSP & Lieux
-  acousticsPreset: 'normal' as 'normal' | 'cave' | 'cathedral' | 'telepathy' | 'spectral',
+  acousticsPreset: 'normal' as 'normal' | 'cave' | 'cathedral' | 'telepathy' | 'spectral' | 'divine' | 'demonic',
 
   // Bulles de Dialogue & Halo Vocal VTT
   activeSpeechBubble: null as {
@@ -299,6 +299,16 @@ export const vttStore = $state({
     x?: number;
     y?: number;
     expiresAt: number;
+  } | null,
+
+  // FX Projectiles & Sorts (PixiJS v8)
+  activeProjectile: null as {
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+    type: 'arrow' | 'fire' | 'magic' | 'lightning';
+    seq: number;
   } | null,
 
   // Timer de session
@@ -377,6 +387,18 @@ export const vttStore = $state({
 export function toggleShowFps() {
   vttStore.showFps = !vttStore.showFps;
   safeSetStorage('grimoire_vtt_show_fps', String(vttStore.showFps));
+}
+
+let projectileSeqCounter = 0;
+export function triggerVttProjectile(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  type: 'arrow' | 'fire' | 'magic' | 'lightning' = 'arrow'
+) {
+  projectileSeqCounter++;
+  vttStore.activeProjectile = { fromX, fromY, toX, toY, type, seq: projectileSeqCounter };
 }
 
 export function toggleMinimap() {

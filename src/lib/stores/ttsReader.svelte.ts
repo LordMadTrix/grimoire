@@ -272,7 +272,7 @@ class TtsReaderStore {
 
     // ── 2. Acoustique DSP & Lieux ──
     let acousticPreset = segment.acoustics || (vttStore as any).acousticsPreset || 'normal';
-    const acousticTagMatch = rawText.match(/\[(cave|cathedral|telepathy|spectral|normal)\]/i);
+    const acousticTagMatch = rawText.match(/\[(cave|cathedral|telepathy|spectral|divine|demonic|normal)\]/i);
     if (acousticTagMatch) {
       acousticPreset = acousticTagMatch[1].toLowerCase() as any;
     }
@@ -280,7 +280,7 @@ class TtsReaderStore {
     // Nettoyage complet des balises techniques pour que la voix ne les lise pas à voix haute
     const cleanSpeechText = rawText
       .replace(/\[sfx:\s*[a-zA-Z0-9_\-]+\]/gi, '')
-      .replace(/\[(cave|cathedral|telepathy|spectral|normal)\]/gi, '')
+      .replace(/\[(cave|cathedral|telepathy|spectral|divine|demonic|normal)\]/gi, '')
       .replace(/>\s*\[!ACOUSTIQUE:[^\]]+\]/gi, '')
       .trim();
 
@@ -335,7 +335,7 @@ class TtsReaderStore {
           const nextPitch = (nextSegment?.pitch ?? nextProfile?.pitch ?? 1.0) * this.pitch;
           const nextClean = (this.sentences[index + 1] || '')
             .replace(/\[sfx:\s*[a-zA-Z0-9_\-]+\]/gi, '')
-            .replace(/\[(cave|cathedral|telepathy|spectral|normal)\]/gi, '')
+            .replace(/\[(cave|cathedral|telepathy|spectral|divine|demonic|normal)\]/gi, '')
             .replace(/>\s*\[!ACOUSTIQUE:[^\]]+\]/gi, '')
             .trim();
 

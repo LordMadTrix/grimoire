@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { vttStore, replaceGmToken, removeGmToken, setSpotlightToken, duplicateGmToken, showSpeechBubble } from '$lib/stores/vtt.svelte';
+  import { vttStore, replaceGmToken, removeGmToken, setSpotlightToken, duplicateGmToken, showSpeechBubble, triggerVttProjectile } from '$lib/stores/vtt.svelte';
   import { emitToPlayerView, askOllama } from '$lib/api';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { getAiModel } from '$lib/stores/settings.svelte';
@@ -135,6 +135,18 @@
 
   function hasCond(cid: string) {
     return (token?.conditions ?? []).includes(cid);
+  }
+
+  let showProjectilesBox = $state(false);
+
+  function fireProjectile(type: 'arrow' | 'fire' | 'magic' | 'lightning') {
+    if (!token) return;
+    const target = vttStore.tokens.find(t => t.id !== token.id && (t.isEnemy !== token.isEnemy));
+    const toX = target ? target.x : token.x + 200;
+    const toY = target ? target.y : token.y - 100;
+    triggerVttProjectile(token.x, token.y, toX, toY, type);
+    notifStore.add('⚡', token.name, `Projectile (${type}) lancé !`, 'info', 2000);
+    onclose();
   }
 
   function handleDuplicate(count: number = 1) {
@@ -386,6 +398,29 @@
               >
                 {isImprovising ? '⏳ Parole…' : '🎙️ Parler !'}
               </button>
+            </div>
+          </div>
+        {/if}
+
+        <!-- ⚡ FX Projectile & Sort -->
+        <button 
+          class="ctx-item"
+          class:active-item={showProjectilesBox}
+          onclick={() => showProjectilesBox = !showProjectilesBox}
+          title="Tirer un projectile magique ou une flèche animée vers une cible"
+        >
+          <span class="item-icon">⚡</span>
+          <span>Tirer Projectile / Sort</span>
+        </button>
+
+        {#if showProjectilesBox}
+          <div class="improv-box" style="gap: 5px;">
+            <div style="font-size: 10.5px; color: var(--accent); font-weight: 700; text-transform: uppercase;">Type de projectile :</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <button class="improv-quick-btn" onclick={() => fireProjectile('arrow')} title="Tir à l'arc">🏹 Flèche</button>
+              <button class="improv-quick-btn" onclick={() => fireProjectile('fire')} title="Boule de feu">🔥 Feu</button>
+              <button class="improv-quick-btn" onclick={() => fireProjectile('lightning')} title="Éclair foudroyant">⚡ Éclair</button>
+              <button class="improv-quick-btn" onclick={() => fireProjectile('magic')} title="Projectile arcanique">🔮 Magie</button>
             </div>
           </div>
         {/if}

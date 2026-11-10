@@ -477,8 +477,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       </div>
       <div style="display:flex;gap:6px;width:100%">
         <input class="jinp" id="server-address" placeholder="ex: 192.168.0.155:7438" style="flex:1;max-width:none"/>
-        <button type="button" class="jbtn" onclick="startQRScanner()" style="width:auto;max-width:none;padding:0 14px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.5);font-size:18px;color:#a5b4fc" title="Scanner le QR Code sur l'écran du MJ">📷</button>
-        <button type="button" class="jbtn" onclick="checkServerConnectivity(true)" style="width:auto;max-width:none;padding:0 12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);font-size:12px;color:#4ade80" title="Tester la connexion au PC">⚡ Test</button>
+        <button type="button" class="jbtn" onclick="startQRScanner()" style="width:auto;max-width:none;padding:0 12px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.5);font-size:16px;color:#a5b4fc" title="Scanner le QR Code sur l'écran du MJ">📷</button>
+        <button type="button" class="jbtn" onclick="autoScanLocalNetwork()" style="width:auto;max-width:none;padding:0 12px;background:rgba(229,168,83,0.2);border:1px solid rgba(229,168,83,0.5);font-size:12px;color:#fbbf24" title="Détecter automatiquement le PC sur le Wi-Fi">🔍 Auto-Scan</button>
+        <button type="button" class="jbtn" onclick="checkServerConnectivity(true)" style="width:auto;max-width:none;padding:0 10px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);font-size:12px;color:#4ade80" title="Tester la connexion au PC">⚡ Test</button>
       </div>
     </div>
 
@@ -531,6 +532,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       <button class="conn-toggle-btn" id="conn-toggle-btn" onclick="toggleConnectToGM()">🌐 Rejoindre le MJ</button>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
+      <button class="wl-btn" id="table-mode-btn" onclick="toggleTableHudMode()" style="background:rgba(229,168,83,0.18);border-color:var(--accent);color:var(--accent);font-weight:700" title="Mode Écran de Table simplifié">📱 Mode Table</button>
       <button class="wl-btn" id="backup-quick-btn" onclick="exportHeroToFile()" title="Sauvegarde fichier immédiate">💾 Sauvegarde</button>
       <button class="wl-btn" id="wakelock-btn" onclick="toggleWakeLock()">👁️ Écran : Auto</button>
     </div>
@@ -566,6 +568,45 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
   <!-- Toast stack -->
   <div id="toast-stack"></div>
+
+  <!-- Mode Table Always-On HUD -->
+  <div id="table-hud-overlay" style="display:none;position:fixed;inset:0;background:#06080e;z-index:9999;flex-direction:column;padding:20px;box-sizing:border-box;justify-content:space-between">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">🛡️</span>
+        <span id="th-name" style="font-size:20px;font-weight:900;color:var(--accent)">Héros</span>
+      </div>
+      <button type="button" class="sbtn" onclick="toggleTableHudMode()" style="background:rgba(255,255,255,0.1);color:#fff;border-radius:20px;padding:6px 16px;font-size:13px;margin:0">✕ Quitter Mode Table</button>
+    </div>
+
+    <!-- Tour de Combat Actif -->
+    <div id="th-turn-banner" style="display:none;background:rgba(229,168,83,0.18);border:2px solid var(--accent);border-radius:14px;padding:14px;text-align:center">
+      <div style="font-size:18px;font-weight:900;color:var(--accent);letter-spacing:.03em">⚔️ C'EST VOTRE TOUR D'AGIR ! ⚔️</div>
+    </div>
+
+    <!-- Jauge Géante PV -->
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:24px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Points de Vitalité</div>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span id="th-hp" style="font-size:64px;font-weight:900;color:#22c55e;font-family:monospace">10</span>
+        <span id="th-maxhp" style="font-size:26px;font-weight:700;color:var(--muted);font-family:monospace">/ 10 PV</span>
+      </div>
+      <div style="display:flex;gap:10px;width:100%;max-width:340px">
+        <button type="button" class="jbtn" onclick="applyHealthDelta(-5)" style="background:rgba(239,68,68,0.2);border-color:#ef4444;color:#f87171;font-weight:800">-5</button>
+        <button type="button" class="jbtn" onclick="applyHealthDelta(-1)" style="background:rgba(239,68,68,0.15);border-color:#ef4444;color:#f87171;font-weight:800">-1</button>
+        <button type="button" class="jbtn" onclick="applyHealthDelta(1)" style="background:rgba(34,197,94,0.15);border-color:#22c55e;color:#4ade80;font-weight:800">+1</button>
+        <button type="button" class="jbtn" onclick="applyHealthDelta(5)" style="background:rgba(34,197,94,0.2);border-color:#22c55e;color:#4ade80;font-weight:800">+5</button>
+      </div>
+    </div>
+
+    <!-- Raccourcis Dés Rapides -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button type="button" class="jbtn" onclick="doSkillTest('CC',50,'Attaque Corps à Corps')" style="font-size:16px;padding:16px;font-weight:800;background:rgba(229,168,83,0.15);border-color:var(--accent);color:var(--accent)">⚔️ Attaque (CC)</button>
+      <button type="button" class="jbtn" onclick="doSkillTest('Ag',40,'Esquive')" style="font-size:16px;padding:16px;font-weight:800;background:rgba(99,102,241,0.15);border-color:#818cf8;color:#a5b4fc">🛡️ Esquive</button>
+      <button type="button" class="jbtn" onclick="rollDirect('d100')" style="font-size:16px;padding:16px;font-weight:800;background:rgba(255,255,255,0.06);border-color:var(--border);color:#fff">🎲 Test d100</button>
+      <button type="button" class="jbtn" onclick="rollDirect('1d10+3')" style="font-size:16px;padding:16px;font-weight:800;background:rgba(234,179,8,0.15);border-color:#eab308;color:#fde047">💥 Dégâts (1d10+3)</button>
+    </div>
+  </div>
 
   <div id="roll-request-overlay" onclick="if(event.target===this)closeRollRequest()">
     <div class="rr-box">
@@ -2527,6 +2568,92 @@ async function checkServerConnectivity(manual = false) {
     if (manual) showToast('⚠️', 'Connexion Impossible', `Impossible de contacter http://${target}. Vérifiez que le smartphone est sur le même Wi-Fi que le PC.`, 'warn', 5500);
   }
   return false;
+}
+
+async function autoScanLocalNetwork() {
+  const badge = document.getElementById('server-ping-badge');
+  if (badge) {
+    badge.textContent = '🔍 Recherche du PC…';
+    badge.style.color = '#fbbf24';
+  }
+  showToast('🔍', 'Auto-Scan Wi-Fi', 'Recherche du PC Grimoire sur le réseau local…', 'info', 2500);
+
+  const candidates = [
+    '192.168.0.155:7438',
+    '192.168.1.155:7438',
+    '192.168.0.10:7438',
+    '192.168.1.10:7438',
+    '192.168.0.50:7438',
+    '192.168.1.50:7438',
+    '192.168.0.100:7438',
+    '192.168.1.100:7438',
+    '10.0.0.10:7438',
+    '10.0.0.155:7438',
+    'localhost:7438'
+  ];
+
+  const prev = localStorage.getItem('grimoire_server_addr');
+  if (prev && !candidates.includes(prev)) candidates.unshift(prev);
+
+  for (const host of candidates) {
+    try {
+      const res = await fetch('http://' + host + '/api/status', { signal: AbortSignal.timeout(650) });
+      if (res.ok) {
+        const inp = document.getElementById('server-address');
+        if (inp) inp.value = host;
+        localStorage.setItem('grimoire_server_addr', host);
+        currentServerAddr = host;
+        if (badge) {
+          badge.textContent = '🟢 Détecté (' + host + ') !';
+          badge.style.color = '#4ade80';
+        }
+        showToast('🟢', 'Grimoire Trouvé !', `Connecté au PC sur ${host}`, 'success', 3500);
+        checkServerConnectivity(false);
+        return;
+      }
+    } catch {}
+  }
+
+  if (badge) {
+    badge.textContent = '🔴 Introuvable (vérifiez l\'IP)';
+    badge.style.color = '#ef4444';
+  }
+  showToast('⚠️', 'Non Détecté', 'Impossible de détecter le PC automatiquement. Scannez le QR Code ou entrez l\'adresse manuellement.', 'warn', 4500);
+}
+
+let isTableHudOpen = false;
+function toggleTableHudMode() {
+  const overlay = document.getElementById('table-hud-overlay');
+  if (!overlay) return;
+  isTableHudOpen = !isTableHudOpen;
+  overlay.style.display = isTableHudOpen ? 'flex' : 'none';
+  if (isTableHudOpen) {
+    updateTableHudValues();
+    toggleWakeLock();
+  }
+}
+
+function updateTableHudValues() {
+  const nameEl = document.getElementById('th-name');
+  if (nameEl) nameEl.textContent = ch.nom || playerName || 'Héros';
+  const hpEl = document.getElementById('th-hp');
+  if (hpEl) hpEl.textContent = ch.hp ?? 10;
+  const maxHpEl = document.getElementById('th-maxhp');
+  if (maxHpEl) maxHpEl.textContent = `/ ${ch.maxhp ?? 10} PV`;
+  const banner = document.getElementById('th-turn-banner');
+  if (banner) banner.style.display = (typeof isActiveTurn !== 'undefined' && isActiveTurn) ? 'block' : 'none';
+}
+
+function applyHealthDelta(delta) {
+  const cur = parseInt(ch.hp ?? 10) || 10;
+  const max = parseInt(ch.maxhp ?? 10) || 10;
+  const next = Math.max(0, Math.min(max + 10, cur + delta));
+  ch.hp = next;
+  sv('f-bless', next);
+  updateTableHudValues();
+  if (typeof renderBloodVial === 'function') renderBloodVial();
+  sc();
+  showToast(delta > 0 ? '💚' : '🩸', 'Vitalité', `${next}/${max} PV (${delta > 0 ? '+' : ''}${delta})`, delta > 0 ? 'success' : 'warn', 2000);
 }
 
 // ── WebSocket ──────────────────────────────────────────────────────────

@@ -262,6 +262,26 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.19 — Dérouleur de Scènes MJ, FX de Projectiles, Voix Divines/Démoniaques, Log de Combat & Auto-Scan Mobile
+
+- **🎬 Dérouleur de Scènes du MJ (Scene Runner)** : Bandeau supérieur escamotable permettant de préparer à l'avance les scènes clés de la séance (*1. Auberge, 2. Embuscade en Forêt, 3. Assaut sous l'Orage, 4. Donjon des Oubliés*). En un seul clic, Grimoire applique simultanément la météo, l'éclairage d'ambiance, la carte VTT, l'acoustique sonore et les notes du MJ, avec navigation fluide `◀ Précédent` / `Suivant ▶`.
+- **⚡ Effets Visuels de Projectiles & Bruits de Pas VTT** : 
+  - **Projectiles Animés PixiJS v8** : Clic droit sur n'importe quel token > *« ⚡ Tirer Projectile / Sort »* (`🏹 Flèche`, `🔥 Feu`, `⚡ Éclair`, `🔮 Magie`) pour projeter un éclair ou une flèche avec traînée particulaire lumineuse, onde d'impact et synchronisation instantanée sur l'écran joueur / TV.
+  - **Bruits de Pas Procéduraux** : Déplacement d'un pion générant un bruit de pas adapté au terrain foulé (pierre, parquet de bois, éclaboussure d'eau, feuillage).
+- **🎙️ Studio de Narration : Effets DSP Voix Divine & Démoniaque** : 
+  - `✨ Voix Divine` : Chorus éthéré et scintillement harmonique céleste pour dieux, séraphins et entités supérieures.
+  - `👹 Voix Démoniaque` : Pitch abyssal sub-harmonique, distorsion sombre et résonance d'outre-tombe pour seigneurs du chaos et démons.
+  - Balises de script Markdown directes : `[divine]` et `[demonic]` pour basculer la voix au fil de la lecture.
+- **📜 Log de Combat Chronologique & Résumé de Bataille IA (Ollama)** :
+  - Historique chronologique complet des rounds (attaques, dégâts reçus, soins appliqués, tours de jeu et ennemis terrassés).
+  - Bouton **« 🪄 Résumé de Bataille IA »** : Ollama rédige en quelques secondes un compte-rendu dramatique et viscéral en deux paragraphes prêt à être archivé ou lu aux joueurs.
+- **📱 Compagnon Mobile : Auto-Scan Wi-Fi & Mode HUD de Table Always-On** :
+  - **Auto-Scan Wi-Fi en 1 clic** : Balayage automatique du réseau local sur le smartphone ou l'APK Android pour détecter automatiquement l'ordinateur du MJ sans avoir à saisir l'adresse IP manuellement.
+  - **Mode HUD de Table Always-On** : Interface épurée haute lisibilité (PV géants, boutons de dégâts/soins rapides, état du tour de combat) conçue pour poser le smartphone au centre de la table de jeu.
+- **🛡️ Correctif d'Affichage des Pions VTT** : Élimination définitive des carrés noirs sur les avatars joueurs/PNJ grâce à la synchronisation explicite des textures WebGL et un masque circulaire PixiJS garanti, avec fallback élégant sur l'initiale du héros en cas de profil sans illustration.
+
+---
+
 ## 🌟 Nouveautés v0.8.17 — Compagnon Joueur Autonome Offline-First & App Dédiée
 
 - **💾 Fiche Joueur Permanente & Offline-First (IndexedDB)** : Chaque joueur conserve sa fiche directement sur son appareil. Même si le PC du MJ redémarre ou que le navigateur est fermé, aucune donnée n'est perdue.

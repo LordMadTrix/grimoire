@@ -14,6 +14,7 @@
   import { getOpticalTrackingConfig } from '$lib/vtt/opticalTrackingStore.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { emit } from '@tauri-apps/api/event';
+  import { audioAcoustics } from '$lib/services/audioAcoustics';
 
   // Svelte 5 — $props() obligatoire (pas export let)
   let {
@@ -236,10 +237,7 @@
       } else {
         svg = decodeURIComponent(dataUrl.split(',')[1]);
       }
-      // Supprimer les masques figma viewboxMask qui provoquent des carrés noirs dans le canvas 2D
-      svg = svg.replace(/<mask\s+id="[^"]*viewboxMask"[^>]*>[\s\S]*?<\/mask>/gi, '');
-      svg = svg.replace(/mask="url\(#[^"]*viewboxMask\)"/gi, '');
-      // S'assurer que le svg a un width et height si absent
+      // S'assurer que le svg a un width et height si absent pour le canvas
       if (!svg.match(/<svg[^>]+(width|height)=/i)) {
         svg = svg.replace(/<svg/i, '<svg width="512" height="512"');
       }
@@ -249,7 +247,7 @@
     }
   }
 
-  function renderCircularPortrait(img: HTMLImageElement, isPlayer: boolean, playerColor: number = 0x22c55e): HTMLCanvasElement {
+  function renderCircularPortrait(img: HTMLImageElement | null, isPlayer: boolean, playerColor: number = 0x22c55e, playerName: string = ''): HTMLCanvasElement {
     const cv = document.createElement('canvas');
     cv.width = 512;
     cv.height = 512;
@@ -259,19 +257,31 @@
     // Découpe circulaire nette
     ctx.save();
     ctx.beginPath();
-    ctx.arc(256, 256, 250, 0, Math.PI * 2);
+    ctx.arc(256, 256, 248, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
 
     // Fond de couleur pour éviter tout trou noir
-    ctx.fillStyle = isPlayer ? '#166534' : '#1e293b';
+    ctx.fillStyle = isPlayer ? '#166534' : ('#' + (playerColor || 0x1e293b).toString(16).padStart(6, '0'));
     ctx.fillRect(0, 0, 512, 512);
 
-    // Dessin de l'image de l'avatar
-    try {
-      ctx.drawImage(img, 0, 0, 512, 512);
-    } catch (e) {
-      console.warn('Canvas drawImage portrait error:', e);
+    let hasDrawn = false;
+    if (img && img.complete && img.naturalWidth > 0) {
+      try {
+        ctx.drawImage(img, 0, 0, 512, 512);
+        hasDrawn = true;
+      } catch (e) {
+        console.warn('Canvas drawImage portrait error:', e);
+      }
+    }
+
+    // Fallback avec l'initiale si l'image est manquante ou vide
+    if (!hasDrawn && playerName) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 240px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(playerName.charAt(0).toUpperCase(), 256, 266);
     }
     ctx.restore();
 
@@ -293,6 +303,79 @@
 
     return cv;
   }
+
+  function playMoveFootstep(x: number, y: number) {
+    let surface: 'stone' | 'water' | 'wood' | 'foliage' = 'stone';
+    for (const z of terrainZones) {
+      if (x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) {
+        if (z.type === 'water') surface = 'water';
+        else if (z.type === 'difficult') surface = 'foliage';
+        break;
+      }
+    }
+    audioAcoustics.playFootstep(surface, 0.24);
+  }
+
+  let lastProjectileSeq = 0;
+  export function spawnProjectile(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    type: 'arrow' | 'fire' | 'magic' | 'lightning' = 'arrow'
+  ) {
+    if (!worldContainer) return;
+    audioAcoustics.playProjectileSound(type);
+
+    const color = type === 'fire' ? 0xf97316 : type === 'lightning' ? 0x06b6d4 : type === 'magic' ? 0xa855f7 : 0xe2e8f0;
+    const g = new PIXI.Graphics();
+    worldContainer.addChild(g);
+
+    const startTime = performance.now();
+    const duration = 280;
+
+    const animate = (time: number) => {
+      const elapsed = time - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      g.clear();
+
+      const curX = fromX + (toX - fromX) * progress;
+      const curY = fromY + (toY - fromY) * progress;
+      const trailX = fromX + (toX - fromX) * Math.max(0, progress - 0.22);
+      const trailY = fromY + (toY - fromY) * Math.max(0, progress - 0.22);
+
+      g.setStrokeStyle({ width: type === 'fire' ? 6 : 4, color, alpha: 0.85 * (1 - progress * 0.3) });
+      g.moveTo(trailX, trailY);
+      g.lineTo(curX, curY);
+      g.stroke();
+
+      g.circle(curX, curY, type === 'fire' ? 8 : 5).fill({ color: 0xffffff, alpha: 0.95 });
+      g.circle(curX, curY, type === 'fire' ? 12 : 8).fill({ color, alpha: 0.5 });
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        g.clear();
+        g.circle(toX, toY, 20).fill({ color, alpha: 0.6 });
+        g.circle(toX, toY, 10).fill({ color: 0xffffff, alpha: 0.9 });
+        setTimeout(() => {
+          if (worldContainer) worldContainer.removeChild(g);
+          g.destroy();
+        }, 120);
+      }
+    };
+    requestAnimationFrame(animate);
+
+    emitToPlayerView('vtt:projectile', { fromX, fromY, toX, toY, type });
+  }
+
+  $effect(() => {
+    if (vttStore.activeProjectile && vttStore.activeProjectile.seq > lastProjectileSeq) {
+      lastProjectileSeq = vttStore.activeProjectile.seq;
+      const p = vttStore.activeProjectile;
+      spawnProjectile(p.fromX, p.fromY, p.toX, p.toY, p.type);
+    }
+  });
   let selectedTokenIds = $state<Set<string>>(new Set());
   let dragOffsets = new Map<string, { dx: number; dy: number }>();
 
@@ -598,6 +681,7 @@
             (selSprite as any).__targetY = sy;
           }
           onTokenMove(selId, sx, sy);
+          playMoveFootstep(sx, sy);
         }
         dragOffsets = new Map();
         draggedTokenId = null;
@@ -1739,9 +1823,12 @@
             if (container && tokenSprite) {
               const texSource: HTMLImageElement | HTMLCanvasElement = isCustomToken
                 ? imgElement
-                : renderCircularPortrait(imgElement, Boolean(token.playerId), color);
+                : renderCircularPortrait(imgElement, Boolean(token.playerId), color, token.name);
 
               const tex = PIXI.Texture.from(texSource);
+              if (tex.source && typeof (tex.source as any).update === 'function') {
+                (tex.source as any).update();
+              }
               tex.label = cacheKey;
               tokenSprite.texture = tex;
               tokenSprite.width = token.size;
@@ -1825,13 +1912,19 @@
           }
         }
         
-        // Nettoyage de tout ancien masque PixiJS qui pourrait déformer le rendu
-        if (tokenSprite.mask) {
-          tokenSprite.mask = null;
+        // Masque circulaire PixiJS systématique pour garantir qu'aucun carré noir ne subsiste
+        let maskG = (container as any).__maskG as PIXI.Graphics | undefined;
+        if (!maskG) {
+          maskG = new PIXI.Graphics();
+          container.addChild(maskG);
+          (container as any).__maskG = maskG;
         }
-        const maskG = (container as any).__maskG as PIXI.Graphics | undefined;
-        if (maskG) {
-          maskG.clear();
+        maskG.clear();
+        if (!isCustomToken) {
+          maskG.circle(0, 0, r).fill(0xffffff);
+          tokenSprite.mask = maskG;
+        } else {
+          tokenSprite.mask = null;
         }
 
         circleG.clear();
@@ -2878,6 +2971,7 @@
         (sprite as any).__targetY = localPos.y;
       }
       onTokenMove(draggedTokenId, localPos.x, localPos.y);
+      playMoveFootstep(localPos.x, localPos.y);
       // Finaliser le déplacement groupé
       for (const [selId, off] of dragOffsets) {
         let sx = localPos.x + off.dx;
@@ -2894,6 +2988,7 @@
           (selSprite as any).__targetY = sy;
         }
         onTokenMove(selId, sx, sy);
+        playMoveFootstep(sx, sy);
       }
       dragOffsets = new Map();
       draggedTokenId = null;

@@ -783,6 +783,8 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
             <option value="cathedral">⛪ Cathédrale / Grand Temple</option>
             <option value="telepathy">🧠 Télépathie Mentale</option>
             <option value="spectral">👻 Écho Spectral</option>
+            <option value="divine">👑 Voix Divine / Chœur Céleste</option>
+            <option value="demonic">👹 Voix Démoniaque Abyssale</option>
           </select>
         </div>
 

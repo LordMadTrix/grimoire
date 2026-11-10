@@ -28,6 +28,7 @@
   import MonitorPickerModal from './components/MonitorPickerModal.svelte';
   import NarrationStudioModal from './components/NarrationStudioModal.svelte';
   import { narrationStudioStore } from '$lib/stores/narrationStudio.svelte';
+  import SceneRunnerBar from './components/SceneRunnerBar.svelte';
   import NotificationToast from './components/NotificationToast.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { checkForCatalogUpdates } from '$lib/stores/celestialCache';
@@ -908,6 +909,7 @@
         onToggleView={() => { viewMode = viewMode === 'vtt' ? 'editor' : 'vtt'; }}
         onSelectView={(v) => { viewMode = v; }}
       />
+      <SceneRunnerBar />
     {/if}
     
     <!-- Table Virtuelle VTT (préservée en mémoire avec 0 latence) -->

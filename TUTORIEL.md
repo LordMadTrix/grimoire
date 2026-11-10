@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.18)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.19)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Studio de Narration & Voix IA HD Multi-Acteurs (13 voix Edge-TTS) · Effets Acoustiques DSP & Lieux en Temps Réel (Caverne, Cathédrale, Télépathie, Écho Spectral) · Bulles de Dialogue & Halos Vocaux VTT synchronisés · Annonceur de Combat Épique · Murmures Secrets IA sur Smartphone · Répartie d'Improvisation PNJ · Balises SFX Synchronisées `[sfx: ...]` · Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA, Sauvegarde & Import JSON, Persistance Forte IndexedDB, Scanner QR Caméra) · Split Layout 2 Colonnes Paysage Tablette · D-Pad VTT Tactile · Studio Cinéma d'Introduction · Table Virtuelle PixiJS v8 · Liseuse PDF 2.0 · Wiki Markdown & FTS5 · IA Locale Ollama*
+> *Dérouleur de Scènes MJ (Scene Runner) · FX de Projectiles & Bruits de Pas VTT · Voix Divines & Démoniaques DSP · Log de Combat Chronologique & Résumé de Bataille IA Ollama · Auto-Scan Wi-Fi Mobile & Mode HUD de Table · Studio de Narration & Voix IA HD Multi-Acteurs (13 voix Edge-TTS) · Bulles de Dialogue & Halos Vocaux VTT synchronisés · Annonceur de Combat Épique · Murmures Secrets IA sur Smartphone · Répartie d'Improvisation PNJ · Balises SFX Synchronisées `[sfx: ...]` · Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA) · Table Virtuelle PixiJS v8 · IA Locale Ollama*
 
 ---
 
@@ -28,6 +28,7 @@
 19. [Index des Raccourcis Clavier & Astuces Pro](#19-index-des-raccourcis-clavier--astuces-pro)
 20. [Le Guide de l'Herboriste & Lapidaire (Alchimie, Cueillette, Forge)](#20-le-guide-de-lherboriste--lapidaire-alchimie-cueillette-forge)
 21. [Tracking Optique Table & Figurines 3D (Webcam, ArUco & Anneaux STL)](#21-tracking-optique-table--figurines-3d-webcam-aruco--anneaux-stl)
+22. [Dérouleur de Scènes MJ, FX de Projectiles, Voix Divines & Log de Combat (v0.8.19)](#22-dérouleur-de-scènes-mj-fx-de-projectiles-voix-divines--log-de-combat-v0819)
 
 ---
 
@@ -883,6 +884,45 @@ Si vous disposez d'une imprimante 3D (FDM ou Résine) :
 1. Sur la carte VTT, faites un double-clic ou clic droit sur un pion (ex: *Paladin*) pour ouvrir ses propriétés.
 2. Dans le champ **`Marqueur Physique (ID ArUco)`**, entrez l'ID de la gommette collée sous la figurine (ex: `1`). L'icône ArUco correspondante s'affiche en aperçu direct.
 3. Cochez **`Révéler Fog of War automatiquement`** si vous souhaitez que la figurine dissipe les ténèbres au fur et à mesure que le joueur la déplace avec ses mains sur la table !
+
+---
+
+## 22. Dérouleur de Scènes MJ, FX de Projectiles, Voix Divines & Log de Combat (v0.8.19)
+
+### 1. Le Dérouleur de Scènes MJ (Scene Runner)
+1. **Activation** : Dans le menu *« 🎛️ Modules »* de la barre d'outils VTT, cochez **« Dérouleur de Scènes (Bandeau) »**.
+2. **Navigation en direct** : Un bandeau supérieur fluide et discret apparaît avec les scènes préparées (`1. Halte à l'Auberge`, `2. Embuscade en Forêt`, etc.).
+3. **Application 1-clic** : Cliquez sur une scène ou utilisez les boutons `◀` / `▶` :
+   - L'éclairage (`☀️ Plein Jour`, `🌅 Crépuscule`, `🌙 Nuit`, `🌑 Ténèbres Donjon`) est appliqué instantanément.
+   - La météo (`Pluie`, `Orage`, `Neige`, `Brouillard`, `Braises & Cendres`) s'anime.
+   - L'acoustique sonore et la carte de jeu correspondante se chargent automatiquement.
+4. **Création & Personnalisation** : Cliquez sur `➕` pour créer une nouvelle scène personnalisée ou `✏️` pour ajuster une scène existante. Vos scènes sont automatiquement enregistrées dans le fichier `.grimoire/scenes.json` de votre campagne.
+
+### 2. Effets Spéciaux de Projectiles & Bruits de Pas VTT
+1. **Lancer un projectile animé** : Faites un clic droit sur n'importe quel pion sur la carte VTT, survolez le menu **« ⚡ Tirer Projectile / Sort »** et choisissez :
+   - `🏹 Flèche Tactique` : Flèche décochée avec traînée de vent rapide et impact sonore.
+   - `🔥 Boule de Feu` : Orbe incandescent crépitant avec flash lumineux à l'impact.
+   - `⚡ Éclair Foudroyant` : Arc électrique zig-zaguant instantané avec craquement foudroyant.
+   - `🔮 Énergie Mystique` : Salve d'énergie arcanique spiralée avec tintement cristallin.
+2. **Ciblage intuitif** : Cliquez ensuite sur la cible ou le point d'impact souhaité sur la carte : l'animation se joue avec son spatialisé, synchronisée en temps réel sur la Vue Joueurs / TV !
+3. **Bruits de Pas Procéduraux** : Déplacez un pion sur la carte : Grimoire génère automatiquement le son du pas adapté au terrain (pavé de pierre, parquet de bois, clapotis d'eau dans les zones inondées ou bruissement de feuillage).
+
+### 3. Effets Acoustiques DSP : Voix Divine & Démoniaque
+1. **Dans le Studio de Narration** : Ouvrez le menu *« 🎙️ Narration & Voix IA »* et sélectionnez l'ambiance :
+   - `✨ Voix Divine (Chorus & Harmoniques Célestes)` : Pour déités, avatars de lumière, archanges et esprits célestes.
+   - `👹 Voix Démoniaque (Grave Abyssal & Distorsion)` : Pour princes démons, seigneurs du chaos, dragons et présences ténébreuses.
+2. **Dans les Notes Markdown** : Insérez les balises de contrôle direct :
+   - `[divine] Que la lumière sacrée purifie vos âmes !`
+   - `[demonic] Vos os nourriront le brasier éternel !`
+
+### 4. Log de Combat Chronologique & Résumé de Bataille IA
+1. **Journalisation Automatique** : Pendant un affrontement, chaque attaque portée, dégât infligé, soin prodigué et tour franchi est consigné dans le journal du Tracker d'Initiative.
+2. **Tiroir d'Historique** : Cliquez sur l'icône `📜 Journal` pour dérouler la chronologie round par round.
+3. **🪄 Résumé de Bataille Épique (Ollama)** : À la fin ou en plein milieu du combat, cliquez sur le bouton **« 🪄 Résumé IA »** : l'IA locale Ollama analyse la suite des actions et rédige en quelques secondes un récit héroïque viscéral en deux paragraphes prêts à être lus à vos joueurs ou archivés dans votre journal de quête.
+
+### 5. Compagnon Mobile : Auto-Scan Wi-Fi & Mode HUD de Table
+1. **🔍 Auto-Scan Wi-Fi** : Sur smartphone ou sur l'APK Android, cliquez sur le bouton **« 🔍 Auto-Scan »** : l'application balaye automatiquement le sous-réseau local et trouve immédiatement l'IP de votre PC Grimoire, sans configuration ni saisie manuelle.
+2. **📱 Mode Table (HUD Always-On)** : Cliquez sur **« 📱 Mode Table »** pour activer un affichage ultra-lisible (PV géants, dés express, indication claire du tour actif) pensé pour poser le téléphone à plat au centre de la table sans risquer de mise en veille.
 
 ---
 

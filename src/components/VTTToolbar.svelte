@@ -39,6 +39,7 @@
   import { timeStore, advanceTime, formatImperialDate } from '$lib/stores/timeStore';
   import PlayerMobileManager from './PlayerMobileManager.svelte';
   import { mobileServerStore } from '$lib/stores/mobileServer.svelte';
+  import { sceneRunnerStore } from '$lib/stores/sceneRunner.svelte';
   import AdventureLibrary from './AdventureLibrary.svelte';
   import CharacterCreator from './CharacterCreator.svelte';
   import DiceRoller from './DiceRoller.svelte';
@@ -562,6 +563,16 @@
       <div class="dropdown-content" class:hidden={activeMenu !== 'modules'} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1" style="min-width: 290px;">
         <div class="dropdown-title">Fenêtres Flottantes & HUDs</div>
         
+        <div class="module-toggle-row" onclick={() => sceneRunnerStore.toggle()}>
+          <div class="module-info">
+            <span class="module-icon">🎬</span>
+            <span class="module-name">Dérouleur de Scènes</span>
+          </div>
+          <span class="module-switch" class:active={sceneRunnerStore.isOpen}>
+            {sceneRunnerStore.isOpen ? 'ACTIF' : 'OFF'}
+          </span>
+        </div>
+
         <div class="module-toggle-row" onclick={() => vttStore.showPlayerQuickDock = !vttStore.showPlayerQuickDock}>
           <div class="module-info">
             <span class="module-icon">👥</span>
