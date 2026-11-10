@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.17)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.18)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA, Sauvegarde & Import JSON, Persistance Forte IndexedDB, Scanner QR Caméra) · Split Layout 2 Colonnes Paysage Tablette · D-Pad VTT Tactile · Studio Cinéma d'Introduction (Défilement 3D, Voix-Off Ducking, Météo Affiche, Casting Héros & Normalisation Audio) · Lecteur de Playlists Locales · Visibilité Avancée des Tokens MJ · Table Virtuelle PixiJS v8 · Tiroir de Notes MJ en Jeu (N) & Pose de Pion en 1 Clic · Éditeur de Tokens Résilient Anti-Taint & Frises Ornées · Éditeur Rôliste Ultime · Liseuse PDF 2.0 & Voix IA · Fantasy Map Editor · Diffusion SFX Multi-Écrans · Wiki Markdown & FTS5 · IA Locale Ollama*
+> *Studio de Narration & Voix IA HD Multi-Acteurs (13 voix Edge-TTS) · Effets Acoustiques DSP & Lieux en Temps Réel (Caverne, Cathédrale, Télépathie, Écho Spectral) · Bulles de Dialogue & Halos Vocaux VTT synchronisés · Annonceur de Combat Épique · Murmures Secrets IA sur Smartphone · Répartie d'Improvisation PNJ · Balises SFX Synchronisées `[sfx: ...]` · Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA, Sauvegarde & Import JSON, Persistance Forte IndexedDB, Scanner QR Caméra) · Split Layout 2 Colonnes Paysage Tablette · D-Pad VTT Tactile · Studio Cinéma d'Introduction · Table Virtuelle PixiJS v8 · Liseuse PDF 2.0 · Wiki Markdown & FTS5 · IA Locale Ollama*
 
 ---
 
@@ -16,7 +16,7 @@
 7. [Murs Line of Sight (LOS), Portes Interactives & Brouillard de Guerre](#7-murs-line-of-sight-los-portes-interactives--brouillard-de-guerre)
 8. [Ambiance Sonore, Studio Cinéma d'Introduction & Playlists Audio](#8-ambiance-sonore-studio-cinéma-dintroduction--playlists-audio)
 9. [Bibliothèque Céleste & Audio Grimoire (Streaming, Diffusion VTT & Packs)](#9-bibliothèque-céleste--audio-grimoire-streaming-diffusion-vtt--packs)
-10. [Liseuse de Campagne PDF 2.0 & Voix Neuronales IA (Le Grimoire Vivant)](#10-liseuse-de-campagne-pdf-20--voix-neuronales-ia-le-grimoire-vivant)
+10. [Studio de Narration, Voix Neuronales IA & Immersion DSP](#10-studio-de-narration-voix-neuronales-ia--immersion-dsp-v0818)
 11. [Gestion des Tokens, Visibilité MJ & ConditionWheel](#11-gestion-des-tokens-visibilité-mj--conditionwheel)
 12. [Moteur de Combat & Résolution des Tests Opposés (SL Net WFRP)](#12-moteur-de-combat--résolution-des-tests-opposés-sl-net-wfrp)
 13. [Journal de Campagne, Quêtes & Résumés de Session](#13-journal-de-campagne-quêtes--résumés-de-session)
@@ -297,6 +297,17 @@ Dans le menu **Outils > Gabarits de sorts** de la Table Virtuelle :
 - **Cube / Pavé 3D** : Idéal pour les sorts volumétriques à angles droits (*Silence*, *Zone de vérité*, *Nuage puant*, *Cage de force*, *Cube de gélatine*).
 - Chaque gabarit bénéficie d'une coloration élémentaire PixiJS v8 animée (Feu 🔥, Glace ❄️, Foudre ⚡, Poison 🧪, Obscurité 🌑, Radiance ✨) avec poignées de rotation et redimensionnement intuitives.
 
+### 💬 Bulles de Dialogue BD & Halos Vocaux VTT (v0.8.18) :
+Donnez vie à vos figurines et PNJ directement sur la carte :
+- **Bulle Stylée Synchronisée** : Dès qu'une voix IA lit une réplique ou qu'un dialogue de PNJ est joué, une bulle de bande dessinée sombre et dorée apparaît au-dessus du pion avec le nom du locuteur et son texte en direct.
+- **Halo d'Onde Sonore Animé** : Un anneau bleu azur pulsant entoure le token qui s'exprime, signalant instantanément visuellement quel personnage parle à la table.
+- **Synchronisation Écran Joueur / TV** : La bulle et le halo sonore sont fidèlement projetés sur la Vue Joueurs pour une immersion digne d'un jeu vidéo ou d'une série animée.
+
+### 🎭 Répartie d'Improvisation Immédiate sur PNJ (v0.8.18) :
+Vos joueurs posent une question inattendue à un garde ou un aubergiste ?
+- Faites un **clic droit** sur le token du PNJ sur la carte > cliquez sur **« 🎭 Faire parler ce PNJ (IA Vocale) »**.
+- Tapez une question ou cliquez directement sur le bouton rapide **Spontané** : l'IA locale (Ollama) génère une réplique théâtrale en accord avec son identité et la joue immédiatement avec la voix IA appropriée et la bulle de dialogue sur le pion !
+
 ### ☀️ Raccourcis Météo & Tactiques Réflexes :
 Pour réagir instantanément aux actions des joueurs sans chercher dans les sous-menus :
 - <kbd>W</kbd> : Fait défiler d'un coup de touche les ambiances météo (☀️ Dégagé ➔ 🌧️ Pluie ➔ ❄️ Neige ➔ 🌫️ Brouillard ➔ 🔥 Braises ➔ 🌩️ Orage).
@@ -413,35 +424,53 @@ Grimoire intègre une immense collection de pistes audio et bruitages profession
 
 ---
 
-## 10. Liseuse de Campagne PDF 2.0 & Voix Neuronales IA (Le Grimoire Vivant)
+## 10. Studio de Narration, Voix Neuronales IA & Immersion DSP (v0.8.18)
 
-La Liseuse de PDF de Grimoire transforme vos modules et livres de règles en une expérience interactive vivante :
+Grimoire intègre un véritable **Studio de Narration théâtral** et transforme vos scénarios, notes Markdown et PDF de règles en une expérience sonore cinématographique :
 
-### 1. Analyseur Multi-Colonnes & Désentrelacement Spatial
-- Lit les livres de règles en 1, 2 ou 3 colonnes (AD&D, Dragonlance, D&D 5e, Pathfinder, WFRP) dans l'ordre logique parfait.
-- Réparation automatique des césures de mots en bout de ligne et suppression des interférences entre colonnes voisines.
+### 1. 🎙️ La Console du Studio de Narration
+Accessible d'un clic via le bouton **« 🎙️ Narration & Voix IA »** dans la barre latérale gauche :
+- **Découpage Automatique des Répliques** : Collez n'importe quel texte ou scénario Markdown. Grimoire isole automatiquement la narration d'ambiance et les répliques de chaque personnage (entre guillemets ou tirets).
+- **Attribution des Rôles en Direct** : Assignez en 1 clic chaque réplique à un personnage de votre casting vocal ou à un token de la table VTT.
+- **Boutons de Lecture Segmentée** : Répétez ou déclenchez chaque réplique indépendamment, ou lancez la lecture intégrale avec enchaînement fluide.
 
-### 2. Lecteur par Boîte de Sélection Interactive (Drag-to-Select)
-- Maintenez le clic gauche et étirez un rectangle sur n'importe quelle zone de la page.
-- Le texte encadré est immédiatement extrait, analysé et lu à voix haute d'un clic.
+### 2. 👥 Casting de Voix Personnalisées & Modulation Fine
+Ne vous limitez plus à deux voix génériques :
+- **13 Voix Neuronales HD (Edge-TTS)** : Henri, Denise, Gérard, Eloise, Rémy, Vivienne, et leurs homologues anglophones et multilingues.
+- **Création & Gestion de Voix Sur-Mesure** : Créez vos propres profils vocaux (*« Chef de Garde Orque »*, *« Archimage Elfique »*, *« Reine Spectrale »*, *« Gobelin Sournois »*).
+- **Modulation de la Hauteur (Pitch)** : Ajustez la fréquence de **-50 Hz** (voix caverneuse, monstrueuse, profonde) à **+50 Hz** (voix aiguë, féerique ou enfantine).
+- **Modulation du Tempo (Rate)** : Ajustez la vitesse d'élocution de **0.5x** (parole lente et menaçante) à **1.5x** (panique ou excitation).
+- **Test d'Écoute Immédiat** : Testez votre profil vocal d'un clic avant de l'enregistrer dans votre coffre.
 
-### 3. Synthèse Vocale Neuronale IA & Mode Multi-Voix PNJ
-- Moteur Microsoft Azure / Edge TTS haute fidélité avec voix françaises naturelles et expressives.
-- **Mode Multi-Voix PNJ** : Détection automatique des dialogues entre guillemets pour alterner voix de narrateur et voix de personnages.
+### 3. 🏛️ Effets Acoustiques DSP & Lieux en Temps Réel
+Grâce au moteur de traitement du signal Web Audio API, la voix s'adapte instantanément à l'acoustique du décor :
+- `🎙️ Studio Normal` : Son de studio net, direct et chaleureux.
+- `🦇 Caverne / Donjon` : Réverbération sombre, profonde avec filtre passe-bas et écho spatialisé.
+- `⛪ Cathédrale / Grand Temple` : Grande nef majestueuse avec temps de réverbération long et solennel.
+- `🧠 Télépathie Mentale` : Passe-bande intracrânien cristallin et résonances psychiques.
+- `👻 Écho Spectral` : Traînée fantomatique avec délai croisé pour apparitions et revenants.
 
-### 4. Découpeur de Carte VTT en 1 Clic
-- Survolez une illustration de carte ou de plan dans votre PDF.
-- Utilisez l'outil de découpe pour envoyer instantanément l'image comme carte de bataille active sur la Table Virtuelle !
+### 4. 🔊 Balises Sonores Synchronisées dans vos Notes Markdown
+Insérez des bruitages et ambiances directement dans le cours de votre texte :
+- `[sfx: sword]` : Bruitage d'acier et choc d'épées.
+- `[sfx: thunder]` : Éclair foudroyant et tonnerre sourd.
+- `[sfx: magic]` : Chatoiement de sortilège arcanique.
+- `[sfx: monster]` : Rugissement terrifiant de créature.
+- `[cave]`, `[temple]`, `[telepathy]` : Changement instantané de l'acoustique de la scène.
+*Ces balises sont déclenchées automatiquement à la volée pendant la lecture vocale et restent invisibles à la prononciation.*
 
-### 5. Handouts & Révélations Joueurs
-- Projetez en 1 clic une illustration, lettre manuscrite ou indice secret sur le second écran joueur et sur les smartphones connectés au HUB Mobile.
+### 5. ✍️ Outils de Ponctuation pour la Narration Markdown
+Dans l'Éditeur Markdown, bénéficiez de commandes rapides pour normaliser vos dialogues :
+- Remplacement automatique des guillemets droits `"` par de vrais guillemets français `« ... »`.
+- Insertion de tirets cadratins `—` pour structurer les échanges de PNJ.
+- Ajout de points de suspension `...` pour rythmer les silences dramatiques.
 
-### 6. Détection de Dés (« Click-to-Roll »)
-- Toutes les mentions de formules de dés (`1d20+5`, `2d6+3`, `d100`) sont détectées automatiquement dans le texte et transformées en boutons cliquables avec lancer 3D physique et son réel.
-
-### 7. Cartes Narratives Découpées & Résumé IA
-- Onglet **Chapitres** : La page est découpée en cartes de scènes prêtes à jouer (Descriptions 🌲, Dialogues 💬, Combats ⚔️, Évènements 📜) avec temps de lecture estimé.
-- Bouton **🔮 Résumé IA (Ollama)** : Extrait en 5 secondes les Objectifs 🎯, Dangers ⚠️, Secrets 💡 et Trésors 💎 de la page.
+### 6. Liseuse PDF 2.0 & Drag-to-Select Box Reader
+- **Analyseur Multi-Colonnes** : Désentrelacement spatial et lecture fluide colonne par colonne sur les livres de règles (AD&D, D&D 5e, WFRP) sans mélange de lignes.
+- **Drag-to-Select Box Reader** : Encadrez n'importe quel bloc à la souris dans un PDF pour lancer sa lecture vocale instantanée ou l'extraire.
+- **Découpeur de Carte VTT en 1 Clic** : Capturez un plan dans le PDF pour le charger comme carte de bataille active sur la Table Virtuelle.
+- **Click-to-Roll** : Détection automatique des formules de dés (`1d20+5`, `2d6`) avec lancer physique 3D et bruitage réel.
+- **Résumé IA (Ollama)** : Extrait en 5 secondes les Objectifs 🎯, Dangers ⚠️, Secrets 💡 et Trésors 💎 de la page.
 
 ---
 
@@ -525,6 +554,12 @@ Besoin d'un aubergiste suspect, d'un garde corrompu ou d'un mercenaire en 3 seco
 2. Cliquez sur **⚡ Init** pour tirer l'initiative de tous les combattants ou classez-les par ordre décroissant d'Agilité.
 3. Utilisez les flèches **Suivant / Précédent** pour faire défiler les tours. Une bannière "AU TOUR DE..." annonce le combattant actif.
 
+### 🎙️ Annonceur Vocal de Combat Épique (v0.8.18)
+Ne perdez plus de temps à répéter qui doit jouer :
+- Dans le bandeau du Tracker d'Initiative, activez le bouton **🎙️ Annonceur Vocal**.
+- À chaque changement de tour, la voix neuronale IA annonce à haute voix le personnage dont c'est le tour (*« C'est à Madtrix d'agir ! »*, *« Tour de Garde Orque, préparez-vous ! »*).
+- Les passages de round sont ponctués par un roulement dramatique ou un gong solennel pour maintenir vos joueurs en alerte maximale !
+
 ### Calculateur de Tests Opposés WFRP (Degrés de Succès Nets)
 Ouvrez **🧙‍♂️ Outils MJ → 💥 Calculateur de Dégâts → Onglet 🎯 Opposition WFRP (SL)** :
 1. **Attaquant** : Entrez la Capacité de Combat (ex: 55) et le jet de dé réalisé (ex: 23). Grimoire calcule instantanément les Degrés de Succès (SL: +3).
@@ -592,6 +627,7 @@ Sur grand écran ou tablette en mode paysage ($\ge 860\text{px}$), l'application
 ### Fonctionnalités Mobiles Exclusives :
 - **👁️ Screen Wake Lock (Anti-Veille)** : Bouton dédié en haut de l'écran pour empêcher le smartphone de s'éteindre tout au long de la partie.
 - **🕹️ D-Pad Déplacement VTT** : Un pad directionnel sur l'onglet Combat permet au joueur de déplacer son propre pion case par case sur la carte du MJ avec un retour tactile (vibration).
+- **🤫 Murmures Secrets IA du MJ (v0.8.18)** : Depuis le volet *Joueurs Express*, le MJ peut cliquer sur l'icône de murmure pour transmettre un message secret ou une hallucination privée à un joueur spécifique. Le message s'affiche sur son mobile avec option de lecture vocale neuronale discrète au casque !
 - **🩸 Fiche Joueur Interactive** : Jauge de Vitalité sous forme de fiole de sang, caractéristiques, compétences, inventaire et fortune.
 - **🎨 Sketchpad Collaboratif** : Les joueurs dessinent leur plan tactique au doigt sur leur écran ; le tracé apparaît en direct sur l'écran du MJ.
 - **🎹 Soundboard Joueur** : Les joueurs peuvent déclencher des sons d'ambiance pour animer la table.

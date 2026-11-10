@@ -29,11 +29,12 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 ## ✨ En bref
 
 - 📝 **Éditeur Markdown** pour campagnes, PNJ, lieux, avec liens `[[Note]]` et dés cliquables
-- 🗺️ **Table virtuelle** (brouillard de guerre, lumière dynamique, visibilité des tokens MJ, météo)
+- 🗺️ **Table virtuelle (VTT PixiJS v8)** : brouillard de guerre, éclairage dynamique, météo, bulles de dialogue et halos vocaux
+- 🎙️ **Studio de Narration & Voix IA HD** : 13 voix neuronales, casting multi-acteurs (pitch/tempo), effets acoustiques DSP (Caverne, Cathédrale, Télépathie)
 - 🎬 **Studio Cinéma d'Introduction** (défilement 3D Star Wars, météo cinématique, voix-off IA avec ducking, casting des héros, playlists)
-- 🤖 **IA locale (Ollama)** : 100 % privée, hors-ligne
-- 📱 **Joueurs sur smartphone** : un simple QR code, rien à installer
-- 🎵 **Mixeur sonore & Playlists** : gestion de musiques perso, compresseur de normalisation et +800 pistes d'ambiance
+- 🤖 **IA locale (Ollama)** : 100 % privée, hors-ligne, réparties de PNJ instantanées
+- 📱 **Joueurs sur smartphone** : un simple QR code, fiches synchronisées, dés, D-Pad VTT et murmures secrets IA
+- 🎵 **Mixeur sonore, Soundscape & Balises `[sfx: ...]`** : +800 pistes, bruitages déclenchés dans les notes et compresseur studio
 - 🎥 **Tracking de figurines par webcam** (ArUco + bagues 3D)
 
 👇 La liste complète des fonctionnalités est juste en dessous.
@@ -92,14 +93,25 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 - **Zones de Terrain Spéciales** : Délimitation de zones de terrain difficile 🏔️, eau 🌊, feu 🔥, poison 🧪 ou zone sûre ✅.
 - **Épingles & Secrets du MJ (Map Pins)** : Épingles visibles uniquement par le MJ ou révélables aux joueurs d'un clic avec descriptions secrètes.
 - **Météo Dynamique** : Pluie, Orage (avec éclairs lumineux et tonnerre), Neige, Brouillard, Tempête de sable et Ciel dégagé.
+- **💬 Bulles de Dialogue & Halo Vocal VTT (v0.8.18)** : Lorsqu'un PNJ ou l'IA vocale parle, une bulle de bande dessinée stylée surgit au-dessus de son token, accompagnée d'un halo d'ondes sonores bleuté ondulant, synchronisé en temps réel sur l'écran MJ et la Vue Joueurs / TV.
+- **🎭 Improvisation Immédiate de PNJ en Jeu** : Clic droit sur n'importe quel token > *« 🎭 Faire parler ce PNJ (IA Vocale) »* : posez une question ou cliquez sur *Spontané* pour qu'Ollama génère une réplique percutante et qu'Edge-TTS la déclenche avec bulle de dialogue sur la carte.
 - **Calibration de Grille Rapide** : Outil de tracé 3x3 cases pour adapter instantanément n'importe quelle carte.
 - **Mesure de Distances** : Outil règle en temps réel (cases, pieds ou mètres).
 
-### 3. 📖 Liseuse de Campagne PDF 2.0 & Voix Neuronales IA (Le Grimoire Vivant)
+### 3. 🎙️ Studio de Narration, Voix Neuronales IA & Immersion DSP (v0.8.18)
+- **🎙️ Studio de Narration Dédié** : Console théâtrale multi-acteurs pour répéter, ajuster et lancer des scènes narratives avec alternance instantanée des rôles.
+- **👥 Casting de Campagne & Personnages Vocaux Sur-Mesure** : Créez, éditez et sauvegardez vos profils vocaux personnalisés (Orques rocailleux, Elfes éthérés, Nains bourrus, Spectres) avec modulation fine de la **Hauteur / Pitch** (-50 Hz à +50 Hz) et du **Tempo** (0.5x à 1.5x).
+- **🏛️ Effets Acoustiques DSP & Lieux en Temps Réel** : Traitement audio spatial Web Audio API (filtre biquad, reverb convolutive et delay) pour immerger la voix dans son environnement :
+  - `🎙️ Studio Normal` : Son de studio net et chaleureux.
+  - `🦇 Caverne / Donjon` : Réverbération sombre, profonde avec écho lointain.
+  - `⛪ Cathédrale / Grand Temple` : Réverbération majestueuse et solennelle de grande nef.
+  - `🧠 Télépathie Mentale` : Passe-bande éthéré et résonance intracrânienne.
+  - `👻 Écho Spectral` : Traînée fantomatique spectrale pour revenants et apparitions.
+- **🔊 Balises Sonores Synchronisées (`[sfx: ...]`)** : Insérez `[sfx: sword]`, `[sfx: thunder]`, `[sfx: magic]`, `[sfx: monster]` ou `[cave]` directement dans vos notes Markdown. Les bruitages se déclenchent automatiquement au fil de la lecture vocale sans être prononcés à voix haute.
 - **Liseuse PDF Vectorielle HD** : Affichage fluide avec zoom, navigation par page, recherche textuelle et sommaire interactif.
 - **Analyseur Multi-Colonnes & Désentrelacement Spatial** : Reconstitution automatique de l'ordre de lecture logique sur les livres en 1, 2 ou 3 colonnes (type AD&D, Dragonlance, D&D 5e, Pathfinder) avec réparation des césures de mots et élimination des interférences de lignes.
 - **Lecteur par Boîte de Sélection Interactive (Drag-to-Select)** : Encadrez n'importe quel paragraphe ou bloc de texte à la souris pour lancer sa lecture vocale instantanée ou l'extraire.
-- **Synthèse Vocale Neuronale IA (Microsoft Azure / Edge TTS)** : Voix ultra-réalistes et expressives (Narrateur Henri, Denise, etc.) avec vitesse et tonalité ajustables.
+- **Synthèse Vocale Neuronale IA (Microsoft Azure / Edge TTS)** : 13 voix ultra-réalistes et expressives (Narrateur Henri, Denise, Gérard, Éloïse, Rémy, etc.) avec vitesse et tonalité ajustables.
 - **Mode Multi-Voix PNJ Automatique** : Détection automatique des dialogues entre guillemets et alternance de voix (Narrateur, PNJ masculins, féminins, monstres).
 - **Auto-Ducking Musical** : Baisse automatique et douce du volume sonore ambiant pendant la lecture vocale.
 - **Cartes Narratives Découpées (Onglet Chapitres)** : Découpe intelligente de la page en cartes de scènes (Descriptions 🌲, Dialogues 💬, Combats ⚔️, Évènements 📜) avec temps de lecture et bouton de lecture en 1 clic.
@@ -110,7 +122,8 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 - **Résumé de Scène par IA Locale (Ollama)** : Extraction en 1 clic des Objectifs 🎯, Dangers ⚠️, Secrets 💡 et Trésors 💎.
 
 ### 4. 👥 Multi-Écrans & HUB Mobile Joueur PWA
-- **Vue Joueur Dédiée (Player View)** : Affichage sur 2ème écran / TV / Vidéoprojecteur sans aucune interface MJ, avec synchronisation du brouillard de guerre, de l'éclairage et mode Écran Noir (Blackout).
+- **Vue Joueur Dédiée (Player View)** : Affichage sur 2ème écran / TV / Vidéoprojecteur sans aucune interface MJ, avec synchronisation du brouillard de guerre, de l'éclairage, des bulles de dialogue et mode Écran Noir (Blackout).
+- **🤫 Murmures Secrets IA sur Smartphone (v0.8.18)** : Le MJ peut chuchoter un secret depuis le volet Joueurs Express directement dans le casque ou l'écran du joueur ciblé avec synthèse vocale neuronale privée.
 - **Serveur Web Mobile Intégré (Axum + WebSockets)** : Connexion instantanée des joueurs par simple scan de QR Code (zéro installation requise).
 - **Mode PWA & Screen Wake Lock** : L'écran des smartphones reste allumé pendant toute la session sans mise en veille.
 - **🕹️ D-Pad Tactile VTT** : Les joueurs déplacent leur propre pion sur la grille de la table virtuelle directement depuis leur mobile.
@@ -131,6 +144,7 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
   - **Protection Mobile Dédiée** : Proposition de copie séparée `[Titre] (PC)` lors du téléchargement d'une note déjà modifiée sur le smartphone.
 
 ### 5. 🧙‍♂️ Outils du Maître du Jeu & Générateurs
+- **🎙️ Annonceur Vocal de Combat Épique (v0.8.18)** : Dans le Tracker d'Initiative, activez le bouton microphone 🎙️ pour que l'IA vocale annonce automatiquement chaque tour de jeu à haute voix (*« C'est au tour de Madtrix ! »*, *« Tour de Garde Orque, préparez-vous ! »*), avec retentissement de gong dramatique et avertissements de round immersifs.
 - **Écran du MJ Tactique (Dashboard)** : Vue d'ensemble de tous les héros, PV, CA et modificateurs.
 - **Tracker d'Initiative & Combat** : Gestion des tours, décompte des rounds et états de combat.
 - **Générateur de Donjons Procéduraux ⟷ VTT Sync** : Création automatique de plans de donjons complets (pièces, couloirs, salles de boss, autels, cryptes, dalles piégées) avec projection instantanée des murs physiques (LOS) et des sources lumineuses sur la Table Virtuelle.
