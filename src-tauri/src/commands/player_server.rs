@@ -710,24 +710,23 @@ pub async fn delete_player_account(account_name: String) -> Result<(), String> {
 /// quel site web ouvert sur le PC du MJ pouvait lire le vault
 /// (notes, comptes joueurs) via http://localhost:7438 avec `permissive`.
 fn hub_cors() -> CorsLayer {
-    let trusted_origins = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://localhost",
-        "https://localhost",
-        "capacitor://localhost",
-        "ionic://localhost",
-        "http://localhost:7438",
-        "http://127.0.0.1:7438",
-        "https://lordmadtrix.github.io",
-    ];
-    let origins: Vec<HeaderValue> = trusted_origins
-        .iter()
-        .filter_map(|o| HeaderValue::from_str(o).ok())
-        .collect();
+    use tower_http::cors::AllowOrigin;
     CorsLayer::new()
-        .allow_origin(origins)
+        .allow_origin(AllowOrigin::predicate(|origin: &HeaderValue, _| {
+            if let Ok(s) = origin.to_str() {
+                s.starts_with("http://localhost")
+                    || s.starts_with("https://localhost")
+                    || s.starts_with("http://127.0.0.1")
+                    || s.starts_with("capacitor://")
+                    || s.starts_with("ionic://")
+                    || s.starts_with("http://192.168.")
+                    || s.starts_with("http://10.")
+                    || s.starts_with("http://172.")
+                    || s == "https://lordmadtrix.github.io"
+            } else {
+                false
+            }
+        }))
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([header::CONTENT_TYPE])
 }
