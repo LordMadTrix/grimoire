@@ -76,3 +76,9 @@ mapper-rpg-extracted/
 
 # Superpowers temporary sessions
 .superpowers/
+
+# Clés de signature Android (ne jamais commiter)
+*.p12
+*.jks
+*.keystore
+keystore-password.txt

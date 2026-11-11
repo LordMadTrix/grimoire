@@ -102,17 +102,29 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: build Android APK
+      - name: build Android APK (signée avec la clé release fixe)
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           cd player-companion/android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 manquant : l'APK ne peut pas être signé."
+            exit 1
+          fi
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/grimoire-release.p12"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
+          ./gradlew assembleRelease
+          rm -f "$ANDROID_KEYSTORE_PATH"
 
       - name: upload APK to release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: player-companion/android/app/build/outputs/apk/debug/app-debug.apk
+          # normalize-release-assets.sh le renomme en Grimoire_Compagnon_V<version>.apk
+          files: player-companion/android/app/build/outputs/apk/release/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -46,6 +46,7 @@ declare -A RENAMES=(
   ["Grimoire-${VERSION}-1.x86_64.rpm"]="Grimoire_V${VERSION}_X86.rpm"
   ["Grimoire_${VERSION}_aarch64.dmg"]="Grimoire_V${VERSION}_X86.dmg"
   ["app-debug.apk"]="Grimoire_Compagnon_V${VERSION}.apk"
+  ["app-release.apk"]="Grimoire_Compagnon_V${VERSION}.apk"
   # NB : Grimoire_aarch64.app.tar.gz (bundle updater macOS) volontairement non renommé —
   # son URL doit rester référençable par l'updater Tauri.
 )
