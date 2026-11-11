@@ -17,10 +17,10 @@ Installers:
   - Architecture: x64
     InstallerType: inno
     InstallerUrl: https://github.com/LordMadTrix/grimoire/releases/download/v0.8.21/Grimoire_V0.8.21_X86.exe
-    InstallerSha256: SHA256_A_REMPLIR_APRES_RELEASE
+    InstallerSha256: e7a7a69202de5faeef2510c568438c9f403b936852a4930e4a95caccf0764c16
   - Architecture: x64
     InstallerType: wix
     InstallerUrl: https://github.com/LordMadTrix/grimoire/releases/download/v0.8.21/Grimoire_V0.8.21_X86.msi
-    InstallerSha256: SHA256_A_REMPLIR_APRES_RELEASE
+    InstallerSha256: 7c45b62e92790754d43aa3b085bc41193cce2ad77acc5b1b3e1962460b810077
 ManifestType: installer
 ManifestVersion: 1.6.0

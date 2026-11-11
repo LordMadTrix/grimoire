@@ -11,7 +11,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-VERSION=$(grep '"version"' "$ROOT_DIR/package.json" | head -n 1 | awk -F '"' '{print $4}')
+# Version passée en argument (tag de la release), sinon celle de package.json
+VERSION="${1:-$(grep '"version"' "$ROOT_DIR/package.json" | head -n 1 | awk -F '"' '{print $4}')}"
 IDENTIFIER="madtrix.Grimoire"
 PUBLISHER="madtrix"
 REPO="LordMadTrix/grimoire"
