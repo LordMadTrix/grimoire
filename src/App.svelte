@@ -48,7 +48,7 @@
     syncCombatantsToPlayerView, addCombatLogEntry, updatePlayerHpByName,
   } from '$lib/stores/vtt.svelte';
   import { loadAndDisplayMap } from '$lib/services/mapResolver';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
 
   function handleSpellPlace(x: number, y: number, radius?: number, angle?: number, length?: number) {
     addSpell({
@@ -990,6 +990,16 @@
           <InitiativeTracker />
         {/if}
       </div>
+    {:else if viewMode === 'vtt'}
+      <div class="vtt-empty-state">
+        <span class="vtt-empty-icon">🗺️</span>
+        <h2>Aucune carte sur la table</h2>
+        <p>Chargez une carte via le menu <strong>🗺️ Carte → Charger une carte</strong> de la barre d'outils, ou créez une nouvelle session.</p>
+        <div class="vtt-empty-actions">
+          <button class="vtt-empty-btn primary" onclick={handleOpenMapEditor}>🎨 Créer une session</button>
+          <button class="vtt-empty-btn" onclick={() => { viewMode = 'editor'; }}>📝 Ouvrir les notes</button>
+        </div>
+      </div>
     {/if}
 
     <!-- Autres vues Markdown / Graphe / Timeline / Calendrier -->
@@ -1275,7 +1285,65 @@
     min-width: 0;
   }
 
+  /* ── VTT sans carte ───────────────────────────────────────── */
 
+  .vtt-empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .vtt-empty-icon {
+    font-size: 3rem;
+    opacity: 0.8;
+  }
+
+  .vtt-empty-state h2 {
+    margin: 0;
+    color: var(--accent);
+    font-size: 1.3rem;
+  }
+
+  .vtt-empty-state p {
+    margin: 0;
+    max-width: 420px;
+    line-height: 1.5;
+  }
+
+  .vtt-empty-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .vtt-empty-btn {
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .vtt-empty-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .vtt-empty-btn.primary {
+    background: rgba(229, 168, 83, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 
   /* ── Scene Tabs (multimap) ────────────────────────────────── */
 

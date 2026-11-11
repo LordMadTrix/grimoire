@@ -77,7 +77,7 @@
     setFeedback('🍄 Alerte Spores Toxiques envoyée à tous les aventuriers connectés !');
   }
 
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
 
   // Quick action: Inflict poison to selected player (Idea 4)
   function inflictPoisonToSelected() {

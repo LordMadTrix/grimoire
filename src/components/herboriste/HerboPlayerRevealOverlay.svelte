@@ -17,7 +17,7 @@
   } = $props();
 
   import { onMount } from 'svelte';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
 
   let isVisible = $state(false);
   let idClues = $state<string[]>([]);

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { isTauri } from '$lib/api';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,8 @@ export function isConfigLoading() { return loading; }
 export function getConfigError() { return error; }
 
 export async function loadGameConfig(vaultPath: string) {
+  // Le système de jeu est lu par le backend Rust : rien à charger en mode web.
+  if (!isTauri()) return;
   loading = true;
   error = null;
   try {

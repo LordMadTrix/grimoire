@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
   import { open } from '@tauri-apps/plugin-dialog';
   import { onMount, onDestroy } from 'svelte';
   import { openVault } from '$lib/api';

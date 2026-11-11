@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
   import {
     startPlayerServer, stopPlayerServer, broadcastToPlayers,
     getPlayerConnections, getServerStatus, setServerVaultPath,

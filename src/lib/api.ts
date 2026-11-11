@@ -502,7 +502,7 @@ export async function checkForUpdates(): Promise<UpdateManifest | null> {
 }
 
 export async function getCurrentVersion(): Promise<string> {
-  if (!isTauri()) return '0.8.3';
+  if (!isTauri()) return __APP_VERSION__;
   return invoke<string>('get_current_version');
 }
 

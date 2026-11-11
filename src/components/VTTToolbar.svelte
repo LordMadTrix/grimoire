@@ -1610,6 +1610,7 @@
     flex-shrink: 0;
     gap: 6px;
     overflow: visible !important;
+    container: vtt-toolbar / inline-size;
   }
 
   /* ── Sélecteur d'Espace de Travail Unifié ── */
@@ -2383,8 +2384,9 @@
     color: #f87171;
   }
 
-  /* ── Responsive pour résolutions petites et moyennes (< 1400px et < 1150px) ── */
-  @media (max-width: 1400px) {
+  /* ── Responsive basé sur la largeur réelle de la barre (et non de la fenêtre,
+        qui inclut la barre latérale) ── */
+  @container vtt-toolbar (max-width: 1320px) {
     .ws-label {
       display: none;
     }
@@ -2404,17 +2406,33 @@
     }
   }
 
-  @media (max-width: 1150px) {
-    .menubar-style {
-      gap: 3px;
-      padding: 0 4px;
-    }
+  @container vtt-toolbar (max-width: 1040px) {
     .menu-btn {
       padding: 4px 4px;
       font-size: 10px;
     }
     .toolbar-permanent {
       gap: 2px;
+    }
+  }
+
+  @container vtt-toolbar (max-width: 940px) {
+    .menu-btn {
+      padding: 4px 2px;
+    }
+    .toolbar-permanent {
+      gap: 1px;
+    }
+    .toolbar-permanent > :global(*) {
+      padding-left: 2px;
+      padding-right: 2px;
+    }
+  }
+
+  @media (max-width: 1300px) {
+    .menubar-style {
+      gap: 3px;
+      padding: 0 4px;
     }
   }
 </style>

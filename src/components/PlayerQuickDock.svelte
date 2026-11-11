@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { fade, slide } from 'svelte/transition';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
   import {
     getPlayerConnections, applyDamageToPlayer, applyConditionToPlayer,
     removeConditionFromPlayer, requestRoll, pushMapSnapshot, sendPrivateMessage, broadcastToPlayers,

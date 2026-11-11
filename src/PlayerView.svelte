@@ -1,7 +1,7 @@
 <script lang="ts">
   import MapCanvas from './components/MapCanvas.svelte';
   import AudioPlayer from './components/AudioPlayer.svelte';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
   import { onMount } from 'svelte';
   import { vttStore, triggerVttProjectile, type FowShape, type Token, type MapPin, type SpellMarker, type DrawPath, type WallDef, type AudioZoneDef } from '$lib/stores/vtt.svelte';
   import { isTauri, closePlayerView, togglePlayerViewFullscreen, movePlayerViewToMonitor, listMonitors, getPlayerViewStatus } from '$lib/api';

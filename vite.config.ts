@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import path from 'path'
+import { readFileSync } from 'fs'
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }
 
 /**
  * Google Drive sert TOUS les fichiers en `application/octet-stream`
@@ -29,6 +32,9 @@ const DRIVE_MEDIA_MIME: Record<string, string> = {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [svelte()],
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   resolve: {
     alias: {
       '$lib': path.resolve('./src/lib'),

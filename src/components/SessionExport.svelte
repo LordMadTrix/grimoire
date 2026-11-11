@@ -2,7 +2,7 @@
   import { vttStore } from '$lib/stores/vtt.svelte';
   import { readFile, askOllama, transcribeStatus, transcribeDownloadModel, transcribeOpenBinFolder, transcribeAudio, type TranscribeStatus } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen } from '$lib/tauriEvent';
   import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 
   let visible = $state(false);
