@@ -262,6 +262,16 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.20 — Table du MJ trouvée par son nom, mises à jour de l'APK & correctifs
+
+- **📱 Compagnon : la table trouvée par son nom** : le bouton `🔍 Trouver` balaie tout le Wi-Fi et affiche les tables disponibles par leur nom (*« Ma Campagne (MADPC) »*) au lieu d'une adresse IP. Au premier lancement, la recherche démarre toute seule ; si l'IP du PC change, l'appli retrouve la table par son nom et se reconnecte.
+- **⬇️ Mises à jour de l'APK** : l'appli Android signale qu'une nouvelle version est publiée sur GitHub et propose de la télécharger. Le numéro de version de l'APK suit désormais celui de Grimoire.
+- **🔊⚔️ Liaison smartphone → MJ** : les sons (Cor, Choc, Sort) et les actions de combat (Attaque, Esquive, Charge, Désengagement) envoyés depuis le téléphone arrivent enfin chez le MJ (notification + log de combat).
+- **🗺️ Interface** : écran d'accueil quand aucune carte n'est sur la table, barre d'outils VTT qui ne déborde plus sur les écrans moyens.
+- **🔒 Sécurité** : le hub mobile vérifie l'hôte exact des origines autorisées (les domaines déguisés comme `localhost.exemple.com` sont refusés).
+
+---
+
 ## 🌟 Nouveautés v0.8.19 — Dérouleur de Scènes MJ, FX de Projectiles, Voix Divines/Démoniaques, Log de Combat & Auto-Scan Mobile
 
 - **🎬 Dérouleur de Scènes du MJ (Scene Runner)** : Bandeau supérieur escamotable permettant de préparer à l'avance les scènes clés de la séance (*1. Auberge, 2. Embuscade en Forêt, 3. Assaut sous l'Orage, 4. Donjon des Oubliés*). En un seul clic, Grimoire applique simultanément la météo, l'éclairage d'ambiance, la carte VTT, l'acoustique sonore et les notes du MJ, avec navigation fluide `◀ Précédent` / `Suivant ▶`.

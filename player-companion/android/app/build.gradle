@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Version de l'APK = version de Grimoire (package.json racine), pour qu'Android
+// reconnaisse chaque release comme une mise à jour. 0.8.20 -> versionCode 820.
+def grimoireVersion = new groovy.json.JsonSlurper()
+        .parse(rootProject.file('../../package.json')).version
+def (vMajor, vMinor, vPatch) = grimoireVersion.tokenize('.').collect { it.replaceAll('[^0-9].*', '').toInteger() }
+
 android {
     namespace "net.madtrix.grimoire.companion"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +13,8 @@ android {
         applicationId "net.madtrix.grimoire.companion"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode vMajor * 10000 + vMinor * 100 + vPatch
+        versionName grimoireVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

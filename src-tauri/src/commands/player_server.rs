@@ -713,22 +713,85 @@ fn hub_cors() -> CorsLayer {
     use tower_http::cors::AllowOrigin;
     CorsLayer::new()
         .allow_origin(AllowOrigin::predicate(|origin: &HeaderValue, _| {
-            if let Ok(s) = origin.to_str() {
-                s.starts_with("http://localhost")
-                    || s.starts_with("https://localhost")
-                    || s.starts_with("http://127.0.0.1")
-                    || s.starts_with("capacitor://")
-                    || s.starts_with("ionic://")
-                    || s.starts_with("http://192.168.")
-                    || s.starts_with("http://10.")
-                    || s.starts_with("http://172.")
-                    || s == "https://lordmadtrix.github.io"
-            } else {
-                false
-            }
+            origin.to_str().map(is_trusted_origin).unwrap_or(false)
         }))
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([header::CONTENT_TYPE])
+}
+
+/// Vérifie une origine en comparant l'HÔTE exact (et non un préfixe de chaîne :
+/// `http://localhost.pirate.com` ou `http://10.pirate.com` doivent être refusés).
+/// Acceptés : localhost / 127.0.0.1 (dev Vite, APK Capacitor en `http://localhost`),
+/// IPv4 privées du LAN, schémas natifs Capacitor/Ionic, carnet MJ sur GitHub Pages.
+fn is_trusted_origin(origin: &str) -> bool {
+    if origin == "https://lordmadtrix.github.io" {
+        return true;
+    }
+    let Some((scheme, rest)) = origin.split_once("://") else {
+        return false;
+    };
+    // Une origine n'a ni chemin ni identifiants : on isole l'hôte (port retiré).
+    if rest.contains('/') || rest.contains('@') {
+        return false;
+    }
+    let host = match rest.rsplit_once(':') {
+        Some((h, port)) if !port.is_empty() && port.chars().all(|c| c.is_ascii_digit()) => h,
+        Some(_) => return false,
+        None => rest,
+    };
+    match scheme {
+        "capacitor" | "ionic" => host == "localhost",
+        "http" | "https" => {
+            if host == "localhost" {
+                return true;
+            }
+            match host.parse::<std::net::Ipv4Addr>() {
+                Ok(ip) => ip.is_loopback() || (scheme == "http" && ip.is_private()),
+                Err(_) => false,
+            }
+        }
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod cors_tests {
+    use super::is_trusted_origin;
+
+    #[test]
+    fn accepte_les_origines_de_confiance() {
+        for o in [
+            "http://localhost",
+            "http://localhost:5173",
+            "https://localhost",
+            "http://127.0.0.1:1420",
+            "capacitor://localhost",
+            "ionic://localhost",
+            "http://192.168.0.155:7438",
+            "http://10.0.0.12",
+            "http://172.20.1.5:7438",
+            "https://lordmadtrix.github.io",
+        ] {
+            assert!(is_trusted_origin(o), "devrait accepter {o}");
+        }
+    }
+
+    #[test]
+    fn refuse_les_domaines_deguises() {
+        for o in [
+            "http://localhost.pirate.com",
+            "http://127.0.0.1.nip.io",
+            "http://10.pirate.com",
+            "http://192.168.pirate.com",
+            "http://172.217.0.1",
+            "https://lordmadtrix.github.io.pirate.com",
+            "capacitor://pirate.com",
+            "http://localhost:80@pirate.com",
+            "null",
+        ] {
+            assert!(!is_trusted_origin(o), "devrait refuser {o}");
+        }
+    }
 }
 
 /// Défense en profondeur : le chemin résolu (symlinks compris) doit rester
@@ -773,16 +836,45 @@ async fn serve_carnet_mj() -> impl IntoResponse {
 async fn handle_status(
     State(state): State<std::sync::Arc<ServerInner>>,
 ) -> impl IntoResponse {
-    let vp = state.current_vault_path.lock().await.is_some();
+    let vault = state.current_vault_path.lock().await.clone();
     let port = state.port.lock().await.unwrap_or(7438);
+    let pc_name = pc_display_name();
+    let campaign = vault.as_deref().and_then(campaign_name_from_path);
+    let table_name = match &campaign {
+        Some(c) => format!("{c} ({pc_name})"),
+        None => format!("Grimoire de {pc_name}"),
+    };
     axum::Json(serde_json::json!({
         "status": "ok",
         "app": "grimoire",
         "service": "grimoire_desktop",
         "version": env!("CARGO_PKG_VERSION"),
         "port": port,
-        "has_vault": vp,
+        "has_vault": vault.is_some(),
+        // Nom lisible affiché par l'APK à la place de l'IP
+        "table_name": table_name,
+        "pc_name": pc_name,
+        "campaign": campaign,
     }))
+}
+
+/// Nom de la machine du MJ (ex. « MADPC »), utilisé pour reconnaître la table.
+fn pc_display_name() -> String {
+    std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "PC du MJ".to_string())
+}
+
+/// Nom de la campagne = dernier dossier du chemin du vault.
+fn campaign_name_from_path(path: &str) -> Option<String> {
+    path.trim_end_matches(['/', '\\'])
+        .rsplit(['/', '\\'])
+        .next()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 /// Liste publique des personnages disponibles pour sélection sur smartphone
@@ -1349,6 +1441,13 @@ async fn handle_player_message(
         "roll" | "action" => {
             emit_to_gm(state, &format!("player_{}", env.event), serde_json::json!({
                 "id": player_id, "name": player_name, "data": env.data
+            })).await;
+        }
+        // Soundboard du smartphone (Cor, Choc, Sort…)
+        "play_sound" => {
+            emit_to_gm(state, "player_play_sound", serde_json::json!({
+                "id": player_id, "name": player_name,
+                "sound_id": env.data.get("id").and_then(|v| v.as_str()).unwrap_or(""),
             })).await;
         }
         // Chat privé vers le MJ uniquement

@@ -33,5 +33,11 @@ for (const m of mappings) {
   }
 }
 
+// Version embarquée dans l'APK (détection des mises à jour côté téléphone)
+const { version } = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8'));
+const indexPath = path.join(targetDir, 'index.html');
+fs.writeFileSync(indexPath, fs.readFileSync(indexPath, 'utf-8').replaceAll('__GRIMOIRE_VERSION__', version));
+console.log(`Embedded APK version: ${version}`);
+
 console.log('Player companion assets synced successfully.');
 

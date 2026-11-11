@@ -467,6 +467,24 @@
           });
         }));
 
+        // Actions de combat envoyées depuis le smartphone (Attaque, Esquive, Charge…)
+        _unlistenApp.push(await listen('player_action', (e: any) => {
+          const { name, data } = e.payload;
+          const labels: Record<string, string> = {
+            attack: '⚔️ Attaque normale',
+            dodge: '🛡️ Esquive / Parade',
+            charge: '🏃 Charge !',
+            disengage: '💨 Désengagement',
+          };
+          const actionText = labels[data?.type] ?? `🎯 ${data?.type ?? 'Action'}`;
+          notifStore.add('🎯', name, actionText, 'info', 5000);
+          addCombatLogEntry({
+            type: 'info',
+            actor: name,
+            detail: actionText,
+          });
+        }));
+
         _unlistenApp.push(await listen('player_character_update', (e: any) => {
           const { name, character } = e.payload;
           if (character && character.hp !== undefined) {

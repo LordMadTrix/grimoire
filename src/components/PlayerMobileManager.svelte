@@ -375,6 +375,9 @@
         const d = payload.data;
         addLog(payload.name, `🎲 ${d.formula} → ${d.total}`);
       }));
+      unlistens.push(await listen<any>('player_action', ({ payload }) => {
+        addLog(payload.name, `🎯 action : ${payload.data?.type ?? '?'}`);
+      }));
       unlistens.push(await listen<any>('player_chat', ({ payload }) => {
         const prefix = payload.private ? '🔒 ' : payload.group ? '👥 ' : '';
         addLog(payload.name, prefix + payload.message);

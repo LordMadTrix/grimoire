@@ -1,6 +1,6 @@
 {
-  "version": "0.8.17",
-  "changelog": "Version 0.8.17 : Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA) avec persistance IndexedDB permanente (zéro perte de fiche), scanner QR Code par caméra intégré, sauvegarde/import JSON en 1 clic, mode hors-ligne complet et synchronisation bidirectionnelle automatique avec le MJ.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.17",
-  "release_date": "2026-11-08"
+  "version": "0.8.20",
+  "changelog": "Version 0.8.20 : l'appli Compagnon trouve la table du MJ par son NOM (plus besoin de taper l'IP) et la retrouve seule si l'adresse change, détection des nouvelles versions de l'APK, sons et actions de combat du smartphone désormais reçus par le MJ, écran VTT sans carte, barre d'outils adaptée aux écrans moyens et correctif de sécurité CORS du hub mobile.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.20",
+  "release_date": "2026-11-11"
 }
