@@ -1094,58 +1094,13 @@
                       <div class="sub-status">
                         <span class={p.is_online ? "dot-online" : "dot-offline"}></span>
                         <span>{p.is_online ? (p.character?.voc || p.character?.race || 'En ligne') : 'Hors-ligne'}</span>
-                        <div class="compact-hp-box" title="Modifier directement les PV actuels ou PV Max">
-                          <input
-                            type="number"
-                            class="compact-hp-inp cur"
-                            value={hpData.hp}
-                            min="0"
-                            title="Modifier les PV actuels de {p.name}"
-                            onclick={(e) => e.stopPropagation()}
-                            onchange={(e) => setPlayerHpDirect(p, parseInt(e.currentTarget.value) || 0)}
-                          />
-                          <span class="compact-hp-slash">/</span>
-                          <input
-                            type="number"
-                            class="compact-hp-inp max"
-                            value={hpData.maxHp}
-                            min="1"
-                            title="Modifier les PV Max de {p.name}"
-                            onclick={(e) => e.stopPropagation()}
-                            onchange={(e) => setPlayerMaxHpDirect(p, parseInt(e.currentTarget.value) || 1)}
-                          />
-                          <span class="compact-hp-unit">PV</span>
-                        </div>
                       </div>
                     </div>
 
-                    <!-- Actions Carte : Placer, Focus ou Poser + Dépliage -->
-                    <div class="map-action-col">
+                    <!-- Outils rapides en haut à droite : Chuchoter & Déplier -->
+                    <div class="player-top-tools">
                       <button
-                        class="map-btn place-target-btn"
-                        onclick={() => startPlacement(p)}
-                        title="📍 Placer où je veux : cliquez ici puis cliquez n'importe où sur la carte"
-                      >
-                        📍 Placer
-                      </button>
-                      {#if onMap}
-                        <button
-                          class="map-btn focus-btn"
-                          onclick={() => centerCameraOnPlayer(p)}
-                          title="Centrer la caméra sur ce pion (sur la carte)"
-                        >
-                          🎯 Focus
-                        </button>
-                      {:else}
-                        <button
-                          class="map-btn spawn-btn"
-                          onclick={() => spawnPlayerTokenNow(p)}
-                          title="Poser immédiatement le token au centre de l'écran"
-                        >
-                          ➕ Poser
-                        </button>
-                      {/if}
-                      <button
+                        type="button"
                         class="map-btn whisper-btn"
                         onclick={() => openWhisperModal(p)}
                         title="🤫 Chuchoter un secret IA sur le smartphone de ce joueur"
@@ -1153,6 +1108,7 @@
                         🤫
                       </button>
                       <button
+                        type="button"
                         class="map-btn expand-btn"
                         class:active={isExpanded}
                         onclick={() => togglePlayerExpand(p.name)}
@@ -1163,12 +1119,67 @@
                     </div>
                   </div>
 
-                  <!-- Jauge PV fine intégrée -->
-                  <div class="mini-hp-track">
-                    <div 
-                      class="mini-hp-fill" 
-                      style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
-                    ></div>
+                  <!-- Ligne Basse : Jauge PV fine + Santé & Actions Placer/Focus alignés à droite -->
+                  <div class="player-footer-row">
+                    <div class="mini-hp-track">
+                      <div 
+                        class="mini-hp-fill" 
+                        style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
+                      ></div>
+                    </div>
+
+                    <div class="hp-and-map-actions">
+                      <div class="compact-hp-box" title="Modifier directement les PV actuels ou PV Max">
+                        <input
+                          type="number"
+                          class="compact-hp-inp cur"
+                          value={hpData.hp}
+                          min="0"
+                          title="Modifier les PV actuels de {p.name}"
+                          onclick={(e) => e.stopPropagation()}
+                          onchange={(e) => setPlayerHpDirect(p, parseInt(e.currentTarget.value) || 0)}
+                        />
+                        <span class="compact-hp-slash">/</span>
+                        <input
+                          type="number"
+                          class="compact-hp-inp max"
+                          value={hpData.maxHp}
+                          min="1"
+                          title="Modifier les PV Max de {p.name}"
+                          onclick={(e) => e.stopPropagation()}
+                          onchange={(e) => setPlayerMaxHpDirect(p, parseInt(e.currentTarget.value) || 1)}
+                        />
+                        <span class="compact-hp-unit">PV</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="map-btn place-target-btn"
+                        onclick={() => startPlacement(p)}
+                        title="📍 Placer où je veux : cliquez ici puis cliquez n'importe où sur la carte"
+                      >
+                        📍 Placer
+                      </button>
+                      {#if onMap}
+                        <button
+                          type="button"
+                          class="map-btn focus-btn"
+                          onclick={() => centerCameraOnPlayer(p)}
+                          title="Centrer la caméra sur ce pion (sur la carte)"
+                        >
+                          🎯 Focus
+                        </button>
+                      {:else}
+                        <button
+                          type="button"
+                          class="map-btn spawn-btn"
+                          onclick={() => spawnPlayerTokenNow(p)}
+                          title="Poser immédiatement le token au centre de l'écran"
+                        >
+                          ➕ Poser
+                        </button>
+                      {/if}
+                    </div>
                   </div>
 
                   <!-- Contrôles détaillés (dépliables d'un clic pour ne pas alourdir la carte) -->
@@ -1288,57 +1299,13 @@
                       </div>
                       <div class="sub-status">
                         <span>{vc.data.voc || vc.data.race || 'Fiche Coffre'}</span>
-                        <div class="compact-hp-box" title="Modifier directement les PV ou PV Max">
-                          <input
-                            type="number"
-                            class="compact-hp-inp cur"
-                            value={hpData.hp}
-                            min="0"
-                            title="Modifier les PV de {vc.name}"
-                            onclick={(e) => e.stopPropagation()}
-                            onchange={(e) => setVaultCharHpDirect(vc, parseInt(e.currentTarget.value) || 0)}
-                          />
-                          <span class="compact-hp-slash">/</span>
-                          <input
-                            type="number"
-                            class="compact-hp-inp max"
-                            value={hpData.maxHp}
-                            min="1"
-                            title="Modifier les PV Max de {vc.name}"
-                            onclick={(e) => e.stopPropagation()}
-                            onchange={(e) => setVaultCharMaxHpDirect(vc, parseInt(e.currentTarget.value) || 1)}
-                          />
-                          <span class="compact-hp-unit">PV</span>
-                        </div>
                       </div>
                     </div>
 
-                    <div class="map-action-col">
+                    <!-- Outils rapides en haut à droite : Déplier -->
+                    <div class="player-top-tools">
                       <button
-                        class="map-btn place-target-btn"
-                        onclick={() => startPlacement({ id: vc.path, name: vc.name, character: vc.data })}
-                        title="📍 Placer où je veux : cliquez ici puis cliquez n'importe où sur la carte"
-                      >
-                        📍 Placer
-                      </button>
-                      {#if onMap}
-                        <button
-                          class="map-btn focus-btn"
-                          onclick={() => centerCameraOnPlayer(vc)}
-                          title="Centrer la caméra sur ce token"
-                        >
-                          🎯 Focus
-                        </button>
-                      {:else}
-                        <button
-                          class="map-btn spawn-btn"
-                          onclick={() => spawnPlayerTokenNow({ id: vc.path, name: vc.name, character: vc.data })}
-                          title="Poser le token au centre de l'écran"
-                        >
-                          ➕ Poser
-                        </button>
-                      {/if}
-                      <button
+                        type="button"
                         class="map-btn expand-btn"
                         class:active={isExpanded}
                         onclick={() => togglePlayerExpand(vc.path)}
@@ -1349,12 +1316,67 @@
                     </div>
                   </div>
 
-                  <!-- Jauge PV fine -->
-                  <div class="mini-hp-track">
-                    <div 
-                      class="mini-hp-fill" 
-                      style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
-                    ></div>
+                  <!-- Ligne Basse : Jauge PV fine + Santé & Actions Placer/Focus alignés à droite -->
+                  <div class="player-footer-row">
+                    <div class="mini-hp-track">
+                      <div 
+                        class="mini-hp-fill" 
+                        style="width: {hpData.pct}%; background-color: {hpData.pct > 50 ? '#22c55e' : hpData.pct > 20 ? '#eab308' : '#ef4444'};"
+                      ></div>
+                    </div>
+
+                    <div class="hp-and-map-actions">
+                      <div class="compact-hp-box" title="Modifier directement les PV ou PV Max">
+                        <input
+                          type="number"
+                          class="compact-hp-inp cur"
+                          value={hpData.hp}
+                          min="0"
+                          title="Modifier les PV de {vc.name}"
+                          onclick={(e) => e.stopPropagation()}
+                          onchange={(e) => setVaultCharHpDirect(vc, parseInt(e.currentTarget.value) || 0)}
+                        />
+                        <span class="compact-hp-slash">/</span>
+                        <input
+                          type="number"
+                          class="compact-hp-inp max"
+                          value={hpData.maxHp}
+                          min="1"
+                          title="Modifier les PV Max de {vc.name}"
+                          onclick={(e) => e.stopPropagation()}
+                          onchange={(e) => setVaultCharMaxHpDirect(vc, parseInt(e.currentTarget.value) || 1)}
+                        />
+                        <span class="compact-hp-unit">PV</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="map-btn place-target-btn"
+                        onclick={() => startPlacement({ id: vc.path, name: vc.name, character: vc.data })}
+                        title="📍 Placer où je veux : cliquez ici puis cliquez n'importe où sur la carte"
+                      >
+                        📍 Placer
+                      </button>
+                      {#if onMap}
+                        <button
+                          type="button"
+                          class="map-btn focus-btn"
+                          onclick={() => centerCameraOnPlayer(vc)}
+                          title="Centrer la caméra sur ce token"
+                        >
+                          🎯 Focus
+                        </button>
+                      {:else}
+                        <button
+                          type="button"
+                          class="map-btn spawn-btn"
+                          onclick={() => spawnPlayerTokenNow({ id: vc.path, name: vc.name, character: vc.data })}
+                          title="Poser le token au centre de l'écran"
+                        >
+                          ➕ Poser
+                        </button>
+                      {/if}
+                    </div>
                   </div>
 
                   <!-- Contrôles détaillés -->
@@ -1853,7 +1875,9 @@
   .player-dock {
     position: fixed;
     z-index: 900;
-    width: 310px;
+    width: 345px;
+    min-width: 310px;
+    max-width: 95vw;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
@@ -2097,12 +2121,39 @@
     font-size: 11px;
     color: #94a3b8;
   }
+  .player-top-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .player-footer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    padding: 0 1px;
+  }
+  .player-footer-row .mini-hp-track {
+    flex: 1;
+    min-width: 30px;
+    height: 4px;
+    margin: 0;
+  }
+  .hp-and-map-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
   .compact-hp-box {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    margin-left: auto;
-    padding: 1px 4px;
+    flex-shrink: 0;
+    padding: 2px 5px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -2154,14 +2205,6 @@
     font-weight: 700;
     user-select: none;
     margin-left: 1px;
-  }
-  .compact-hp-tag {
-    font-size: 10px;
-    font-weight: 700;
-    margin-left: auto;
-    padding: 0 4px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.25);
   }
   .maxhp-row {
     border-top: 1px dashed rgba(255, 255, 255, 0.08);
