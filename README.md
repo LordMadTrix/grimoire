@@ -96,6 +96,7 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 - **Épingles & Secrets du MJ (Map Pins)** : Épingles visibles uniquement par le MJ ou révélables aux joueurs d'un clic avec descriptions secrètes.
 - **Météo Dynamique** : Pluie, Orage (avec éclairs lumineux et tonnerre), Neige, Brouillard, Tempête de sable et Ciel dégagé.
 - **💬 Bulles de Dialogue & Halo Vocal VTT (v0.8.18)** : Lorsqu'un PNJ ou l'IA vocale parle, une bulle de bande dessinée stylée surgit au-dessus de son token, accompagnée d'un halo d'ondes sonores bleuté ondulant, synchronisé en temps réel sur l'écran MJ et la Vue Joueurs / TV.
+- **🏹 Tir de Projectile Intelligent & Visée FOV (<kbd>F</kbd>) (v0.8.24)** : Décochage instantané de projectiles (Flèches, Boules de feu, Éclairs, Énergie mystique) avec ciblage tactique automatique de l'ennemi le plus proche dans le cône de vision du tireur (ou tir droit devant dans l'axe de son regard), ou vers l'ennemi le plus proche de la carte en absence d'orientation. Raccourci clavier `F`, barre flottante de sélection et menu contextuel.
 - **🎭 Improvisation Immédiate de PNJ en Jeu** : Clic droit sur n'importe quel token > *« 🎭 Faire parler ce PNJ (IA Vocale) »* : posez une question ou cliquez sur *Spontané* pour qu'Ollama génère une réplique percutante et qu'Edge-TTS la déclenche avec bulle de dialogue sur la carte.
 - **Calibration de Grille Rapide** : Outil de tracé 3x3 cases pour adapter instantanément n'importe quelle carte.
 - **Mesure de Distances** : Outil règle en temps réel (cases, pieds ou mètres).
@@ -114,6 +115,7 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 - **Analyseur Multi-Colonnes & Désentrelacement Spatial** : Reconstitution automatique de l'ordre de lecture logique sur les livres en 1, 2 ou 3 colonnes (type AD&D, Dragonlance, D&D 5e, Pathfinder) avec réparation des césures de mots et élimination des interférences de lignes.
 - **Lecteur par Boîte de Sélection Interactive (Drag-to-Select)** : Encadrez n'importe quel paragraphe ou bloc de texte à la souris pour lancer sa lecture vocale instantanée ou l'extraire.
 - **Synthèse Vocale Neuronale IA (Microsoft Azure / Edge TTS)** : 13 voix ultra-réalistes et expressives (Narrateur Henri, Denise, Gérard, Éloïse, Rémy, etc.) avec vitesse et tonalité ajustables.
+- **⚡ Installation Automatique des Voix IA en 1-Clic (v0.8.24)** : Détection intelligente des voix avec bouton d'installation automatique dans les paramètres et le studio pour rendre l'ensemble des voix HD immédiatement utilisables sur n'importe quel ordinateur sans configuration technique.
 - **Mode Multi-Voix PNJ Automatique** : Détection automatique des dialogues entre guillemets et alternance de voix (Narrateur, PNJ masculins, féminins, monstres).
 - **Auto-Ducking Musical** : Baisse automatique et douce du volume sonore ambiant pendant la lecture vocale.
 - **Cartes Narratives Découpées (Onglet Chapitres)** : Découpe intelligente de la page en cartes de scènes (Descriptions 🌲, Dialogues 💬, Combats ⚔️, Évènements 📜) avec temps de lecture et bouton de lecture en 1 clic.
@@ -129,15 +131,15 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 - **Serveur Web Mobile Intégré (Axum + WebSockets)** : Connexion instantanée des joueurs par simple scan de QR Code (zéro installation requise).
 - **Mode PWA & Screen Wake Lock** : L'écran des smartphones reste allumé pendant toute la session sans mise en veille.
 - **🕹️ D-Pad Tactile VTT** : Les joueurs déplacent leur propre pion sur la grille de la table virtuelle directement depuis leur mobile.
-- **Fiches Joueur & Suivi des PV** : Fiole de sang liquide interactive, suivi des stats, compétences et inventaire.
+- **Fiches Joueur & Suivi des PV** : Fiole de sang liquide interactive, suivi des stats, compétences, inventaire et **modification directe des PV Max (v0.8.24)** depuis le smartphone avec répercussion instantanée sur le bureau du MJ et le pion VTT.
 - **Murmures & Messagerie Secrète** : Discussions privées chiffrées entre le MJ et un joueur spécifique.
 - **Sketchpad & Sons Joueurs** : Dessins tactiques collaboratifs et bruitages déclenchables par les joueurs.
 - **💾 Persistance Définitive des Comptes & Fiches Joueurs (`.grimoire/player_accounts.json`)** : Création de compte autonome avec mot de passe par chaque joueur, sauvegarde permanente et restauration automatique de la fiche et de l'avancement (PV, PV Max, XP, caractéristiques, destins, corruption, blessures critiques, inventaire).
 - **🛠️ Gestion & Édition Complète par le MJ** : Contrôle total du MJ sur les comptes (renommer, réinitialiser mot de passe, modifier stats, PV, XP) et suppression de compte avec synchronisation WebSocket instantanée (`push_character`) sur le smartphone du joueur.
-- **🪟 Volet Flottant Déplaçable MJ (HUD Express Joueurs)** : Fenêtre flottante déplaçable à la souris sur la Table Virtuelle avec :
+- **🪟 Volet Flottant Déplaçable MJ (HUD Express Joueurs v0.8.24)** : Fenêtre flottante déplaçable à la souris sur la Table Virtuelle avec affichage ergonomique à double ligne (zéro superposition) :
   - **Drag & Drop sur la carte** : Glissez l'avatar du joueur (connecté ou hors-ligne) pour poser ou déplacer immédiatement son token sur la battlemap.
-  - **Santé & Conditions Express** : Boutons rapides `[-5]`, `[-1]`, `[+1]`, `[+5]`, pastilles de conditions WFRP et demandes de tests de dés directes.
-  - **Édition Express 1-Clic (`✏️`)** : Tiroir d'édition rapide pour ajuster PV, stats ou mot de passe en cours de combat sans quitter la scène.
+  - **Santé & Actions Rapides Alignées** : Compteur modifiable `[ PV / Max ]`, boutons `📍 Placer` (placement d'un clic sur la carte) et `🎯 Focus` (centrage caméra) ou `➕ Poser`.
+  - **Contrôles Dépliables (`⚙️`)** : Boutons d'ajustement rapide `[-5]`, `[-1]`, `[+1]`, `[+5]` pour PV actuels et PV Max, pastilles de conditions et demandes de tests de dés directes.
 - **📱 Carnet Nomade du MJ (`/mj`) & Bouclier Anti-Perte (v0.6.9)** :
   - **Application Web Mobile Ultra-Rapide** : Accessible directement sur smartphone via `http://[IP]:7438/mj` avec dictée vocale, modèles JDR express, générateur aléatoire hors-ligne et retours haptiques.
   - **Protection Anti-Effacement** : Refus systématique des payloads vides sur mobile et sur le serveur PC pour empêcher tout effacement accidentel.

@@ -5,6 +5,7 @@
   import { getAiModel } from '$lib/stores/settings.svelte';
   import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import { synthesizeNeuralSpeech } from '$lib/services/edgeTts';
+  import { computeProjectileTarget } from '$lib/vtt/lighting';
 
   let { tokenId, x, y, onclose, onEdit, onDelete }: {
     tokenId: string;
@@ -141,11 +142,18 @@
 
   function fireProjectile(type: 'arrow' | 'fire' | 'magic' | 'lightning') {
     if (!token) return;
-    const target = vttStore.tokens.find(t => t.id !== token.id && (t.isEnemy !== token.isEnemy));
-    const toX = target ? target.x : token.x + 200;
-    const toY = target ? target.y : token.y - 100;
+    const { toX, toY, targetEnemy, mode } = computeProjectileTarget(token, vttStore.tokens, 450);
     triggerVttProjectile(token.x, token.y, toX, toY, type);
-    notifStore.add('⚡', token.name, `Projectile (${type}) lancé !`, 'info', 2000);
+
+    const typeLabel = type === 'arrow' ? 'Flèche' : type === 'fire' ? 'Boule de feu' : type === 'lightning' ? 'Éclair' : 'Sortilège';
+    if (targetEnemy) {
+      notifStore.add('🎯', token.name, `${typeLabel} tiré vers ${targetEnemy.name} !`, 'info', 2200);
+    } else if (mode === 'fov_direction') {
+      const rot = token.rotation ?? token.physicalRotation ?? 0;
+      notifStore.add('🏹', token.name, `${typeLabel} tiré dans l'angle de vision (${rot}°) !`, 'info', 2200);
+    } else {
+      notifStore.add('⚡', token.name, `${typeLabel} lancé !`, 'info', 2000);
+    }
     onclose();
   }
 

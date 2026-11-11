@@ -1875,8 +1875,8 @@
   .player-dock {
     position: fixed;
     z-index: 900;
-    width: 345px;
-    min-width: 310px;
+    width: 360px;
+    min-width: 330px;
     max-width: 95vw;
     max-height: 80vh;
     display: flex;
@@ -2142,21 +2142,23 @@
     margin: 0;
   }
   .hp-and-map-actions {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 5px;
     margin-left: auto;
     flex-shrink: 0;
+    flex-wrap: nowrap;
   }
   .compact-hp-box {
     display: inline-flex;
     align-items: center;
     gap: 2px;
     flex-shrink: 0;
+    white-space: nowrap;
     padding: 2px 5px;
     border-radius: 4px;
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     font-size: 11px;
     font-weight: 700;
   }
@@ -2239,6 +2241,7 @@
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .map-btn:active { transform: scale(0.96); }
   .expand-btn {

@@ -8,7 +8,7 @@
   import TokenSettingsModal from './TokenSettingsModal.svelte';
   import { readFileBase64, readFile, fetchBinaryAssetUrl, emitToPlayerView } from '$lib/api';
   import { getVaultPath } from '$lib/stores/vault.svelte';
-  import { updateDynamicLighting, hasLineOfSight, isPointInFieldOfView } from '$lib/vtt/lighting';
+  import { updateDynamicLighting, hasLineOfSight, isPointInFieldOfView, computeProjectileTarget } from '$lib/vtt/lighting';
   import { TextureCacheManager } from '$lib/vtt/TextureCacheManager';
   import { opticalEngine } from '$lib/vtt/OpticalTrackingEngine';
   import { getOpticalTrackingConfig } from '$lib/vtt/opticalTrackingStore.svelte';
@@ -4157,6 +4157,25 @@
       const curIdx = weathers.indexOf(vttStore.weather as any);
       const nextW = weathers[(curIdx + 1) % weathers.length];
       setWeather(nextW);
+    } else if (e.key === 'f' || e.key === 'F') {
+      const targetId = hoveredTokenId || (selectedTokenIds.size === 1 ? Array.from(selectedTokenIds)[0] : null);
+      if (targetId) {
+        const tok = tokens.find(t => t.id === targetId);
+        if (tok) quickShootProjectile(tok);
+      }
+    }
+  }
+
+  function quickShootProjectile(tok: Token) {
+    const { toX, toY, targetEnemy, mode } = computeProjectileTarget(tok, tokens, 450);
+    spawnProjectile(tok.x, tok.y, toX, toY, 'arrow');
+    if (targetEnemy) {
+      notifStore.add('🎯', tok.name, `Flèche tirée vers ${targetEnemy.name} !`, 'info', 2200);
+    } else if (mode === 'fov_direction') {
+      const rot = tok.rotation ?? tok.physicalRotation ?? 0;
+      notifStore.add('🏹', tok.name, `Flèche tirée dans l'angle de vision (${rot}°) !`, 'info', 2200);
+    } else {
+      notifStore.add('⚡', tok.name, 'Flèche tirée !', 'info', 2000);
     }
   }
 </script>
@@ -4189,6 +4208,9 @@
     aria-label="Actions du pion"
   >
     <span class="bar-token-name" title={singleSelectedToken.name}>{singleSelectedToken.name}</span>
+    <button class="bar-btn shoot" onclick={() => quickShootProjectile(singleSelectedToken)} title="Tirer un projectile (F) — dans l'angle de vision ou vers l'ennemi le plus proche">
+      🏹 Tirer
+    </button>
     <button class="bar-btn edit" onclick={() => editingTokenId = singleSelectedToken.id} title="Éditer la fiche (E)">
       ✏️ Éditer
     </button>
@@ -4529,6 +4551,18 @@
     background: rgba(51, 65, 85, 1);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .bar-btn.shoot {
+    color: #facc15;
+    border-color: rgba(250, 204, 21, 0.4);
+    background: rgba(250, 204, 21, 0.1);
+  }
+
+  .bar-btn.shoot:hover {
+    background: rgba(250, 204, 21, 0.25);
+    border-color: #facc15;
+    color: #fff;
   }
 
   .bar-btn.edit {

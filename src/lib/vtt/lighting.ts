@@ -206,3 +206,83 @@ export function isPointInFieldOfView(
   const halfFovRad = (fovAngle * Math.PI) / 360;
   return Math.abs(diff) <= halfFovRad;
 }
+
+export interface ProjectileShooterLike {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  isEnemy?: boolean;
+  rotation?: number;
+  physicalRotation?: number;
+  visionAngle?: number;
+  visionRange?: number;
+}
+
+/**
+ * Calcule la cible d'un tir de projectile :
+ * 1. Dans l'angle de vision du tireur :
+ *    - Vers l'ennemi situé dans son champ de vision si présent.
+ *    - Sinon tout droit le long de son angle de regard.
+ * 2. Si le tireur n'a pas d'angle défini (rotation indéterminée) :
+ *    - Vise l'ennemi le plus proche sur la carte.
+ * 3. Si aucun ennemi : tir droit devant.
+ */
+export function computeProjectileTarget<T extends ProjectileShooterLike>(
+  shooter: T,
+  tokens: T[],
+  rangeDistance: number = 420
+): { toX: number; toY: number; targetEnemy?: T; mode: 'fov_enemy' | 'fov_direction' | 'nearest_enemy' | 'default_direction' } {
+  const rotDeg = shooter.rotation ?? shooter.physicalRotation;
+  const hasAngle = rotDeg !== undefined && rotDeg !== null;
+
+  // Filtrer les ennemis du tireur (un PJ vise un ennemi, un ennemi vise un PJ)
+  const enemies = tokens.filter(t => t.id !== shooter.id && !!t.isEnemy !== !!shooter.isEnemy);
+
+  if (hasAngle) {
+    const dirRad = ((rotDeg - 90) * Math.PI) / 180;
+    const fov = (shooter.visionAngle && shooter.visionAngle < 360) ? shooter.visionAngle : 90;
+
+    // 1. Chercher un ennemi dans le champ de vision du tireur
+    const enemiesInFov = enemies.filter(e =>
+      isPointInFieldOfView(shooter.x, shooter.y, rotDeg, fov, e.x, e.y)
+    );
+
+    if (enemiesInFov.length > 0) {
+      // Ennemi le plus proche dans le champ de vision
+      enemiesInFov.sort((a, b) => {
+        const da = Math.hypot(a.x - shooter.x, a.y - shooter.y);
+        const db = Math.hypot(b.x - shooter.x, b.y - shooter.y);
+        return da - db;
+      });
+      const target = enemiesInFov[0];
+      return { toX: target.x, toY: target.y, targetEnemy: target, mode: 'fov_enemy' };
+    }
+
+    // 2. Pas d'ennemi dans le champ de vision : tire dans l'angle de vision du tireur
+    const dist = shooter.visionRange ? Math.max(rangeDistance, shooter.visionRange * 50) : rangeDistance;
+    return {
+      toX: Math.round(shooter.x + Math.cos(dirRad) * dist),
+      toY: Math.round(shooter.y + Math.sin(dirRad) * dist),
+      mode: 'fov_direction'
+    };
+  }
+
+  // 3. Pas d'angle de vision défini : tirer vers l'ennemi le plus proche sur la carte
+  if (enemies.length > 0) {
+    enemies.sort((a, b) => {
+      const da = Math.hypot(a.x - shooter.x, a.y - shooter.y);
+      const db = Math.hypot(b.x - shooter.x, b.y - shooter.y);
+      return da - db;
+    });
+    const target = enemies[0];
+    return { toX: target.x, toY: target.y, targetEnemy: target, mode: 'nearest_enemy' };
+  }
+
+  // 4. Aucun ennemi : tir par défaut vers l'avant (Est)
+  return {
+    toX: shooter.x + rangeDistance,
+    toY: shooter.y,
+    mode: 'default_direction'
+  };
+}

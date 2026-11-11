@@ -1,4 +1,4 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.23)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.24)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
 > *Compagnon : Table du MJ trouvée par son Nom & Fiche conservée dans le Téléphone · Mises à jour de l'APK · Dérouleur de Scènes MJ (Scene Runner) · FX de Projectiles & Bruits de Pas VTT · Voix Divines & Démoniaques DSP · Log de Combat Chronologique & Résumé de Bataille IA Ollama · Auto-Scan Wi-Fi Mobile & Mode HUD de Table · Studio de Narration & Voix IA HD Multi-Acteurs (13 voix Edge-TTS) · Bulles de Dialogue & Halos Vocaux VTT synchronisés · Annonceur de Combat Épique · Murmures Secrets IA sur Smartphone · Répartie d'Improvisation PNJ · Balises SFX Synchronisées `[sfx: ...]` · Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA) · Table Virtuelle PixiJS v8 · IA Locale Ollama*
@@ -30,6 +30,7 @@
 21. [Tracking Optique Table & Figurines 3D (Webcam, ArUco & Anneaux STL)](#21-tracking-optique-table--figurines-3d-webcam-aruco--anneaux-stl)
 22. [Dérouleur de Scènes MJ, FX de Projectiles, Voix Divines & Log de Combat (v0.8.19)](#22-dérouleur-de-scènes-mj-fx-de-projectiles-voix-divines--log-de-combat-v0819)
 23. [Compagnon Mobile : Table trouvée par son Nom, Fiche Sauvegardée & Mises à jour (v0.8.20 – v0.8.21)](#23-compagnon-mobile--table-trouvée-par-son-nom-fiche-sauvegardée--mises-à-jour-v0820--v0821)
+24. [PV Max, Installation Voix IA, Ergonomie Joueurs Express & Tir Intelligent (v0.8.24)](#24-modification-directe-des-pv-max--installation-automatique-des-voix-ia-v0824)
 
 ---
 
@@ -990,6 +991,19 @@ Si vous disposez d'une imprimante 3D (FDM ou Résine) :
 - Grimoire intègre 13 voix françaises neuronales haute fidélité (Vivienne, Remy, Henri, Eloise...) propulsées par le moteur Azure Neural via `edge-tts`.
 - **Détection automatique** : Si Grimoire est installé sur un nouveau PC où Python/edge-tts n'est pas encore configuré, un bandeau doré apparaît dans le **Studio de Narration** ainsi que dans les **Paramètres du Grimoire** (`🎙️ Voix Neuronales & Narration IA`).
 - **1 seul clic** : Cliquez sur **« ⚡ Installer Automatiquement les Voix (Gratuit) »**. Grimoire se charge de tout télécharger et configurer en arrière-plan sans ligne de commande. Dès l'installation terminée, toutes les voix HD et le casting vocal multi-acteurs deviennent immédiatement opérationnels !
+
+### 3. Ergonomie & Alignement Joueurs Express (Dock MJ)
+- **Deux lignes épurées et sans superposition** :
+  - **Ligne haute** : Avatar avec poignée de glisser-déposer sur la carte, nom du personnage, badge de synchronisation de fiche Markdown (`📄`), mot de passe (`🔒`), boutons d'édition rapide (`✏️`), suppression (`🗑️`), statut de connexion (`En ligne` / `Hors-ligne`), murmure secret IA (`🤫`) et dépliage des contrôles (`⚙️`).
+  - **Ligne basse** : Jauge de santé proportionnelle à gauche, et bloc compact aligné sur la droite contenant les points de vie interactifs `[ 7 / 10 ] PV` (cliquables et éditables directement), le bouton `📍 Placer` (placement interactif en un clic n'importe où sur la carte) et le bouton `🎯 Focus` (centrage immédiat de la caméra sur le pion) ou `➕ Poser` (invocation instantanée au centre de la vue).
+- **Zéro chevauchement garanti** : Formatage flex horizontal rigide empêchant tout empiètement des boutons sur le statut ou les compteurs.
+
+### 4. Tir de Projectile Intelligent & Visée FOV (Touche F)
+- **Raccourci Clavier Réflexe <kbd>F</kbd>** : Survolez ou sélectionnez n'importe quel token sur la Table Virtuelle et pressez <kbd>F</kbd> (ou cliquez sur le bouton `🏹 Tirer` de la barre flottante de sélection) pour décocher un tir instantané avec son spatialisé et synchronisation en direct sur la Vue Joueurs / TV.
+- **Règle de visée tactique automatique** :
+  - **Pion orienté (avec angle de regard / FOV)** : Grimoire cherche automatiquement un ennemi dans le cône de vision du tireur. S'il en trouve un, il vise l'ennemi visible le plus proche dans son angle de vue. S'il n'y a aucun ennemi visible dans son champ de vision, le projectile est décoché droit devant lui dans l'axe de son regard.
+  - **Pion non orienté (sans angle de regard défini)** : Le système calcule la distance euclidienne de tous les ennemis présents sur la carte et cible automatiquement l'ennemi le plus proche.
+  - **Menu contextuel étendu** : Le clic droit permet également de choisir spécifiquement le type de tir (`🏹 Flèche`, `🔥 Boule de Feu`, `⚡ Éclair Foudroyant`, `🔮 Énergie Mystique`) avec la même intelligence de visée automatique.
 
 ---
 

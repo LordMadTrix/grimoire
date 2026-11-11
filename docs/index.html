@@ -145,7 +145,7 @@
     <main class="flex-grow pt-32 container mx-auto px-6 pb-20 text-center flex flex-col items-center">
         <div class="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-grimoire-accent/20 bg-grimoire-accent/5 text-grimoire-accent text-sm font-medium animate-pulse-slow">
             <span class="w-2 h-2 rounded-full bg-grimoire-accent"></span>
-            <span id="version-badge">Version 0.8.23 — Appli Android : Table trouvée en 1 s, Scanner QR natif · Compagnon : Table trouvée par son Nom, Fiche gardée dans le Téléphone & Mises à jour de l’APK</span>
+            <span id="version-badge">Version 0.8.24 — Tir de Projectile Intelligent & FOV, PV Max Mobile, Voix IA en 1-Clic</span>
         </div>
         <h1 class="text-5xl md:text-8xl font-bold text-white mb-8 leading-tight tracking-tight">
             Tout votre univers <br>
@@ -391,7 +391,7 @@
         <!-- Nouveautés v0.8.21 / v0.8.20 -->
         <section class="max-w-7xl mx-auto px-4 py-16 reveal">
             <div class="flex items-center gap-3 mb-8">
-                <span class="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-xs font-black shadow-lg shadow-amber-500/20">NOUVEAU — v0.8.23</span>
+                <span class="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-xs font-black shadow-lg shadow-amber-500/20">NOUVEAU — v0.8.24</span>
                 <h2 class="text-3xl font-black text-white">Compagnon Joueur : la Table par son Nom & la Fiche en Sécurité</h2>
             </div>
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -416,7 +416,8 @@
                     <p class="text-gray-400 text-xs mt-1">Les sons (Cor, Choc, Sort) et les actions de combat envoyés depuis le téléphone arrivent chez le MJ, avec notification et log de combat.</p>
                 </div>
             </div>
-            <p class="text-gray-300 text-sm mt-6">⚡ <strong class="text-white">Nouveau en v0.8.23 :</strong> l’appli Android trouve la table en moins d’une seconde (annonce mDNS du Hub), scanner de QR Code natif fiable sur tous les téléphones, vraie icône Grimoire et bouton Retour qui ferme les fenêtres au lieu de quitter.</p>
+            <p class="text-gray-300 text-sm mt-6">⚡ <strong class="text-white">Nouveau en v0.8.24 :</strong> modification directe des PV Max sur smartphone Android et dans le dock MJ, tir de projectile tactique (<kbd class="px-1 py-0.5 rounded bg-black/60 text-grimoire-accent text-[10px]">F</kbd>) orienté vers le cône de vue ou l'ennemi le plus proche, installation automatique des voix IA HD en 1 clic et alignement épuré des actions de joueurs.</p>
+            <p class="text-gray-300 text-sm mt-3">⚡ <strong class="text-white">v0.8.23 :</strong> l’appli Android trouve la table en moins d’une seconde (annonce mDNS du Hub), scanner de QR Code natif fiable sur tous les téléphones, vraie icône Grimoire et bouton Retour qui ferme les fenêtres au lieu de quitter.</p>
             <p class="text-gray-300 text-sm mt-3">🤖 <strong class="text-white">v0.8.22 :</strong> dans le Hub mobile, un second QR Code permet aux joueurs de télécharger directement la dernière appli Android, à côté du QR de connexion. <a href="https://github.com/LordMadTrix/grimoire/releases/latest/download/Grimoire_Compagnon.apk" class="text-amber-400 hover:underline">Télécharger l’APK</a></p>
             <p class="text-gray-500 text-xs mt-3">⚠️ Passage à la v0.8.21 : une seule fois, Android peut demander de désinstaller l’ancienne appli Compagnon avant d’installer la nouvelle. Rejoignez la table avec le même nom et mot de passe pour retrouver votre fiche. <a href="tutorial.html#mobile" class="text-amber-400 hover:underline">Voir le guide</a>.</p>
         </section>
@@ -615,52 +616,52 @@
             </div>
         </section>
 
-        <!-- Nouveautés v0.7.5 -->
+        <!-- Nouveautés v0.8.24 -->
         <section class="max-w-7xl mx-auto px-4 py-16 reveal">
             <div class="flex items-center gap-3 mb-8">
-                <span class="px-3 py-1 rounded-full bg-grimoire-accent text-black text-xs font-black">v0.7.5</span>
-                <h2 class="text-3xl font-black text-white">Les 7 évolutions qui changent la table</h2>
+                <span class="px-3 py-1 rounded-full bg-grimoire-accent text-black text-xs font-black">v0.8.24</span>
+                <h2 class="text-3xl font-black text-white">Les nouveautés qui transforment la partie</h2>
             </div>
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
-                    <div class="text-2xl mb-2">🧠</div>
-                    <h3 class="font-bold text-white text-sm">Mémoire des PNJ</h3>
-                    <p class="text-gray-400 text-xs mt-1">Les PNJ récurrents se souviennent de vos joueurs : dettes, griefs et secrets réinjectés dans les répliques IA.</p>
+                    <div class="text-2xl mb-2">🏹</div>
+                    <h3 class="font-bold text-white text-sm">Tir de Projectile Intelligent</h3>
+                    <p class="text-gray-400 text-xs mt-1">Pressez <kbd class="px-1 py-0.5 rounded bg-black/60 text-grimoire-accent text-[10px]">F</kbd> : vise l'ennemi dans le cône de vue du tireur ou tire dans l'axe de son regard, sinon cible l'ennemi le plus proche.</p>
                 </div>
                 <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
-                    <div class="text-2xl mb-2">📖</div>
-                    <h3 class="font-bold text-white text-sm">Chronique de séance</h3>
-                    <p class="text-gray-400 text-xs mt-1">L'IA locale rédige le récit de la partie à partir des faits réels de la table. Éditable, exportable HTML/PDF.</p>
-                </div>
-                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
-                    <div class="text-2xl mb-2">🎙️</div>
-                    <h3 class="font-bold text-white text-sm">Transcription whisper</h3>
-                    <p class="text-gray-400 text-xs mt-1">Enregistrez votre séance, Grimoire la transcrit en texte. 100% local, aucune donnée envoyée en ligne.</p>
-                </div>
-                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
-                    <div class="text-2xl mb-2">🍎</div>
-                    <h3 class="font-bold text-white text-sm">Arrivée sur macOS</h3>
-                    <p class="text-gray-400 text-xs mt-1">Grimoire est désormais compilé pour Mac Apple Silicon, en plus de Windows et Linux.</p>
+                    <div class="text-2xl mb-2">❤️</div>
+                    <h3 class="font-bold text-white text-sm">Édition Directe des PV Max</h3>
+                    <p class="text-gray-400 text-xs mt-1">Modifiez vos PV Max directement depuis votre smartphone Android ou le dock MJ, répercuté instantanément sur la VTT.</p>
                 </div>
                 <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
                     <div class="text-2xl mb-2">⚡</div>
-                    <h3 class="font-bold text-white text-sm">Catalogue à la demande</h3>
-                    <p class="text-gray-400 text-xs mt-1">Le catalogue Drive (30 000 fichiers) se charge par fragments : démarrage encore plus léger.</p>
+                    <h3 class="font-bold text-white text-sm">Installation Auto des Voix IA</h3>
+                    <p class="text-gray-400 text-xs mt-1">1 seul clic pour télécharger et configurer les 13 voix françaises neuronales HD (Edge-TTS) sans aucune ligne de commande.</p>
                 </div>
                 <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
-                    <div class="text-2xl mb-2">📦</div>
-                    <h3 class="font-bold text-white text-sm">Store communautaire</h3>
-                    <p class="text-gray-400 text-xs mt-1">Soumettez vos packs via un template dédié — un validateur CI vérifie chaque lien avant publication.</p>
+                    <div class="text-2xl mb-2">👥</div>
+                    <h3 class="font-bold text-white text-sm">Dock Joueurs Express Épuré</h3>
+                    <p class="text-gray-400 text-xs mt-1">Affichage sans chevauchement avec boutons d'actions rapides <kbd>📍 Placer</kbd> et <kbd>🎯 Focus</kbd> alignés sur la santé.</p>
                 </div>
                 <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
-                    <div class="text-2xl mb-2">🏷️</div>
-                    <h3 class="font-bold text-white text-sm">Installateurs renommés</h3>
-                    <p class="text-gray-400 text-xs mt-1">Noms normalisés Grimoire_V0.7.5_X86 (.exe, .msi, .AppImage, .deb, .rpm, .dmg) pour toutes les plateformes.</p>
+                    <div class="text-2xl mb-2">🎬</div>
+                    <h3 class="font-bold text-white text-sm">Dérouleur de Scènes MJ</h3>
+                    <p class="text-gray-400 text-xs mt-1">Basculez d'un clic météo, éclairage, ambiance sonore et notes d'accroche sans interrompre la session.</p>
                 </div>
                 <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
-                    <div class="text-2xl mb-2">🤖</div>
-                    <h3 class="font-bold text-white text-sm">Releases automatiques</h3>
-                    <p class="text-gray-400 text-xs mt-1">Renommage des assets et manifests winget générés automatiquement par le CI à chaque version.</p>
+                    <div class="text-2xl mb-2">💬</div>
+                    <h3 class="font-bold text-white text-sm">Bulles de Dialogue VTT</h3>
+                    <p class="text-gray-400 text-xs mt-1">Bulles de BD et halos sonores ondulants projetés en temps réel au-dessus des tokens sur double écran et TV.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🔍</div>
+                    <h3 class="font-bold text-white text-sm">Auto-Découverte Wi-Fi</h3>
+                    <p class="text-gray-400 text-xs mt-1">L'application mobile trouve automatiquement la table du MJ par son nom sur le réseau local sans saisie d'IP.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-white/5 hover:border-grimoire-accent card-hover">
+                    <div class="text-2xl mb-2">🤫</div>
+                    <h3 class="font-bold text-white text-sm">Murmures Secrets IA</h3>
+                    <p class="text-gray-400 text-xs mt-1">Chuchotez des révélations et secrets en voix neuronale directement dans le casque d'un joueur ciblé.</p>
                 </div>
             </div>
         </section>
@@ -1000,7 +1001,7 @@
             <h2 class="text-4xl font-bold text-white mb-8">Prêt à transformer vos sessions ?</h2>
             <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
                 <a href="#download" class="inline-block px-10 py-4 rounded-2xl bg-grimoire-accent text-black font-black text-lg hover:scale-105 transition-all shadow-2xl">
-                    TÉLÉCHARGER GRIMOIRE <span id="cta-version">v0.8.23</span>
+                    TÉLÉCHARGER GRIMOIRE <span id="cta-version">v0.8.24</span>
                 </a>
                 <a href="https://www.patreon.com/cw/LordMad" target="_blank" rel="noopener" class="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl glass border border-[#FF424D]/50 text-[#FF424D] hover:bg-[#FF424D] hover:text-white font-bold text-lg hover:scale-105 transition-all shadow-lg">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.386.524c-4.764 0-8.64 3.876-8.64 8.64 0 4.75 3.876 8.613 8.64 8.613 4.75 0 8.614-3.864 8.614-8.613C24 4.4 20.136.524 15.386.524M.001 23.476h4.86V.524H.001v22.952z"/></svg>
