@@ -609,16 +609,30 @@
             <div class="pm-url">{serverInfo.url}</div>
             <button class="pm-copy-btn" onclick={copyUrl} title="Copier l'URL">📋</button>
           </div>
-          <div class="pm-qr" title="QR Code">
-            {@html serverInfo.qr_svg}
+          <div class="pm-qr-pair">
+            <div class="pm-qr-col">
+              <div class="pm-qr-label">🌐 Se connecter</div>
+              <div class="pm-qr" title="QR Code de connexion à la table">
+                {@html serverInfo.qr_svg}
+              </div>
+            </div>
+            {#if serverInfo.apk_qr_svg}
+              <div class="pm-qr-col">
+                <div class="pm-qr-label">🤖 Télécharger l'appli Android</div>
+                <div class="pm-qr" title="QR Code de téléchargement de la dernière appli Grimoire Compagnon (.apk)">
+                  {@html serverInfo.apk_qr_svg}
+                </div>
+              </div>
+            {/if}
           </div>
-          <p class="pm-hint" style="text-align:center">Scannez le QR ou entrez l'URL dans le navigateur.</p>
+          <p class="pm-hint" style="text-align:center">Scannez le QR de connexion, ou installez d'abord l'appli Android avec le second QR.</p>
 
           <div style="margin: 10px 0; background: rgba(229,168,83,0.08); border: 1px solid rgba(229,168,83,0.3); border-radius: 10px; padding: 10px; text-align: center;">
             <div style="font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 3px;">📱 Application Joueur Autonome (Fiche Sécurisée)</div>
             <p style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px;">La fiche reste enregistrée sur le téléphone du joueur même hors session.</p>
             <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-              <button type="button" onclick={() => openUrl('https://github.com/LordMadTrix/grimoire/releases')} style="font-size: 10px; padding: 6px 10px; border-radius: 6px; background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.5); color: #4ade80; font-weight: 700; cursor: pointer;">🤖 Télécharger APK Android</button>
+              <button type="button" onclick={() => openUrl('https://lordmadtrix.github.io/grimoire/tutorial.html#mobile')} title="Trouver la table, restaurer sa fiche, mettre à jour l'appli" style="font-size: 10px; padding: 6px 10px; border-radius: 6px; background: rgba(229,168,83,0.18); border: 1px solid rgba(229,168,83,0.5); color: var(--accent); font-weight: 700; cursor: pointer;">📖 Guide joueur</button>
+              <button type="button" onclick={() => openUrl(serverInfo?.apk_url || 'https://github.com/LordMadTrix/grimoire/releases/latest')} style="font-size: 10px; padding: 6px 10px; border-radius: 6px; background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.5); color: #4ade80; font-weight: 700; cursor: pointer;">🤖 Télécharger APK Android</button>
               <button type="button" onclick={() => alert("Installation Android Facile en 1 Clic :\n\n1. Scannez le QR Code avec votre appareil Android.\n2. Dans Google Chrome, appuyez sur les 3 points verticaux en haut à droite (⋮).\n3. Choisissez « Installer l'application » (ou « Ajouter à l'écran d'accueil »).\n\nL'application s'installe directement sur l'écran d'accueil avec son blason doré et sa fiche permanente, sans aucun réglage complexe !")} style="font-size: 10px; padding: 6px 10px; border-radius: 6px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #86efac; font-weight: 600; cursor: pointer;">💡 Guide Android (Chrome)</button>
               <button type="button" onclick={() => alert("Installation Apple (iPhone / iPad) :\n\n1. Ouvrez l'adresse de votre MJ dans Safari.\n2. Touchez le bouton Partager ⬆️ au bas de Safari.\n3. Sélectionnez « Sur l'écran d'accueil ».\n\nL'application s'installe en plein écran avec sa fiche hors-ligne permanente !")} style="font-size: 10px; padding: 6px 10px; border-radius: 6px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; font-weight: 700; cursor: pointer;">🍎 Guide iPhone / iPad</button>
             </div>
@@ -1080,6 +1094,30 @@
     justify-content: center;
   }
   .pm-qr :global(svg) { width: 100%; height: 100%; }
+
+  /* QR de connexion + QR de téléchargement de l'APK, côte à côte (empilés si étroit) */
+  .pm-qr-pair {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .pm-qr-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .pm-qr-pair .pm-qr {
+    width: 140px;
+    height: 140px;
+  }
+  .pm-qr-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+  }
 
   .pm-btn-start {
     padding: 10px;

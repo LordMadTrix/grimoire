@@ -1,6 +1,6 @@
 {
-  "version": "0.8.21",
-  "changelog": "Version 0.8.21 : la fiche du joueur est copiée dans Documents/Grimoire du téléphone et survit à une désinstallation (bouton « Restaurer » après réinstallation), l'APK est signé avec une clé fixe pour que les prochaines mises à jour s'installent par-dessus l'ancienne version, et l'export .json fonctionne dans l'appli Android.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.21",
+  "version": "0.8.22",
+  "changelog": "Version 0.8.22 : dans le Hub mobile, un second QR Code permet aux joueurs de télécharger directement la dernière appli Android Grimoire Compagnon (.apk), à côté du QR de connexion à la table.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.22",
   "release_date": "2026-11-11"
 }

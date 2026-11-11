@@ -345,6 +345,8 @@ export interface ServerInfo {
   qr_svg: string;
   mj_url?: string;
   mj_qr_svg?: string;
+  apk_url?: string;
+  apk_qr_svg?: string;
 }
 
 export interface PlayerInfo {

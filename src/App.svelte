@@ -22,6 +22,7 @@
   import GmNotesDrawer from './components/vtt/GmNotesDrawer.svelte';
   import MacroBar from './components/MacroBar.svelte';
   import UpdateModal from './components/UpdateModal.svelte';
+  import WhatsNewModal from './components/WhatsNewModal.svelte';
   import OllamaOnboardingModal from './components/OllamaOnboardingModal.svelte';
   import AddonStore from './components/AddonStore.svelte';
   import TokenEditorModal from './components/TokenEditorModal.svelte';
@@ -1040,6 +1041,7 @@
 {/if}
 
 <UpdateModal bind:this={updateModalRef} />
+<WhatsNewModal />
 <NotificationToast />
 <TokenEditorModal isOpen={showTokenEditor || vttStore.showTokenEditorModal} onclose={() => { showTokenEditor = false; vttStore.showTokenEditorModal = false; }} />
 {#if narrationStudioStore.isOpen}

@@ -275,8 +275,21 @@
               </div>
             {:else}
               <div class="server-on">
-                <div class="qr-container">
-                  {@html serverInfo.qr_svg}
+                <div class="qr-pair">
+                  <div class="qr-col">
+                    <div class="qr-label">🌐 Se connecter à la table</div>
+                    <div class="qr-container">
+                      {@html serverInfo.qr_svg}
+                    </div>
+                  </div>
+                  {#if serverInfo.apk_qr_svg}
+                    <div class="qr-col">
+                      <div class="qr-label">🤖 Télécharger l'appli Android</div>
+                      <div class="qr-container">
+                        {@html serverInfo.apk_qr_svg}
+                      </div>
+                    </div>
+                  {/if}
                 </div>
                 <div class="server-details">
                   <div class="url-box">{serverInfo.url}</div>
@@ -633,6 +646,24 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
   .qr-container :global(svg) { width: 200px; height: 200px; }
+
+  .qr-pair {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+  }
+  .qr-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .qr-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+  }
 
   .url-box {
     background: rgba(255, 255, 255, 0.05);

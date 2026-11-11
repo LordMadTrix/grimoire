@@ -24,6 +24,8 @@ Gratuit, open source, sans compte, pour Windows, Linux et macOS.
 
 **Ou téléchargement direct** : rendez-vous sur la page des [Releases](https://github.com/LordMadTrix/grimoire/releases/latest) et choisissez votre version (Windows, Linux ou macOS).
 
+**📱 Pour les joueurs (Android)** : téléchargez `Grimoire_Compagnon_V<version>.apk` sur la même page. L'appli trouve la table du MJ toute seule sur le Wi-Fi (par son nom), garde la fiche dans le téléphone (`Documents/Grimoire`) et signale les nouvelles versions. Mode d'emploi : [TUTORIEL, chapitre 23](TUTORIEL.md#23-compagnon-mobile--table-trouvée-par-son-nom-fiche-sauvegardée--mises-à-jour-v0820--v0821).
+
 > 💡 Sous Windows, si *SmartScreen* s'affiche : cliquez sur **« Informations complémentaires »** puis **« Exécuter quand même »**.
 
 ## ✨ En bref
@@ -262,11 +264,19 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.22 — QR Code de téléchargement de l'appli Android
+
+- **🤖 QR Code « Télécharger l'appli Android »** : dans le Hub mobile, à côté du QR de connexion, un second QR Code mène directement à la **dernière** appli Grimoire Compagnon (`.apk`). Les joueurs installent l'appli en le scannant, puis rejoignent la table avec « 🔍 Trouver » ou le QR de connexion.
+- Chaque release publie aussi l'APK sous le nom fixe `Grimoire_Compagnon.apk` : le lien [releases/latest/download/Grimoire_Compagnon.apk](https://github.com/LordMadTrix/grimoire/releases/latest/download/Grimoire_Compagnon.apk) pointe toujours vers la dernière version.
+
+---
+
 ## 🌟 Nouveautés v0.8.21 — Fiche conservée dans le téléphone & APK signé
 
 - **📂 La fiche survit à la désinstallation** : à chaque modification, l'appli Compagnon copie la fiche dans `Documents/Grimoire` du téléphone. Après une réinstallation, la carte *« Vous aviez déjà une fiche ? »* propose de la **Restaurer** en un geste.
 - **🔏 APK signé avec une clé fixe** : les prochaines mises à jour s'installent directement par-dessus l'ancienne version.
   > ⚠️ **Une seule fois**, en passant à cette version, Android peut afficher « Application non installée » : désinstallez l'ancienne appli puis installez la nouvelle. La fiche reste chez le MJ (elle revient en rejoignant la table avec le même nom et mot de passe).
+- **📖 Documentation** : nouveau [chapitre 23 du TUTORIEL](TUTORIEL.md#23-compagnon-mobile--table-trouvée-par-son-nom-fiche-sauvegardée--mises-à-jour-v0820--v0821) pour les joueurs (trouver la table, restaurer sa fiche, mettre à jour l'APK).
 - **💾 Export .json** : le bouton fonctionne désormais dans l'appli Android (copie horodatée dans `Documents/Grimoire`).
 
 ---

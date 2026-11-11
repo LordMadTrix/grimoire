@@ -145,7 +145,7 @@
     <main class="flex-grow pt-32 container mx-auto px-6 pb-20 text-center flex flex-col items-center">
         <div class="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-grimoire-accent/20 bg-grimoire-accent/5 text-grimoire-accent text-sm font-medium animate-pulse-slow">
             <span class="w-2 h-2 rounded-full bg-grimoire-accent"></span>
-            <span id="version-badge">Version 0.8.18 — Studio de Narration & Voix IA HD, Effets Acoustiques DSP & Bulles de Dialogue VTT</span>
+            <span id="version-badge">Version 0.8.22 — QR Code de l’Appli Android · Compagnon : Table trouvée par son Nom, Fiche gardée dans le Téléphone & Mises à jour de l’APK</span>
         </div>
         <h1 class="text-5xl md:text-8xl font-bold text-white mb-8 leading-tight tracking-tight">
             Tout votre univers <br>
@@ -388,11 +388,43 @@
             </div>
         </section>
 
-        <!-- Nouveautés v0.8.19 -->
+        <!-- Nouveautés v0.8.21 / v0.8.20 -->
         <section class="max-w-7xl mx-auto px-4 py-16 reveal">
             <div class="flex items-center gap-3 mb-8">
-                <span class="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-xs font-black shadow-lg shadow-amber-500/20">NOUVEAU — v0.8.19</span>
-                <h2 class="text-3xl font-black text-white">Dérouleur de Scènes MJ, FX de Projectiles, Voix Célestes & Auto-Scan</h2>
+                <span class="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-xs font-black shadow-lg shadow-amber-500/20">NOUVEAU — v0.8.22</span>
+                <h2 class="text-3xl font-black text-white">Compagnon Joueur : la Table par son Nom & la Fiche en Sécurité</h2>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass p-5 rounded-2xl border border-amber-500/30 hover:border-amber-400 card-hover">
+                    <div class="text-2xl mb-2">🧙</div>
+                    <h3 class="font-bold text-white text-sm">La Table trouvée par son Nom</h3>
+                    <p class="text-gray-400 text-xs mt-1">Le bouton « 🔍 Trouver » parcourt le Wi-Fi et affiche « Ma Campagne (PC du MJ) » au lieu d’une adresse IP. Si l’IP change, l’appli retrouve la table toute seule.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-amber-500/30 hover:border-amber-400 card-hover">
+                    <div class="text-2xl mb-2">📂</div>
+                    <h3 class="font-bold text-white text-sm">Fiche gardée dans le Téléphone</h3>
+                    <p class="text-gray-400 text-xs mt-1">Copie automatique dans Documents › Grimoire : la fiche survit à une désinstallation et se restaure en un geste. Elle reste aussi sauvegardée chez le MJ.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-amber-500/30 hover:border-amber-400 card-hover">
+                    <div class="text-2xl mb-2">⬇️</div>
+                    <h3 class="font-bold text-white text-sm">Mises à jour de l’APK</h3>
+                    <p class="text-gray-400 text-xs mt-1">Un bandeau signale chaque nouvelle version. L’APK est signé avec une clé fixe : les mises à jour s’installent directement par-dessus l’ancienne.</p>
+                </div>
+                <div class="glass p-5 rounded-2xl border border-amber-500/30 hover:border-amber-400 card-hover">
+                    <div class="text-2xl mb-2">⚔️</div>
+                    <h3 class="font-bold text-white text-sm">Liaison Téléphone → MJ</h3>
+                    <p class="text-gray-400 text-xs mt-1">Les sons (Cor, Choc, Sort) et les actions de combat envoyés depuis le téléphone arrivent chez le MJ, avec notification et log de combat.</p>
+                </div>
+            </div>
+            <p class="text-gray-300 text-sm mt-6">🤖 <strong class="text-white">Nouveau en v0.8.22 :</strong> dans le Hub mobile, un second QR Code permet aux joueurs de télécharger directement la dernière appli Android, à côté du QR de connexion. <a href="https://github.com/LordMadTrix/grimoire/releases/latest/download/Grimoire_Compagnon.apk" class="text-amber-400 hover:underline">Télécharger l’APK</a></p>
+            <p class="text-gray-500 text-xs mt-3">⚠️ Passage à la v0.8.21 : une seule fois, Android peut demander de désinstaller l’ancienne appli Compagnon avant d’installer la nouvelle. Rejoignez la table avec le même nom et mot de passe pour retrouver votre fiche. <a href="tutorial.html#mobile" class="text-amber-400 hover:underline">Voir le guide</a>.</p>
+        </section>
+
+        <!-- Nouveautés v0.8.19 -->
+        <section class="max-w-7xl mx-auto px-4 py-8 reveal">
+            <div class="flex items-center gap-3 mb-8">
+                <span class="px-3 py-1 rounded-full bg-gray-800 text-gray-300 text-xs font-bold">v0.8.19</span>
+                <h3 class="text-xl font-bold text-gray-300">Dérouleur de Scènes MJ, FX de Projectiles, Voix Célestes & Auto-Scan</h3>
             </div>
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="glass p-5 rounded-2xl border border-amber-500/30 hover:border-amber-400 card-hover">
@@ -967,7 +999,7 @@
             <h2 class="text-4xl font-bold text-white mb-8">Prêt à transformer vos sessions ?</h2>
             <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
                 <a href="#download" class="inline-block px-10 py-4 rounded-2xl bg-grimoire-accent text-black font-black text-lg hover:scale-105 transition-all shadow-2xl">
-                    TÉLÉCHARGER GRIMOIRE <span id="cta-version">v0.8.19</span>
+                    TÉLÉCHARGER GRIMOIRE <span id="cta-version">v0.8.22</span>
                 </a>
                 <a href="https://www.patreon.com/cw/LordMad" target="_blank" rel="noopener" class="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl glass border border-[#FF424D]/50 text-[#FF424D] hover:bg-[#FF424D] hover:text-white font-bold text-lg hover:scale-105 transition-all shadow-lg">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.386.524c-4.764 0-8.64 3.876-8.64 8.64 0 4.75 3.876 8.613 8.64 8.613 4.75 0 8.614-3.864 8.614-8.613C24 4.4 20.136.524 15.386.524M.001 23.476h4.86V.524H.001v22.952z"/></svg>

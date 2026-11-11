@@ -1,7 +1,7 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.19)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.22)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
-> *Dérouleur de Scènes MJ (Scene Runner) · FX de Projectiles & Bruits de Pas VTT · Voix Divines & Démoniaques DSP · Log de Combat Chronologique & Résumé de Bataille IA Ollama · Auto-Scan Wi-Fi Mobile & Mode HUD de Table · Studio de Narration & Voix IA HD Multi-Acteurs (13 voix Edge-TTS) · Bulles de Dialogue & Halos Vocaux VTT synchronisés · Annonceur de Combat Épique · Murmures Secrets IA sur Smartphone · Répartie d'Improvisation PNJ · Balises SFX Synchronisées `[sfx: ...]` · Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA) · Table Virtuelle PixiJS v8 · IA Locale Ollama*
+> *Compagnon : Table du MJ trouvée par son Nom & Fiche conservée dans le Téléphone · Mises à jour de l'APK · Dérouleur de Scènes MJ (Scene Runner) · FX de Projectiles & Bruits de Pas VTT · Voix Divines & Démoniaques DSP · Log de Combat Chronologique & Résumé de Bataille IA Ollama · Auto-Scan Wi-Fi Mobile & Mode HUD de Table · Studio de Narration & Voix IA HD Multi-Acteurs (13 voix Edge-TTS) · Bulles de Dialogue & Halos Vocaux VTT synchronisés · Annonceur de Combat Épique · Murmures Secrets IA sur Smartphone · Répartie d'Improvisation PNJ · Balises SFX Synchronisées `[sfx: ...]` · Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA) · Table Virtuelle PixiJS v8 · IA Locale Ollama*
 
 ---
 
@@ -29,6 +29,7 @@
 20. [Le Guide de l'Herboriste & Lapidaire (Alchimie, Cueillette, Forge)](#20-le-guide-de-lherboriste--lapidaire-alchimie-cueillette-forge)
 21. [Tracking Optique Table & Figurines 3D (Webcam, ArUco & Anneaux STL)](#21-tracking-optique-table--figurines-3d-webcam-aruco--anneaux-stl)
 22. [Dérouleur de Scènes MJ, FX de Projectiles, Voix Divines & Log de Combat (v0.8.19)](#22-dérouleur-de-scènes-mj-fx-de-projectiles-voix-divines--log-de-combat-v0819)
+23. [Compagnon Mobile : Table trouvée par son Nom, Fiche Sauvegardée & Mises à jour (v0.8.20 – v0.8.21)](#23-compagnon-mobile--table-trouvée-par-son-nom-fiche-sauvegardée--mises-à-jour-v0820--v0821)
 
 ---
 
@@ -921,8 +922,51 @@ Si vous disposez d'une imprimante 3D (FDM ou Résine) :
 3. **🪄 Résumé de Bataille Épique (Ollama)** : À la fin ou en plein milieu du combat, cliquez sur le bouton **« 🪄 Résumé IA »** : l'IA locale Ollama analyse la suite des actions et rédige en quelques secondes un récit héroïque viscéral en deux paragraphes prêts à être lus à vos joueurs ou archivés dans votre journal de quête.
 
 ### 5. Compagnon Mobile : Auto-Scan Wi-Fi & Mode HUD de Table
-1. **🔍 Auto-Scan Wi-Fi** : Sur smartphone ou sur l'APK Android, cliquez sur le bouton **« 🔍 Auto-Scan »** : l'application balaye automatiquement le sous-réseau local et trouve immédiatement l'IP de votre PC Grimoire, sans configuration ni saisie manuelle.
+1. **🔍 Auto-Scan Wi-Fi** : Sur smartphone ou sur l'APK Android, cliquez sur le bouton **« 🔍 Auto-Scan »** : l'application balaye automatiquement le sous-réseau local et trouve immédiatement l'IP de votre PC Grimoire, sans configuration ni saisie manuelle. *(Depuis la v0.8.20, ce bouton s'appelle **« 🔍 Trouver »** et affiche la table par son nom : voir le chapitre 23.)*
 2. **📱 Mode Table (HUD Always-On)** : Cliquez sur **« 📱 Mode Table »** pour activer un affichage ultra-lisible (PV géants, dés express, indication claire du tour actif) pensé pour poser le téléphone à plat au centre de la table sans risquer de mise en veille.
+
+---
+
+## 23. Compagnon Mobile : Table trouvée par son Nom, Fiche Sauvegardée & Mises à jour (v0.8.20 – v0.8.21)
+
+### 0. Installer l'appli Android en scannant un QR Code
+1. **Côté MJ** : ouvrez le **📱 Hub Mobile** et démarrez le serveur. Deux QR Codes s'affichent : **🌐 Se connecter** et **🤖 Télécharger l'appli Android**.
+2. **Côté joueur** : scannez le QR **🤖 Télécharger l'appli Android** avec l'appareil photo. La dernière version de `Grimoire_Compagnon.apk` se télécharge ; ouvrez-la et touchez **Installer** (autorisez l'installation depuis le navigateur si Android le demande).
+3. Lancez l'appli : elle cherche la table toute seule (voir ci-dessous).
+
+> 💡 Le téléchargement passe par Internet (GitHub) ; la partie, elle, se joue ensuite sur le Wi-Fi local.
+
+### 1. Trouver la table du MJ par son nom (plus besoin d'adresse IP)
+1. **Côté MJ** : ouvrez votre campagne et activez le **📱 Hub Mobile**. Votre table est annoncée sous le nom *« Nom de la Campagne (NOM-DU-PC) »*, par exemple `Les Ombres de Fangh (MADPC)`.
+2. **Côté joueur** : dans l'appli Compagnon, touchez **« 🔍 Trouver »**. L'appli parcourt tout le Wi-Fi et affiche les tables trouvées sous forme de liste :
+   - une seule table → elle est sélectionnée automatiquement ;
+   - plusieurs tables (plusieurs MJ dans la même maison, club de jeu…) → touchez celle de votre MJ.
+3. **Premier lancement** : la recherche démarre toute seule, il n'y a rien à faire.
+4. **Si l'adresse du PC change** (box redémarrée, autre Wi-Fi…) : l'appli retrouve automatiquement la table par son nom et se reconnecte, y compris en pleine partie.
+5. **Plan B** : le bouton **📷** (scan du QR Code affiché par le MJ) et la saisie manuelle de l'adresse restent disponibles.
+
+> 💡 Le téléphone et le PC doivent être sur le **même Wi-Fi**. Si aucune table n'est trouvée, vérifiez que le Hub Mobile est bien activé dans Grimoire.
+
+### 2. La fiche du personnage est gardée dans le téléphone
+1. **Sauvegarde automatique** : à chaque modification, l'appli copie la fiche dans le dossier **`Documents › Grimoire`** du téléphone (fichier `NomDuHéros.grimoire-hero.json`). Ce dossier n'est **pas effacé** quand on désinstalle l'appli.
+2. **Après une réinstallation** : sur l'écran d'accueil, la carte **« Vous aviez déjà une fiche ? »** apparaît. Touchez **📂 Restaurer** :
+   - la fiche revient immédiatement ;
+   - sur Android 11 et plus, il peut être demandé de **choisir le fichier** : ouvrez `Documents › Grimoire` et touchez votre fiche.
+3. **Copie manuelle** : le bouton **💾 Exporter (.json)** enregistre une copie datée dans le même dossier (pratique avant de changer de téléphone).
+4. **Double sécurité** : la fiche est aussi conservée sur le PC du MJ. En rejoignant la table avec le **même nom et le même mot de passe**, elle est resynchronisée automatiquement.
+
+### 3. Mises à jour de l'appli Android (APK)
+1. **Notification** : quand une nouvelle version est publiée, un bandeau **« Nouvelle version »** apparaît en bas de l'écran. Touchez **⬇️ Télécharger**, puis ouvrez le fichier téléchargé et touchez **Mettre à jour**.
+2. **Passage à la v0.8.21 (une seule fois)** : l'appli est désormais signée avec une clé fixe. Lors de ce premier passage, Android peut afficher *« Application non installée »* :
+   1. rejoignez une dernière fois la table du MJ avec l'ancienne appli, pour que votre fiche soit bien enregistrée sur son PC ;
+   2. désinstallez l'ancienne appli **Grimoire Compagnon** ;
+   3. installez la nouvelle version ;
+   4. rejoignez la table avec le même nom et mot de passe (ou touchez **📂 Restaurer**).
+3. **Ensuite** : toutes les mises à jour suivantes s'installent directement par-dessus l'ancienne version, sans rien perdre.
+
+### 4. Ce que le MJ reçoit désormais du téléphone
+- **🔊 Sons** : les boutons *Cor*, *Choc* et *Sort* du téléphone apparaissent dans le journal du Hub Mobile.
+- **⚔️ Actions de combat** : *Attaque normale*, *Esquive / Parade*, *Charge !* et *Désengagement* s'affichent en notification chez le MJ et dans le **log de combat**.
 
 ---
 

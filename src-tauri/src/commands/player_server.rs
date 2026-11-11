@@ -145,7 +145,15 @@ pub struct ServerInfo {
     pub qr_svg: String,
     pub mj_url: String,
     pub mj_qr_svg: String,
+    /// Lien et QR Code de téléchargement de la dernière appli Android Compagnon
+    pub apk_url: String,
+    pub apk_qr_svg: String,
 }
+
+/// Lien stable vers le dernier APK publié (copie « Grimoire_Compagnon.apk »
+/// ajoutée à chaque release par la CI).
+const LATEST_APK_URL: &str =
+    "https://github.com/LordMadTrix/grimoire/releases/latest/download/Grimoire_Compagnon.apk";
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -216,7 +224,9 @@ pub async fn start_player_server(
     let mj_url = format!("{}/mj", url);
     let mj_qr_svg = generate_qr_svg(&mj_url);
 
-    Ok(ServerInfo { ip, port: actual_port, url, qr_svg, mj_url, mj_qr_svg })
+    let apk_url = LATEST_APK_URL.to_string();
+    let apk_qr_svg = generate_qr_svg(&apk_url);
+    Ok(ServerInfo { ip, port: actual_port, url, qr_svg, mj_url, mj_qr_svg, apk_url, apk_qr_svg })
 }
 
 #[tauri::command]
@@ -518,7 +528,9 @@ pub async fn get_server_status() -> Result<Option<ServerInfo>, String> {
         let qr_svg = generate_qr_svg(&url);
         let mj_url = format!("{}/mj", url);
         let mj_qr_svg = generate_qr_svg(&mj_url);
-        Ok(Some(ServerInfo { ip, port: p, url, qr_svg, mj_url, mj_qr_svg }))
+        let apk_url = LATEST_APK_URL.to_string();
+        let apk_qr_svg = generate_qr_svg(&apk_url);
+        Ok(Some(ServerInfo { ip, port: p, url, qr_svg, mj_url, mj_qr_svg, apk_url, apk_qr_svg }))
     } else {
         Ok(None)
     }
