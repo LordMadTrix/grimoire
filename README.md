@@ -262,6 +262,15 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.21 — Fiche conservée dans le téléphone & APK signé
+
+- **📂 La fiche survit à la désinstallation** : à chaque modification, l'appli Compagnon copie la fiche dans `Documents/Grimoire` du téléphone. Après une réinstallation, la carte *« Vous aviez déjà une fiche ? »* propose de la **Restaurer** en un geste.
+- **🔏 APK signé avec une clé fixe** : les prochaines mises à jour s'installent directement par-dessus l'ancienne version.
+  > ⚠️ **Une seule fois**, en passant à cette version, Android peut afficher « Application non installée » : désinstallez l'ancienne appli puis installez la nouvelle. La fiche reste chez le MJ (elle revient en rejoignant la table avec le même nom et mot de passe).
+- **💾 Export .json** : le bouton fonctionne désormais dans l'appli Android (copie horodatée dans `Documents/Grimoire`).
+
+---
+
 ## 🌟 Nouveautés v0.8.20 — Table du MJ trouvée par son nom, mises à jour de l'APK & correctifs
 
 - **📱 Compagnon : la table trouvée par son nom** : le bouton `🔍 Trouver` balaie tout le Wi-Fi et affiche les tables disponibles par leur nom (*« Ma Campagne (MADPC) »*) au lieu d'une adresse IP. Au premier lancement, la recherche démarre toute seule ; si l'IP du PC change, l'appli retrouve la table par son nom et se reconnecte.

@@ -471,6 +471,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
         </div>
         <button type="button" class="sbtn" style="margin:0;padding:8px 12px;font-size:12px;background:var(--accent);color:#000;font-weight:800;border-radius:8px" onclick="openOfflineMode()">Ouvrir ma Fiche 🧙</button>
       </div>
+      <div id="phone-restore-box" style="display:none;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.4);border-radius:12px;padding:12px 14px;justify-content:space-between;align-items:center;gap:10px">
+        <div style="font-size:12px;color:var(--muted);line-height:1.4"><strong style="color:#a5b4fc">Vous aviez déjà une fiche ?</strong><br>Récupérez-la depuis Documents › Grimoire</div>
+        <button type="button" class="sbtn" style="margin:0;padding:8px 12px;font-size:12px;background:rgba(99,102,241,0.25);border-color:rgba(99,102,241,0.6);color:#c7d2fe;font-weight:700;border-radius:8px;white-space:nowrap" onclick="restoreHeroFromPhone()">📂 Restaurer</button>
+      </div>
     </div>
 
     <!-- Adresse du serveur Grimoire (avec scanner QR caméra) -->
@@ -1510,6 +1514,123 @@ function initIndexedDB() {
   });
 }
 
+
+// ── Sauvegarde de la fiche dans le téléphone (survit à la désinstallation) ──
+// Le stockage interne de l'appli (IndexedDB, localStorage) est effacé quand on
+// désinstalle l'APK. On recopie donc la fiche dans le dossier public
+// « Documents/Grimoire » du téléphone (plugin natif Capacitor Filesystem).
+const PHONE_BACKUP_DIR = 'Grimoire';
+let phoneBackupTimer = null;
+
+function phoneFs() {
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return null;
+  return (cap.Plugins && cap.Plugins.Filesystem) || null;
+}
+
+function heroFileBase(charData) {
+  return ((charData && charData.nom) || playerName || 'heros').replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function heroPayload(charData) {
+  return JSON.stringify({ format: 'grimoire-hero-v1', exportDate: new Date().toISOString(), character: charData }, null, 2);
+}
+
+// Identifiant propre à cette installation : après une réinstallation, Android
+// interdit de réécrire les fichiers créés par l'ancienne installation.
+function installId() {
+  let id = localStorage.getItem('grimoire_install_id');
+  if (!id) {
+    id = Math.random().toString(36).slice(2, 8);
+    localStorage.setItem('grimoire_install_id', id);
+  }
+  return id;
+}
+
+async function ensurePhoneStoragePermission(fs) {
+  try {
+    const st = await fs.checkPermissions();
+    if (st && st.publicStorage === 'granted') return true;
+    const req = await fs.requestPermissions();
+    return !!(req && req.publicStorage === 'granted');
+  } catch {
+    return true; // Android 11+ : pas de permission nécessaire pour Documents
+  }
+}
+
+async function writeHeroToPhone(charData, fileName) {
+  const fs = phoneFs();
+  if (!fs) return null;
+  await ensurePhoneStoragePermission(fs);
+  const data = heroPayload(charData);
+  const names = [fileName, fileName.replace(/\.grimoire-hero\.json$/, '') + '-' + installId() + '.grimoire-hero.json'];
+  for (const name of names) {
+    try {
+      await fs.writeFile({ path: PHONE_BACKUP_DIR + '/' + name, data, directory: 'DOCUMENTS', encoding: 'utf8', recursive: true });
+      return 'Documents/' + PHONE_BACKUP_DIR + '/' + name;
+    } catch (err) {
+      console.warn('Sauvegarde téléphone impossible (' + name + ') :', err);
+    }
+  }
+  return null;
+}
+
+// Appelée à chaque enregistrement de la fiche (regroupée toutes les 2 s)
+function scheduleHeroPhoneBackup(charData) {
+  if (!phoneFs() || !charData) return;
+  clearTimeout(phoneBackupTimer);
+  phoneBackupTimer = setTimeout(async () => {
+    const path = await writeHeroToPhone(charData, heroFileBase(charData) + '.grimoire-hero.json');
+    if (path) localStorage.setItem('grimoire_phone_backup_path', path);
+  }, 2000);
+}
+
+// Après une réinstallation : proposer de récupérer la fiche
+function hasLocalHero() {
+  return !!localStorage.getItem('grimoire_wfrp2');
+}
+
+function updatePhoneRestoreBox() {
+  const box = document.getElementById('phone-restore-box');
+  if (box) box.style.display = (phoneFs() && !hasLocalHero()) ? 'flex' : 'none';
+}
+
+async function restoreHeroFromPhone() {
+  const fs = phoneFs();
+  if (fs) {
+    try {
+      const dir = await fs.readdir({ path: PHONE_BACKUP_DIR, directory: 'DOCUMENTS' });
+      const files = (dir.files || [])
+        .filter(f => /\.grimoire-hero\.json$/i.test(f.name || f))
+        .sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+      for (const f of files) {
+        try {
+          const r = await fs.readFile({ path: PHONE_BACKUP_DIR + '/' + (f.name || f), directory: 'DOCUMENTS', encoding: 'utf8' });
+          const json = JSON.parse(r.data);
+          const charData = json.character || json;
+          if (charData && (charData.nom || charData.profil)) {
+            loadCharFromData(charData);
+            await saveCharacterToStorage(charData);
+            if (charData.nom) {
+              playerName = charData.nom;
+              const pNameInp = document.getElementById('player-name');
+              if (pNameInp) pNameInp.value = charData.nom;
+            }
+            updateDeviceHeroSummary();
+            updatePhoneRestoreBox();
+            showToast('📂', 'Fiche Restaurée', (charData.nom || 'Personnage') + ' récupéré depuis le téléphone !', 'success', 4000);
+            return;
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+  // Fichiers de l'ancienne installation illisibles directement : le joueur les choisit
+  showToast('📂', 'Choisissez votre fiche', 'Ouvrez le dossier Documents › Grimoire et touchez votre fichier .grimoire-hero.json', 'info', 6000);
+  const inp = document.getElementById('import-hero-input');
+  if (inp) inp.click();
+}
+
 async function saveCharacterToStorage(charData) {
   if (!charData) return;
   const name = (charData.nom || playerName || 'Héros').trim();
@@ -1549,6 +1670,9 @@ async function saveCharacterToStorage(charData) {
     localStorage.setItem('grimoire_heroes_index', JSON.stringify(heroList));
   } catch(e) {}
 
+  // 3. Copie dans Documents/Grimoire du téléphone (survit à la désinstallation)
+  scheduleHeroPhoneBackup(charData);
+  updatePhoneRestoreBox();
   updateDeviceHeroSummary();
 }
 
@@ -1567,9 +1691,16 @@ function updateDeviceHeroSummary() {
   }
 }
 
-function exportHeroToFile() {
+async function exportHeroToFile() {
   collect();
   const heroName = (ch.nom || playerName || 'heros').replace(/[^a-zA-Z0-9_-]/g, '_');
+  if (phoneFs()) {
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    const path = await writeHeroToPhone(ch, heroName + '-' + stamp + '.grimoire-hero.json');
+    if (path) showToast('💾', 'Fiche Sauvegardée', 'Copie enregistrée dans ' + path, 'success', 5000);
+    else showToast('⚠️', 'Sauvegarde impossible', 'Autorisez l’accès au stockage du téléphone puis réessayez.', 'warn', 5000);
+    return;
+  }
   const payload = {
     format: 'grimoire-hero-v1',
     exportDate: new Date().toISOString(),
@@ -2779,10 +2910,10 @@ async function relocateTableByName() {
 
 
 // ── Détection d'une nouvelle version de l'APK ──────────────────────────
-// `0.8.20` est remplacé par la vraie version (package.json)
+// `0.8.21` est remplacé par la vraie version (package.json)
 // par scripts/sync-companion.mjs lors de la construction de l'APK. Servie par
 // le PC (navigateur), la page garde le marqueur et ne vérifie rien.
-const APK_VERSION = '0.8.20';
+const APK_VERSION = '0.8.21';
 const RELEASES_API = 'https://api.github.com/repos/LordMadTrix/grimoire/releases/latest';
 
 function isEmbeddedApk() {
@@ -2807,7 +2938,8 @@ function showApkUpdateBanner(version, url) {
   bar.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;z-index:99999;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:#1c1917;border:1px solid rgba(229,168,83,0.6);box-shadow:0 8px 24px rgba(0,0,0,0.5);font-size:13px;color:#f5f5f4';
   const txt = document.createElement('div');
   txt.style.cssText = 'flex:1;line-height:1.35';
-  txt.innerHTML = '<strong style="color:#fbbf24">Nouvelle version ' + version + '</strong><br><span style="color:#a8a29e">Vous avez la ' + APK_VERSION + '</span>';
+  txt.innerHTML = '<strong style="color:#fbbf24">Nouvelle version ' + version + '</strong><br><span style="color:#a8a29e">Vous avez la ' + APK_VERSION + '</span>'
+    + '<br><span style="color:#a8a29e;font-size:11px">Si Android affiche « Application non installée » : désinstallez l’ancienne version puis installez la nouvelle. Votre fiche est gardée dans Documents › Grimoire et chez le MJ.</span>';
   const dl = document.createElement('button');
   dl.type = 'button';
   dl.textContent = '⬇️ Télécharger';
@@ -4072,6 +4204,7 @@ populateRaceDropdown();populateCareerDropdown();
 initIndexedDB().then(async () => {
   await loadChar();
   updateDeviceHeroSummary();
+  updatePhoneRestoreBox();
 });
 
 const srvInp = document.getElementById('server-address');

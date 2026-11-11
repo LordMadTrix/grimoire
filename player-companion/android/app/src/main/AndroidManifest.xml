@@ -8,6 +8,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/AppTheme">
 
@@ -44,4 +45,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Copie de la fiche dans Documents/Grimoire (Android 5 à 10 ; inutile à partir d'Android 11) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 </manifest>

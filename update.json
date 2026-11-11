@@ -1,6 +1,6 @@
 {
-  "version": "0.8.20",
-  "changelog": "Version 0.8.20 : l'appli Compagnon trouve la table du MJ par son NOM (plus besoin de taper l'IP) et la retrouve seule si l'adresse change, détection des nouvelles versions de l'APK, sons et actions de combat du smartphone désormais reçus par le MJ, écran VTT sans carte, barre d'outils adaptée aux écrans moyens et correctif de sécurité CORS du hub mobile.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.20",
+  "version": "0.8.21",
+  "changelog": "Version 0.8.21 : la fiche du joueur est copiée dans Documents/Grimoire du téléphone et survit à une désinstallation (bouton « Restaurer » après réinstallation), l'APK est signé avec une clé fixe pour que les prochaines mises à jour s'installent par-dessus l'ancienne version, et l'export .json fonctionne dans l'appli Android.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.21",
   "release_date": "2026-11-11"
 }
