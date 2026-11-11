@@ -1,4 +1,4 @@
-# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.22)
+# 📖 Le Grand Grimoire — Guide Encyclopédique de A à Z (v0.8.23)
 
 > **L'Outil Ultime pour Maîtres du Jeu TTRPG**  
 > *Compagnon : Table du MJ trouvée par son Nom & Fiche conservée dans le Téléphone · Mises à jour de l'APK · Dérouleur de Scènes MJ (Scene Runner) · FX de Projectiles & Bruits de Pas VTT · Voix Divines & Démoniaques DSP · Log de Combat Chronologique & Résumé de Bataille IA Ollama · Auto-Scan Wi-Fi Mobile & Mode HUD de Table · Studio de Narration & Voix IA HD Multi-Acteurs (13 voix Edge-TTS) · Bulles de Dialogue & Halos Vocaux VTT synchronisés · Annonceur de Combat Épique · Murmures Secrets IA sur Smartphone · Répartie d'Improvisation PNJ · Balises SFX Synchronisées `[sfx: ...]` · Compagnon Joueur Autonome Offline-First (Android APK & Apple iPhone/iPad PWA) · Table Virtuelle PixiJS v8 · IA Locale Ollama*
@@ -938,14 +938,18 @@ Si vous disposez d'une imprimante 3D (FDM ou Résine) :
 
 ### 1. Trouver la table du MJ par son nom (plus besoin d'adresse IP)
 1. **Côté MJ** : ouvrez votre campagne et activez le **📱 Hub Mobile**. Votre table est annoncée sous le nom *« Nom de la Campagne (NOM-DU-PC) »*, par exemple `Les Ombres de Fangh (MADPC)`.
-2. **Côté joueur** : dans l'appli Compagnon, touchez **« 🔍 Trouver »**. L'appli parcourt tout le Wi-Fi et affiche les tables trouvées sous forme de liste :
+2. **Côté joueur** : dans l'appli Compagnon, touchez **« 🔍 Trouver »**. Depuis la v0.8.23, Grimoire annonce la table sur le Wi-Fi : l'appli la trouve en moins d'une seconde (sinon elle parcourt le réseau) et affiche les tables sous forme de liste :
    - une seule table → elle est sélectionnée automatiquement ;
    - plusieurs tables (plusieurs MJ dans la même maison, club de jeu…) → touchez celle de votre MJ.
 3. **Premier lancement** : la recherche démarre toute seule, il n'y a rien à faire.
 4. **Si l'adresse du PC change** (box redémarrée, autre Wi-Fi…) : l'appli retrouve automatiquement la table par son nom et se reconnecte, y compris en pleine partie.
 5. **Plan B** : le bouton **📷** (scan du QR Code affiché par le MJ) et la saisie manuelle de l'adresse restent disponibles.
 
-> 💡 Le téléphone et le PC doivent être sur le **même Wi-Fi**. Si aucune table n'est trouvée, vérifiez que le Hub Mobile est bien activé dans Grimoire.
+> 💡 Le téléphone et le PC doivent être sur le **même Wi-Fi**. Si aucune table n'est trouvée, vérifiez que le Hub Mobile est bien activé dans Grimoire et que le pare-feu Windows autorise Grimoire sur les réseaux privés.
+
+**📷 Scanner le QR Code** : le bouton 📷 ouvre le scanner de Google, qui fonctionne sur tous les téléphones Android (au premier usage, Android peut télécharger le module de scan : réessayez après quelques secondes).
+
+**↩️ Bouton Retour** : il ferme d'abord la fenêtre ouverte (scanner, handout, sondage, jet demandé, mode Table), puis revient au premier onglet ; il ne quitte plus l'appli d'un coup et la connexion à la table reste active.
 
 ### 2. La fiche du personnage est gardée dans le téléphone
 1. **Sauvegarde automatique** : à chaque modification, l'appli copie la fiche dans le dossier **`Documents › Grimoire`** du téléphone (fichier `NomDuHéros.grimoire-hero.json`). Ce dossier n'est **pas effacé** quand on désinstalle l'appli.

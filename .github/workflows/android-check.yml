@@ -1,0 +1,39 @@
+name: Android Check
+
+# Compile l'APK Compagnon (debug, sans signature) pour valider les changements
+# natifs avant une release. Se lance sur les branches apk-check/** ou à la main.
+on:
+  push:
+    branches:
+      - 'apk-check/**'
+  workflow_dispatch:
+
+jobs:
+  build-apk-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: prepare companion assets
+        run: |
+          node scripts/sync-companion.mjs
+          cd player-companion
+          npm install
+          npx cap sync android
+
+      - name: build Android APK (debug)
+        run: |
+          cd player-companion/android
+          chmod +x gradlew
+          ./gradlew assembleDebug

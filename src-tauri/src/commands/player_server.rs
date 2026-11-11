@@ -150,6 +150,51 @@ pub struct ServerInfo {
     pub apk_qr_svg: String,
 }
 
+// ── Annonce mDNS de la table (découverte instantanée par l'APK) ─────────────
+// L'appli Android cherche le service « _grimoire._tcp » sur le Wi-Fi : elle
+// trouve la table en moins d'une seconde, sans balayer les adresses IP.
+const MDNS_SERVICE_TYPE: &str = "_grimoire._tcp.local.";
+static MDNS_DAEMON: std::sync::Mutex<Option<mdns_sd::ServiceDaemon>> = std::sync::Mutex::new(None);
+
+fn mdns_announce(ip: &str, port: u16) {
+    mdns_stop();
+    let daemon = match mdns_sd::ServiceDaemon::new() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("[mDNS] démarrage impossible : {e}");
+            return;
+        }
+    };
+    let pc = pc_display_name();
+    let host_label: String = pc
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' })
+        .collect();
+    let host_name = format!("{}-grimoire.local.", host_label.trim_matches('-'));
+    let mut props = std::collections::HashMap::new();
+    props.insert("version".to_string(), env!("CARGO_PKG_VERSION").to_string());
+    props.insert("pc".to_string(), pc.clone());
+    match mdns_sd::ServiceInfo::new(MDNS_SERVICE_TYPE, &pc, &host_name, ip, port, props) {
+        Ok(info) => match daemon.register(info) {
+            Ok(()) => {
+                if let Ok(mut slot) = MDNS_DAEMON.lock() {
+                    *slot = Some(daemon);
+                }
+            }
+            Err(e) => eprintln!("[mDNS] annonce impossible : {e}"),
+        },
+        Err(e) => eprintln!("[mDNS] service invalide : {e}"),
+    }
+}
+
+fn mdns_stop() {
+    if let Ok(mut slot) = MDNS_DAEMON.lock() {
+        if let Some(daemon) = slot.take() {
+            let _ = daemon.shutdown();
+        }
+    }
+}
+
 /// Lien stable vers le dernier APK publié (copie « Grimoire_Compagnon.apk »
 /// ajoutée à chaque release par la CI).
 const LATEST_APK_URL: &str =
@@ -186,8 +231,8 @@ pub async fn start_player_server(
         .route("/manifest.webmanifest", get(serve_manifest))
         .route("/sw.js", get(serve_sw))
         .route("/icon.svg", get(serve_icon))
-        .route("/icon-192.png", get(serve_icon))
-        .route("/icon-512.png", get(serve_icon))
+        .route("/icon-192.png", get(serve_icon_192))
+        .route("/icon-512.png", get(serve_icon_512))
         .route("/mj", get(serve_carnet_mj))
         .route("/carnet", get(serve_carnet_mj))
         .route("/api/status", get(handle_status))
@@ -226,6 +271,7 @@ pub async fn start_player_server(
 
     let apk_url = LATEST_APK_URL.to_string();
     let apk_qr_svg = generate_qr_svg(&apk_url);
+    mdns_announce(&ip, actual_port);
     Ok(ServerInfo { ip, port: actual_port, url, qr_svg, mj_url, mj_qr_svg, apk_url, apk_qr_svg })
 }
 
@@ -238,6 +284,7 @@ pub async fn stop_player_server() -> Result<(), String> {
     }
     srv.players.lock().await.clear();
     *srv.port.lock().await = None;
+    mdns_stop();
     Ok(())
 }
 
@@ -839,6 +886,15 @@ async fn serve_sw() -> impl IntoResponse {
 
 async fn serve_icon() -> impl IntoResponse {
     ([(header::CONTENT_TYPE, "image/svg+xml; charset=utf-8")], ICON_SVG)
+}
+
+// Vraies icônes PNG (les anciennes routes .png renvoyaient le SVG)
+async fn serve_icon_192() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "image/png")], ICON_PNG_192)
+}
+
+async fn serve_icon_512() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "image/png")], ICON_PNG_512)
 }
 
 async fn serve_carnet_mj() -> impl IntoResponse {
@@ -1675,3 +1731,34 @@ const CARNET_MJ_HTML: &str = include_str!("carnet_mj.html");
 const MANIFEST_JSON: &str = include_str!("manifest.webmanifest");
 const SERVICE_WORKER_JS: &str = include_str!("sw.js");
 const ICON_SVG: &str = include_str!("icon.svg");
+const ICON_PNG_192: &[u8] = include_bytes!("icon-192.png");
+const ICON_PNG_512: &[u8] = include_bytes!("icon-512.png");
+
+#[cfg(test)]
+mod mdns_tests {
+    use super::{mdns_announce, mdns_stop, MDNS_SERVICE_TYPE};
+
+    /// La table annoncée par Grimoire doit être trouvable sur le réseau local.
+    #[test]
+    fn la_table_est_annoncee_en_mdns() {
+        let ip = super::local_ip().unwrap_or_else(|| "127.0.0.1".to_string());
+        mdns_announce(&ip, 7438);
+        let browser = mdns_sd::ServiceDaemon::new().expect("daemon de recherche");
+        let rx = browser.browse(MDNS_SERVICE_TYPE).expect("browse");
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        let mut trouve = None;
+        while std::time::Instant::now() < deadline {
+            if let Ok(mdns_sd::ServiceEvent::ServiceResolved(info)) =
+                rx.recv_timeout(std::time::Duration::from_millis(500))
+            {
+                trouve = Some((info.get_port(), info.get_addresses().iter().map(|a| a.to_string()).collect::<Vec<_>>()));
+                break;
+            }
+        }
+        let _ = browser.shutdown();
+        mdns_stop();
+        let (port, addrs) = trouve.expect("table Grimoire introuvable en mDNS");
+        assert_eq!(port, 7438);
+        assert!(addrs.contains(&ip), "adresse annoncée {addrs:?}, attendue {ip}");
+    }
+}

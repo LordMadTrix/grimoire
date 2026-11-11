@@ -1476,7 +1476,7 @@ let ws=null, playerId=null, playerName=null, reconnDelay=1000;
 let gameConfig = DEFAULT_WFRP1_CONFIG;
 let chatMode='gm', myConditions=[], recus=[];
 let isOfflineMode=false;
-let currentServerAddr = localStorage.getItem('grimoire_server_addr') || (location.host && location.host !== 'localhost' ? location.host : '192.168.0.155:7438');
+let currentServerAddr = localStorage.getItem('grimoire_server_addr') || (location.host && location.host !== 'localhost' ? location.host : '');
 
 // ── Moteur de Stockage Persistant IndexedDB & Sauvegardes ───────────────
 const DB_NAME = 'grimoire_player_db';
@@ -1789,13 +1789,44 @@ function toggleConnectToGM() {
 let qrStream = null;
 let qrVideoActive = false;
 
+// Scanner natif de l'APK (Google Code Scanner / ML Kit) : fiable sur tous les Android
+async function scanQRNative() {
+  const cap = window.Capacitor;
+  const BS = cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.BarcodeScanner;
+  if (!BS) return false;
+  try {
+    const mod = await BS.isGoogleBarcodeScannerModuleAvailable();
+    if (mod && mod.available === false) {
+      showToast('📷', 'Préparation du scanner', 'Téléchargement du module de scan par Android… réessayez dans quelques secondes.', 'info', 5000);
+      BS.installGoogleBarcodeScannerModule().catch(() => {});
+      return false; // en attendant : scanner caméra intégré
+    }
+    const res = await BS.scan({ formats: ['QR_CODE'] });
+    const code = res && res.barcodes && res.barcodes[0];
+    if (code && code.rawValue) handleScannedQR(code.rawValue);
+    return true; // scan terminé ou annulé par le joueur
+  } catch (err) {
+    // Le joueur a annulé : ne pas rouvrir un second scanner derrière
+    if (/cancel/i.test(String(err && (err.message || err)))) return true;
+    console.warn('Scanner natif indisponible :', err);
+    return false;
+  }
+}
+
 async function startQRScanner() {
+  if (await scanQRNative()) return;
+
   const modal = document.getElementById('qr-scanner-modal');
   const video = document.getElementById('qr-video');
   const status = document.getElementById('qr-scan-status');
   if (!modal || !video) return;
 
   modal.classList.add('active');
+  if (!('BarcodeDetector' in window)) {
+    // Sans lecteur de QR dans ce navigateur, la caméra resterait ouverte pour rien
+    status.textContent = 'Ce téléphone ne sait pas lire les QR Codes ici. Touchez « 🔍 Trouver » pour chercher la table automatiquement.';
+    return;
+  }
   status.textContent = 'Activation de la caméra…';
 
   try {
@@ -2668,7 +2699,8 @@ function getResolvedTargetHost() {
     if (location.host && !location.host.startsWith('localhost') && !location.host.startsWith('127.0.0.1')) {
       targetHost = location.host;
     } else {
-      targetHost = '192.168.0.155:7438';
+      // Aucune table connue : pas d'adresse inventée, il faut la trouver (🔍) ou scanner le QR
+      return '';
     }
   }
   if (!targetHost.includes(':')) {
@@ -2680,6 +2712,14 @@ function getResolvedTargetHost() {
 async function checkServerConnectivity(manual = false) {
   const badge = document.getElementById('server-ping-badge');
   const target = getResolvedTargetHost();
+  if (!target) {
+    if (badge) {
+      badge.textContent = '🔍 Touchez « Trouver » ou scannez le QR';
+      badge.style.color = 'var(--muted)';
+    }
+    if (manual) autoScanLocalNetwork();
+    return false;
+  }
   if (badge) {
     badge.textContent = 'Vérification…';
     badge.style.color = 'var(--muted)';
@@ -2768,7 +2808,22 @@ async function candidateSubnets() {
   return subnets;
 }
 
-// Scanne les sous-réseaux en parallèle ; onFound est appelé à chaque table trouvée.
+// Découverte instantanée dans l'APK : Grimoire annonce « _grimoire._tcp » (mDNS)
+async function discoverTablesNative(timeoutMs = 2500) {
+  const cap = window.Capacitor;
+  const plugin = cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.TableDiscovery;
+  if (!plugin) return [];
+  try {
+    const res = await plugin.discover({ timeoutMs });
+    return ((res && res.tables) || []).map(t => t.host + ':' + t.port);
+  } catch (err) {
+    console.warn('Découverte mDNS impossible :', err);
+    return [];
+  }
+}
+
+// Cherche les tables : mDNS natif d'abord, puis balayage des sous-réseaux en
+// secours. onFound est appelé à chaque table trouvée.
 async function scanForTables(onFound, { stopWhen, onSubnet } = {}) {
   const found = new Map();
   const report = r => {
@@ -2781,7 +2836,14 @@ async function scanForTables(onFound, { stopWhen, onSubnet } = {}) {
   if (prev) report(await probeGrimoireHost(prev, 1200));
   if (stopWhen && stopWhen(found)) return found;
 
-  // 2) Balayage complet de chaque sous-réseau probable, 128 requêtes à la fois
+  // 2) Annonce mDNS (APK) : quasi instantané, sans balayage
+  if (onSubnet) onSubnet('mDNS');
+  const announced = await discoverTablesNative();
+  const probed = await Promise.all(announced.map(h => probeGrimoireHost(h, 2000)));
+  probed.forEach(report);
+  if (found.size > 0 || (stopWhen && stopWhen(found))) return found;
+
+  // 3) Secours : balayage complet de chaque sous-réseau probable, 128 requêtes à la fois
   for (const subnet of await candidateSubnets()) {
     if (onSubnet) onSubnet(subnet);
     const hosts = [];
@@ -2860,7 +2922,7 @@ async function autoScanLocalNetwork() {
       }
     }, {
       onSubnet: subnet => {
-        if (!picked && badge) badge.textContent = '🔍 Recherche… (' + subnet + '.x)';
+        if (!picked && badge) badge.textContent = subnet === 'mDNS' ? '🔍 Recherche des tables…' : '🔍 Recherche… (' + subnet + '.x)';
       },
     });
     if (found.size === 0) {
@@ -2910,10 +2972,10 @@ async function relocateTableByName() {
 
 
 // ── Détection d'une nouvelle version de l'APK ──────────────────────────
-// `0.8.22` est remplacé par la vraie version (package.json)
+// `0.8.23` est remplacé par la vraie version (package.json)
 // par scripts/sync-companion.mjs lors de la construction de l'APK. Servie par
 // le PC (navigateur), la page garde le marqueur et ne vérifie rien.
-const APK_VERSION = '0.8.22';
+const APK_VERSION = '0.8.23';
 const RELEASES_API = 'https://api.github.com/repos/LordMadTrix/grimoire/releases/latest';
 
 function isEmbeddedApk() {
@@ -2971,6 +3033,42 @@ async function checkApkUpdate() {
   }
 }
 
+
+// ── Bouton Retour d'Android ────────────────────────────────────────────
+// Ferme d'abord la fenêtre ouverte, puis revient au premier onglet, et
+// seulement ensuite met l'appli en arrière-plan (la connexion à la table
+// reste active, au lieu de quitter l'appli d'un coup).
+function closeTopLayer() {
+  const isOpen = id => {
+    const el = document.getElementById(id);
+    return el && (el.classList.contains('active') || el.style.display === 'flex');
+  };
+  if (isOpen('qr-scanner-modal')) { stopQRScanner(); return true; }
+  if (isOpen('roll-request-overlay')) { closeRollRequest(); return true; }
+  if (isOpen('handout-overlay')) { closeHandout(); return true; }
+  if (isOpen('poll-overlay')) { closePoll(); return true; }
+  if (typeof isTableHudOpen !== 'undefined' && isTableHudOpen) { toggleTableHudMode(); return true; }
+  const other = document.querySelector('.modal-overlay.active, .handout-overlay.active, .poll-overlay.active');
+  if (other) { other.classList.remove('active'); return true; }
+  // Dans la fiche : revenir au premier onglet avant de sortir
+  const app = document.getElementById('app');
+  if (app && app.style.display !== 'none') {
+    const tabs = document.querySelectorAll('.tab');
+    if (tabs.length && !tabs[0].classList.contains('active')) { tabs[0].click(); return true; }
+  }
+  return false;
+}
+
+function setupAndroidBackButton() {
+  const cap = window.Capacitor;
+  const AppPlugin = cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App;
+  if (!AppPlugin) return;
+  AppPlugin.addListener('backButton', () => {
+    if (closeTopLayer()) return;
+    AppPlugin.minimizeApp();
+  });
+}
+
 let isTableHudOpen = false;
 function toggleTableHudMode() {
   const overlay = document.getElementById('table-hud-overlay');
@@ -3010,6 +3108,17 @@ function applyHealthDelta(delta) {
 function connect(){
   if(ws){ws.close();ws=null;}
   const targetHost = getResolvedTargetHost();
+  if (!targetHost) {
+    const errEl = document.getElementById('join-error');
+    if (errEl) {
+      errEl.textContent = 'Aucune table sélectionnée : recherche en cours… (ou scannez le QR Code du MJ)';
+      errEl.style.display = 'block';
+    }
+    const btn = document.getElementById('join-btn');
+    if (btn) { btn.textContent = 'Rejoindre la Table'; btn.disabled = false; }
+    autoScanLocalNetwork();
+    return;
+  }
   const srvInp = document.getElementById('server-address');
   if (srvInp && !srvInp.value) srvInp.value = targetHost;
   localStorage.setItem('grimoire_server_addr', targetHost);
@@ -3340,6 +3449,7 @@ let playerPassword=null;
 async function loadAvailableCharacters(){
   try{
     const target = getResolvedTargetHost();
+    if (!target) return;
     const res = await fetch('http://' + target + '/api/characters');
     if(res.ok){
       const chars=await res.json();
@@ -4228,6 +4338,7 @@ if (!localStorage.getItem('grimoire_server_addr') && (location.hostname === 'loc
   checkServerConnectivity();
 }
 checkApkUpdate();
+setupAndroidBackButton();
 
 // PWA Service Worker (pour fonctionnement 100% hors-ligne)
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {

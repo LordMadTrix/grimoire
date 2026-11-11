@@ -37,6 +37,33 @@ const COMPANION_WARNING =
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.8.23',
+    title: 'Appli Android : plus rapide et plus fiable',
+    items: [
+      {
+        icon: '⚡',
+        title: 'Table trouvée en moins d’une seconde',
+        text: 'Quand le Hub mobile est démarré, Grimoire annonce votre table sur le Wi-Fi. L’appli des joueurs la trouve aussitôt, sans balayer le réseau.',
+      },
+      {
+        icon: '📷',
+        title: 'Scanner de QR Code fiable',
+        text: 'L’appli utilise le scanner de Google, qui marche sur tous les téléphones Android. Plus de caméra bloquée sans message.',
+      },
+      {
+        icon: '🛡️',
+        title: 'Vraie icône Grimoire',
+        text: 'L’appli affiche maintenant le blason de Grimoire sur l’écran d’accueil du téléphone.',
+      },
+      {
+        icon: '↩️',
+        title: 'Bouton Retour d’Android',
+        text: 'Il ferme la fenêtre ouverte ou revient au premier onglet au lieu de quitter l’appli ; la connexion à la table reste active.',
+      },
+    ],
+    warning: 'Si un joueur ne voit pas votre table, vérifiez que le pare-feu Windows autorise Grimoire sur les réseaux privés. Le QR Code de connexion reste disponible.',
+  },
+  {
     version: '0.8.22',
     title: 'Le Compagnon Joueur passe un cap',
     items: COMPANION_NOTES,

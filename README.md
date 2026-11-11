@@ -264,6 +264,16 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.23 — Appli Android plus rapide et plus fiable
+
+- **⚡ Table trouvée en moins d'une seconde** : le Hub mobile annonce la table sur le Wi-Fi (mDNS, service `_grimoire._tcp`). L'appli Compagnon la trouve aussitôt, puis se rabat sur le balayage du réseau si besoin.
+- **📷 Scanner de QR Code natif** : scanner de Google (ML Kit), fiable sur tous les Android, avec repli sur la caméra intégrée et un message clair si le téléphone ne sait pas lire les QR.
+- **🛡️ Vraie icône** : le blason de Grimoire remplace l'icône Capacitor par défaut (et les icônes PWA sont de vrais PNG).
+- **↩️ Bouton Retour d'Android** : ferme la fenêtre ouverte, puis revient au premier onglet, et seulement ensuite met l'appli en arrière-plan.
+- **🧹** Plus d'adresse IP par défaut : sans table connue, l'appli lance la recherche.
+
+---
+
 ## 🌟 Nouveautés v0.8.22 — QR Code de téléchargement de l'appli Android
 
 - **🤖 QR Code « Télécharger l'appli Android »** : dans le Hub mobile, à côté du QR de connexion, un second QR Code mène directement à la **dernière** appli Grimoire Compagnon (`.apk`). Les joueurs installent l'appli en le scannant, puis rejoignent la table avec « 🔍 Trouver » ou le QR de connexion.

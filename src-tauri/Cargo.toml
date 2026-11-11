@@ -1,6 +1,6 @@
 [package]
 name = "grimoire"
-version = "0.8.22"
+version = "0.8.23"
 description = "Grimoire - Outil de Maître du Jeu TTRPG & VTT Local"
 authors = ["MadTrix"]
 license = "MIT"
@@ -64,6 +64,7 @@ futures-util = "0.3"
 chrono = "0.4"
 sha2 = "0.10"
 hex = "0.4"
+mdns-sd = "0.13"
 
 [profile.release]
 opt-level = 3

@@ -36,6 +36,10 @@ android {
             }
         }
     }
+    // Requis par le plugin de scan QR natif (@capacitor-mlkit/barcode-scanning)
+    buildFeatures {
+        dataBinding true
+    }
     buildTypes {
         release {
             minifyEnabled false

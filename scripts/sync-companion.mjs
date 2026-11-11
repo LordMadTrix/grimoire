@@ -18,8 +18,8 @@ const mappings = [
   { src: 'manifest.webmanifest', dest: 'manifest.webmanifest' },
   { src: 'sw.js', dest: 'sw.js' },
   { src: 'icon.svg', dest: 'icon.svg' },
-  { src: 'icon.svg', dest: 'icon-192.png' },
-  { src: 'icon.svg', dest: 'icon-512.png' },
+  { src: 'icon-192.png', dest: 'icon-192.png' },
+  { src: 'icon-512.png', dest: 'icon-512.png' },
 ];
 
 for (const m of mappings) {

@@ -1,6 +1,6 @@
 {
-  "version": "0.8.22",
-  "changelog": "Version 0.8.22 : dans le Hub mobile, un second QR Code permet aux joueurs de télécharger directement la dernière appli Android Grimoire Compagnon (.apk), à côté du QR de connexion à la table.",
-  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.22",
+  "version": "0.8.23",
+  "changelog": "Version 0.8.23 : l'appli Android trouve la table du MJ en moins d'une seconde (annonce mDNS du Hub mobile), scanner de QR Code natif fiable sur tous les téléphones, vraie icône Grimoire, bouton Retour d'Android qui ferme les fenêtres au lieu de quitter, et plus d'adresse IP par défaut.",
+  "download_url": "https://github.com/LordMadTrix/grimoire/releases/tag/v0.8.23",
   "release_date": "2026-11-11"
 }
