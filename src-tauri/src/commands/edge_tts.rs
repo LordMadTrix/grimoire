@@ -224,6 +224,176 @@ pub async fn tts_synthesize_neural(
     Ok(audio_bytes)
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct EdgeTtsStatus {
+    pub python_available: bool,
+    pub python_path: Option<String>,
+    pub edge_tts_installed: bool,
+    pub edge_tts_version: Option<String>,
+    pub ready: bool,
+}
+
+/// Vérifie si Python et le module edge-tts sont installés sur la machine
+#[command]
+pub async fn check_edge_tts_status() -> Result<EdgeTtsStatus, String> {
+    let mut python_found = false;
+    let mut py_executable = None;
+
+    for py_bin in &["python", "py", "python3"] {
+        let mut cmd = tokio::process::Command::new(py_bin);
+        cmd.arg("--version");
+        #[cfg(windows)]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+        if let Ok(output) = cmd.output().await {
+            if output.status.success() {
+                python_found = true;
+                py_executable = Some(py_bin.to_string());
+                break;
+            }
+        }
+    }
+
+    if !python_found {
+        return Ok(EdgeTtsStatus {
+            python_available: false,
+            python_path: None,
+            edge_tts_installed: false,
+            edge_tts_version: None,
+            ready: false,
+        });
+    }
+
+    let py_bin = py_executable.unwrap_or_else(|| "python".to_string());
+
+    let mut check_cmd = tokio::process::Command::new(&py_bin);
+    check_cmd.args(["-m", "edge_tts", "--version"]);
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        check_cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    if let Ok(output) = check_cmd.output().await {
+        if output.status.success() {
+            let ver_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let version = if ver_str.is_empty() {
+                String::from_utf8_lossy(&output.stderr).trim().to_string()
+            } else {
+                ver_str
+            };
+            return Ok(EdgeTtsStatus {
+                python_available: true,
+                python_path: Some(py_bin),
+                edge_tts_installed: true,
+                edge_tts_version: if version.is_empty() { None } else { Some(version) },
+                ready: true,
+            });
+        }
+    }
+
+    Ok(EdgeTtsStatus {
+        python_available: true,
+        python_path: Some(py_bin),
+        edge_tts_installed: false,
+        edge_tts_version: None,
+        ready: false,
+    })
+}
+
+/// Installe automatiquement edge-tts (et Python via winget si nécessaire) en 1 clic
+#[command]
+pub async fn install_edge_tts_auto() -> Result<String, String> {
+    let mut py_executable = None;
+
+    for py_bin in &["python", "py", "python3"] {
+        let mut cmd = tokio::process::Command::new(py_bin);
+        cmd.arg("--version");
+        #[cfg(windows)]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+        if let Ok(output) = cmd.output().await {
+            if output.status.success() {
+                py_executable = Some(py_bin.to_string());
+                break;
+            }
+        }
+    }
+
+    // Si Python n'est pas encore présent sur Windows, tenter winget
+    if py_executable.is_none() {
+        #[cfg(windows)]
+        {
+            let mut winget = tokio::process::Command::new("winget");
+            winget.args(["install", "-e", "--id", "Python.Python.3.11", "--accept-package-agreements", "--accept-source-agreements"]);
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            winget.creation_flags(CREATE_NO_WINDOW);
+            let _ = winget.output().await;
+
+            for py_bin in &["python", "py", "python3"] {
+                let mut cmd = tokio::process::Command::new(py_bin);
+                cmd.arg("--version");
+                cmd.creation_flags(CREATE_NO_WINDOW);
+                if let Ok(output) = cmd.output().await {
+                    if output.status.success() {
+                        py_executable = Some(py_bin.to_string());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    let py_bin = py_executable.ok_or_else(|| {
+        "Python n'est pas installé sur cet ordinateur. Installez Python depuis python.org ou Microsoft Store pour activer les 13 voix IA.".to_string()
+    })?;
+
+    // Exécuter pip install --upgrade edge-tts
+    let mut pip_cmd = tokio::process::Command::new(&py_bin);
+    pip_cmd.args(["-m", "pip", "install", "--upgrade", "edge-tts"]);
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        pip_cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let output = pip_cmd.output().await.map_err(|e| format!("Erreur exécution pip : {e}"))?;
+
+    if !output.status.success() {
+        let mut user_pip = tokio::process::Command::new(&py_bin);
+        user_pip.args(["-m", "pip", "install", "--upgrade", "--user", "edge-tts"]);
+        #[cfg(windows)]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            user_pip.creation_flags(CREATE_NO_WINDOW);
+        }
+        let user_output = user_pip.output().await.map_err(|e| format!("Erreur exécution pip user : {e}"))?;
+        if !user_output.status.success() {
+            let stderr = String::from_utf8_lossy(&user_output.stderr);
+            return Err(format!("Échec de l'installation de edge-tts : {stderr}"));
+        }
+    }
+
+    // Vérifier la version installée
+    let mut verify_cmd = tokio::process::Command::new(&py_bin);
+    verify_cmd.args(["-m", "edge_tts", "--version"]);
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        verify_cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    if let Ok(v_output) = verify_cmd.output().await {
+        let ver = String::from_utf8_lossy(&v_output.stdout).trim().to_string();
+        return Ok(format!("Les 13 Voix Neuronales IA (edge-tts {}) sont prêtes !", if ver.is_empty() { "7.x".to_string() } else { ver }));
+    }
+
+    Ok("Les Voix Neuronales IA sont installées et opérationnelles !".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -233,5 +403,12 @@ mod tests {
         let res = tts_synthesize_neural("Bonjour aventurier".to_string(), "fr-FR-HenriNeural".to_string(), None, None).await;
         println!("Test Edge TTS result: {:?}", res.as_ref().map(|v| v.len()));
         assert!(res.is_ok(), "TTS failed: {:?}", res.err());
+    }
+
+    #[tokio::test]
+    async fn test_check_python_edge_tts() {
+        let res = check_edge_tts_status().await;
+        println!("edge-tts status: {:?}", res);
+        assert!(res.is_ok());
     }
 }

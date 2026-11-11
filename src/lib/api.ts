@@ -439,6 +439,16 @@ export async function applyDamageToPlayer(playerId: string, damage: number): Pro
   return invoke('apply_damage_to_player', { playerId, damage });
 }
 
+export async function setPlayerMaxHp(playerId: string, maxHp: number): Promise<void> {
+  if (!isTauri()) return;
+  return invoke('set_player_max_hp', { playerId, maxHp });
+}
+
+export async function setPlayerHp(playerId: string, hp: number): Promise<void> {
+  if (!isTauri()) return;
+  return invoke('set_player_hp', { playerId, hp });
+}
+
 export async function applyConditionToPlayer(playerId: string, condition: string): Promise<void> {
   if (!isTauri()) return;
   return invoke('apply_condition_to_player', { playerId, condition });
@@ -532,5 +542,23 @@ export async function fetchBinaryAssetUrl(path: string, mimeType: string = 'imag
   const buffer = await readFileBinary(path);
   const blob = new Blob([buffer], { type: mimeType });
   return URL.createObjectURL(blob);
+}
+
+export interface EdgeTtsStatus {
+  python_available: boolean;
+  python_path: string | null;
+  edge_tts_installed: boolean;
+  edge_tts_version: string | null;
+  ready: boolean;
+}
+
+export async function checkEdgeTtsStatus(): Promise<EdgeTtsStatus> {
+  if (!isTauri()) return { python_available: false, python_path: null, edge_tts_installed: false, edge_tts_version: null, ready: false };
+  return invoke<EdgeTtsStatus>('check_edge_tts_status');
+}
+
+export async function installEdgeTtsAuto(): Promise<string> {
+  if (!isTauri()) return "Disponible uniquement sur l'application de bureau Grimoire.";
+  return invoke<string>('install_edge_tts_auto');
 }
 

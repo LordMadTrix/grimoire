@@ -264,6 +264,23 @@ Pour installer votre table de jeu physique augmentée en 4 étapes simples :
 
 ---
 
+## 🌟 Nouveautés v0.8.24 — Modification des PV Max en Direct & Installation Automatique des Voix IA
+
+- **❤️ Modification Directe des PV Max sur Mobile (Android PWA & APK)** :
+  - Sur la fiche de personnage : le dénominateur des blessures (`/ 10`) est désormais un champ numérique éditable en un geste (`onMaxHpInput`), complété par une barre de raccourcis rapides (`-1 Max`, `+1 Max`, `✏️ Définir Max`).
+  - Dans le Mode Table Always-On : la jauge géante affiche les PV Max cliquables avec boutons de réglage immédiat.
+  - Dans l'onglet Combat : suivi dynamique des PV Max avec ajustement en temps réel synchronisé avec le MJ.
+- **👑 Contrôle Direct des PV & PV Max Côté MJ (Volet Joueurs Express)** :
+  - Sur chaque carte de joueur, le tag de santé (ex: `7/10 PV`) est devenu un double champ interactif : modifiez les PV actuels ou les PV Max d'un héros en tapant la valeur directement au clavier.
+  - Dans le tiroir déplié (`⚙️`) : rangées complètes d'ajustement rapide pour les PV Actuels et pour les PV Max (`-5`, `-1`, `+1`, `+5`).
+  - Prise en charge immédiate pour les joueurs connectés en ligne et pour les fiches sauvegardées dans le Coffre.
+- **⚡ Installation Automatique en 1 Clic des Voix Neuronales IA (Azure Neural HD)** :
+  - Détection automatique au démarrage de l'état du moteur vocal (`edge-tts` via Python).
+  - Dans le **Studio de Narration** et dans les **Paramètres du Grimoire**, une bannière intelligente informe l'utilisateur si les voix ne sont pas encore installées et propose le bouton *« ⚡ Installer Automatiquement les Voix (Gratuit) »*.
+  - Débloque instantanément les 13 voix françaises HD (Vivienne, Remy, Henri, Eloise...) et le multi-casting vocal sans aucune ligne de commande.
+
+---
+
 ## 🌟 Nouveautés v0.8.23 — Appli Android plus rapide et plus fiable
 
 - **⚡ Table trouvée en moins d'une seconde** : le Hub mobile annonce la table sur le Wi-Fi (mDNS, service `_grimoire._tcp`). L'appli Compagnon la trouve aussitôt, puis se rabat sur le balayage du réseau si besoin.

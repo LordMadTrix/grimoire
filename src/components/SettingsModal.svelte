@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getOllamaModels } from '$lib/api';
+  import { getOllamaModels, checkEdgeTtsStatus, installEdgeTtsAuto, type EdgeTtsStatus } from '$lib/api';
+  import { notifStore } from '$lib/stores/notifications.svelte';
+  import { ttsReader } from '$lib/stores/ttsReader.svelte';
   import {
     getAiModel, setAiModel,
     getAiToneId, setAiToneId,
@@ -30,6 +32,32 @@
   let customWordsList = $state<string[]>(getCustomWords());
   let newCustomWord = $state('');
 
+  // ── Statut & Installation Voix IA (Edge-TTS) ──
+  let ttsStatus = $state<EdgeTtsStatus | null>(null);
+  let isInstallingTts = $state<boolean>(false);
+
+  async function refreshTts() {
+    try {
+      ttsStatus = await checkEdgeTtsStatus();
+    } catch (e) {
+      console.warn('tts status check failed:', e);
+    }
+  }
+
+  async function handleInstallTts() {
+    isInstallingTts = true;
+    try {
+      const msg = await installEdgeTtsAuto();
+      notifStore.add('🎉', 'Voix IA Prêtes', msg, 'success', 4500);
+      await refreshTts();
+      ttsReader.buildVoiceList();
+    } catch (err: any) {
+      notifStore.add('❌', 'Erreur Installation', err?.message || String(err), 'danger', 6000);
+    } finally {
+      isInstallingTts = false;
+    }
+  }
+
   function handleAddWord() {
     const trimmed = newCustomWord.trim();
     if (trimmed) {
@@ -45,6 +73,7 @@
   }
 
   onMount(async () => {
+    refreshTts();
     try {
       models = await getOllamaModels();
       if (models.length === 0) {
@@ -137,6 +166,58 @@
           placeholder="ex: Tu es un Maître du Jeu..."
         ></textarea>
         <small>Donnez la tonalité de l'IA. Elle l'utilisera comme contexte avant chaque génération.</small>
+      </div>
+    </section>
+
+    <!-- Section Voix Neuronales & Narration IA -->
+    <section class="settings-section">
+      <div class="tts-section-header">
+        <div>
+          <h3>🎙️ Voix Neuronales & Narration IA (Edge-TTS)</h3>
+          <small>13 voix françaises haute fidélité (Azure Neural) pour la lecture de scènes et le multi-casting.</small>
+        </div>
+        {#if ttsStatus?.ready}
+          <span class="tts-status-pill success">🟢 Opérationnel</span>
+        {:else if ttsStatus && !ttsStatus.ready}
+          <span class="tts-status-pill warning">⚡ Non installé</span>
+        {/if}
+      </div>
+
+      <div class="tts-status-box" class:installed={ttsStatus?.ready}>
+        <div class="tts-status-content">
+          {#if ttsStatus?.ready}
+            <div class="tts-status-text">
+              <strong>Module vocal activé</strong> : {ttsStatus.edge_tts_version || 'edge-tts'} ({ttsStatus.python_path || 'Python'})
+              <div class="tts-voices-hint">Toutes les voix (Vivienne, Remy, Henri, Eloise...) sont prêtes dans le Studio de Narration.</div>
+            </div>
+            <button
+              type="button"
+              class="btn-tts-action secondary"
+              onclick={handleInstallTts}
+              disabled={isInstallingTts}
+              title="Réinstaller ou mettre à jour edge-tts"
+            >
+              {#if isInstallingTts}⏳ Mise à jour...{:else}🔄 Mettre à jour{/if}
+            </button>
+          {:else}
+            <div class="tts-status-text">
+              <strong>Voix neuronales non détectées</strong> sur ce système.
+              <div class="tts-voices-hint">Cliquez sur le bouton ci-contre pour installer automatiquement le moteur vocal en 1 clic.</div>
+            </div>
+            <button
+              type="button"
+              class="btn-tts-action primary"
+              onclick={handleInstallTts}
+              disabled={isInstallingTts}
+            >
+              {#if isInstallingTts}
+                ⏳ Installation en cours...
+              {:else}
+                ⚡ Installer Automatiquement (Gratuit)
+              {/if}
+            </button>
+          {/if}
+        </div>
       </div>
     </section>
 
@@ -323,6 +404,90 @@
 
   .checkbox-group {
     margin-bottom: 14px;
+  }
+
+  /* ── Voix Neuronales & Edge-TTS ── */
+  .tts-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .tts-status-pill {
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .tts-status-pill.success {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #4ade80;
+  }
+  .tts-status-pill.warning {
+    background: rgba(234, 179, 8, 0.15);
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    color: #facc15;
+  }
+  .tts-status-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .tts-status-box.installed {
+    border-color: rgba(34, 197, 94, 0.2);
+    background: rgba(34, 197, 94, 0.03);
+  }
+  .tts-status-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+  }
+  .tts-status-text {
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+  .tts-voices-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .btn-tts-action {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .btn-tts-action.primary {
+    background: linear-gradient(135deg, #e5a853 0%, #d97706 100%);
+    color: #000;
+    border: none;
+    box-shadow: 0 2px 8px rgba(229, 168, 83, 0.3);
+  }
+  .btn-tts-action.primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(229, 168, 83, 0.45);
+  }
+  .btn-tts-action.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+  }
+  .btn-tts-action.secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+  }
+  .btn-tts-action:disabled {
+    opacity: 0.6;
+    cursor: wait;
   }
 
   .checkbox-label {

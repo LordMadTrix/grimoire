@@ -10,10 +10,36 @@
   } from '$lib/services/dialogueParser';
   import { narrationStudioStore } from '$lib/stores/narrationStudio.svelte';
   import { voiceProfilesStore, type CustomVoiceProfile } from '$lib/stores/voiceProfiles.svelte';
-  import { askOllama, broadcastToPlayers } from '$lib/api';
+  import { askOllama, broadcastToPlayers, checkEdgeTtsStatus, installEdgeTtsAuto, type EdgeTtsStatus } from '$lib/api';
   import { getAiModel } from '$lib/stores/settings.svelte';
   import { notifStore } from '$lib/stores/notifications.svelte';
   import { vttStore } from '$lib/stores/vtt.svelte';
+
+  // ── Statut des Voix Neuronales IA ──
+  let ttsStatus = $state<EdgeTtsStatus | null>(null);
+  let isInstallingTts = $state<boolean>(false);
+
+  async function refreshTtsStatus() {
+    try {
+      ttsStatus = await checkEdgeTtsStatus();
+    } catch (e) {
+      console.warn('Check tts status error:', e);
+    }
+  }
+
+  async function handleInstallTts() {
+    isInstallingTts = true;
+    try {
+      const msg = await installEdgeTtsAuto();
+      notifStore.add('🎉', 'Voix IA Prêtes', msg, 'success', 4500);
+      await refreshTtsStatus();
+      ttsReader.buildVoiceList();
+    } catch (err: any) {
+      notifStore.add('❌', 'Installation Voix', err?.message || String(err), 'danger', 6000);
+    } finally {
+      isInstallingTts = false;
+    }
+  }
 
   // ── Onglets & États ──
   type StudioTab = 'staged' | 'raw_text' | 'voice_manager';
@@ -67,6 +93,7 @@ Oracle : « Ce n'est pas le fer des orcs que vous devez craindre... mais le tra�
   ];
 
   onMount(() => {
+    refreshTtsStatus();
     // Si un texte initial a été passé via le store
     if (narrationStudioStore.initialText) {
       rawSourceText = narrationStudioStore.initialText;
@@ -336,6 +363,43 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
         <button class="ns-btn-close" onclick={() => narrationStudioStore.close()} title="Fermer (Échap)">✕</button>
       </div>
     </div>
+
+    <!-- Bannière Statut / Installation Automatique des Voix Neuronales -->
+    {#if ttsStatus && !ttsStatus.ready}
+      <div class="ns-tts-banner warning">
+        <div class="ns-tts-banner-info">
+          <span class="ns-tts-banner-icon">⚡</span>
+          <div>
+            <div class="ns-tts-banner-title">Voix Neuronales IA non installées sur ce PC</div>
+            <div class="ns-tts-banner-desc">
+              Débloquez instantanément les 13 voix françaises HD (Vivienne, Remy, Henri, etc.) et le multi-casting automatique pour vos narrations.
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="ns-btn-install-tts"
+          onclick={handleInstallTts}
+          disabled={isInstallingTts}
+        >
+          {#if isInstallingTts}
+            ⏳ Installation en cours...
+          {:else}
+            ⚡ Installer Automatiquement les Voix (Gratuit)
+          {/if}
+        </button>
+      </div>
+    {:else if ttsStatus && ttsStatus.ready}
+      <div class="ns-tts-banner success">
+        <div class="ns-tts-banner-info">
+          <span class="ns-tts-banner-icon">🟢</span>
+          <div>
+            <span class="ns-tts-ready-label">Voix Neuronales IA Opérationnelles</span>
+            <span class="ns-tts-ready-detail">({ttsStatus.edge_tts_version || 'edge-tts'} · 13 voix HD disponibles)</span>
+          </div>
+        </div>
+      </div>
+    {/if}
 
     <!-- Barre d'outils Presets & IA -->
     <div class="ns-ai-bar">
@@ -900,6 +964,77 @@ Voleur : « Doucement l'ami, je ne faisais que chercher mon briquet. »
     padding: 16px 20px;
     background: linear-gradient(180deg, rgba(229, 168, 83, 0.08) 0%, rgba(17, 20, 28, 0.95) 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* ── Bannière Détection / Installation Voix IA ── */
+  .ns-tts-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+  }
+  .ns-tts-banner.warning {
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.15) 0%, rgba(229, 168, 83, 0.08) 100%);
+    border-color: rgba(234, 179, 8, 0.35);
+  }
+  .ns-tts-banner.success {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border-color: rgba(34, 197, 94, 0.25);
+    padding: 6px 18px;
+  }
+  .ns-tts-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ns-tts-banner-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .ns-tts-banner-title {
+    font-weight: 700;
+    color: #fef08a;
+    font-size: 13px;
+  }
+  .ns-tts-banner-desc {
+    color: #cbd5e1;
+    font-size: 12px;
+    margin-top: 1px;
+    line-height: 1.35;
+  }
+  .ns-tts-ready-label {
+    font-weight: 700;
+    color: #4ade80;
+    margin-right: 6px;
+  }
+  .ns-tts-ready-detail {
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  .ns-btn-install-tts {
+    background: linear-gradient(135deg, #e5a853 0%, #d97706 100%);
+    color: #000;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(229, 168, 83, 0.3);
+    transition: all 0.18s ease;
+  }
+  .ns-btn-install-tts:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(229, 168, 83, 0.45);
+    filter: brightness(1.08);
+  }
+  .ns-btn-install-tts:disabled {
+    opacity: 0.65;
+    cursor: wait;
   }
 
   .ns-header-left {

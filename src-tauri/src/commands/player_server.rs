@@ -384,6 +384,129 @@ pub async fn apply_damage_to_player(player_id: String, damage: i32) -> Result<()
     Ok(())
 }
 
+/// Définit directement les PV Max d'un joueur et synchronise l'événement WebSocket.
+#[tauri::command]
+pub async fn set_player_max_hp(player_id: String, max_hp: i32) -> Result<(), String> {
+    let srv = get_server();
+    let safe_max = max_hp.max(1);
+    let (msg, p_name, char_data, actual_pid) = {
+        let mut players = srv.players.lock().await;
+        let p = if players.contains_key(&player_id) {
+            players.get_mut(&player_id).unwrap()
+        } else if let Some((_, found)) = players.iter_mut().find(|(_, pl)| pl.name.eq_ignore_ascii_case(&player_id)) {
+            found
+        } else {
+            return Err("Joueur introuvable".to_string());
+        };
+
+        let target_sock_id = p.id.clone();
+        let cur = p.character.get("bless")
+            .or_else(|| p.character.get("hp"))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(10);
+        let adjusted_hp = cur.min(i64::from(safe_max));
+
+        if let Some(obj) = p.character.as_object_mut() {
+            obj.insert("maxhp".into(), serde_json::json!(safe_max));
+            obj.insert("hp".into(), serde_json::json!(adjusted_hp));
+            obj.insert("bless".into(), serde_json::json!(adjusted_hp));
+            if let Some(profil) = obj.get_mut("profil").and_then(|pr| pr.as_object_mut()) {
+                if let Some(act) = profil.get_mut("act").and_then(|a| a.as_object_mut()) {
+                    act.insert("b".into(), serde_json::json!(safe_max));
+                }
+            }
+        }
+        let m = serde_json::to_string(&WsEnvelope {
+            event: "damage_applied".into(),
+            data: serde_json::json!({
+                "target_id": target_sock_id,
+                "damage": 0,
+                "bless": adjusted_hp,
+                "hp": adjusted_hp,
+                "maxhp": safe_max
+            }),
+        }).unwrap_or_default();
+        (m, p.name.clone(), p.character.clone(), target_sock_id)
+    };
+    {
+        let mut chars = srv.saved_characters.lock().await;
+        if let Some(sc) = chars.get_mut(&p_name) {
+            sc.data = char_data.clone();
+        }
+    }
+    save_characters_to_disk(srv).await;
+    send_to_player(srv, &actual_pid, msg).await;
+    broadcast_group_state(srv).await;
+
+    emit_to_gm(srv, "player_character_update", serde_json::json!({
+        "id": actual_pid,
+        "name": p_name,
+        "character": char_data,
+        "path": serde_json::Value::Null
+    })).await;
+
+    Ok(())
+}
+
+/// Définit directement les PV actuels d'un joueur
+#[tauri::command]
+pub async fn set_player_hp(player_id: String, hp: i32) -> Result<(), String> {
+    let srv = get_server();
+    let (msg, p_name, char_data, actual_pid) = {
+        let mut players = srv.players.lock().await;
+        let p = if players.contains_key(&player_id) {
+            players.get_mut(&player_id).unwrap()
+        } else if let Some((_, found)) = players.iter_mut().find(|(_, pl)| pl.name.eq_ignore_ascii_case(&player_id)) {
+            found
+        } else {
+            return Err("Joueur introuvable".to_string());
+        };
+
+        let target_sock_id = p.id.clone();
+        let max_val = p.character.get("maxhp")
+            .or_else(|| p.character.get("profil").and_then(|pr| pr.get("act")).and_then(|a| a.get("b")))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(20);
+        let new_val = (i64::from(hp)).clamp(0, max_val.max(9999));
+        if let Some(obj) = p.character.as_object_mut() {
+            obj.insert("bless".into(), serde_json::json!(new_val));
+            obj.insert("hp".into(), serde_json::json!(new_val));
+            if !obj.contains_key("maxhp") {
+                obj.insert("maxhp".into(), serde_json::json!(max_val));
+            }
+        }
+        let m = serde_json::to_string(&WsEnvelope {
+            event: "damage_applied".into(),
+            data: serde_json::json!({
+                "target_id": target_sock_id,
+                "damage": 0,
+                "bless": new_val,
+                "hp": new_val,
+                "maxhp": max_val
+            }),
+        }).unwrap_or_default();
+        (m, p.name.clone(), p.character.clone(), target_sock_id)
+    };
+    {
+        let mut chars = srv.saved_characters.lock().await;
+        if let Some(sc) = chars.get_mut(&p_name) {
+            sc.data = char_data.clone();
+        }
+    }
+    save_characters_to_disk(srv).await;
+    send_to_player(srv, &actual_pid, msg).await;
+    broadcast_group_state(srv).await;
+
+    emit_to_gm(srv, "player_character_update", serde_json::json!({
+        "id": actual_pid,
+        "name": p_name,
+        "character": char_data,
+        "path": serde_json::Value::Null
+    })).await;
+
+    Ok(())
+}
+
 /// Ajoute une condition à un joueur
 #[tauri::command]
 pub async fn apply_condition_to_player(player_id: String, condition: String) -> Result<(), String> {

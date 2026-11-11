@@ -79,6 +79,8 @@ pub fn run() {
             commands::player_server::set_game_config,
             commands::player_server::set_server_vault_path,
             commands::player_server::apply_damage_to_player,
+            commands::player_server::set_player_max_hp,
+            commands::player_server::set_player_hp,
             commands::player_server::apply_condition_to_player,
             commands::player_server::remove_condition_from_player,
             commands::player_server::set_active_turn,
@@ -108,6 +110,8 @@ pub fn run() {
             commands::addons::addon_fetch_pdf_bytes,
             // TTS Synthèse Neuronale IA
             commands::edge_tts::tts_synthesize_neural,
+            commands::edge_tts::check_edge_tts_status,
+            commands::edge_tts::install_edge_tts_auto,
             // Campagne Export / Import .grimoire
             commands::campaign::campaign_export_package,
             commands::campaign::campaign_import_package,

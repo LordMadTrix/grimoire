@@ -974,6 +974,25 @@ Si vous disposez d'une imprimante 3D (FDM ou Résine) :
 
 ---
 
+## 24. Modification Directe des PV Max & Installation Automatique des Voix IA (v0.8.24)
+
+### 1. Modifier les Points de Vie Maximum (PV Max)
+- **Sur l'Application Mobile (Android & PWA)** :
+  - **Fiche principale** : Dans la section *Blessures & Points de Vie*, le dénominateur est désormais une boîte de saisie modifiable à tout moment (ex: changer `10` en `14`). Une rangée de boutons pratiques `[-1 Max]`, `[+1 Max]`, `[✏️ Définir Max]` permet d'ajuster les PV Max en un tapotement.
+  - **Mode Table Always-On** : Le grand affichage central (ex: `/ 10 PV`) est cliquable et offre les mêmes boutons rapides pour ajuster les PV Max pendant la partie.
+  - **Onglet Combat** : Cliquez sur le score de vitalité ou utilisez les boutons `[-1 Max]` et `[+1 Max]` pour refléter les buffs, montées de niveau ou réductions permanentes.
+  - Toutes les modifications de PV Max sont immédiatement synchronisées sur le volet du MJ et sur le pion de la carte VTT.
+- **Côté Maître du Jeu (Volet Joueurs Express)** :
+  - Sur chaque carte de joueur, le tag de santé (ex: `7/10 PV`) affiche deux champs distincts : cliquez sur le premier pour ajuster les PV actuels, ou sur le second pour modifier les PV Max en direct !
+  - Cliquez sur la roue crantée `⚙️` pour déplier le tiroir : vous disposez de deux rangées dédiées avec les boutons `[-5]`, `[-1]`, `[+1]`, `[+5]` pour les PV actuels et pour les PV Max.
+
+### 2. Installation Automatique en 1 Clic des Voix IA (Edge-TTS HD)
+- Grimoire intègre 13 voix françaises neuronales haute fidélité (Vivienne, Remy, Henri, Eloise...) propulsées par le moteur Azure Neural via `edge-tts`.
+- **Détection automatique** : Si Grimoire est installé sur un nouveau PC où Python/edge-tts n'est pas encore configuré, un bandeau doré apparaît dans le **Studio de Narration** ainsi que dans les **Paramètres du Grimoire** (`🎙️ Voix Neuronales & Narration IA`).
+- **1 seul clic** : Cliquez sur **« ⚡ Installer Automatiquement les Voix (Gratuit) »**. Grimoire se charge de tout télécharger et configurer en arrière-plan sans ligne de commande. Dès l'installation terminée, toutes les voix HD et le casting vocal multi-acteurs deviennent immédiatement opérationnels !
+
+---
+
 💖 **Soutenir le projet** : Si vous aimez Grimoire et souhaitez encourager son développement continu, rejoignez la communauté sur [Patreon (LordMad)](https://www.patreon.com/cw/LordMad) !
 
 *Le Grand Grimoire — Conçu et développé avec passion pour tous les Maîtres du Jeu par MadTrix.*

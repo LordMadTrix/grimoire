@@ -3,7 +3,7 @@
   import { fade, slide } from 'svelte/transition';
   import { listen } from '$lib/tauriEvent';
   import {
-    getPlayerConnections, applyDamageToPlayer, applyConditionToPlayer,
+    getPlayerConnections, applyDamageToPlayer, setPlayerMaxHp, setPlayerHp, applyConditionToPlayer,
     removeConditionFromPlayer, requestRoll, pushMapSnapshot, sendPrivateMessage, broadcastToPlayers,
     readFile, writeFile, type PlayerInfo, type VaultEntry,
     getSavedPlayerAccounts, savePlayerAccount, deletePlayerAccount, type PlayerAccountSummary
@@ -583,6 +583,78 @@
   }
 
   // ── Actions Rapides ────────────────────────────────────────────
+  async function setPlayerHpDirect(p: PlayerInfo | PlayerAccountSummary, targetHp: number) {
+    const hpData = getPlayerHp(p);
+    const maxHp = hpData.maxHp;
+    const safeHp = Math.max(0, targetHp);
+    const pid = (p as any).id || (p as any).player_id;
+
+    // 1. Sauvegarder dans le compte joueur
+    const updatedChar = { ...(p.character || {}), hp: safeHp, bless: safeHp, maxhp: maxHp };
+    if (!updatedChar.profil) updatedChar.profil = { act: {} };
+    if (!updatedChar.profil.act) updatedChar.profil.act = {};
+    updatedChar.profil.act.b = maxHp;
+    try {
+      await savePlayerAccount(p.name, null, null, updatedChar, p.character_path || null);
+    } catch (e) {
+      console.warn('savePlayerAccount error in setPlayerHpDirect:', e);
+    }
+
+    // 2. Synchronisation WebSocket
+    try {
+      await setPlayerHp(pid || p.name, safeHp);
+    } catch (e) {
+      console.warn('setPlayerHp notice:', e);
+    }
+
+    // 3. Mise à jour token VTT
+    const token = getPlayerToken(p);
+    if (token) {
+      replaceGmToken({ ...token, hp: safeHp, maxHp });
+    }
+
+    await refreshData();
+  }
+
+  async function setPlayerMaxHpDirect(p: PlayerInfo | PlayerAccountSummary, targetMaxHp: number) {
+    const safeMax = Math.max(1, targetMaxHp);
+    const hpData = getPlayerHp(p);
+    const currentHp = Math.min(hpData.hp, safeMax);
+    const pid = (p as any).id || (p as any).player_id;
+
+    // 1. Sauvegarder dans le compte joueur
+    const updatedChar = { ...(p.character || {}), hp: currentHp, bless: currentHp, maxhp: safeMax };
+    if (!updatedChar.profil) updatedChar.profil = { act: {} };
+    if (!updatedChar.profil.act) updatedChar.profil.act = {};
+    updatedChar.profil.act.b = safeMax;
+    try {
+      await savePlayerAccount(p.name, null, null, updatedChar, p.character_path || null);
+    } catch (e) {
+      console.warn('savePlayerAccount error in setPlayerMaxHpDirect:', e);
+    }
+
+    // 2. Synchronisation WebSocket mobile
+    try {
+      await setPlayerMaxHp(pid || p.name, safeMax);
+    } catch (e) {
+      console.warn('setPlayerMaxHp notice:', e);
+    }
+
+    // 3. Mise à jour token VTT
+    const token = getPlayerToken(p);
+    if (token) {
+      replaceGmToken({ ...token, hp: currentHp, maxHp: safeMax });
+    }
+
+    await refreshData();
+  }
+
+  async function adjustMaxHp(p: PlayerInfo | PlayerAccountSummary, delta: number) {
+    const hpData = getPlayerHp(p);
+    const nextMax = Math.max(1, hpData.maxHp + delta);
+    await setPlayerMaxHpDirect(p, nextMax);
+  }
+
   async function adjustHp(p: PlayerInfo | PlayerAccountSummary, delta: number) {
     const hpData = getPlayerHp(p);
     const maxHp = hpData.maxHp;
@@ -615,6 +687,61 @@
     }
 
     await refreshData();
+  }
+
+  async function setVaultCharHpDirect(vc: { path: string; name: string; data: ParsedCharacterData }, newHp: number) {
+    const safeHp = Math.max(0, newHp);
+    const token = getPlayerToken(vc);
+    if (token) {
+      replaceGmToken({ ...token, hp: safeHp });
+    }
+    vc.data.hp = safeHp;
+
+    const vp = getVaultPath();
+    if (vp) {
+      try {
+        const content = await readFile(vp, vc.path);
+        const updated = content.replace(/^(hp|bless):\s*\d+/m, `$1: ${safeHp}`);
+        if (updated !== content) {
+          await writeFile(vp, vc.path, updated);
+        }
+      } catch (err) {
+        console.warn('Failed auto-save character file:', err);
+      }
+    }
+  }
+
+  async function setVaultCharMaxHpDirect(vc: { path: string; name: string; data: ParsedCharacterData }, newMax: number) {
+    const safeMax = Math.max(1, newMax);
+    const token = getPlayerToken(vc);
+    if (token) {
+      replaceGmToken({ ...token, maxHp: safeMax });
+    }
+    vc.data.maxhp = safeMax;
+
+    const vp = getVaultPath();
+    if (vp) {
+      try {
+        const content = await readFile(vp, vc.path);
+        let updated = content;
+        if (/^maxhp:\s*\d+/m.test(content)) {
+          updated = content.replace(/^maxhp:\s*\d+/m, `maxhp: ${safeMax}`);
+        } else {
+          updated = content.replace(/^(hp:\s*\d+)/m, `$1\nmaxhp: ${safeMax}`);
+        }
+        if (updated !== content) {
+          await writeFile(vp, vc.path, updated);
+        }
+      } catch (err) {
+        console.warn('Failed auto-save character file:', err);
+      }
+    }
+  }
+
+  async function adjustVaultCharMaxHp(vc: { path: string; name: string; data: ParsedCharacterData }, delta: number) {
+    const curMax = vc.data.maxhp || 10;
+    const nextMax = Math.max(1, curMax + delta);
+    await setVaultCharMaxHpDirect(vc, nextMax);
   }
 
   async function adjustVaultCharHp(vc: { path: string; name: string; data: ParsedCharacterData }, delta: number) {
@@ -967,9 +1094,28 @@
                       <div class="sub-status">
                         <span class={p.is_online ? "dot-online" : "dot-offline"}></span>
                         <span>{p.is_online ? (p.character?.voc || p.character?.race || 'En ligne') : 'Hors-ligne'}</span>
-                        <span class="compact-hp-tag" style="color: {hpData.pct > 50 ? '#4ade80' : hpData.pct > 20 ? '#facc15' : '#f87171'}">
-                          {hpData.hp}/{hpData.maxHp} PV
-                        </span>
+                        <div class="compact-hp-box" title="Modifier directement les PV actuels ou PV Max">
+                          <input
+                            type="number"
+                            class="compact-hp-inp cur"
+                            value={hpData.hp}
+                            min="0"
+                            title="Modifier les PV actuels de {p.name}"
+                            onclick={(e) => e.stopPropagation()}
+                            onchange={(e) => setPlayerHpDirect(p, parseInt(e.currentTarget.value) || 0)}
+                          />
+                          <span class="compact-hp-slash">/</span>
+                          <input
+                            type="number"
+                            class="compact-hp-inp max"
+                            value={hpData.maxHp}
+                            min="1"
+                            title="Modifier les PV Max de {p.name}"
+                            onclick={(e) => e.stopPropagation()}
+                            onchange={(e) => setPlayerMaxHpDirect(p, parseInt(e.currentTarget.value) || 1)}
+                          />
+                          <span class="compact-hp-unit">PV</span>
+                        </div>
                       </div>
                     </div>
 
@@ -1029,12 +1175,22 @@
                   {#if isExpanded}
                     <div class="player-expanded-body" transition:slide={{ duration: 140 }}>
                       <div class="hp-row">
-                        <span class="hp-text-lbl">PV : <strong>{hpData.hp} / {hpData.maxHp}</strong></span>
+                        <span class="hp-text-lbl">PV Actuels : <strong>{hpData.hp} / {hpData.maxHp}</strong></span>
                         <div class="hp-buttons">
                           <button class="hp-btn neg" onclick={() => adjustHp(p, -5)} title="-5 PV">-5</button>
                           <button class="hp-btn neg" onclick={() => adjustHp(p, -1)} title="-1 PV">-1</button>
                           <button class="hp-btn pos" onclick={() => adjustHp(p, 1)} title="+1 PV">+1</button>
                           <button class="hp-btn pos" onclick={() => adjustHp(p, 5)} title="+5 PV">+5</button>
+                        </div>
+                      </div>
+
+                      <div class="hp-row maxhp-row">
+                        <span class="hp-text-lbl">PV Max : <strong>{hpData.maxHp}</strong></span>
+                        <div class="hp-buttons">
+                          <button class="hp-btn neg" onclick={() => adjustMaxHp(p, -5)} title="-5 PV Max">-5</button>
+                          <button class="hp-btn neg" onclick={() => adjustMaxHp(p, -1)} title="-1 PV Max">-1</button>
+                          <button class="hp-btn pos" onclick={() => adjustMaxHp(p, 1)} title="+1 PV Max">+1</button>
+                          <button class="hp-btn pos" onclick={() => adjustMaxHp(p, 5)} title="+5 PV Max">+5</button>
                         </div>
                       </div>
 
@@ -1132,9 +1288,28 @@
                       </div>
                       <div class="sub-status">
                         <span>{vc.data.voc || vc.data.race || 'Fiche Coffre'}</span>
-                        <span class="compact-hp-tag" style="color: {hpData.pct > 50 ? '#4ade80' : hpData.pct > 20 ? '#facc15' : '#f87171'}">
-                          {hpData.hp}/{hpData.maxHp} PV
-                        </span>
+                        <div class="compact-hp-box" title="Modifier directement les PV ou PV Max">
+                          <input
+                            type="number"
+                            class="compact-hp-inp cur"
+                            value={hpData.hp}
+                            min="0"
+                            title="Modifier les PV de {vc.name}"
+                            onclick={(e) => e.stopPropagation()}
+                            onchange={(e) => setVaultCharHpDirect(vc, parseInt(e.currentTarget.value) || 0)}
+                          />
+                          <span class="compact-hp-slash">/</span>
+                          <input
+                            type="number"
+                            class="compact-hp-inp max"
+                            value={hpData.maxHp}
+                            min="1"
+                            title="Modifier les PV Max de {vc.name}"
+                            onclick={(e) => e.stopPropagation()}
+                            onchange={(e) => setVaultCharMaxHpDirect(vc, parseInt(e.currentTarget.value) || 1)}
+                          />
+                          <span class="compact-hp-unit">PV</span>
+                        </div>
                       </div>
                     </div>
 
@@ -1186,12 +1361,22 @@
                   {#if isExpanded}
                     <div class="player-expanded-body" transition:slide={{ duration: 140 }}>
                       <div class="hp-row">
-                        <span class="hp-text-lbl">PV : <strong>{hpData.hp} / {hpData.maxHp}</strong></span>
+                        <span class="hp-text-lbl">PV Actuels : <strong>{hpData.hp} / {hpData.maxHp}</strong></span>
                         <div class="hp-buttons">
-                          <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -5)}>-5</button>
-                          <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -1)}>-1</button>
-                          <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 1)}>+1</button>
-                          <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 5)}>+5</button>
+                          <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -5)} title="-5 PV">-5</button>
+                          <button class="hp-btn neg" onclick={() => adjustVaultCharHp(vc, -1)} title="-1 PV">-1</button>
+                          <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 1)} title="+1 PV">+1</button>
+                          <button class="hp-btn pos" onclick={() => adjustVaultCharHp(vc, 5)} title="+5 PV">+5</button>
+                        </div>
+                      </div>
+
+                      <div class="hp-row maxhp-row">
+                        <span class="hp-text-lbl">PV Max : <strong>{hpData.maxHp}</strong></span>
+                        <div class="hp-buttons">
+                          <button class="hp-btn neg" onclick={() => adjustVaultCharMaxHp(vc, -5)} title="-5 PV Max">-5</button>
+                          <button class="hp-btn neg" onclick={() => adjustVaultCharMaxHp(vc, -1)} title="-1 PV Max">-1</button>
+                          <button class="hp-btn pos" onclick={() => adjustVaultCharMaxHp(vc, 1)} title="+1 PV Max">+1</button>
+                          <button class="hp-btn pos" onclick={() => adjustVaultCharMaxHp(vc, 5)} title="+5 PV Max">+5</button>
                         </div>
                       </div>
                     </div>
@@ -1912,6 +2097,64 @@
     font-size: 11px;
     color: #94a3b8;
   }
+  .compact-hp-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .compact-hp-box:hover, .compact-hp-box:focus-within {
+    border-color: var(--accent);
+    background: rgba(0, 0, 0, 0.65);
+  }
+  .compact-hp-inp {
+    width: 28px;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: inherit;
+    padding: 0;
+    margin: 0;
+    -moz-appearance: textfield;
+  }
+  .compact-hp-inp::-webkit-outer-spin-button,
+  .compact-hp-inp::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .compact-hp-inp.cur {
+    color: #4ade80;
+  }
+  .compact-hp-inp.max {
+    color: #cbd5e1;
+  }
+  .compact-hp-inp:focus {
+    background: rgba(229, 168, 83, 0.2);
+    border-radius: 2px;
+    color: #fff;
+  }
+  .compact-hp-slash {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 10px;
+    user-select: none;
+  }
+  .compact-hp-unit {
+    color: #94a3b8;
+    font-size: 9px;
+    font-weight: 700;
+    user-select: none;
+    margin-left: 1px;
+  }
   .compact-hp-tag {
     font-size: 10px;
     font-weight: 700;
@@ -1919,6 +2162,11 @@
     padding: 0 4px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.25);
+  }
+  .maxhp-row {
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    padding-top: 6px;
+    margin-top: 4px;
   }
   .dot-online {
     width: 6px;
